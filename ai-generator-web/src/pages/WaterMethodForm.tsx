@@ -64,6 +64,21 @@ export const WaterMethodForm = () => {
         // Recalculate whenever form data changes
         const results = calc.calculateWaterReport(formData as ReportForm);
         setCalculated(results);
+
+        // Auto-generate deviation text
+        const hydrostaticHeight = calc.calculateHydrostaticHeight(
+            formData.draft_id || 1,
+            formData.water_height || 0,
+            formData.pipe_diameter || 0,
+            formData.depositional_height || 0
+        );
+
+        if (formData.draft_id === 2 && hydrostaticHeight < 1.0) {
+            const autoText = "Kod pojedinih dionica h2<100cm";
+            if (formData.deviation !== autoText) {
+                setFormData(prev => ({ ...prev, deviation: autoText }));
+            }
+        }
     }, [formData]);
 
     const loadReport = async (reportId: string) => {
@@ -353,6 +368,25 @@ export const WaterMethodForm = () => {
                                 step="0.01"
                                 name="water_height_end"
                                 value={formData.water_height_end}
+                                onChange={handleChange}
+                            />
+                        </div>
+                    </div>
+
+                    {/* Notes Card */}
+                    <div className="bg-card shadow-sm rounded-xl border border-border p-6">
+                        <h3 className="text-lg font-semibold text-foreground mb-4">Notes</h3>
+                        <div className="space-y-4">
+                            <Input
+                                label="Remark"
+                                name="remark"
+                                value={formData.remark || ''}
+                                onChange={handleChange}
+                            />
+                            <Input
+                                label="Deviation"
+                                name="deviation"
+                                value={formData.deviation || ''}
                                 onChange={handleChange}
                             />
                         </div>

@@ -8,8 +8,9 @@ import { Button } from '../components/ui/Button';
 import { Loader2, Save, ArrowLeft, FileDown, Calculator } from 'lucide-react';
 import * as calc from '../lib/calculations/report';
 import { generatePDF } from '../lib/pdfGenerator';
-import type { ReportForm } from '../types';
+import type { ReportForm, ExaminationProcedure } from '../types';
 import { cn } from '../lib/utils';
+import { calculateRequiredTestTime, formatTime } from '../lib/calculations/testTime';
 
 // Initial empty state
 const initialState: Partial<ReportForm> = {
@@ -27,17 +28,15 @@ const initialState: Partial<ReportForm> = {
     pane_height: 0,
     satisfies: false,
     examination_date: new Date().toISOString().split('T')[0],
+    examination_start_time: '',
+    examination_end_time: '',
 };
-
-interface ExaminationProcedure {
-    id: number;
-    name: string;
-}
 
 interface CalculatedResults {
     pressureLoss: number;
     allowedLoss: number;
     satisfies: boolean;
+    requiredTestTime: number; // in minutes
 }
 
 export const AirMethodForm = () => {
@@ -49,7 +48,8 @@ export const AirMethodForm = () => {
     const [calculated, setCalculated] = useState<CalculatedResults>({
         pressureLoss: 0,
         allowedLoss: 0,
-        satisfies: false
+        satisfies: false,
+        requiredTestTime: 0
     });
 
     useEffect(() => {
@@ -61,11 +61,38 @@ export const AirMethodForm = () => {
 
     useEffect(() => {
         // Recalculate whenever form data changes
-        // TODO: Get actual allowed loss from procedure or standard
-        const allowedLoss = 0.10;
+        const selectedProcedure = procedures.find(p => p.id === formData.examination_procedure_id);
+        const allowedLoss = selectedProcedure?.allowed_loss || 0.10; // Default to 0.10 if not found
+
         const results = calc.calculateAirReport(formData as ReportForm, allowedLoss);
-        setCalculated(results);
-    }, [formData]);
+
+        // Calculate Test Time
+        // Clause 13.2 says "Testing of individual pipes...". 
+        // Let's use the pipe diameter if it exists, otherwise pane diameter.
+
+        let diameter = 0;
+        if (formData.draft_id === 1) {
+            diameter = formData.pane_diameter || 0;
+        } else {
+            diameter = formData.pipe_diameter || 0;
+        }
+
+        // Method is usually derived from pressure. 
+        // 10mbar = LA, 50mbar = LB, 100mbar = LC, 200mbar = LD.
+        // Let's guess method based on start pressure.
+        let method: 'LA' | 'LB' | 'LC' | 'LD' = 'LA';
+        const p = formData.pressure_start || 0;
+        if (p >= 200) method = 'LD';
+        else if (p >= 100) method = 'LC';
+        else if (p >= 50) method = 'LB';
+
+        const requiredTestTime = calculateRequiredTestTime(method, diameter, formData.draft_id === 1);
+
+        setCalculated({
+            ...results,
+            requiredTestTime
+        });
+    }, [formData, procedures]);
 
     const loadProcedures = async () => {
         const { data } = await supabase.from('examination_procedures').select('*');
@@ -224,6 +251,22 @@ export const AirMethodForm = () => {
                                 value={formData.examination_date?.toString().split('T')[0]}
                                 onChange={handleChange}
                             />
+                            <div className="grid grid-cols-2 gap-2">
+                                <Input
+                                    label="Start Time"
+                                    type="time"
+                                    name="examination_start_time"
+                                    value={formData.examination_start_time || ''}
+                                    onChange={handleChange}
+                                />
+                                <Input
+                                    label="End Time"
+                                    type="time"
+                                    name="examination_end_time"
+                                    value={formData.examination_end_time || ''}
+                                    onChange={handleChange}
+                                />
+                            </div>
                             <Input
                                 label="Stock / Section"
                                 name="stock"
@@ -351,6 +394,22 @@ export const AirMethodForm = () => {
                                 <ResultRow label="Pressure Loss" value={`${calculated.pressureLoss.toFixed(2)} mbar`} />
                                 <div className="pt-4 border-t border-border">
                                     <ResultRow label="Allowed Loss" value={`${calculated.allowedLoss.toFixed(2)} mbar`} highlight />
+                                </div>
+                                <div className="pt-4 border-t border-border">
+                                    <ResultRow label="Required Time" value={`${formatTime(calculated.requiredTestTime)} min`} />
+                                    <ResultRow
+                                        label="Actual Time"
+                                        value={
+                                            formData.examination_start_time && formData.examination_end_time
+                                                ? (() => {
+                                                    const start = new Date(`1970-01-01T${formData.examination_start_time}`);
+                                                    const end = new Date(`1970-01-01T${formData.examination_end_time}`);
+                                                    const diff = (end.getTime() - start.getTime()) / 60000;
+                                                    return diff > 0 ? `${formatTime(diff)} min` : '-';
+                                                })()
+                                                : '-'
+                                        }
+                                    />
                                 </div>
                             </div>
                         </div>
