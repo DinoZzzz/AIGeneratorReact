@@ -4,7 +4,7 @@ import { reportService } from '../services/reportService';
 import { Input } from '../components/ui/Input';
 import { Select } from '../components/ui/Select';
 import { Button } from '../components/ui/Button';
-import { Loader2, Save, ArrowLeft, FileDown, Calculator } from 'lucide-react';
+import { Loader2, Save, ArrowLeft, FileDown, Calculator, Plus } from 'lucide-react';
 import * as calc from '../lib/calculations/report';
 import { generatePDF } from '../lib/pdfGenerator';
 import type { ReportForm } from '../types';
@@ -102,8 +102,7 @@ export const WaterMethodForm = () => {
         }));
     };
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
+    const saveReport = async (shouldRedirect: boolean) => {
         try {
             setLoading(true);
             const dataToSave = {
@@ -120,10 +119,26 @@ export const WaterMethodForm = () => {
                 await reportService.update(id!, dataToSave as ReportForm);
             }
 
-            if (customerId && constructionId) {
-                navigate(`/customers/${customerId}/constructions/${constructionId}/reports`);
+            if (shouldRedirect) {
+                if (customerId && constructionId) {
+                    navigate(`/customers/${customerId}/constructions/${constructionId}/reports`);
+                } else {
+                    navigate('/reports');
+                }
             } else {
-                navigate('/reports');
+                // Reset form for new entry
+                setFormData(prev => ({
+                    ...prev,
+                    stock: '',
+                    water_height_start: 0,
+                    water_height_end: 0,
+                    satisfies: false,
+                    // Keep dimensions and other context
+                }));
+                if (id !== 'new') {
+                    navigate(`/customers/${customerId}/constructions/${constructionId}/reports/new/water`);
+                }
+                alert('Report saved. Ready for next entry.');
             }
         } catch (error) {
             console.error('Error saving report:', error);
@@ -131,6 +146,16 @@ export const WaterMethodForm = () => {
         } finally {
             setLoading(false);
         }
+    };
+
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        saveReport(true);
+    };
+
+    const handleSaveAndNew = (e: React.MouseEvent) => {
+        e.preventDefault();
+        saveReport(false);
     };
 
     // Visibility Logic
@@ -180,11 +205,19 @@ export const WaterMethodForm = () => {
                         Export PDF
                     </Button>
                     <Button
+                        variant="outline"
+                        onClick={handleSaveAndNew}
+                        disabled={loading}
+                    >
+                        <Plus className="h-4 w-4 mr-2" />
+                        Save & New
+                    </Button>
+                    <Button
                         onClick={handleSubmit}
                         disabled={loading}
                     >
                         {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
-                        Save Report
+                        Save
                     </Button>
                 </div>
             </div>

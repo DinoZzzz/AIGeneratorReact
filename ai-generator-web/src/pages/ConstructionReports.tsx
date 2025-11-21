@@ -3,10 +3,10 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { reportService } from '../services/reportService';
 import { constructionService } from '../services/constructionService';
 import { customerService } from '../services/customerService';
-import { Plus, Pencil, Trash2, FileDown, ArrowLeft, Loader2 } from 'lucide-react';
+import { Plus, Pencil, Trash2, FileDown, ArrowLeft, Loader2, GripVertical } from 'lucide-react';
 import type { ReportForm, Construction, Customer } from '../types';
 import clsx from 'clsx';
-import { generatePDF } from '../lib/pdfGenerator';
+import { generatePDF, generateBulkPDF } from '../lib/pdfGenerator';
 import { Breadcrumbs } from '../components/ui/Breadcrumbs';
 
 export const ConstructionReports = () => {
@@ -16,56 +16,108 @@ export const ConstructionReports = () => {
     const [construction, setConstruction] = useState<Construction | null>(null);
     const [customer, setCustomer] = useState<Customer | null>(null);
     const [loading, setLoading] = useState(true);
+    const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+    const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
     useEffect(() => {
         if (customerId && constructionId) {
-            loadData(customerId, constructionId);
+            loadData();
         }
     }, [customerId, constructionId]);
 
-    const loadData = async (custId: string, constId: string) => {
-        setLoading(true);
+    const loadData = async () => {
         try {
-            const [customerData, constructionData, reportsData] = await Promise.all([
-                customerService.getById(custId),
-                constructionService.getById(constId),
-                reportService.getByConstruction(constId)
+            setLoading(true);
+            const [constructionData, customerData, reportsData] = await Promise.all([
+                constructionService.getById(constructionId!),
+                customerService.getById(customerId!),
+                reportService.getByConstruction(constructionId!)
             ]);
-            setCustomer(customerData);
             setConstruction(constructionData);
+            setCustomer(customerData);
             setReports(reportsData);
         } catch (error) {
-            console.error('Failed to load data', error);
-            alert('Failed to load data');
+            console.error('Error loading data:', error);
         } finally {
             setLoading(false);
         }
     };
 
     const handleDelete = async (id: string) => {
-        if (window.confirm('Are you sure you want to delete this report?')) {
-            try {
-                await reportService.delete(id);
-                setReports(reports.filter(r => r.id !== id));
-            } catch (error) {
-                console.error('Failed to delete report', error);
-                alert('Failed to delete report');
+        if (!window.confirm('Are you sure you want to delete this report?')) return;
+        try {
+            await reportService.delete(id);
+            setReports(reports.filter(r => r.id !== id));
+            // Remove from selection if present
+            if (selectedIds.has(id)) {
+                const newSelected = new Set(selectedIds);
+                newSelected.delete(id);
+                setSelectedIds(newSelected);
             }
+        } catch (error) {
+            console.error('Error deleting report:', error);
+            alert('Failed to delete report');
         }
     };
 
     const handleExportPDF = (report: ReportForm) => {
-        if (report.type_id === 1) {
-            // Water method PDF
-            generatePDF(report);
+        generatePDF(report);
+    };
+
+    const handleBulkExport = () => {
+        if (reports.length === 0) return;
+
+        const reportsToExport = selectedIds.size > 0
+            ? reports.filter(r => r.id && selectedIds.has(r.id))
+            : reports;
+
+        generateBulkPDF(reportsToExport, `Reports_${construction?.work_order || 'bundle'}.pdf`);
+    };
+
+    const toggleSelectAll = () => {
+        if (selectedIds.size === reports.length) {
+            setSelectedIds(new Set());
         } else {
-            // Air method PDF - reusing the same generator for now or need a specific one?
-            // The plan mentioned PDF export for Air Method was added to the form, 
-            // but ideally we should have a utility that can handle it from here too.
-            // For now, we'll use the same generatePDF if it supports it, or alert.
-            // Looking at previous edits, generatePDF seems tailored for Water.
-            // Let's try to use it, assuming it might need updates for Air later.
-            generatePDF(report);
+            // Filter out undefined IDs if any
+            const allIds = reports.map(r => r.id).filter((id): id is string => !!id);
+            setSelectedIds(new Set(allIds));
+        }
+    };
+
+    const toggleSelect = (id: string) => {
+        const newSelected = new Set(selectedIds);
+        if (newSelected.has(id)) {
+            newSelected.delete(id);
+        } else {
+            newSelected.add(id);
+        }
+        setSelectedIds(newSelected);
+    };
+
+    const handleDragStart = (index: number) => {
+        setDraggedIndex(index);
+    };
+
+    const handleDragOver = (e: React.DragEvent) => {
+        e.preventDefault(); // Necessary to allow dropping
+    };
+
+    const handleDrop = async (dropIndex: number) => {
+        if (draggedIndex === null || draggedIndex === dropIndex) return;
+
+        const newReports = [...reports];
+        const [draggedItem] = newReports.splice(draggedIndex, 1);
+        newReports.splice(dropIndex, 0, draggedItem);
+
+        // Optimistic update
+        setReports(newReports);
+        setDraggedIndex(null);
+
+        try {
+            await reportService.updateOrder(newReports);
+        } catch (error) {
+            console.error('Failed to update order', error);
+            alert('Failed to save new order');
         }
     };
 
@@ -120,6 +172,13 @@ export const ConstructionReports = () => {
                         <Plus className="h-5 w-5 mr-2" />
                         New Air Report
                     </Link>
+                    <button
+                        onClick={handleBulkExport}
+                        className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                    >
+                        <FileDown className="h-5 w-5 mr-2 text-gray-500" />
+                        {selectedIds.size > 0 ? `Export Selected (${selectedIds.size})` : 'Export All'}
+                    </button>
                 </div>
             </div>
 
@@ -127,6 +186,15 @@ export const ConstructionReports = () => {
                 <table className="min-w-full divide-y divide-gray-200">
                     <thead className="bg-gray-50">
                         <tr>
+                            <th className="w-10 px-6 py-3">
+                                <input
+                                    type="checkbox"
+                                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                    checked={reports.length > 0 && selectedIds.size === reports.length}
+                                    onChange={toggleSelectAll}
+                                />
+                            </th>
+                            <th className="w-10 px-6 py-3"></th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Draft</th>
@@ -135,8 +203,26 @@ export const ConstructionReports = () => {
                         </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
-                        {reports.map((report) => (
-                            <tr key={report.id} className="hover:bg-gray-50">
+                        {reports.map((report, index) => (
+                            <tr
+                                key={report.id}
+                                className="hover:bg-gray-50 cursor-move"
+                                draggable
+                                onDragStart={() => handleDragStart(index)}
+                                onDragOver={handleDragOver}
+                                onDrop={() => handleDrop(index)}
+                            >
+                                <td className="px-6 py-4 whitespace-nowrap">
+                                    <input
+                                        type="checkbox"
+                                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                        checked={report.id ? selectedIds.has(report.id) : false}
+                                        onChange={() => report.id && toggleSelect(report.id)}
+                                    />
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap text-gray-400 cursor-grab active:cursor-grabbing">
+                                    <GripVertical className="h-5 w-5" />
+                                </td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                     {new Date(report.examination_date).toLocaleDateString()}
                                 </td>
@@ -175,7 +261,7 @@ export const ConstructionReports = () => {
                                         <Pencil className="h-4 w-4" />
                                     </Link>
                                     <button
-                                        onClick={() => handleDelete(report.id)}
+                                        onClick={() => report.id && handleDelete(report.id)}
                                         className="text-red-600 hover:text-red-900 inline-flex items-center"
                                         title="Delete"
                                     >
@@ -186,7 +272,7 @@ export const ConstructionReports = () => {
                         ))}
                         {reports.length === 0 && (
                             <tr>
-                                <td colSpan={5} className="px-6 py-4 text-center text-sm text-gray-500">
+                                <td colSpan={7} className="px-6 py-4 text-center text-sm text-gray-500">
                                     No reports found for this construction site.
                                 </td>
                             </tr>

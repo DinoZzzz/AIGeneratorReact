@@ -72,5 +72,19 @@ export const reportService = {
             .eq('id', id);
 
         if (error) throw error;
+    },
+
+    async updateOrder(reports: ReportForm[]) {
+        // Ideally we would use a stored procedure or a single upsert,
+        // but for now we'll just loop through and update the ordinal.
+        // This is not atomic but sufficient for this scale.
+        const updates = reports.map((report, index) =>
+            supabase
+                .from('report_forms')
+                .update({ ordinal: index })
+                .eq('id', report.id)
+        );
+
+        await Promise.all(updates);
     }
 };

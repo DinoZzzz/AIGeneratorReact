@@ -5,7 +5,7 @@ import { supabase } from '../lib/supabase';
 import { Input } from '../components/ui/Input';
 import { Select } from '../components/ui/Select';
 import { Button } from '../components/ui/Button';
-import { Loader2, Save, ArrowLeft, FileDown, Calculator } from 'lucide-react';
+import { Loader2, Save, ArrowLeft, FileDown, Calculator, Plus } from 'lucide-react';
 import * as calc from '../lib/calculations/report';
 import { generatePDF } from '../lib/pdfGenerator';
 import type { ReportForm, ExaminationProcedure } from '../types';
@@ -120,8 +120,7 @@ export const AirMethodForm = () => {
         }));
     };
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
+    const saveReport = async (shouldRedirect: boolean) => {
         try {
             setLoading(true);
             const dataToSave = {
@@ -138,10 +137,36 @@ export const AirMethodForm = () => {
                 await reportService.update(id!, dataToSave as ReportForm);
             }
 
-            if (customerId && constructionId) {
-                navigate(`/customers/${customerId}/constructions/${constructionId}/reports`);
+            if (shouldRedirect) {
+                if (customerId && constructionId) {
+                    navigate(`/customers/${customerId}/constructions/${constructionId}/reports`);
+                } else {
+                    navigate('/reports');
+                }
             } else {
-                navigate('/reports');
+                // Reset form for new entry, keeping some context
+                // We keep: procedure, draft, material, date
+                // We reset: stock, measurements
+                setFormData(prev => ({
+                    ...prev,
+                    stock: '',
+                    pipe_length: 0,
+                    pressure_start: 0,
+                    pressure_end: 0,
+                    examination_start_time: '',
+                    examination_end_time: '',
+                    satisfies: false,
+                    // Keep dimensions? Usually dimensions change per section, but maybe not pipe diameter.
+                    // Let's keep diameter/width/height as they might be same for a run.
+                    // Let's reset pressure.
+                }));
+                // If we were editing, we should probably switch to 'new' mode or just stay here?
+                // If we are in 'edit' mode (id !== 'new'), 'Save & New' implies creating a NEW report next.
+                // So we should navigate to 'new' route if we are not already there, or just reset state and treat as new.
+                if (id !== 'new') {
+                    navigate(`/customers/${customerId}/constructions/${constructionId}/reports/new/air`);
+                }
+                alert('Report saved. Ready for next entry.');
             }
         } catch (error) {
             console.error('Error saving report:', error);
@@ -149,6 +174,16 @@ export const AirMethodForm = () => {
         } finally {
             setLoading(false);
         }
+    };
+
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        saveReport(true);
+    };
+
+    const handleSaveAndNew = (e: React.MouseEvent) => {
+        e.preventDefault();
+        saveReport(false);
     };
 
     // Visibility Logic
@@ -197,11 +232,19 @@ export const AirMethodForm = () => {
                         Export PDF
                     </Button>
                     <Button
+                        variant="outline"
+                        onClick={handleSaveAndNew}
+                        disabled={loading}
+                    >
+                        <Plus className="h-4 w-4 mr-2" />
+                        Save & New
+                    </Button>
+                    <Button
                         onClick={handleSubmit}
                         disabled={loading}
                     >
                         {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
-                        Save Report
+                        Save
                     </Button>
                 </div>
             </div>

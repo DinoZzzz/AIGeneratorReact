@@ -14,6 +14,39 @@ const loadImage = (src: string): Promise<HTMLImageElement> => {
 
 export const generatePDF = async (report: Partial<ReportForm>) => {
     const doc = new jsPDF();
+    await renderReportPage(doc, report);
+    doc.save(`report_${report.id || 'new'}.pdf`);
+};
+
+
+
+export const generateBulkPDF = async (reports: Partial<ReportForm>[], filename: string = 'reports_bundle.pdf') => {
+    const doc = new jsPDF();
+
+    // Pre-load common assets once if possible, or just load per page.
+    // For simplicity and reliability, we'll reuse the logic but we need to refactor the single page generation
+    // into a helper function that takes the `doc` object.
+
+    // However, refactoring `generatePDF` might be risky if I break it.
+    // Instead, I'll copy the logic into a helper `generatePage` and make `generatePDF` use it.
+    // Or better, just iterate here.
+
+    // Let's refactor `generatePDF` to use a shared `renderReportPage` function.
+    // But first, let's just implement the loop here to minimize impact on existing function if I mess up.
+    // Actually, code duplication is bad. Let's extract the rendering logic.
+
+    for (let i = 0; i < reports.length; i++) {
+        if (i > 0) {
+            doc.addPage();
+        }
+        await renderReportPage(doc, reports[i]);
+    }
+
+    doc.save(filename);
+};
+
+// Extracted rendering logic
+const renderReportPage = async (doc: jsPDF, report: Partial<ReportForm>) => {
     const pageWidth = doc.internal.pageSize.width;
     const pageHeight = doc.internal.pageSize.height;
 
@@ -21,10 +54,6 @@ export const generatePDF = async (report: Partial<ReportForm>) => {
     let logoImg, sketchImg, tableImg;
     try {
         logoImg = await loadImage('/assets/ai_icon.png');
-        // Map draft_id to Scheme image
-        // Old app: 1->Scheme1, etc.
-        // Assuming draft_id matches Scheme number for now.
-        // Note: Old app might have different mapping, but this is a safe start.
         const schemeNum = report.draft_id || 1;
         sketchImg = await loadImage(`/assets/Scheme${schemeNum}.PNG`);
 
@@ -105,7 +134,6 @@ export const generatePDF = async (report: Partial<ReportForm>) => {
     // Sketch (Right)
     doc.setFont('helvetica', 'normal');
     doc.text('Skica:', 100, currentY);
-    // doc.text(report.draft?.name || '', 120, currentY); // Draft Name
     if (sketchImg) {
         // Fit image
         const maxWidth = 80;
@@ -123,10 +151,6 @@ export const generatePDF = async (report: Partial<ReportForm>) => {
     currentY += 60; // Move down past sketch
 
     // --- Detailed Data ---
-    // We use autoTable for layout simplicity for the data grid
-    // But to match "Side by side" lists, we might need manual positioning or two tables.
-    // Let's use manual positioning for "Pane Data" (Left) and "Pipe/Measurements" (Right)
-
     const leftX = 20;
     const rightX = 110;
     let leftY = currentY;
@@ -154,7 +178,6 @@ export const generatePDF = async (report: Partial<ReportForm>) => {
             addLeft('Visina vode', `${(report.water_height || 0).toFixed(2)} m`);
         }
     } else { // Air
-        // Air specific left data
         if (report.draft_id === 1 || report.draft_id === 3) { // Shaft involved
             addLeft('Promjer okna', `${(report.pane_diameter || 0).toFixed(2)} m`);
         }
@@ -182,13 +205,11 @@ export const generatePDF = async (report: Partial<ReportForm>) => {
     currentY = Math.max(leftY, rightY) + 10;
 
     // --- Results / Calculations ---
-    // Left: Calculations
     leftY = currentY;
     rightY = currentY;
 
     if (report.type_id === 1) {
         // Water Results
-        // Left
         const totalArea = calc.calculateTotalWettedArea(
             calc.calculateWettedPipeSurface(report.draft_id!, report.pipe_diameter!, report.pipe_length!),
             calc.calculateWettedShaftSurface(report.draft_id!, report.material_type_id!, report.water_height!, report.pane_diameter!, report.pane_width!, report.pane_length!)
@@ -199,7 +220,6 @@ export const generatePDF = async (report: Partial<ReportForm>) => {
         const allowedLoss = calc.calculateAllowedLossL(criteria, totalArea);
         addLeft('Dozvoljeni gubitak', `${allowedLoss.toFixed(2)} l`);
 
-        // Right
         const waterLoss = calc.calculateWaterLoss(report.water_height_start!, report.water_height_end!);
         addRight('Gubitak vode', `${waterLoss.toFixed(2)} mm`);
 
@@ -238,8 +258,6 @@ export const generatePDF = async (report: Partial<ReportForm>) => {
     doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
     doc.text('Izradio: ___________________', pageWidth / 2, pageHeight - 20, { align: 'center' });
-
-    doc.save(`report_${report.id || 'new'}.pdf`);
 };
 
 
