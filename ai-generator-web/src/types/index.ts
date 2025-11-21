@@ -46,6 +46,12 @@ export interface Construction {
     customer?: Customer; // Joined
 }
 
+export interface User {
+    id: string;
+    email: string;
+    name?: string;
+}
+
 export interface ReportForm {
     id: string;
     ordinal: number;
