@@ -1,0 +1,717 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="..\packages\EntityFramework.6.4.4\build\EntityFramework.props" Condition="Exists('..\packages\EntityFramework.6.4.4\build\EntityFramework.props')" />
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{90F8173F-CED8-4516-8AEA-DADE1057155C}</ProjectGuid>
+    <OutputType>WinExe</OutputType>
+    <RootNamespace>AIGenerator</RootNamespace>
+    <AssemblyName>AIGenerator</AssemblyName>
+    <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+    <Deterministic>true</Deterministic>
+    <NuGetPackageImportStamp>
+    </NuGetPackageImportStamp>
+    <IsWebBootstrapper>true</IsWebBootstrapper>
+    <PublishUrl>ftp://ftp.digitando-server.com.hr/AIGeneratorClickOnce/</PublishUrl>
+    <Install>true</Install>
+    <InstallFrom>Web</InstallFrom>
+    <UpdateEnabled>true</UpdateEnabled>
+    <UpdateMode>Foreground</UpdateMode>
+    <UpdateInterval>1</UpdateInterval>
+    <UpdateIntervalUnits>Days</UpdateIntervalUnits>
+    <UpdatePeriodically>false</UpdatePeriodically>
+    <UpdateRequired>true</UpdateRequired>
+    <MapFileExtensions>false</MapFileExtensions>
+    <InstallUrl>https://app.digitando-server.com.hr/</InstallUrl>
+    <ProductName>AIGenerator</ProductName>
+    <PublisherName>Digitando Digital j.d.o.o.</PublisherName>
+    <CreateWebPageOnPublish>true</CreateWebPageOnPublish>
+    <WebPage>index.html</WebPage>
+    <OpenBrowserOnPublish>false</OpenBrowserOnPublish>
+    <ApplicationRevision>4</ApplicationRevision>
+    <ApplicationVersion>1.0.0.%2a</ApplicationVersion>
+    <UseApplicationTrust>false</UseApplicationTrust>
+    <CreateDesktopShortcut>true</CreateDesktopShortcut>
+    <PublishWizardCompleted>true</PublishWizardCompleted>
+    <BootstrapperEnabled>true</BootstrapperEnabled>
+  </PropertyGroup>
+  <PropertyGroup>
+    <AssemblyVersion>$(ApplicationVersion).$(ApplicationRevision)</AssemblyVersion>
+    <AssemblyFileVersion>$(ApplicationVersion).$(ApplicationRevision)</AssemblyFileVersion>
+    <FileVersion>$(ApplicationVersion).$(ApplicationRevision)</FileVersion>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <Prefer32Bit>false</Prefer32Bit>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <PlatformTarget>x64</PlatformTarget>
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>RELEASE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <Prefer32Bit>false</Prefer32Bit>
+  </PropertyGroup>
+  <PropertyGroup>
+    <ContentSQLiteInteropFiles>true</ContentSQLiteInteropFiles>
+    <CopySQLiteInteropFiles>false</CopySQLiteInteropFiles>
+    <CleanSQLiteInteropFiles>false</CleanSQLiteInteropFiles>
+    <CollectSQLiteInteropFiles>false</CollectSQLiteInteropFiles>
+  </PropertyGroup>
+  <PropertyGroup>
+    <ApplicationIcon>icon.ico</ApplicationIcon>
+  </PropertyGroup>
+  <PropertyGroup>
+    <ManifestCertificateThumbprint>E3CB2B80E2470AED54BA4F4BB3E5ACD4B55B9196</ManifestCertificateThumbprint>
+  </PropertyGroup>
+  <PropertyGroup>
+    <ManifestKeyFile>
+    </ManifestKeyFile>
+  </PropertyGroup>
+  <PropertyGroup>
+    <GenerateManifests>true</GenerateManifests>
+  </PropertyGroup>
+  <PropertyGroup>
+    <SignManifests>true</SignManifests>
+  </PropertyGroup>
+  <PropertyGroup>
+    <SignAssembly>false</SignAssembly>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Test|AnyCPU'">
+    <OutputPath>bin\Test\</OutputPath>
+    <DefineConstants>TEST</DefineConstants>
+    <Optimize>true</Optimize>
+    <DebugType>pdbonly</DebugType>
+    <PlatformTarget>x64</PlatformTarget>
+    <LangVersion>7.3</LangVersion>
+    <ErrorReport>prompt</ErrorReport>
+    <Prefer32Bit>false</Prefer32Bit>
+  </PropertyGroup>
+  <PropertyGroup />
+  <PropertyGroup>
+    <ManifestTimestampUrl>http://timestamp.comodoca.com</ManifestTimestampUrl>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="EntityFramework, Version=6.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089, processorArchitecture=MSIL">
+      <HintPath>..\packages\EntityFramework.6.4.4\lib\net45\EntityFramework.dll</HintPath>
+    </Reference>
+    <Reference Include="EntityFramework.SqlServer, Version=6.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089, processorArchitecture=MSIL">
+      <HintPath>..\packages\EntityFramework.6.4.4\lib\net45\EntityFramework.SqlServer.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.IO.RecyclableMemoryStream, Version=1.4.1.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.IO.RecyclableMemoryStream.1.4.1\lib\net46\Microsoft.IO.RecyclableMemoryStream.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Office.Interop.Word, Version=15.0.0.0, Culture=neutral, PublicKeyToken=71e9bce111e9429c, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.Office.Interop.Word.15.0.4797.1004\lib\net20\Microsoft.Office.Interop.Word.dll</HintPath>
+      <EmbedInteropTypes>True</EmbedInteropTypes>
+    </Reference>
+    <Reference Include="Ninject, Version=3.3.6.0, Culture=neutral, PublicKeyToken=c7192dc5380945e7, processorArchitecture=MSIL">
+      <HintPath>..\packages\Ninject.3.3.6\lib\net45\Ninject.dll</HintPath>
+    </Reference>
+    <Reference Include="PresentationCore" />
+    <Reference Include="SixLabors.ImageSharp, Version=2.0.0.0, Culture=neutral, PublicKeyToken=d998eea7b14cab13, processorArchitecture=MSIL">
+      <HintPath>..\packages\SixLabors.ImageSharp.2.1.3\lib\net472\SixLabors.ImageSharp.dll</HintPath>
+    </Reference>
+    <Reference Include="System" />
+    <Reference Include="System.ComponentModel.DataAnnotations" />
+    <Reference Include="System.Configuration" />
+    <Reference Include="System.Configuration.Install" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Management" />
+    <Reference Include="System.Numerics" />
+    <Reference Include="System.Runtime.InteropServices.RuntimeInformation, Version=4.0.1.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Runtime.InteropServices.RuntimeInformation.4.3.0\lib\net45\System.Runtime.InteropServices.RuntimeInformation.dll</HintPath>
+      <Private>True</Private>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="System.Security" />
+    <Reference Include="System.Text.Encoding.CodePages, Version=5.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Text.Encoding.CodePages.5.0.0\lib\net461\System.Text.Encoding.CodePages.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Threading.Tasks" />
+    <Reference Include="System.Windows.Forms.DataVisualization" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Deployment" />
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.Net.Http" />
+    <Reference Include="System.Windows.Forms" />
+    <Reference Include="System.Xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="console_queries.txt" />
+    <None Include="Resources\Scheme8.png" />
+    <None Include="Resources\Scheme7.png" />
+    <None Include="Resources\Scheme9.png" />
+    <None Include="Resources\Scheme10.png" />
+    <Content Include="Templates\method1610.DOC">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <None Include="AIGenerator_TemporaryKey.pfx" />
+    <None Include="Resources\customers_dark.png" />
+    <None Include="Resources\history_dark.png" />
+    <None Include="Resources\platform_dark.png" />
+    <None Include="Resources\examiners_dark.png" />
+    <None Include="Resources\logout_dark.png" />
+    <None Include="Resources\settings_dark.png" />
+    <None Include="Resources\help_dark.png" />
+    <None Include="Resources\notification_dark.png" />
+    <None Include="Resources\notification_dark_unread.png" />
+    <None Include="Resources\icon.ico" />
+    <None Include="Resources\logo.png" />
+    <None Include="Resources\logo_dark.png" />
+    <None Include="Resources\table.PNG" />
+    <Content Include="icon.ico" />
+    <None Include="Resources\ai_icon.png" />
+    <None Include="Resources\pdf.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Common\CustomColor.cs" />
+    <Compile Include="Common\DataGridHelper.cs" />
+    <Compile Include="Common\DevMode.cs" />
+    <Compile Include="Common\ExceptionHelper.cs" />
+    <Compile Include="Common\FilterClass.cs" />
+    <Compile Include="Common\FormHelper.cs" />
+    <Compile Include="Common\GetBitmap.cs" />
+    <Compile Include="Common\ImageClass.cs" />
+    <Compile Include="Common\LoadingScreenHelper.cs" />
+    <Compile Include="Common\MenuEnum.cs" />
+    <Compile Include="Common\MessageClass.cs" />
+    <Compile Include="Common\MethodFormHelper.cs" />
+    <Compile Include="Common\MSWord.cs" />
+    <Compile Include="Common\PdfClass.cs" />
+    <Compile Include="Common\ScreenshotControl.cs" />
+    <Compile Include="Common\StringClass.cs" />
+    <Compile Include="Common\TestTimeClass.cs" />
+    <Compile Include="Common\VersionClass.cs" />
+    <Compile Include="Dialogs\AddCustomerConstructionDialog.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Dialogs\AddCustomerConstructionDialog.Designer.cs">
+      <DependentUpon>AddCustomerConstructionDialog.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Dialogs\AddCustomerDialog.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Dialogs\AddCustomerDialog.Designer.cs">
+      <DependentUpon>AddCustomerDialog.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Dialogs\AddExaminerDialog.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Dialogs\AddExaminerDialog.Designer.cs">
+      <DependentUpon>AddExaminerDialog.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Dialogs\AddMaterialDialog.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Dialogs\AddMaterialDialog.Designer.cs">
+      <DependentUpon>AddMaterialDialog.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Dialogs\AddMaterialTypeDialog.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Dialogs\AddMaterialTypeDialog.Designer.cs">
+      <DependentUpon>AddMaterialTypeDialog.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Dialogs\AddPhotoDialog.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Dialogs\AddPhotoDialog.Designer.cs">
+      <DependentUpon>AddPhotoDialog.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Dialogs\FormsFilterDialog.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Dialogs\FormsFilterDialog.Designer.cs">
+      <DependentUpon>FormsFilterDialog.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Dialogs\SelectFormsDialog.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Dialogs\SelectFormsDialog.Designer.cs">
+      <DependentUpon>SelectFormsDialog.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Dialogs\SelectFormTypeDialog.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Dialogs\SelectFormTypeDialog.Designer.cs">
+      <DependentUpon>SelectFormTypeDialog.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Dialogs\SelectReportTypeDialog.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Dialogs\SelectReportTypeDialog.Designer.cs">
+      <DependentUpon>SelectReportTypeDialog.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Forms\BaseForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Forms\BaseForm.Designer.cs">
+      <DependentUpon>BaseForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Forms\ConstructionsForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Forms\ConstructionsForm.Designer.cs">
+      <DependentUpon>ConstructionsForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Forms\CustomersForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Forms\CustomersForm.Designer.cs">
+      <DependentUpon>CustomersForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Forms\ExportForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Forms\ExportForm.Designer.cs">
+      <DependentUpon>ExportForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Forms\HelpForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Forms\HelpForm.Designer.cs">
+      <DependentUpon>HelpForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Dialogs\LoadingDialog.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Dialogs\LoadingDialog.Designer.cs">
+      <DependentUpon>LoadingDialog.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Forms\PlatformForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Forms\PlatformForm.Designer.cs">
+      <DependentUpon>PlatformForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Forms\ExaminersForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Forms\ExaminersForm.Designer.cs">
+      <DependentUpon>ExaminersForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Forms\HistoryForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Forms\HistoryForm.Designer.cs">
+      <DependentUpon>HistoryForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Forms\LoginForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Forms\LoginForm.Designer.cs">
+      <DependentUpon>LoginForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Forms\ReportDataForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Forms\ReportDataForm.Designer.cs">
+      <DependentUpon>ReportDataForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Forms\ReportPhotosForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Forms\ReportPhotosForm.Designer.cs">
+      <DependentUpon>ReportPhotosForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Forms\ReportsForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Forms\ReportsForm.Designer.cs">
+      <DependentUpon>ReportsForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Forms\SettingsForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Forms\SettingsForm.Designer.cs">
+      <DependentUpon>SettingsForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\202303051637037_init.cs" />
+    <Compile Include="Migrations\202303051637037_init.designer.cs">
+      <DependentUpon>202303051637037_init.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\202303061330483_init1.cs" />
+    <Compile Include="Migrations\202303061330483_init1.designer.cs">
+      <DependentUpon>202303061330483_init1.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\202303121535507_init2.cs" />
+    <Compile Include="Migrations\202303121535507_init2.designer.cs">
+      <DependentUpon>202303121535507_init2.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\202303211907260_init3.cs" />
+    <Compile Include="Migrations\202303211907260_init3.designer.cs">
+      <DependentUpon>202303211907260_init3.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\202305031454280_init4.cs" />
+    <Compile Include="Migrations\202305031454280_init4.designer.cs">
+      <DependentUpon>202305031454280_init4.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\202305031524012_init5.cs" />
+    <Compile Include="Migrations\202305031524012_init5.designer.cs">
+      <DependentUpon>202305031524012_init5.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\202305041910349_init6.cs" />
+    <Compile Include="Migrations\202305041910349_init6.designer.cs">
+      <DependentUpon>202305041910349_init6.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\202305052054058_init7.cs" />
+    <Compile Include="Migrations\202305052054058_init7.designer.cs">
+      <DependentUpon>202305052054058_init7.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\202305052208227_init8.cs" />
+    <Compile Include="Migrations\202305052208227_init8.designer.cs">
+      <DependentUpon>202305052208227_init8.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\Configuration.cs" />
+    <Compile Include="Program.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="ReportForms\Method1060\AirMethodForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="ReportForms\Method1060\AirMethodForm.Designer.cs">
+      <DependentUpon>AirMethodForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="ReportForms\Method1060\WaterMethodForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="ReportForms\Method1060\WaterMethodForm.Designer.cs">
+      <DependentUpon>WaterMethodForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="UserControls\FormHeaderUserControl.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="UserControls\FormHeaderUserControl.Designer.cs">
+      <DependentUpon>FormHeaderUserControl.cs</DependentUpon>
+    </Compile>
+    <Compile Include="UserControls\FormTypeUserControl.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="UserControls\FormTypeUserControl.Designer.cs">
+      <DependentUpon>FormTypeUserControl.cs</DependentUpon>
+    </Compile>
+    <Compile Include="UserControls\LoadingUserControl.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="UserControls\LoadingUserControl.Designer.cs">
+      <DependentUpon>LoadingUserControl.cs</DependentUpon>
+    </Compile>
+    <Compile Include="UserControls\MenuItemUserControl.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="UserControls\MenuItemUserControl.Designer.cs">
+      <DependentUpon>MenuItemUserControl.cs</DependentUpon>
+    </Compile>
+    <Compile Include="UserControls\MenuUserControl.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="UserControls\MenuUserControl.Designer.cs">
+      <DependentUpon>MenuUserControl.cs</DependentUpon>
+    </Compile>
+    <Compile Include="UserControls\ReportFileUserControl.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="UserControls\ReportFileUserControl.Designer.cs">
+      <DependentUpon>ReportFileUserControl.cs</DependentUpon>
+    </Compile>
+    <EmbeddedResource Include="Dialogs\AddCustomerConstructionDialog.resx">
+      <DependentUpon>AddCustomerConstructionDialog.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Dialogs\AddCustomerDialog.resx">
+      <DependentUpon>AddCustomerDialog.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Dialogs\AddExaminerDialog.resx">
+      <DependentUpon>AddExaminerDialog.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Dialogs\AddMaterialDialog.resx">
+      <DependentUpon>AddMaterialDialog.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Dialogs\AddMaterialTypeDialog.resx">
+      <DependentUpon>AddMaterialTypeDialog.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Dialogs\AddPhotoDialog.resx">
+      <DependentUpon>AddPhotoDialog.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Dialogs\FormsFilterDialog.resx">
+      <DependentUpon>FormsFilterDialog.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Dialogs\SelectFormsDialog.resx">
+      <DependentUpon>SelectFormsDialog.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Dialogs\SelectFormTypeDialog.resx">
+      <DependentUpon>SelectFormTypeDialog.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Dialogs\SelectReportTypeDialog.resx">
+      <DependentUpon>SelectReportTypeDialog.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Forms\BaseForm.resx">
+      <DependentUpon>BaseForm.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Forms\ConstructionsForm.resx">
+      <DependentUpon>ConstructionsForm.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Forms\CustomersForm.resx">
+      <DependentUpon>CustomersForm.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Forms\ExportForm.resx">
+      <DependentUpon>ExportForm.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Forms\HelpForm.resx">
+      <DependentUpon>HelpForm.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Dialogs\LoadingDialog.resx">
+      <DependentUpon>LoadingDialog.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Forms\PlatformForm.resx">
+      <DependentUpon>PlatformForm.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Forms\ExaminersForm.resx">
+      <DependentUpon>ExaminersForm.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Forms\HistoryForm.resx">
+      <DependentUpon>HistoryForm.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Forms\LoginForm.resx">
+      <DependentUpon>LoginForm.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Forms\ReportDataForm.resx">
+      <DependentUpon>ReportDataForm.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Forms\ReportPhotosForm.resx">
+      <DependentUpon>ReportPhotosForm.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Forms\ReportsForm.resx">
+      <DependentUpon>ReportsForm.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Forms\SettingsForm.resx">
+      <DependentUpon>SettingsForm.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\202303051637037_init.resx">
+      <DependentUpon>202303051637037_init.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\202303061330483_init1.resx">
+      <DependentUpon>202303061330483_init1.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\202303121535507_init2.resx">
+      <DependentUpon>202303121535507_init2.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\202303211907260_init3.resx">
+      <DependentUpon>202303211907260_init3.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\202305031454280_init4.resx">
+      <DependentUpon>202305031454280_init4.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\202305031524012_init5.resx">
+      <DependentUpon>202305031524012_init5.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\202305041910349_init6.resx">
+      <DependentUpon>202305041910349_init6.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\202305052054058_init7.resx">
+      <DependentUpon>202305052054058_init7.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\202305052208227_init8.resx">
+      <DependentUpon>202305052208227_init8.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Properties\Resources.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <Compile Include="Properties\Resources.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Resources.resx</DependentUpon>
+      <DesignTime>True</DesignTime>
+    </Compile>
+    <EmbeddedResource Include="ReportForms\Method1060\AirMethodForm.resx">
+      <DependentUpon>AirMethodForm.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="ReportForms\Method1060\WaterMethodForm.resx">
+      <DependentUpon>WaterMethodForm.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="UserControls\FormHeaderUserControl.resx">
+      <DependentUpon>FormHeaderUserControl.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="UserControls\FormTypeUserControl.resx">
+      <DependentUpon>FormTypeUserControl.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="UserControls\MenuItemUserControl.resx">
+      <DependentUpon>MenuItemUserControl.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="UserControls\MenuUserControl.resx">
+      <DependentUpon>MenuUserControl.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="UserControls\ReportFileUserControl.resx">
+      <DependentUpon>ReportFileUserControl.cs</DependentUpon>
+    </EmbeddedResource>
+    <None Include="packages.config" />
+    <None Include="Properties\Settings.settings">
+      <Generator>SettingsSingleFileGenerator</Generator>
+      <LastGenOutput>Settings.Designer.cs</LastGenOutput>
+    </None>
+    <Compile Include="Properties\Settings.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Settings.settings</DependentUpon>
+      <DesignTimeSharedInput>True</DesignTimeSharedInput>
+    </Compile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="App.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\plus_circles.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\Poppins-Bold.ttf" />
+    <None Include="Resources\Poppins-Regular.ttf" />
+    <None Include="Resources\settings_active.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\customers.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\customers_active.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\examiners.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\examiners_active.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\help.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\help_active.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\history.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\history_active.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\logout.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\platform.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\platform_selected.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\settings.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\person.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\notification.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\notification_unread.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\user.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\search.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\Scheme1.PNG" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\Scheme2.PNG" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\Scheme3.PNG" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\Scheme4.PNG" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\Scheme5.PNG" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\Scheme6.PNG" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\AppBindings\AppBindings.csproj">
+      <Project>{adff0edd-6392-4c3b-9b51-e331e6d65f00}</Project>
+      <Name>AppBindings</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Common\Common.csproj">
+      <Project>{86F9313A-FA8E-4C83-A8C6-9D624696DD88}</Project>
+      <Name>Common</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Enums\Enums.csproj">
+      <Project>{b043548d-4711-4822-b18d-d59165fd6f1a}</Project>
+      <Name>Enums</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Interfaces\Interfaces.csproj">
+      <Project>{5a402c32-e6e3-40bd-927d-87e1144f96e1}</Project>
+      <Name>Interfaces</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Models\Models.csproj">
+      <Project>{1d941ff4-2941-4b97-8199-799e4daa7411}</Project>
+      <Name>Models</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Services\Services.csproj">
+      <Project>{6a4f2928-94ce-486e-a768-5fba5f412f5a}</Project>
+      <Name>Services</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\SetupLibrary\SetupLibrary.csproj">
+      <Project>{516CCA33-4F82-4536-BC1E-B07072A4601E}</Project>
+      <Name>SetupLibrary</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <BootstrapperPackage Include=".NETFramework,Version=v4.7.2">
+      <Visible>False</Visible>
+      <ProductName>Microsoft .NET Framework 4.7.2 %28x86 and x64%29</ProductName>
+      <Install>true</Install>
+    </BootstrapperPackage>
+    <BootstrapperPackage Include="Microsoft.Net.Framework.3.5.SP1">
+      <Visible>False</Visible>
+      <ProductName>.NET Framework 3.5 SP1</ProductName>
+      <Install>false</Install>
+    </BootstrapperPackage>
+  </ItemGroup>
+  <ItemGroup />
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <Target Name="AutoSetMinimumRequiredVersion" BeforeTargets="GenerateDeploymentManifest">
+    <FormatVersion Version="$(ApplicationVersion)" Revision="$(ApplicationRevision)">
+      <Output PropertyName="MinimumRequiredVersion" TaskParameter="OutputVersion" />
+    </FormatVersion>
+    <FormatVersion Version="$(ApplicationVersion)" Revision="$(ApplicationRevision)">
+      <Output PropertyName="_DeploymentBuiltMinimumRequiredVersion" TaskParameter="OutputVersion" />
+    </FormatVersion>
+  </Target>
+  <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
+    <PropertyGroup>
+      <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
+    </PropertyGroup>
+    <Error Condition="!Exists('..\packages\NETStandard.Library.2.0.3\build\netstandard2.0\NETStandard.Library.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\NETStandard.Library.2.0.3\build\netstandard2.0\NETStandard.Library.targets'))" />
+    <Error Condition="!Exists('..\packages\EntityFramework.6.4.4\build\EntityFramework.props')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\EntityFramework.6.4.4\build\EntityFramework.props'))" />
+    <Error Condition="!Exists('..\packages\EntityFramework.6.4.4\build\EntityFramework.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\EntityFramework.6.4.4\build\EntityFramework.targets'))" />
+  </Target>
+  <Import Project="..\packages\NETStandard.Library.2.0.3\build\netstandard2.0\NETStandard.Library.targets" Condition="Exists('..\packages\NETStandard.Library.2.0.3\build\netstandard2.0\NETStandard.Library.targets')" />
+  <Import Project="..\packages\EntityFramework.6.4.4\build\EntityFramework.targets" Condition="Exists('..\packages\EntityFramework.6.4.4\build\EntityFramework.targets')" />
+</Project>

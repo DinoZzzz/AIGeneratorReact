@@ -1,0 +1,92 @@
+@model AIGeneratorWebApp.ViewModels.Dashboard.DashboardViewModel
+@{
+    ViewData["Title"] = "Nadzorna ploča";
+}
+<section class="mb-4">
+    <div class="d-flex flex-wrap justify-content-between align-items-center g-3">
+        <div>
+            <h1 class="fw-bold">@Model.Greeting</h1>
+            <p class="text-muted">@Model.InfoText</p>
+        </div>
+        <form method="get" class="d-flex gap-2">
+            <input type="text" class="form-control" placeholder="Pretraži naručitelje" name="search" value="@ViewBag.Search" />
+            <button class="btn btn-outline-primary" type="submit">Pretraži</button>
+        </form>
+    </div>
+</section>
+<section class="row g-4 mb-5">
+    @foreach (var customer in Model.Customers)
+    {
+        <div class="col-md-4">
+            <div class="dashboard-card h-100">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <p class="text-uppercase small text-muted mb-1">Radni nalog</p>
+                        <h5 class="fw-bold">@customer.WorkOrder</h5>
+                    </div>
+                    <span class="badge bg-primary-subtle text-primary">@customer.Location</span>
+                </div>
+                <h4 class="mt-3">@customer.Name</h4>
+                <ul class="list-unstyled small mt-3 mb-0">
+                    @foreach (var construction in customer.ActiveConstructions)
+                    {
+                        <li class="mb-1"><i class="bi bi-diagram-3 me-2 text-primary"></i>@construction</li>
+                    }
+                </ul>
+                <div class="mt-3">
+                    <a class="btn btn-sm btn-outline-primary" asp-controller="Customers" asp-action="Details" asp-route-id="@customer.CustomerId">Detalji</a>
+                </div>
+            </div>
+        </div>
+    }
+</section>
+<section class="row g-4">
+    <div class="col-lg-6">
+        <div class="dashboard-card h-100">
+            <div class="d-flex justify-content-between mb-3">
+                <h5 class="fw-bold">Top naručitelji</h5>
+            </div>
+            <ul class="list-group list-group-flush">
+                @foreach (var top in Model.TopCustomers)
+                {
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="fw-semibold">@top.Name</div>
+                            <small class="text-muted">@top.Reports izvještaja</small>
+                        </div>
+                        <a class="btn btn-sm btn-outline-secondary" asp-controller="Customers" asp-action="Details" asp-route-id="@top.CustomerId">Pregled</a>
+                    </li>
+                }
+            </ul>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="dashboard-card h-100">
+            <div class="d-flex justify-content-between mb-3">
+                <h5 class="fw-bold">Top ispitivači</h5>
+            </div>
+            <ul class="list-group list-group-flush">
+                @foreach (var examiner in Model.TopExaminers)
+                {
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="fw-semibold">@examiner.DisplayName</div>
+                            <small class="text-muted">@examiner.ReportsCreated izvještaja</small>
+                        </div>
+                        <span class="badge bg-success-subtle text-success">Aktivno</span>
+                    </li>
+                }
+            </ul>
+        </div>
+    </div>
+</section>
+<nav class="mt-4">
+    <ul class="pagination">
+        @for (var i = 0; i < (int)ViewBag.TotalPages; i++)
+        {
+            <li class="page-item @(i == (int)ViewBag.Page ? "active" : "")">
+                <a class="page-link" asp-route-page="@i" asp-route-search="@ViewBag.Search">@(i + 1)</a>
+            </li>
+        }
+    </ul>
+</nav>

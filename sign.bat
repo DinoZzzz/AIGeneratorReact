@@ -1,0 +1,1 @@
+signtool sign /f "./certificate.pfx" /p D5qrpFaVM95jV7A /tr "http://timestamp.comodoca.com" /td SHA256 "./AIGeneratorSetup/Release/AIGeneratorSetup.msi"

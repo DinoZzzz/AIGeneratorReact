@@ -1,0 +1,11 @@
+// Tailwind config is now handled in src/index.css via @theme for v4 compatibility
+export default {
+    content: [
+        "./index.html",
+        "./src/**/*.{js,ts,jsx,tsx}",
+    ],
+    theme: {
+        extend: {},
+    },
+    plugins: [],
+}

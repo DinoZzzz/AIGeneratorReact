@@ -1,0 +1,31 @@
+@model AIGeneratorWebApp.ViewModels.Customers.CustomerDetailsViewModel
+@{
+    ViewData["Title"] = Model.Name;
+}
+<div class="mb-4">
+    <a asp-action="Index" class="btn btn-link text-decoration-none"><i class="bi bi-arrow-left"></i> Povratak</a>
+</div>
+<section class="dashboard-card mb-4">
+    <h2 class="fw-bold mb-1">@Model.Name</h2>
+    <p class="text-muted mb-0">@Model.Location</p>
+    <small class="text-uppercase text-primary">Radni nalog @Model.WorkOrder</small>
+</section>
+<section class="dashboard-card">
+    <h5 class="fw-bold mb-3">Građevine</h5>
+    <ul class="list-group list-group-flush">
+        @foreach (var construction in Model.Constructions)
+        {
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+                <div>
+                    <span class="fw-semibold">@construction.Label</span>
+                    <span class="badge @(construction.IsActive ? "bg-success-subtle text-success" : "bg-secondary-subtle text-secondary") ms-2">
+                        @(construction.IsActive ? "Aktivno" : "Arhiva")
+                    </span>
+                </div>
+                <a class="btn btn-sm btn-outline-primary" asp-controller="Reports" asp-action="Index" asp-route-customerId="@Model.CustomerId" asp-route-constructionId="@construction.Id">
+                    Otvori izvještaje
+                </a>
+            </li>
+        }
+    </ul>
+</section>
