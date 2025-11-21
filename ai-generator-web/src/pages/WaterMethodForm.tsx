@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { reportService } from '../services/reportService';
+import { supabase } from '../lib/supabase';
 import { Input } from '../components/ui/Input';
 import { Select } from '../components/ui/Select';
 import { Button } from '../components/ui/Button';
@@ -26,19 +27,40 @@ const initialState: Partial<ReportForm> = {
     pressure_start: 0,
     pressure_end: 0,
     pane_diameter: 0,
-    ro_height: 0,
+    examination_date: new Date().toISOString().split('T')[0],
+    examination_duration: '30:00', // Default 30 min for water
+    stock: '',
+    remark: '',
+    deviation: '',
     depositional_height: 0,
-    pipeline_slope: 0,
+    pipeline_slope: 0
 };
+
+interface ExaminationProcedure {
+    id: number;
+    name: string;
+}
 
 interface CalculatedResults {
     waterLoss: number;
     waterVolumeLoss: number;
     totalWettedArea: number;
+    wettedShaftSurface: number;
+    wettedPipeSurface: number;
     allowedLossL: number;
+    allowedLossMm: number;
     result: number;
     satisfies: boolean;
+    hydrostaticHeight: number;
 }
+
+const NUMERIC_FIELDS = [
+    'type_id', 'draft_id', 'material_type_id', 'pane_material_id', 'examination_procedure_id',
+    'temperature', 'pipe_length', 'pipe_diameter', 'pane_width', 'pane_length',
+    'water_height', 'water_height_start', 'water_height_end',
+    'pressure_start', 'pressure_end', 'pane_diameter',
+    'customer_id', 'construction_id', 'ordinal', 'depositional_height', 'pipeline_slope'
+];
 
 export const WaterMethodForm = () => {
     const { id, customerId, constructionId } = useParams();
@@ -50,12 +72,17 @@ export const WaterMethodForm = () => {
         waterLoss: 0,
         waterVolumeLoss: 0,
         totalWettedArea: 0,
+        wettedShaftSurface: 0,
+        wettedPipeSurface: 0,
         allowedLossL: 0,
+        allowedLossMm: 0,
         result: 0,
-        satisfies: false
+        satisfies: false,
+        hydrostaticHeight: 0
     });
 
     useEffect(() => {
+        loadProcedures();
         if (id && id !== 'new') {
             loadReport(id);
         }
@@ -63,24 +90,47 @@ export const WaterMethodForm = () => {
 
     useEffect(() => {
         // Recalculate whenever form data changes
-        const results = calc.calculateWaterReport(formData as ReportForm);
-        setCalculated(results);
+        const form = formData as ReportForm;
+        const results = calc.calculateWaterReport(form);
 
-        // Auto-generate deviation text
+        // Extra calculations not returned by calculateWaterReport wrapper
         const hydrostaticHeight = calc.calculateHydrostaticHeight(
-            formData.draft_id || 1,
-            formData.water_height || 0,
-            formData.pipe_diameter || 0,
-            formData.depositional_height || 0
+            form.draft_id,
+            form.water_height,
+            form.pipe_diameter,
+            form.depositional_height
         );
 
-        if (formData.draft_id === 2 && hydrostaticHeight < 1.0) {
-            const autoText = "Kod pojedinih dionica h2<100cm";
-            if (formData.deviation !== autoText) {
-                setFormData(prev => ({ ...prev, deviation: autoText }));
+        const wettedPipe = calc.calculateWettedPipeSurface(form.draft_id, form.pipe_diameter, form.pipe_length);
+        const wettedShaft = calc.calculateWettedShaftSurface(form.draft_id, form.material_type_id, form.water_height, form.pane_diameter, form.pane_width, form.pane_length);
+        const allowedLossMm = calc.calculateAllowedLossMm(results.allowedLossL, form.material_type_id, form.pane_diameter, form.pane_width, form.pane_length);
+
+        setCalculated({
+            ...results,
+            hydrostaticHeight,
+            wettedPipeSurface: wettedPipe,
+            wettedShaftSurface: wettedShaft,
+            allowedLossMm
+        });
+
+        // Auto-fill deviation text logic from WaterMethodForm.cs
+        // if (hydrostaticHeight < 100 && draftId == 2)
+        // Hydrostatic height in calc is in meters, C# checks cm (100cm = 1m)
+        const deviationTarget = "Kod pojedinih dionica h2<100cm";
+        if (hydrostaticHeight < 1.0 && form.draft_id === 2) {
+            if (form.deviation !== deviationTarget) {
+                setFormData(prev => ({ ...prev, deviation: deviationTarget }));
             }
+        } else if (form.deviation === deviationTarget) {
+            setFormData(prev => ({ ...prev, deviation: "" }));
         }
+
     }, [formData]);
+
+    const loadProcedures = async () => {
+        const { data } = await supabase.from('examination_procedures').select('*');
+        if (data) setProcedures(data);
+    };
 
     const loadReport = async (reportId: string) => {
         try {
@@ -95,20 +145,26 @@ export const WaterMethodForm = () => {
         }
     };
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
         const { name, value, type } = e.target;
+        let finalValue: string | number = value;
+
+        if (type === 'number' || NUMERIC_FIELDS.includes(name)) {
+            finalValue = parseFloat(value) || 0;
+        }
+
         setFormData(prev => ({
             ...prev,
-            [name]: type === 'number' ? parseFloat(value) || 0 : value
+            [name]: finalValue
         }));
     };
 
-    const saveReport = async (shouldRedirect: boolean) => {
+    const handleSave = async (createNext: boolean = false) => {
         try {
             setLoading(true);
             const dataToSave = {
                 ...formData,
-                ...calculated,
+                satisfies: calculated.satisfies,
                 customer_id: customerId ? parseInt(customerId) : formData.customer_id,
                 construction_id: constructionId ? parseInt(constructionId) : formData.construction_id,
                 type_id: 1 // Ensure it's water type
@@ -120,7 +176,17 @@ export const WaterMethodForm = () => {
                 await reportService.update(id!, dataToSave as ReportForm);
             }
 
-            if (shouldRedirect) {
+            if (createNext) {
+                setFormData({
+                    ...initialState,
+                    customer_id: dataToSave.customer_id,
+                    construction_id: dataToSave.construction_id,
+                    examination_date: dataToSave.examination_date,
+                    // keep other relevant fields if needed
+                });
+                setActiveTab('page1');
+                navigate(`/customers/${customerId}/constructions/${constructionId}/reports/new/water`);
+            } else {
                 if (customerId && constructionId) {
                     navigate(`/customers/${customerId}/constructions/${constructionId}/reports`);
                 } else {
@@ -187,7 +253,7 @@ export const WaterMethodForm = () => {
     }
 
     return (
-        <div className="max-w-5xl mx-auto space-y-8">
+        <div className="max-w-5xl mx-auto space-y-6">
             <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-4">
                     <Button
@@ -199,7 +265,7 @@ export const WaterMethodForm = () => {
                     </Button>
                     <div>
                         <h1 className="text-2xl font-bold text-foreground">
-                            {id === 'new' ? 'New Water Test Report' : 'Edit Report'}
+                            AI Generator
                         </h1>
                         <p className="text-sm text-muted-foreground">
                             {step === 1 ? 'Step 1: Parameters & Dimensions' : 'Step 2: Measurements & Results'}
@@ -505,7 +571,7 @@ export const WaterMethodForm = () => {
 
 const ResultRow = ({ label, value, highlight = false }: { label: string, value: string, highlight?: boolean }) => (
     <div className="flex justify-between items-center">
-        <span className={cn("text-sm", highlight ? "font-semibold text-foreground" : "text-muted-foreground")}>{label}</span>
-        <span className={cn("font-medium", highlight ? "text-lg text-primary" : "text-foreground")}>{value}</span>
+        <span className={cn(highlight ? "font-semibold text-foreground" : "text-muted-foreground")}>{label}</span>
+        <span className={cn("font-medium", highlight ? "text-primary" : "text-foreground")}>{value}</span>
     </div>
 );

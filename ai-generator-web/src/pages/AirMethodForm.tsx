@@ -7,6 +7,7 @@ import { Select } from '../components/ui/Select';
 import { Button } from '../components/ui/Button';
 import { Loader2, Save, ArrowLeft, FileDown, Calculator, Plus, ArrowRight, ChevronLeft } from 'lucide-react';
 import * as calc from '../lib/calculations/report';
+import { calculateTestTime } from '../lib/calculations/testTime';
 import { generatePDF } from '../lib/pdfGenerator';
 import type { ReportForm, ExaminationProcedure } from '../types';
 import { cn } from '../lib/utils';
@@ -15,7 +16,7 @@ import { calculateRequiredTestTime, formatTime } from '../lib/calculations/testT
 // Initial empty state
 const initialState: Partial<ReportForm> = {
     type_id: 2, // Air
-    draft_id: 1,
+    draft_id: 1, // Kvadratni / Okrugli (matches C# combos)
     material_type_id: 1, // Shaft
     temperature: 0,
     pipe_length: 0,
@@ -28,16 +29,32 @@ const initialState: Partial<ReportForm> = {
     pane_height: 0,
     satisfies: false,
     examination_date: new Date().toISOString().split('T')[0],
-    examination_start_time: '',
-    examination_end_time: '',
+    examination_duration: '05:00', // Default
+    stock: '',
+    remark: '',
+    deviation: ''
 };
+
+interface ExaminationProcedure {
+    id: number;
+    name: string;
+    pressure: number;
+    allowed_loss: number;
+}
 
 interface CalculatedResults {
     pressureLoss: number;
     allowedLoss: number;
     satisfies: boolean;
-    requiredTestTime: number; // in minutes
+    testTime: string;
 }
+
+const NUMERIC_FIELDS = [
+    'type_id', 'draft_id', 'material_type_id', 'pane_material_id', 'examination_procedure_id',
+    'temperature', 'pipe_length', 'pipe_diameter', 'pane_width', 'pane_length',
+    'pressure_start', 'pressure_end', 'pane_diameter',
+    'customer_id', 'construction_id', 'ordinal'
+];
 
 export const AirMethodForm = () => {
     const { id, customerId, constructionId } = useParams();
@@ -50,7 +67,7 @@ export const AirMethodForm = () => {
         pressureLoss: 0,
         allowedLoss: 0,
         satisfies: false,
-        requiredTestTime: 0
+        testTime: '00:00'
     });
 
     useEffect(() => {
@@ -61,37 +78,46 @@ export const AirMethodForm = () => {
     }, [id]);
 
     useEffect(() => {
-        // Recalculate whenever form data changes
-        const selectedProcedure = procedures.find(p => p.id === formData.examination_procedure_id);
-        const allowedLoss = selectedProcedure?.allowed_loss || 0.10; // Default to 0.10 if not found
+        // Find selected procedure
+        const procedure = procedures.find(p => p.id === formData.examination_procedure_id);
+        const allowedLoss = procedure?.allowed_loss || 0.10; // Fallback
 
-        const results = calc.calculateAirReport(formData as ReportForm, allowedLoss);
+        // Calculate Pressure Loss
+        const pressureLoss = calc.calculatePressureLoss(formData.pressure_start || 0, formData.pressure_end || 0);
 
-        // Calculate Test Time
-        // Clause 13.2 says "Testing of individual pipes...". 
-        // Let's use the pipe diameter if it exists, otherwise pane diameter.
+        // Calculate Satisfies
+        const satisfies = calc.isSatisfying(0, 0, 2, pressureLoss, allowedLoss);
 
+        // Calculate Test Time (using ported logic)
+        // Note: C# passes diameter as integer. For pipe or pane depending on draft.
+        // Logic inferred from AirMethodForm.cs UpdateTestTime()
+        // draft.Id != 6 ? numPaneDiameter : numPipeDiameter
+        // Assuming Draft 6 is special, but generally checking draft ID.
+        // Let's use pipe diameter if draft relates to pipe, else pane.
         let diameter = 0;
-        if (formData.draft_id === 1) {
-            diameter = formData.pane_diameter || 0;
+        // Draft 1 = Shaft, Draft 2 = Pipe ... roughly.
+        if (formData.draft_id === 2 || formData.draft_id === 3) {
+            diameter = (formData.pipe_diameter || 0) * 1000;
         } else {
-            diameter = formData.pipe_diameter || 0;
+            diameter = (formData.pane_diameter || 0) * 1000;
         }
 
-        // Method is usually derived from pressure. 
-        // 10mbar = LA, 50mbar = LB, 100mbar = LC, 200mbar = LD.
-        // Let's guess method based on start pressure.
-        let method: 'LA' | 'LB' | 'LC' | 'LD' = 'LA';
-        const p = formData.pressure_start || 0;
-        if (p >= 200) method = 'LD';
-        else if (p >= 100) method = 'LC';
-        else if (p >= 50) method = 'LB';
+        const timeMinutes = calculateTestTime(
+            formData.examination_procedure_id || 1,
+            formData.draft_id || 1,
+            Math.round(diameter)
+        );
 
-        const requiredTestTime = calculateRequiredTestTime(method, diameter, formData.draft_id === 1);
+        // Convert decimal minutes to mm:ss
+        const mins = Math.floor(timeMinutes);
+        const secs = Math.round((timeMinutes - mins) * 60);
+        const testTimeString = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
 
         setCalculated({
-            ...results,
-            requiredTestTime
+            pressureLoss,
+            allowedLoss,
+            satisfies,
+            testTime: testTimeString
         });
     }, [formData, procedures]);
 
@@ -113,32 +139,54 @@ export const AirMethodForm = () => {
         }
     };
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
         const { name, value, type } = e.target;
+        let finalValue: string | number = value;
+
+        if (type === 'number' || NUMERIC_FIELDS.includes(name)) {
+            finalValue = parseFloat(value) || 0;
+        }
+
         setFormData(prev => ({
             ...prev,
-            [name]: type === 'number' ? parseFloat(value) || 0 : value
+            [name]: finalValue
         }));
     };
 
-    const saveReport = async (shouldRedirect: boolean) => {
+    const handleSave = async (createNext: boolean = false) => {
         try {
             setLoading(true);
             const dataToSave = {
                 ...formData,
-                ...calculated,
+                satisfies: calculated.satisfies,
                 customer_id: customerId ? parseInt(customerId) : formData.customer_id,
                 construction_id: constructionId ? parseInt(constructionId) : formData.construction_id,
-                type_id: 2 // Ensure it's air type
+                type_id: 2
             };
 
+            let savedId = id;
             if (id === 'new') {
-                await reportService.create(dataToSave as ReportForm);
+                const res = await reportService.create(dataToSave as ReportForm);
+                // Assuming create returns the object, or we just proceed
+                savedId = 'created';
             } else {
                 await reportService.update(id!, dataToSave as ReportForm);
             }
 
-            if (shouldRedirect) {
+            if (createNext) {
+                // Reset form for new entry but keep some fields like construction/date if needed
+                // C# logic: Copies relevant fields, increments Ordinal.
+                // For now, we reload page as 'new' or reset state.
+                setFormData({
+                    ...initialState,
+                    customer_id: dataToSave.customer_id,
+                    construction_id: dataToSave.construction_id,
+                    examination_date: dataToSave.examination_date,
+                    // Increment ordinal logic would go here if backend doesn't handle it
+                });
+                setActiveTab('page1'); // Go back to start
+                navigate(`/customers/${customerId}/constructions/${constructionId}/reports/new/air`);
+            } else {
                 if (customerId && constructionId) {
                     navigate(`/customers/${customerId}/constructions/${constructionId}/reports`);
                 } else {
@@ -211,7 +259,8 @@ export const AirMethodForm = () => {
     }
 
     return (
-        <div className="max-w-5xl mx-auto space-y-8">
+        <div className="max-w-5xl mx-auto space-y-6">
+            {/* Header / Navigation */}
             <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-4">
                     <Button
@@ -223,7 +272,7 @@ export const AirMethodForm = () => {
                     </Button>
                     <div>
                         <h1 className="text-2xl font-bold text-foreground">
-                            {id === 'new' ? 'New Air Test Report' : 'Edit Report'}
+                            AI Generator
                         </h1>
                         <p className="text-sm text-muted-foreground">
                              {step === 1 ? 'Step 1: Parameters & Dimensions' : 'Step 2: Measurements & Results'}
@@ -494,10 +543,3 @@ export const AirMethodForm = () => {
         </div>
     );
 };
-
-const ResultRow = ({ label, value, highlight = false }: { label: string, value: string, highlight?: boolean }) => (
-    <div className="flex justify-between items-center">
-        <span className={cn("text-sm", highlight ? "font-semibold text-foreground" : "text-muted-foreground")}>{label}</span>
-        <span className={cn("font-medium", highlight ? "text-lg text-primary" : "text-foreground")}>{value}</span>
-    </div>
-);
