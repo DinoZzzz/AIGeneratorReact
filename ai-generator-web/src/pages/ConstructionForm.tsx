@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { constructionService } from '../services/constructionService';
 import { customerService } from '../services/customerService';
 import { Input } from '../components/ui/Input';
-import { Loader2, Save, ArrowLeft } from 'lucide-react';
+import { Loader2, Save, ArrowLeft, FileText } from 'lucide-react';
 import type { Construction, Customer } from '../types';
 
 const initialState: Partial<Construction> = {
@@ -144,14 +144,25 @@ export const ConstructionForm = () => {
                         {customer && <p className="text-sm text-gray-500">for {customer.name}</p>}
                     </div>
                 </div>
-                <button
-                    onClick={handleSubmit}
-                    disabled={loading}
-                    className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
-                >
-                    {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Save className="h-5 w-5 mr-2" />}
-                    Save
-                </button>
+                <div className="flex space-x-3">
+                    {id !== 'new' && (
+                        <button
+                            onClick={() => navigate(`/customers/${customerId}/constructions/${id}/reports`)}
+                            className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                        >
+                            <FileText className="h-5 w-5 mr-2 text-gray-500" />
+                            View Reports
+                        </button>
+                    )}
+                    <button
+                        onClick={handleSubmit}
+                        disabled={loading}
+                        className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+                    >
+                        {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Save className="h-5 w-5 mr-2" />}
+                        Save
+                    </button>
+                </div>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-6 bg-white shadow rounded-lg p-6">

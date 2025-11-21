@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { constructionService } from '../services/constructionService';
 import { customerService } from '../services/customerService';
-import { Plus, Pencil, Trash2, ArrowLeft, Loader2 } from 'lucide-react';
+import { Plus, Pencil, Trash2, ArrowLeft, Loader2, FileText } from 'lucide-react';
 import type { Construction, Customer } from '../types';
 import { Breadcrumbs } from '../components/ui/Breadcrumbs';
 
@@ -132,6 +132,13 @@ export const Constructions = () => {
                                     {construction.location}
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-3">
+                                    <Link
+                                        to={`/customers/${customerId}/constructions/${construction.id}/reports`}
+                                        className="text-green-600 hover:text-green-900 inline-flex items-center"
+                                        title="View Reports"
+                                    >
+                                        <FileText className="h-4 w-4" />
+                                    </Link>
                                     <Link
                                         to={`/customers/${customerId}/constructions/${construction.id}`}
                                         className="text-blue-600 hover:text-blue-900 inline-flex items-center"
