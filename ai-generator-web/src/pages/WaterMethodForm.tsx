@@ -107,7 +107,7 @@ export const WaterMethodForm = () => {
             setLoading(true);
             const dataToSave = {
                 ...formData,
-                ...calculated,
+                satisfies: calculated.satisfies,
                 customer_id: customerId ? parseInt(customerId) : formData.customer_id,
                 construction_id: constructionId ? parseInt(constructionId) : formData.construction_id,
                 type_id: 1 // Ensure it's water type
@@ -258,7 +258,7 @@ export const WaterMethodForm = () => {
                                 label="Examination Date"
                                 type="date"
                                 name="examination_date"
-                                value={formData.examination_date?.toString().split('T')[0]}
+                                value={formData.examination_date?.toString().split('T')[0] || ''}
                                 onChange={handleChange}
                             />
                             <Input

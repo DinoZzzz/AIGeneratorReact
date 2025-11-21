@@ -125,7 +125,7 @@ export const AirMethodForm = () => {
             setLoading(true);
             const dataToSave = {
                 ...formData,
-                ...calculated,
+                satisfies: calculated.satisfies,
                 customer_id: customerId ? parseInt(customerId) : formData.customer_id,
                 construction_id: constructionId ? parseInt(constructionId) : formData.construction_id,
                 type_id: 2 // Ensure it's air type
@@ -291,7 +291,7 @@ export const AirMethodForm = () => {
                                 label="Examination Date"
                                 type="date"
                                 name="examination_date"
-                                value={formData.examination_date?.toString().split('T')[0]}
+                                value={formData.examination_date?.toString().split('T')[0] || ''}
                                 onChange={handleChange}
                             />
                             <div className="grid grid-cols-2 gap-2">
