@@ -202,8 +202,14 @@ export const calculateWaterReport = (form: ReportForm) => {
     };
 };
 
-export const calculateAirReport = (form: ReportForm, allowedLoss: number = 0.10) => {
+export const calculateAirReport = (form: ReportForm, allowedLossOverride?: number) => {
     const pressureLoss = calculatePressureLoss(form.pressure_start, form.pressure_end);
+
+    // Use the override if provided (from ExaminationProcedure), otherwise default to old logic (which was 0.10)
+    // Note: The calling code in AirMethodForm now calculates allowedLoss from the procedure and passes it manually to isSatisfying,
+    // but we can also support it here for robustness.
+    const allowedLoss = allowedLossOverride !== undefined ? allowedLossOverride : 0.10;
+
     const satisfies = isSatisfying(0, 0, 2, pressureLoss, allowedLoss);
 
     return {
