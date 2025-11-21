@@ -24,6 +24,7 @@ const initialState: Partial<ReportForm> = {
     pressure_start: 0,
     pressure_end: 0,
     pane_diameter: 0,
+    pane_height: 0,
     satisfies: false,
     examination_date: new Date().toISOString().split('T')[0],
 };
@@ -60,7 +61,9 @@ export const AirMethodForm = () => {
 
     useEffect(() => {
         // Recalculate whenever form data changes
-        const results = calc.calculateAirReport(formData as ReportForm);
+        // TODO: Get actual allowed loss from procedure or standard
+        const allowedLoss = 0.10;
+        const results = calc.calculateAirReport(formData as ReportForm, allowedLoss);
         setCalculated(results);
     }, [formData]);
 
@@ -120,6 +123,11 @@ export const AirMethodForm = () => {
             setLoading(false);
         }
     };
+
+    // Visibility Logic
+    const isShaftRound = formData.material_type_id === 1;
+    const isShaftRectangular = formData.material_type_id === 2;
+    const showPipeFields = formData.draft_id !== 1; // 1 = Shaft only
 
     if (loading && id && id !== 'new') {
         return (
@@ -206,7 +214,7 @@ export const AirMethodForm = () => {
                                 onChange={handleChange}
                                 options={[
                                     { value: 1, label: 'Shaft (Round)' },
-                                    { value: 2, label: 'Pipe (Rectangular)' },
+                                    { value: 2, label: 'Shaft (Rectangular)' },
                                 ]}
                             />
                             <Input
@@ -216,6 +224,78 @@ export const AirMethodForm = () => {
                                 value={formData.examination_date?.toString().split('T')[0]}
                                 onChange={handleChange}
                             />
+                            <Input
+                                label="Stock / Section"
+                                name="stock"
+                                value={formData.stock || ''}
+                                onChange={handleChange}
+                            />
+                        </div>
+                    </div>
+
+                    {/* Dimensions Card */}
+                    <div className="bg-card shadow-sm rounded-xl border border-border p-6">
+                        <h3 className="text-lg font-semibold text-foreground mb-4">Dimensions</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            {isShaftRound && (
+                                <Input
+                                    label="Pane Diameter (m)"
+                                    type="number"
+                                    step="0.01"
+                                    name="pane_diameter"
+                                    value={formData.pane_diameter}
+                                    onChange={handleChange}
+                                />
+                            )}
+                            {isShaftRectangular && (
+                                <>
+                                    <Input
+                                        label="Pane Width (m)"
+                                        type="number"
+                                        step="0.01"
+                                        name="pane_width"
+                                        value={formData.pane_width}
+                                        onChange={handleChange}
+                                    />
+                                    <Input
+                                        label="Pane Length (m)"
+                                        type="number"
+                                        step="0.01"
+                                        name="pane_length"
+                                        value={formData.pane_length}
+                                        onChange={handleChange}
+                                    />
+                                    <Input
+                                        label="Pane Height (m)"
+                                        type="number"
+                                        step="0.01"
+                                        name="pane_height"
+                                        value={formData.pane_height}
+                                        onChange={handleChange}
+                                    />
+                                </>
+                            )}
+
+                            {showPipeFields && (
+                                <>
+                                    <Input
+                                        label="Pipe Diameter (m)"
+                                        type="number"
+                                        step="0.01"
+                                        name="pipe_diameter"
+                                        value={formData.pipe_diameter}
+                                        onChange={handleChange}
+                                    />
+                                    <Input
+                                        label="Pipe Length (m)"
+                                        type="number"
+                                        step="0.01"
+                                        name="pipe_length"
+                                        value={formData.pipe_length}
+                                        onChange={handleChange}
+                                    />
+                                </>
+                            )}
                         </div>
                     </div>
 

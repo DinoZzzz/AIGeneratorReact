@@ -26,6 +26,9 @@ const initialState: Partial<ReportForm> = {
     pressure_start: 0,
     pressure_end: 0,
     pane_diameter: 0,
+    ro_height: 0,
+    depositional_height: 0,
+    pipeline_slope: 0,
 };
 
 interface CalculatedResults {
@@ -115,6 +118,12 @@ export const WaterMethodForm = () => {
         }
     };
 
+    // Visibility Logic
+    const isShaftRound = formData.material_type_id === 1;
+    const isShaftRectangular = formData.material_type_id === 2;
+    const showPipeFields = formData.draft_id !== 1; // 1 = Shaft only
+    const showGullyFields = formData.draft_id === 8; // 8 = Gully (assumed based on old app logic)
+
     if (loading && id && id !== 'new') {
         return (
             <div className="flex justify-center items-center h-64">
@@ -184,6 +193,7 @@ export const WaterMethodForm = () => {
                                     { value: 1, label: 'Testing of Shaft' },
                                     { value: 2, label: 'Testing of Pipe' },
                                     { value: 3, label: 'Testing of Shaft and Pipe' },
+                                    { value: 8, label: 'Testing of Gully' },
                                 ]}
                             />
                             <Select
@@ -193,7 +203,7 @@ export const WaterMethodForm = () => {
                                 onChange={handleChange}
                                 options={[
                                     { value: 1, label: 'Shaft (Round)' },
-                                    { value: 2, label: 'Pipe (Rectangular)' },
+                                    { value: 2, label: 'Shaft (Rectangular)' },
                                 ]}
                             />
                             <Input
@@ -210,6 +220,12 @@ export const WaterMethodForm = () => {
                                 value={formData.temperature}
                                 onChange={handleChange}
                             />
+                            <Input
+                                label="Stock / Section"
+                                name="stock"
+                                value={formData.stock || ''}
+                                onChange={handleChange}
+                            />
                         </div>
                     </div>
 
@@ -217,16 +233,27 @@ export const WaterMethodForm = () => {
                     <div className="bg-card shadow-sm rounded-xl border border-border p-6">
                         <h3 className="text-lg font-semibold text-foreground mb-4">Dimensions</h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            {formData.material_type_id === 1 ? (
-                                <Input
-                                    label="Pane Diameter (m)"
-                                    type="number"
-                                    step="0.01"
-                                    name="pane_diameter"
-                                    value={formData.pane_diameter}
-                                    onChange={handleChange}
-                                />
-                            ) : (
+                            {isShaftRound && (
+                                <>
+                                    <Input
+                                        label="Pane Diameter (m)"
+                                        type="number"
+                                        step="0.01"
+                                        name="pane_diameter"
+                                        value={formData.pane_diameter}
+                                        onChange={handleChange}
+                                    />
+                                    <Input
+                                        label="Ro Height (m)"
+                                        type="number"
+                                        step="0.01"
+                                        name="ro_height"
+                                        value={formData.ro_height}
+                                        onChange={handleChange}
+                                    />
+                                </>
+                            )}
+                            {isShaftRectangular && (
                                 <>
                                     <Input
                                         label="Pane Width (m)"
@@ -244,8 +271,17 @@ export const WaterMethodForm = () => {
                                         value={formData.pane_length}
                                         onChange={handleChange}
                                     />
+                                    <Input
+                                        label="Pane Height (m)"
+                                        type="number"
+                                        step="0.01"
+                                        name="pane_height"
+                                        value={formData.pane_height}
+                                        onChange={handleChange}
+                                    />
                                 </>
                             )}
+
                             <Input
                                 label="Water Height (m)"
                                 type="number"
@@ -254,6 +290,48 @@ export const WaterMethodForm = () => {
                                 value={formData.water_height}
                                 onChange={handleChange}
                             />
+
+                            {showPipeFields && (
+                                <>
+                                    <Input
+                                        label="Pipe Diameter (m)"
+                                        type="number"
+                                        step="0.01"
+                                        name="pipe_diameter"
+                                        value={formData.pipe_diameter}
+                                        onChange={handleChange}
+                                    />
+                                    <Input
+                                        label="Pipe Length (m)"
+                                        type="number"
+                                        step="0.01"
+                                        name="pipe_length"
+                                        value={formData.pipe_length}
+                                        onChange={handleChange}
+                                    />
+                                </>
+                            )}
+
+                            {showGullyFields && (
+                                <>
+                                    <Input
+                                        label="Depositional Height (m)"
+                                        type="number"
+                                        step="0.01"
+                                        name="depositional_height"
+                                        value={formData.depositional_height}
+                                        onChange={handleChange}
+                                    />
+                                    <Input
+                                        label="Slope (%)"
+                                        type="number"
+                                        step="0.01"
+                                        name="pipeline_slope"
+                                        value={formData.pipeline_slope}
+                                        onChange={handleChange}
+                                    />
+                                </>
+                            )}
                         </div>
                     </div>
 
