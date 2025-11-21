@@ -202,13 +202,14 @@ export const calculateWaterReport = (form: ReportForm) => {
     };
 };
 
-export const calculateAirReport = (form: ReportForm) => {
+export const calculateAirReport = (form: ReportForm, allowedLossOverride?: number) => {
     const pressureLoss = calculatePressureLoss(form.pressure_start, form.pressure_end);
-    // Simplified criteria for Air test based on standard (usually 10% of start pressure or specific value)
-    // For now using a placeholder logic or if there's specific logic in C# code, I should have used that.
-    // Assuming allowed loss is 0 for now or based on some standard.
-    // Let's assume a fixed allowed loss for now as it wasn't explicitly detailed in the snippet.
-    const allowedLoss = 0.10; // Example: 0.10 mbar
+
+    // Use the override if provided (from ExaminationProcedure), otherwise default to old logic (which was 0.10)
+    // Note: The calling code in AirMethodForm now calculates allowedLoss from the procedure and passes it manually to isSatisfying,
+    // but we can also support it here for robustness.
+    const allowedLoss = allowedLossOverride !== undefined ? allowedLossOverride : 0.10;
+
     const satisfies = isSatisfying(0, 0, 2, pressureLoss, allowedLoss);
 
     return {
