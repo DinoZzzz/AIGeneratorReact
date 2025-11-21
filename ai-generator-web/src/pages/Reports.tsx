@@ -1,15 +1,21 @@
 import { useEffect, useState } from 'react';
 import { reportService } from '../services/reportService';
 import type { ReportForm } from '../types';
-import { Loader2, Plus, Trash2, Edit, FileText } from 'lucide-react';
+import { Loader2, Plus, Trash2, Edit, FileText, Download } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { cn } from '../lib/utils';
 import { Button } from '../components/ui/Button';
+import { ExportDialog } from '../components/ExportDialog';
+import type { ExportMetaData } from '../components/ExportDialog';
+import { generateWordDocument } from '../services/wordExportService';
 
 export const Reports = () => {
     const [reports, setReports] = useState<ReportForm[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [selectedReports, setSelectedReports] = useState<Set<string>>(new Set());
+    const [exportDialogOpen, setExportDialogOpen] = useState(false);
+    const [isExporting, setIsExporting] = useState(false);
 
     useEffect(() => {
         loadReports();
@@ -31,8 +37,42 @@ export const Reports = () => {
         try {
             await reportService.delete(id);
             setReports(reports.filter(r => r.id !== id));
+            const newSelected = new Set(selectedReports);
+            newSelected.delete(id);
+            setSelectedReports(newSelected);
         } catch (err: unknown) {
             alert('Failed to delete report: ' + (err as Error).message);
+        }
+    };
+
+    const toggleSelection = (id: string) => {
+        const newSelected = new Set(selectedReports);
+        if (newSelected.has(id)) {
+            newSelected.delete(id);
+        } else {
+            newSelected.add(id);
+        }
+        setSelectedReports(newSelected);
+    };
+
+    const toggleAll = () => {
+        if (selectedReports.size === reports.length) {
+            setSelectedReports(new Set());
+        } else {
+            setSelectedReports(new Set(reports.map(r => r.id)));
+        }
+    };
+
+    const handleExportConfirm = async (metaData: ExportMetaData) => {
+        setIsExporting(true);
+        try {
+            const selectedData = reports.filter(r => selectedReports.has(r.id));
+            await generateWordDocument(selectedData, metaData);
+        } catch (error) {
+            console.error(error);
+            alert('Failed to generate report');
+        } finally {
+            setIsExporting(false);
         }
     };
 
@@ -51,12 +91,28 @@ export const Reports = () => {
                     <h1 className="text-3xl font-bold tracking-tight text-foreground">Reports</h1>
                     <p className="text-muted-foreground mt-1">Manage and view all test reports.</p>
                 </div>
-                <Button asChild>
-                    <Link to="/reports/new">
-                        <Plus className="h-4 w-4 mr-2" />
-                        New Report
-                    </Link>
-                </Button>
+                <div className="flex space-x-2">
+                    {selectedReports.size > 0 && (
+                        <Button
+                            variant="outline"
+                            onClick={() => setExportDialogOpen(true)}
+                            disabled={isExporting}
+                        >
+                            {isExporting ? (
+                                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                            ) : (
+                                <Download className="h-4 w-4 mr-2" />
+                            )}
+                            Export Selected ({selectedReports.size})
+                        </Button>
+                    )}
+                    <Button asChild>
+                        <Link to="/reports/new">
+                            <Plus className="h-4 w-4 mr-2" />
+                            New Report
+                        </Link>
+                    </Button>
+                </div>
             </div>
 
             {error && (
@@ -70,6 +126,14 @@ export const Reports = () => {
                     <table className="min-w-full divide-y divide-border">
                         <thead className="bg-muted/50">
                             <tr>
+                                <th scope="col" className="px-6 py-3 text-left">
+                                    <input
+                                        type="checkbox"
+                                        className="rounded border-gray-300"
+                                        checked={reports.length > 0 && selectedReports.size === reports.length}
+                                        onChange={toggleAll}
+                                    />
+                                </th>
                                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                                     Date
                                 </th>
@@ -90,7 +154,7 @@ export const Reports = () => {
                         <tbody className="bg-card divide-y divide-border">
                             {reports.length === 0 ? (
                                 <tr>
-                                    <td colSpan={5} className="px-6 py-12 text-center text-muted-foreground">
+                                    <td colSpan={6} className="px-6 py-12 text-center text-muted-foreground">
                                         <div className="flex flex-col items-center justify-center">
                                             <FileText className="h-12 w-12 text-muted-foreground/50 mb-4" />
                                             <p className="text-lg font-medium text-foreground">No reports found</p>
@@ -104,6 +168,14 @@ export const Reports = () => {
                             ) : (
                                 reports.map((report) => (
                                     <tr key={report.id} className="hover:bg-muted/50 transition-colors">
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            <input
+                                                type="checkbox"
+                                                className="rounded border-gray-300"
+                                                checked={selectedReports.has(report.id)}
+                                                onChange={() => toggleSelection(report.id)}
+                                            />
+                                        </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">
                                             {new Date(report.examination_date).toLocaleDateString()}
                                         </td>
@@ -150,6 +222,12 @@ export const Reports = () => {
                     </table>
                 </div>
             </div>
+
+            <ExportDialog
+                open={exportDialogOpen}
+                onOpenChange={setExportDialogOpen}
+                onConfirm={handleExportConfirm}
+            />
         </div>
     );
 };
