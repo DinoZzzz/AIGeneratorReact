@@ -1,64 +1,52 @@
-
-/**
- * Calculates the required test time for Air Method (EN 1610)
- * Based on pipe diameter and method (LA, LB, LC, LD).
- * 
- * Note: This is a simplified implementation. 
- * In a full implementation, this would look up exact values from EN 1610 Table 3.
- */
-
-export const calculateRequiredTestTime = (
-    method: 'LA' | 'LB' | 'LC' | 'LD',
-    diameter: number, // in meters
-    isShaft: boolean
+// Ported from C# TestTimeClass.cs
+export const calculateTestTime = (
+  examinationProcedureId: number,
+  draftId: number,
+  diameter: number // in mm (integer in C#)
 ): number => {
-    // Convert diameter to mm for standard tables
-    const dn = diameter * 1000;
+  // Returns duration in minutes
+  let times: number[] = [];
 
-    let baseTime = 5; // Default 5 minutes
+  if (examinationProcedureId === 1) {
+    times = [5, 5, 7, 10, 14, 19, 24, 27, 29];
+  } else if (examinationProcedureId === 2) {
+    times = [4, 4, 6, 7, 11, 15, 19, 21, 22];
+  } else if (examinationProcedureId === 3) {
+    times = [3, 3, 4, 5, 6, 11, 14, 15, 16];
+  } else if (examinationProcedureId === 4) {
+    times = [1.5, 1.5, 2, 2.5, 4, 5, 7, 7, 8];
+  } else {
+    return 0; // Default or fallback
+  }
 
-    // Simplified logic based on common EN 1610 values
-    // These are approximate and should be verified against the specific standard version used.
-    if (method === 'LA') { // 10 mbar
-        if (dn <= 100) baseTime = 5;
-        else if (dn <= 200) baseTime = 5;
-        else if (dn <= 300) baseTime = 7;
-        else if (dn <= 400) baseTime = 10;
-        else if (dn <= 600) baseTime = 14;
-        else baseTime = 5 + (dn - 100) * 0.02; // Rough formula
-    } else if (method === 'LB') { // 50 mbar
-        if (dn <= 100) baseTime = 4;
-        else if (dn <= 200) baseTime = 4;
-        else if (dn <= 300) baseTime = 6;
-        else if (dn <= 400) baseTime = 8;
-        else if (dn <= 600) baseTime = 11;
-        else baseTime = 4 + (dn - 100) * 0.015;
-    } else if (method === 'LC') { // 100 mbar
-        if (dn <= 100) baseTime = 3;
-        else if (dn <= 200) baseTime = 3;
-        else if (dn <= 300) baseTime = 4;
-        else if (dn <= 400) baseTime = 6;
-        else if (dn <= 600) baseTime = 8;
-        else baseTime = 3 + (dn - 100) * 0.01;
-    } else if (method === 'LD') { // 200 mbar
-        if (dn <= 100) baseTime = 1.5;
-        else if (dn <= 200) baseTime = 1.5;
-        else if (dn <= 300) baseTime = 2;
-        else if (dn <= 400) baseTime = 3;
-        else if (dn <= 600) baseTime = 4;
-        else baseTime = 1.5 + (dn - 100) * 0.005;
+  const list = [100, 200, 300, 400, 600, 800, 1000, 1100, 1200];
+
+  if (diameter >= Math.max(...list)) {
+    const time = times[times.length - 1];
+    return draftId === 4 ? time / 2 : time;
+  }
+
+  // Binary search for interval
+  let l = 0;
+  let r = list.length - 1;
+
+  // Implementation of C# binary search logic:
+  // int l = 0, r = list.Count - 1;
+  // while (r - l > 1) { int m = (l + r) / 2; if (list[m] > value) r = m; else l = m; }
+  while (r - l > 1) {
+    const m = Math.floor((l + r) / 2);
+    if (list[m] > diameter) {
+      r = m;
+    } else {
+      l = m;
     }
+  }
 
-    // For shafts, test time is typically half of the pipe time (Clause 13.2)
-    if (isShaft) {
-        return Math.max(baseTime / 2, 1); // Minimum 1 minute
-    }
+  // Interpolation
+  // double time = times[l];
+  // time += (times[r] - times[l]) * (value - list[l]) / (list[r] - list[l]);
+  let time = times[l];
+  time += ((times[r] - times[l]) * (diameter - list[l])) / (list[r] - list[l]);
 
-    return Math.ceil(baseTime);
-};
-
-export const formatTime = (minutes: number): string => {
-    const m = Math.floor(minutes);
-    const s = Math.round((minutes - m) * 60);
-    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+  return draftId === 4 ? time / 2 : time;
 };
