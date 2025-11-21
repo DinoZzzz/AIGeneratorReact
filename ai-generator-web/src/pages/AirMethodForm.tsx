@@ -9,8 +9,9 @@ import { Loader2, Save, ArrowLeft, FileDown, ArrowRight } from 'lucide-react';
 import * as calc from '../lib/calculations/report';
 import { calculateTestTime } from '../lib/calculations/testTime';
 import { generatePDF } from '../lib/pdfGenerator';
-import type { ReportForm } from '../types';
+import type { ReportForm, ExaminationProcedure } from '../types';
 import { cn } from '../lib/utils';
+import { calculateRequiredTestTime, formatTime } from '../lib/calculations/testTime';
 
 // Initial empty state
 const initialState: Partial<ReportForm> = {
@@ -25,6 +26,7 @@ const initialState: Partial<ReportForm> = {
     pressure_start: 0,
     pressure_end: 0,
     pane_diameter: 0,
+    pane_height: 0,
     satisfies: false,
     examination_date: new Date().toISOString().split('T')[0],
     examination_duration: '05:00', // Default
@@ -200,6 +202,21 @@ export const AirMethodForm = () => {
             setLoading(false);
         }
     };
+
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        saveReport(true);
+    };
+
+    const handleSaveAndNew = (e: React.MouseEvent) => {
+        e.preventDefault();
+        saveReport(false);
+    };
+
+    // Visibility Logic
+    const isShaftRound = formData.material_type_id === 1;
+    const isShaftRectangular = formData.material_type_id === 2;
+    const showPipeFields = formData.draft_id !== 1; // 1 = Shaft only
 
     if (loading && id && id !== 'new') {
         return (

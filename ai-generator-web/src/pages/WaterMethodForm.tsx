@@ -204,6 +204,22 @@ export const WaterMethodForm = () => {
         }
     };
 
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        saveReport(true);
+    };
+
+    const handleSaveAndNew = (e: React.MouseEvent) => {
+        e.preventDefault();
+        saveReport(false);
+    };
+
+    // Visibility Logic
+    const isShaftRound = formData.material_type_id === 1;
+    const isShaftRectangular = formData.material_type_id === 2;
+    const showPipeFields = formData.draft_id !== 1; // 1 = Shaft only
+    const showGullyFields = formData.draft_id === 8; // 8 = Gully (assumed based on old app logic)
+
     if (loading && id && id !== 'new') {
         return (
             <div className="flex justify-center items-center h-64">

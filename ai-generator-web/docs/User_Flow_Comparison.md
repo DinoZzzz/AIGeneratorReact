@@ -14,7 +14,7 @@ This document compares the user navigation and workflow between the legacy C# Wi
 | **5. Report List** | `ReportDataForm.cs` (List of Air/Water Forms) | `/customers/.../reports` (List of Reports) | ✅ Parity |
 | **6. New Report Creation** | Click "Add New" -> `SelectFormTypeDialog` -> `MethodForm` | Click "New Report" -> Dropdown (Air/Water) -> `/.../reports/new/:type` | ⚠️ Minor UI Diff |
 | **7. Report Editing** | `AirMethodForm.cs` / `WaterMethodForm.cs` | `AirMethodForm.tsx` / `WaterMethodForm.tsx` | ✅ Parity |
-| **8. Exporting** | `ReportDataForm` -> "Save PDF" / "Reports" | Report Form -> "Export PDF" | ⚠️ Major Logic Diff |
+| **8. Exporting** | `ReportDataForm` -> "Save PDF" / "Reports" | Report Form -> "Export PDF" | ✅ Parity (via Bulk Export) |
 
 ## Detailed Flow Analysis
 
@@ -56,13 +56,12 @@ This document compares the user navigation and workflow between the legacy C# Wi
     *   **Gap:** The "Save and Create New" workflow is highly efficient for field workers entering multiple data points. React's "Save -> Redirect -> Click New" loop is slower.
 
 ## Critical UX Gaps Identified
-
-1.  **Bulk Export:** The C# app allows exporting *all* reports for a construction site into one PDF/Doc from the list view (`ReportDataForm`). The React app currently places the export button inside the *single* report view.
-2.  **Ordering:** C# allows Drag-and-Drop reordering of reports. This is crucial because the final report order matters for the exported document.
-3.  **"Save & Create Next":** The rapid-entry workflow in C# is missing in React.
-4.  **Final Export Generation:** The C# flow transitions from `ReportDataForm` -> `ReportsForm` (Export Builder). This entire "Export Builder" step (selecting which reports go into the final DOCX) appears missing in the React navigation.
+1.  **Bulk Export:** ✅ **Resolved.** Added "Export All" and "Export Selected" to `ConstructionReports`.
+2.  **Ordering:** ✅ **Resolved.** Implemented Drag-and-Drop reordering in `ConstructionReports`.
+3.  **"Save & Create Next":** ✅ **Resolved.** Added "Save & New" button to Report Forms.
+4.  **Final Export Generation:** ✅ **Resolved.** "Export Selected" allows bundling specific reports, serving as the "Export Builder".
 
 ## Recommendations
-1.  **Implement Reordering:** Add drag-and-drop to the React Report List.
-2.  **Add Bulk Actions:** Move "Export" to the Report List page.
-3.  **Replicate Export Flow:** Create a dedicated "Export/Generation" page where users can select specific reports to bundle into the final `Method1610.doc` generation.
+1.  **Implement Reordering:** ✅ Done.
+2.  **Add Bulk Actions:** ✅ Done.
+3.  **Replicate Export Flow:** ✅ Done (via Selection).

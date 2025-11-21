@@ -15,6 +15,12 @@ export interface ReportDraft {
     draft_type?: string;
 }
 
+export interface ExaminationProcedure {
+    id: number;
+    name: string;
+    allowed_loss: number;
+}
+
 export interface Customer {
     id: string;
     name: string;
