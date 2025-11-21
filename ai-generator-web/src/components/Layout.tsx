@@ -3,13 +3,14 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
     LayoutDashboard,
-    FileText,
-    HardHat,
     Users,
     Settings,
     LogOut,
     Menu,
-    X
+    X,
+    History,
+    UserCheck,
+    HelpCircle
 } from 'lucide-react';
 import { useState } from 'react';
 import { cn } from '../lib/utils';
@@ -30,11 +31,12 @@ export const Layout = ({ children }: LayoutProps) => {
     };
 
     const navigation = [
-        { name: 'Dashboard', href: '/', icon: LayoutDashboard },
-        { name: 'Reports', href: '/reports', icon: FileText },
-        { name: 'Constructions', href: '/constructions', icon: HardHat },
+        { name: 'Platform', href: '/', icon: LayoutDashboard },
+        { name: 'History', href: '/history', icon: History },
+        { name: 'Examiners', href: '/examiners', icon: UserCheck },
         { name: 'Customers', href: '/customers', icon: Users },
         { name: 'Settings', href: '/settings', icon: Settings },
+        { name: 'Help', href: '/help', icon: HelpCircle },
     ];
 
     return (

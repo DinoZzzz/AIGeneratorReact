@@ -5,6 +5,7 @@ import { supabase } from '../lib/supabase';
 import { Input } from '../components/ui/Input';
 import { Select } from '../components/ui/Select';
 import { Button } from '../components/ui/Button';
+import { Loader2, Save, ArrowLeft, FileDown, Calculator, Plus, ArrowRight, ChevronLeft } from 'lucide-react';
 import { Stepper } from '../components/ui/Stepper';
 import { Loader2, Save, ArrowLeft, FileDown, ArrowRight, Calculator } from 'lucide-react';
 import * as calc from '../lib/calculations/report';
@@ -62,9 +63,7 @@ export const AirMethodForm = () => {
     const [loading, setLoading] = useState(false);
     const [formData, setFormData] = useState<Partial<ReportForm>>(initialState);
     const [procedures, setProcedures] = useState<ExaminationProcedure[]>([]);
-    const [activeTab, setActiveTab] = useState<'page1' | 'page2'>('page1');
-
-    // Derived state for calculations
+    const [step, setStep] = useState<1 | 2>(1); // Step state
     const [calculated, setCalculated] = useState<CalculatedResults>({
         pressureLoss: 0,
         allowedLoss: 0,
@@ -194,6 +193,28 @@ export const AirMethodForm = () => {
                 } else {
                     navigate('/reports');
                 }
+            } else {
+                // Reset form for new entry, keeping some context
+                // We keep: procedure, draft, material, date
+                // We reset: stock, measurements
+                setFormData(prev => ({
+                    ...prev,
+                    stock: '',
+                    pipe_length: 0,
+                    pressure_start: 0,
+                    pressure_end: 0,
+                    examination_start_time: '',
+                    examination_end_time: '',
+                    satisfies: false,
+                    // Keep dimensions? Usually dimensions change per section, but maybe not pipe diameter.
+                    // Let's keep diameter/width/height as they might be same for a run.
+                    // Let's reset pressure.
+                }));
+                setStep(1);
+                if (id !== 'new') {
+                    navigate(`/customers/${customerId}/constructions/${constructionId}/reports/new/air`);
+                }
+                alert('Report saved. Ready for next entry.');
             }
         } catch (error) {
             console.error('Error saving report:', error);
@@ -212,6 +233,18 @@ export const AirMethodForm = () => {
     //     e.preventDefault();
     //     handleSave(false);
     // };
+
+    const handleBack = () => {
+        if (step === 2) {
+            setStep(1);
+        } else {
+            if (customerId && constructionId) {
+                navigate(`/customers/${customerId}/constructions/${constructionId}/reports`);
+            } else {
+                navigate('/reports');
+            }
+        }
+    };
 
     // Visibility Logic
     // Visibility Logic
@@ -235,13 +268,7 @@ export const AirMethodForm = () => {
                     <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => {
-                            if (customerId && constructionId) {
-                                navigate(`/customers/${customerId}/constructions/${constructionId}/reports`);
-                            } else {
-                                navigate('/reports');
-                            }
-                        }}
+                        onClick={handleBack}
                     >
                         <ArrowLeft className="h-6 w-6 text-muted-foreground" />
                     </Button>
@@ -249,10 +276,37 @@ export const AirMethodForm = () => {
                         <h1 className="text-2xl font-bold text-foreground">
                             AI Generator
                         </h1>
-                        <p className="text-sm text-muted-foreground">Metoda 1610 - Zrak</p>
+                        <p className="text-sm text-muted-foreground">
+                             {step === 1 ? 'Step 1: Parameters & Dimensions' : 'Step 2: Measurements & Results'}
+                        </p>
                     </div>
                 </div>
                 <div className="flex space-x-3">
+                    {step === 2 && (
+                        <>
+                            <Button
+                                variant="outline"
+                                onClick={() => generatePDF(formData)}
+                            >
+                                <FileDown className="h-4 w-4 mr-2" />
+                                Export PDF
+                            </Button>
+                            <Button
+                                variant="outline"
+                                onClick={handleSaveAndNew}
+                                disabled={loading}
+                            >
+                                <Plus className="h-4 w-4 mr-2" />
+                                Save & New
+                            </Button>
+                            <Button
+                                onClick={handleSubmit}
+                                disabled={loading}
+                            >
+                                {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
+                                Save
+                            </Button>
+                        </>
                     <Button
                         variant="outline"
                         onClick={() => generatePDF(formData)}
@@ -277,6 +331,9 @@ export const AirMethodForm = () => {
             </div>
 
             <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                 {/* Step 1: Parameters & Dimensions */}
+                {step === 1 && (
+                    <div className="lg:col-span-3 space-y-6">
                 {activeTab === 'page1' && (
                     <div className="lg:col-span-2 space-y-6">
                         {/* Basic Info Card */}
@@ -323,6 +380,19 @@ export const AirMethodForm = () => {
                                 />
                                 <div className="grid grid-cols-2 gap-2">
                                     <Input
+                                        label="Start Time"
+                                        type="time"
+                                        name="examination_start_time"
+                                        value={formData.examination_start_time || ''}
+                                        onChange={handleChange}
+                                    />
+                                    <Input
+                                        label="End Time"
+                                        type="time"
+                                        name="examination_end_time"
+                                        value={formData.examination_end_time || ''}
+                                        onChange={handleChange}
+                                    />
                                         label="Temperatura (°C)"
                                         type="number"
                                         name="temperature"
@@ -346,8 +416,166 @@ export const AirMethodForm = () => {
                                         <span className="text-xs">(Prikaz skice nije implementiran)</span>
                                     </div>
                                 </div>
+                                <Input
+                                    label="Stock / Section"
+                                    name="stock"
+                                    value={formData.stock || ''}
+                                    onChange={handleChange}
+                                />
                             </div>
 
+                        {/* Dimensions Card */}
+                        <div className="bg-card shadow-sm rounded-xl border border-border p-6">
+                            <h3 className="text-lg font-semibold text-foreground mb-4">Dimensions</h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                {isShaftRound && (
+                                    <Input
+                                        label="Pane Diameter (m)"
+                                        type="number"
+                                        step="0.01"
+                                        name="pane_diameter"
+                                        value={formData.pane_diameter}
+                                        onChange={handleChange}
+                                    />
+                                )}
+                                {isShaftRectangular && (
+                                    <>
+                                        <Input
+                                            label="Pane Width (m)"
+                                            type="number"
+                                            step="0.01"
+                                            name="pane_width"
+                                            value={formData.pane_width}
+                                            onChange={handleChange}
+                                        />
+                                        <Input
+                                            label="Pane Length (m)"
+                                            type="number"
+                                            step="0.01"
+                                            name="pane_length"
+                                            value={formData.pane_length}
+                                            onChange={handleChange}
+                                        />
+                                        <Input
+                                            label="Pane Height (m)"
+                                            type="number"
+                                            step="0.01"
+                                            name="pane_height"
+                                            value={formData.pane_height}
+                                            onChange={handleChange}
+                                        />
+                                    </>
+                                )}
+
+                                {showPipeFields && (
+                                    <>
+                                        <Input
+                                            label="Pipe Diameter (m)"
+                                            type="number"
+                                            step="0.01"
+                                            name="pipe_diameter"
+                                            value={formData.pipe_diameter}
+                                            onChange={handleChange}
+                                        />
+                                        <Input
+                                            label="Pipe Length (m)"
+                                            type="number"
+                                            step="0.01"
+                                            name="pipe_length"
+                                            value={formData.pipe_length}
+                                            onChange={handleChange}
+                                        />
+                                    </>
+                                )}
+                            </div>
+                        </div>
+
+                        <div className="flex justify-end">
+                            <Button type="button" onClick={() => setStep(2)} size="lg">
+                                Next Step <ArrowRight className="ml-2 h-5 w-5" />
+                            </Button>
+                        </div>
+                    </div>
+                )}
+
+                {/* Step 2: Measurements & Results */}
+                {step === 2 && (
+                    <>
+                        <div className="lg:col-span-2 space-y-6">
+                            {/* Measurements Card */}
+                            <div className="bg-card shadow-sm rounded-xl border border-border p-6">
+                                <h3 className="text-lg font-semibold text-foreground mb-4">Pressure Measurements</h3>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <Input
+                                        label="Start Pressure (mbar)"
+                                        type="number"
+                                        step="0.01"
+                                        name="pressure_start"
+                                        value={formData.pressure_start}
+                                        onChange={handleChange}
+                                    />
+                                    <Input
+                                        label="End Pressure (mbar)"
+                                        type="number"
+                                        step="0.01"
+                                        name="pressure_end"
+                                        value={formData.pressure_end}
+                                        onChange={handleChange}
+                                    />
+                                </div>
+                            </div>
+
+                             <div className="flex justify-between pt-4">
+                                <Button type="button" variant="outline" onClick={() => setStep(1)} size="lg">
+                                    <ChevronLeft className="mr-2 h-5 w-5" /> Previous Step
+                                </Button>
+                             </div>
+                        </div>
+
+                        {/* Right Column: Results */}
+                        <div className="lg:col-span-1">
+                            <div className="bg-card shadow-sm rounded-xl border border-border p-6 sticky top-6">
+                                <h3 className="text-lg font-semibold text-foreground mb-6">Calculated Results</h3>
+
+                                <div className="space-y-6">
+                                    <div className={cn(
+                                        "p-4 rounded-lg border flex flex-col items-center justify-center text-center",
+                                        calculated.satisfies
+                                            ? "bg-green-50 border-green-200 dark:bg-green-900/20 dark:border-green-900/50"
+                                            : "bg-red-50 border-red-200 dark:bg-red-900/20 dark:border-red-900/50"
+                                    )}>
+                                        <span className={cn(
+                                            "text-sm font-medium uppercase tracking-wider mb-1",
+                                            calculated.satisfies ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"
+                                        )}>Status</span>
+                                        <span className={cn(
+                                            "text-2xl font-bold",
+                                            calculated.satisfies ? "text-green-700 dark:text-green-300" : "text-red-700 dark:text-red-300"
+                                        )}>
+                                            {calculated.satisfies ? 'SATISFIES' : 'FAILED'}
+                                        </span>
+                                    </div>
+
+                                    <div className="space-y-4">
+                                        <ResultRow label="Pressure Loss" value={`${calculated.pressureLoss.toFixed(2)} mbar`} />
+                                        <div className="pt-4 border-t border-border">
+                                            <ResultRow label="Allowed Loss" value={`${calculated.allowedLoss.toFixed(2)} mbar`} highlight />
+                                        </div>
+                                        <div className="pt-4 border-t border-border">
+                                            <ResultRow label="Required Time" value={`${formatTime(calculated.requiredTestTime)} min`} />
+                                            <ResultRow
+                                                label="Actual Time"
+                                                value={
+                                                    formData.examination_start_time && formData.examination_end_time
+                                                        ? (() => {
+                                                            const start = new Date(`1970-01-01T${formData.examination_start_time}`);
+                                                            const end = new Date(`1970-01-01T${formData.examination_end_time}`);
+                                                            const diff = (end.getTime() - start.getTime()) / 60000;
+                                                            return diff > 0 ? `${formatTime(diff)} min` : '-';
+                                                        })()
+                                                        : '-'
+                                                }
+                                            />
                             <div className="absolute bottom-6 right-6">
                                 <Button onClick={() => setActiveTab('page2')} className="w-32">
                                     Sljedeće <ArrowRight className="ml-2 h-4 w-4" />
@@ -541,6 +769,10 @@ export const AirMethodForm = () => {
                                 </div>
                             </div>
                         </div>
+                    </>
+                )}
+            </form>
+        </div>
 
                         <div className="flex justify-end space-x-4 mt-8 pt-6 border-t">
                             <Button

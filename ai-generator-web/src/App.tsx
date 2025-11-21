@@ -11,6 +11,9 @@ import { Constructions } from './pages/Constructions';
 import { ConstructionForm } from './pages/ConstructionForm';
 import { ConstructionReports } from './pages/ConstructionReports';
 import { Dashboard } from './pages/Dashboard';
+import { History } from './pages/History';
+import { Examiners } from './pages/Examiners';
+import { Help } from './pages/Help';
 import { Loader2 } from 'lucide-react';
 import { ToastProvider } from './context/ToastContext';
 
@@ -49,6 +52,10 @@ function App() {
                   <Layout>
                     <Routes>
                       <Route path="/" element={<Dashboard />} />
+                      <Route path="/history" element={<History />} />
+                      <Route path="/examiners" element={<Examiners />} />
+                      <Route path="/help" element={<Help />} />
+
                       <Route path="/reports" element={<Reports />} />
                       <Route path="/reports/new" element={<WaterMethodForm />} />
                       <Route path="/reports/new/air" element={<AirMethodForm />} />
@@ -81,4 +88,3 @@ function App() {
 }
 
 export default App;
-

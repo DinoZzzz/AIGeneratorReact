@@ -5,6 +5,7 @@ import { reportService } from '../services/reportService';
 import { Input } from '../components/ui/Input';
 import { Select } from '../components/ui/Select';
 import { Button } from '../components/ui/Button';
+import { Loader2, Save, ArrowLeft, FileDown, Calculator, Plus, ArrowRight, ChevronLeft } from 'lucide-react';
 import { Stepper } from '../components/ui/Stepper';
 import { Loader2, Save, ArrowLeft, FileDown, ArrowRight, Calculator } from 'lucide-react';
 import * as calc from '../lib/calculations/report';
@@ -68,6 +69,7 @@ export const WaterMethodForm = () => {
     const navigate = useNavigate();
     const [loading, setLoading] = useState(false);
     const [formData, setFormData] = useState<Partial<ReportForm>>(initialState);
+    const [step, setStep] = useState<1 | 2>(1); // Step state
     // const [procedures, setProcedures] = useState<ExaminationProcedure[]>([]);
     const [activeTab, setActiveTab] = useState<'page1' | 'page2'>('page1');
 
@@ -196,6 +198,21 @@ export const WaterMethodForm = () => {
                 } else {
                     navigate('/reports');
                 }
+            } else {
+                // Reset form for new entry
+                setFormData(prev => ({
+                    ...prev,
+                    stock: '',
+                    water_height_start: 0,
+                    water_height_end: 0,
+                    satisfies: false,
+                    // Keep dimensions and other context
+                }));
+                setStep(1); // Reset to step 1
+                if (id !== 'new') {
+                    navigate(`/customers/${customerId}/constructions/${constructionId}/reports/new/water`);
+                }
+                alert('Report saved. Ready for next entry.');
             }
         } catch (error) {
             console.error('Error saving report:', error);
@@ -215,7 +232,23 @@ export const WaterMethodForm = () => {
     //     handleSave(false);
     // };
 
+    const handleBack = () => {
+        if (step === 2) {
+            setStep(1);
+        } else {
+            if (customerId && constructionId) {
+                navigate(`/customers/${customerId}/constructions/${constructionId}/reports`);
+            } else {
+                navigate('/reports');
+            }
+        }
+    };
+
     // Visibility Logic
+    const isShaftRound = formData.material_type_id === 1;
+    const isShaftRectangular = formData.material_type_id === 2;
+    const showPipeFields = formData.draft_id !== 1; // 1 = Shaft only
+    const showGullyFields = formData.draft_id === 8; // 8 = Gully
     // Visibility Logic
     // const isShaftRound = formData.material_type_id === 1;
     // const isShaftRectangular = formData.material_type_id === 2;
@@ -237,13 +270,7 @@ export const WaterMethodForm = () => {
                     <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => {
-                            if (customerId && constructionId) {
-                                navigate(`/customers/${customerId}/constructions/${constructionId}/reports`);
-                            } else {
-                                navigate('/reports');
-                            }
-                        }}
+                        onClick={handleBack}
                     >
                         <ArrowLeft className="h-6 w-6 text-muted-foreground" />
                     </Button>
@@ -251,10 +278,38 @@ export const WaterMethodForm = () => {
                         <h1 className="text-2xl font-bold text-foreground">
                             AI Generator
                         </h1>
-                        <p className="text-sm text-muted-foreground">Metoda 1610 - Voda</p>
+                        <p className="text-sm text-muted-foreground">
+                            {step === 1 ? 'Step 1: Parameters & Dimensions' : 'Step 2: Measurements & Results'}
+                        </p>
                     </div>
                 </div>
+
                 <div className="flex space-x-3">
+                    {step === 2 && (
+                         <>
+                            <Button
+                                variant="outline"
+                                onClick={() => generatePDF(formData)}
+                            >
+                                <FileDown className="h-4 w-4 mr-2" />
+                                Export PDF
+                            </Button>
+                            <Button
+                                variant="outline"
+                                onClick={handleSaveAndNew}
+                                disabled={loading}
+                            >
+                                <Plus className="h-4 w-4 mr-2" />
+                                Save & New
+                            </Button>
+                            <Button
+                                onClick={handleSubmit}
+                                disabled={loading}
+                            >
+                                {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
+                                Save
+                            </Button>
+                        </>
                     <Button
                         variant="outline"
                         onClick={() => generatePDF(formData)}
@@ -279,6 +334,9 @@ export const WaterMethodForm = () => {
             </div>
 
             <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                {/* Step 1: Parameters & Dimensions */}
+                {step === 1 && (
+                    <div className="lg:col-span-3 space-y-6">
                 {activeTab === 'page1' && (
                     <div className="lg:col-span-2 space-y-6">
                         {/* Basic Info Card */}
@@ -332,6 +390,15 @@ export const WaterMethodForm = () => {
                                 />
                             </div>
                         </div>
+
+                        {/* Dimensions Card */}
+                        <div className="bg-card shadow-sm rounded-xl border border-border p-6">
+                            <h3 className="text-lg font-semibold text-foreground mb-4">Dimensions</h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                {isShaftRound && (
+                                    <>
+                                        <Input
+                                            label="Pane Diameter (m)"
                         <div className="flex justify-end">
                             <Button onClick={() => setActiveTab('page2')} type="button">
                                 Sljedeće <ArrowRight className="ml-2 h-4 w-4" />
@@ -380,6 +447,183 @@ export const WaterMethodForm = () => {
                                             step="0.01"
                                             name="pane_diameter"
                                             value={formData.pane_diameter}
+                                            onChange={handleChange}
+                                        />
+                                        <Input
+                                            label="Ro Height (m)"
+                                            type="number"
+                                            step="0.01"
+                                            name="ro_height"
+                                            value={formData.ro_height}
+                                            onChange={handleChange}
+                                        />
+                                    </>
+                                )}
+                                {isShaftRectangular && (
+                                    <>
+                                        <Input
+                                            label="Pane Width (m)"
+                                            type="number"
+                                            step="0.01"
+                                            name="pane_width"
+                                            value={formData.pane_width}
+                                            onChange={handleChange}
+                                        />
+                                        <Input
+                                            label="Pane Length (m)"
+                                            type="number"
+                                            step="0.01"
+                                            name="pane_length"
+                                            value={formData.pane_length}
+                                            onChange={handleChange}
+                                        />
+                                        <Input
+                                            label="Pane Height (m)"
+                                            type="number"
+                                            step="0.01"
+                                            name="pane_height"
+                                            value={formData.pane_height}
+                                            onChange={handleChange}
+                                        />
+                                    </>
+                                )}
+
+                                <Input
+                                    label="Water Height (m)"
+                                    type="number"
+                                    step="0.01"
+                                    name="water_height"
+                                    value={formData.water_height}
+                                    onChange={handleChange}
+                                />
+
+                                {showPipeFields && (
+                                    <>
+                                        <Input
+                                            label="Pipe Diameter (m)"
+                                            type="number"
+                                            step="0.01"
+                                            name="pipe_diameter"
+                                            value={formData.pipe_diameter}
+                                            onChange={handleChange}
+                                        />
+                                        <Input
+                                            label="Pipe Length (m)"
+                                            type="number"
+                                            step="0.01"
+                                            name="pipe_length"
+                                            value={formData.pipe_length}
+                                            onChange={handleChange}
+                                        />
+                                    </>
+                                )}
+
+                                {showGullyFields && (
+                                    <>
+                                        <Input
+                                            label="Depositional Height (m)"
+                                            type="number"
+                                            step="0.01"
+                                            name="depositional_height"
+                                            value={formData.depositional_height}
+                                            onChange={handleChange}
+                                        />
+                                        <Input
+                                            label="Slope (%)"
+                                            type="number"
+                                            step="0.01"
+                                            name="pipeline_slope"
+                                            value={formData.pipeline_slope}
+                                            onChange={handleChange}
+                                        />
+                                    </>
+                                )}
+                            </div>
+                        </div>
+
+                        <div className="flex justify-end">
+                            <Button type="button" onClick={() => setStep(2)} size="lg">
+                                Next Step <ArrowRight className="ml-2 h-5 w-5" />
+                            </Button>
+                        </div>
+                    </div>
+                )}
+
+                {/* Step 2: Measurements & Results */}
+                {step === 2 && (
+                    <>
+                        <div className="lg:col-span-2 space-y-6">
+                            {/* Measurements Card */}
+                            <div className="bg-card shadow-sm rounded-xl border border-border p-6">
+                                <h3 className="text-lg font-semibold text-foreground mb-4">Measurements</h3>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <Input
+                                        label="Start Water Level (mm)"
+                                        type="number"
+                                        step="0.01"
+                                        name="water_height_start"
+                                        value={formData.water_height_start}
+                                        onChange={handleChange}
+                                    />
+                                    <Input
+                                        label="End Water Level (mm)"
+                                        type="number"
+                                        step="0.01"
+                                        name="water_height_end"
+                                        value={formData.water_height_end}
+                                        onChange={handleChange}
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Notes Card */}
+                            <div className="bg-card shadow-sm rounded-xl border border-border p-6">
+                                <h3 className="text-lg font-semibold text-foreground mb-4">Notes</h3>
+                                <div className="space-y-4">
+                                    <Input
+                                        label="Remark"
+                                        name="remark"
+                                        value={formData.remark || ''}
+                                        onChange={handleChange}
+                                    />
+                                    <Input
+                                        label="Deviation"
+                                        name="deviation"
+                                        value={formData.deviation || ''}
+                                        onChange={handleChange}
+                                    />
+                                </div>
+                            </div>
+
+                             <div className="flex justify-between pt-4">
+                                <Button type="button" variant="outline" onClick={() => setStep(1)} size="lg">
+                                    <ChevronLeft className="mr-2 h-5 w-5" /> Previous Step
+                                </Button>
+                             </div>
+                        </div>
+
+                        {/* Right Column: Results */}
+                        <div className="lg:col-span-1">
+                            <div className="bg-card shadow-sm rounded-xl border border-border p-6 sticky top-6">
+                                <h3 className="text-lg font-semibold text-foreground mb-6">Calculated Results</h3>
+
+                                <div className="space-y-6">
+                                    <div className={cn(
+                                        "p-4 rounded-lg border flex flex-col items-center justify-center text-center",
+                                        calculated.satisfies
+                                            ? "bg-green-50 border-green-200 dark:bg-green-900/20 dark:border-green-900/50"
+                                            : "bg-red-50 border-red-200 dark:bg-red-900/20 dark:border-red-900/50"
+                                    )}>
+                                        <span className={cn(
+                                            "text-sm font-medium uppercase tracking-wider mb-1",
+                                            calculated.satisfies ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"
+                                        )}>Status</span>
+                                        <span className={cn(
+                                            "text-2xl font-bold",
+                                            calculated.satisfies ? "text-green-700 dark:text-green-300" : "text-red-700 dark:text-red-300"
+                                        )}>
+                                            {calculated.satisfies ? 'SATISFIES' : 'FAILED'}
+                                        </span>
                                             onChange={handleChange}
                                         />
                                     ) : (
@@ -531,9 +775,23 @@ export const WaterMethodForm = () => {
                                             placeholder="Unesite odstupanje..."
                                         />
                                     </div>
+
+                                    <div className="space-y-4">
+                                        <ResultRow label="Water Loss" value={`${calculated.waterLoss.toFixed(2)} mm`} />
+                                        <ResultRow label="Volume Loss" value={`${calculated.waterVolumeLoss.toFixed(4)} l`} />
+                                        <ResultRow label="Total Wetted Area" value={`${calculated.totalWettedArea.toFixed(2)} m²`} />
+                                        <ResultRow label="Allowed Loss" value={`${calculated.allowedLossL.toFixed(2)} l`} />
+                                        <div className="pt-4 border-t border-border">
+                                            <ResultRow label="Result" value={`${calculated.result.toFixed(2)} l/m²`} highlight />
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
+                    </>
+                )}
+            </form>
+        </div>
 
                         <div className="flex justify-end space-x-4 mt-8 pt-6 border-t">
                             <Button
