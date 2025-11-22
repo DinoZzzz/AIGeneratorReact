@@ -17,10 +17,12 @@ interface ExaminerDialogProps {
 export const ExaminerDialog = ({ open, onOpenChange, examiner, onSave }: ExaminerDialogProps) => {
     const [loading, setLoading] = useState(false);
     const [reportTypes, setReportTypes] = useState<ReportType[]>([]);
-    const [formData, setFormData] = useState<Partial<Profile>>({
+    const [formData, setFormData] = useState<Partial<Profile> & { password?: string }>({
         name: '',
         last_name: '',
         username: '',
+        email: '',
+        password: '',
         title: '',
         role: 'user',
         accreditations: []
@@ -35,18 +37,22 @@ export const ExaminerDialog = ({ open, onOpenChange, examiner, onSave }: Examine
             if (examiner) {
                 setFormData({
                     id: examiner.id,
-                    name: examiner.name,
-                    last_name: examiner.last_name,
-                    username: examiner.username,
+                    name: examiner.name || '',
+                    last_name: examiner.last_name || '',
+                    username: examiner.username || '',
+                    email: examiner.email || '',
+                    password: '', // Don't populate password for security
                     title: examiner.title || '',
                     role: examiner.role,
-                    accreditations: examiner.accreditations
+                    accreditations: examiner.accreditations || []
                 });
             } else {
                 setFormData({
                     name: '',
                     last_name: '',
                     username: '',
+                    email: '',
+                    password: '',
                     title: '',
                     role: 'user',
                     accreditations: []
@@ -65,6 +71,16 @@ export const ExaminerDialog = ({ open, onOpenChange, examiner, onSave }: Examine
 
         if (!formData.name || !formData.last_name || !formData.username) {
             alert('Please fill in all required fields');
+            return;
+        }
+
+        if (!examiner && !formData.email) {
+            alert('Email is required for new examiners');
+            return;
+        }
+
+        if (!examiner && !formData.password) {
+            alert('Password is required for new examiners');
             return;
         }
 
@@ -142,13 +158,32 @@ export const ExaminerDialog = ({ open, onOpenChange, examiner, onSave }: Examine
                         </div>
                     </div>
 
-                    {/* Note: Password field removed as creating users is not handled here directly */}
-                    {!examiner && (
-                        <div className="text-sm text-yellow-600 bg-yellow-50 p-2 rounded">
-                            Creating a new examiner requires an existing user account or admin setup.
-                            Currently this form only updates profile data.
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="email">Email {!examiner && <span className="text-destructive">*</span>}</Label>
+                            <Input
+                                id="email"
+                                type="email"
+                                value={formData.email}
+                                onChange={e => setFormData({ ...formData, email: e.target.value })}
+                                required={!examiner}
+                            />
                         </div>
-                    )}
+                        <div className="space-y-2">
+                            <Label htmlFor="password">
+                                Password {!examiner && <span className="text-destructive">*</span>}
+                                {examiner && <span className="text-xs text-muted-foreground ml-1">(leave empty to keep current)</span>}
+                            </Label>
+                            <Input
+                                id="password"
+                                type="password"
+                                value={formData.password}
+                                onChange={e => setFormData({ ...formData, password: e.target.value })}
+                                required={!examiner}
+                                placeholder={examiner ? "Enter new password to change" : ""}
+                            />
+                        </div>
+                    </div>
 
                     <div className="flex items-center space-x-2">
                         <Checkbox
@@ -169,7 +204,7 @@ export const ExaminerDialog = ({ open, onOpenChange, examiner, onSave }: Examine
                                         checked={formData.accreditations?.includes(type.id)}
                                         onCheckedChange={() => toggleAccreditation(type.id)}
                                     />
-                                    <Label htmlFor={`type-${type.id}`}>{type.type}</Label>
+                                    <Label htmlFor={`type-${type.id}`}>{type.name}</Label>
                                 </div>
                             ))}
                         </div>

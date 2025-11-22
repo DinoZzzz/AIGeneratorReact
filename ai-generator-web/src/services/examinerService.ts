@@ -34,17 +34,41 @@ export const examinerService = {
     },
 
     async saveExaminer(profile: Partial<Profile>): Promise<Profile> {
-        // Updating a profile usually requires updating the 'profiles' table.
-        // Creating a new one requires creating an auth user, which should be done via Auth API or Edge Function.
-        // Here we will only support Updating existing profiles.
+        // If no ID, we're creating a new profile
+        // Note: This creates a profile without an auth user
+        // In production, you'd want to create the auth user first or use an invite system
 
         if (!profile.id) {
-            throw new Error("Creating new examiners directly is not supported. Invite a user instead.");
+            // Creating a new profile
+            const newProfile = {
+                name: profile.name,
+                last_name: profile.last_name,
+                username: profile.username,
+                title: profile.title,
+                accreditations: profile.accreditations || [],
+                role: profile.role || 'user',
+                email: profile.email || `${profile.username}@temp.local` // Temporary email
+            };
+
+            const { data, error } = await supabase
+                .from('profiles')
+                .insert(newProfile)
+                .select()
+                .single();
+
+            if (error) throw error;
+            return {
+                ...data,
+                lastName: data.last_name,
+                isAdmin: data.role === 'admin'
+            } as Profile;
         }
 
+        // Updating existing profile
         const updates = {
             name: profile.name,
             last_name: profile.last_name,
+            username: profile.username,
             title: profile.title,
             accreditations: profile.accreditations,
             role: profile.role

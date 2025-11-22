@@ -8,10 +8,12 @@ import type { ReportForm, Construction, Customer } from '../types';
 import clsx from 'clsx';
 import { generatePDF, generateBulkPDF } from '../lib/pdfGenerator';
 import { Breadcrumbs } from '../components/ui/Breadcrumbs';
+import { useAuth } from '../context/AuthContext';
 
 export const ConstructionReports = () => {
     const { customerId, constructionId } = useParams();
     const navigate = useNavigate();
+    const { profile } = useAuth();
     const [reports, setReports] = useState<ReportForm[]>([]);
     const [construction, setConstruction] = useState<Construction | null>(null);
     const [customer, setCustomer] = useState<Customer | null>(null);
@@ -19,6 +21,11 @@ export const ConstructionReports = () => {
     const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
     const [isNewReportOpen, setIsNewReportOpen] = useState(false);
+
+    // Check accreditations (1 = Water, 2 = Air)
+    const hasWaterAccreditation = profile?.accreditations?.includes(1) ?? false;
+    const hasAirAccreditation = profile?.accreditations?.includes(2) ?? false;
+    const hasAnyAccreditation = hasWaterAccreditation || hasAirAccreditation;
 
     useEffect(() => {
         if (customerId && constructionId) {
@@ -200,7 +207,9 @@ export const ConstructionReports = () => {
                     <div className="relative inline-block text-left">
                         <button
                             onClick={() => setIsNewReportOpen(!isNewReportOpen)}
-                            className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                            disabled={!hasAnyAccreditation}
+                            title={!hasAnyAccreditation ? "You don't have any accreditations" : ""}
+                            className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             <Plus className="h-5 w-5 mr-2" />
                             New Report
@@ -208,22 +217,31 @@ export const ConstructionReports = () => {
                         {isNewReportOpen && (
                             <div className="absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 focus:outline-none z-50">
                                 <div className="py-1" role="menu" aria-orientation="vertical">
-                                    <Link
-                                        to={`/customers/${customerId}/constructions/${constructionId}/reports/new/water`}
-                                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                                        role="menuitem"
-                                        onClick={() => setIsNewReportOpen(false)}
-                                    >
-                                        Water Method
-                                    </Link>
-                                    <Link
-                                        to={`/customers/${customerId}/constructions/${constructionId}/reports/new/air`}
-                                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                                        role="menuitem"
-                                        onClick={() => setIsNewReportOpen(false)}
-                                    >
-                                        Air Method
-                                    </Link>
+                                    {hasWaterAccreditation && (
+                                        <Link
+                                            to={`/customers/${customerId}/constructions/${constructionId}/reports/new/water`}
+                                            className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                                            role="menuitem"
+                                            onClick={() => setIsNewReportOpen(false)}
+                                        >
+                                            Water Method
+                                        </Link>
+                                    )}
+                                    {hasAirAccreditation && (
+                                        <Link
+                                            to={`/customers/${customerId}/constructions/${constructionId}/reports/new/air`}
+                                            className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                                            role="menuitem"
+                                            onClick={() => setIsNewReportOpen(false)}
+                                        >
+                                            Air Method
+                                        </Link>
+                                    )}
+                                    {!hasAnyAccreditation && (
+                                        <div className="px-4 py-2 text-sm text-gray-500">
+                                            No accreditations available
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         )}

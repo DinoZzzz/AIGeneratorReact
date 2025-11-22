@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react';
-import { Plus, Search, Pencil, Trash2, UserCheck } from 'lucide-react';
+import { Plus, Search, Pencil, Trash2, UserCheck, Lock } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { ExaminerDialog } from '../components/examiners/ExaminerDialog';
 import { examinerService } from '../services/examinerService';
 import type { Profile, ReportType } from '../types';
+import { useAuth } from '../context/AuthContext';
 
 export const Examiners = () => {
+    const { profile } = useAuth();
     const [examiners, setExaminers] = useState<Profile[]>([]);
     const [reportTypes, setReportTypes] = useState<ReportType[]>([]);
     const [loading, setLoading] = useState(true);
@@ -14,9 +16,7 @@ export const Examiners = () => {
     const [dialogOpen, setDialogOpen] = useState(false);
     const [selectedExaminer, setSelectedExaminer] = useState<Profile | null>(null);
 
-    // Assuming current user is admin for demo purposes or checking a claim
-    // For now we'll just allow editing since the C# app logic checks for IsAdmin locally
-    const isAdmin = true;
+    const isAdmin = profile?.role === 'admin';
 
     useEffect(() => {
         loadData();
@@ -62,16 +62,31 @@ export const Examiners = () => {
     const getAccreditationNames = (ids: number[]) => {
         if (!ids) return '';
         return ids
-            .map(id => reportTypes.find(t => t.id === id)?.type)
+            .map(id => reportTypes.find(t => t.id === id)?.name)
             .filter(Boolean)
             .join(', ');
     };
 
     const filteredExaminers = examiners.filter(e =>
-        e.name.toLowerCase().includes(search.toLowerCase()) ||
-        e.last_name.toLowerCase().includes(search.toLowerCase()) ||
-        e.username.toLowerCase().includes(search.toLowerCase())
+        (e.name?.toLowerCase() || '').includes(search.toLowerCase()) ||
+        (e.last_name?.toLowerCase() || '').includes(search.toLowerCase()) ||
+        (e.username?.toLowerCase() || '').includes(search.toLowerCase())
     );
+
+    // Access control - only admins can view this page
+    if (!isAdmin) {
+        return (
+            <div className="flex items-center justify-center min-h-[60vh]">
+                <div className="text-center">
+                    <Lock className="h-16 w-16 mx-auto text-muted-foreground/50 mb-4" />
+                    <h2 className="text-2xl font-bold text-foreground mb-2">Access Denied</h2>
+                    <p className="text-muted-foreground">
+                        Only administrators can manage examiners.
+                    </p>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="space-y-8">

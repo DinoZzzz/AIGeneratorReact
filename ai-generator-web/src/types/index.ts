@@ -55,7 +55,7 @@ export interface User {
 
 export interface ReportType {
     id: number;
-    type: string;
+    name: string;
 }
 
 export interface Profile {

@@ -31,7 +31,7 @@ export const Settings = () => {
                 .from('profiles')
                 .select('role')
                 .eq('id', user.id)
-                .single();
+                .maybeSingle();
 
             if (!error && data && data.role === 'admin') {
                 setIsAdmin(true);

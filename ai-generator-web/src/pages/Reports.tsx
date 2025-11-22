@@ -8,8 +8,10 @@ import { Button } from '../components/ui/Button';
 import { ExportDialog } from '../components/ExportDialog';
 import type { ExportMetaData } from '../components/ExportDialog';
 import { generateWordDocument } from '../services/wordExportService';
+import { useAuth } from '../context/AuthContext';
 
 export const Reports = () => {
+    const { profile } = useAuth();
     const [reports, setReports] = useState<ReportForm[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -17,6 +19,11 @@ export const Reports = () => {
     const [exportDialogOpen, setExportDialogOpen] = useState(false);
     const [isExporting, setIsExporting] = useState(false);
     const [isNewReportOpen, setIsNewReportOpen] = useState(false);
+
+    // Check accreditations (1 = Water, 2 = Air)
+    const hasWaterAccreditation = profile?.accreditations?.includes(1) ?? false;
+    const hasAirAccreditation = profile?.accreditations?.includes(2) ?? false;
+    const hasAnyAccreditation = hasWaterAccreditation || hasAirAccreditation;
 
     useEffect(() => {
         loadReports();
@@ -147,29 +154,42 @@ export const Reports = () => {
                         </>
                     )}
                     <div className="relative inline-block text-left">
-                        <Button onClick={() => setIsNewReportOpen(!isNewReportOpen)}>
+                        <Button
+                            onClick={() => setIsNewReportOpen(!isNewReportOpen)}
+                            disabled={!hasAnyAccreditation}
+                            title={!hasAnyAccreditation ? "You don't have any accreditations" : ""}
+                        >
                             <Plus className="h-4 w-4 mr-2" />
                             New Report
                         </Button>
                         {isNewReportOpen && (
                             <div className="absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-popover ring-1 ring-black ring-opacity-5 focus:outline-none z-50 border border-border">
                                 <div className="py-1" role="menu" aria-orientation="vertical">
-                                    <Link
-                                        to="/reports/new"
-                                        className="block px-4 py-2 text-sm text-popover-foreground hover:bg-accent hover:text-accent-foreground"
-                                        role="menuitem"
-                                        onClick={() => setIsNewReportOpen(false)}
-                                    >
-                                        Water Method
-                                    </Link>
-                                    <Link
-                                        to="/reports/new/air"
-                                        className="block px-4 py-2 text-sm text-popover-foreground hover:bg-accent hover:text-accent-foreground"
-                                        role="menuitem"
-                                        onClick={() => setIsNewReportOpen(false)}
-                                    >
-                                        Air Method
-                                    </Link>
+                                    {hasWaterAccreditation && (
+                                        <Link
+                                            to="/reports/new"
+                                            className="block px-4 py-2 text-sm text-popover-foreground hover:bg-accent hover:text-accent-foreground"
+                                            role="menuitem"
+                                            onClick={() => setIsNewReportOpen(false)}
+                                        >
+                                            Water Method
+                                        </Link>
+                                    )}
+                                    {hasAirAccreditation && (
+                                        <Link
+                                            to="/reports/new/air"
+                                            className="block px-4 py-2 text-sm text-popover-foreground hover:bg-accent hover:text-accent-foreground"
+                                            role="menuitem"
+                                            onClick={() => setIsNewReportOpen(false)}
+                                        >
+                                            Air Method
+                                        </Link>
+                                    )}
+                                    {!hasAnyAccreditation && (
+                                        <div className="px-4 py-2 text-sm text-muted-foreground">
+                                            No accreditations available
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         )}

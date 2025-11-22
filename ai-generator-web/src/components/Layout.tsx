@@ -20,7 +20,7 @@ interface LayoutProps {
 }
 
 export const Layout = ({ children }: LayoutProps) => {
-    const { signOut, user } = useAuth();
+    const { signOut, user, profile } = useAuth();
     const navigate = useNavigate();
     const location = useLocation();
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -30,14 +30,16 @@ export const Layout = ({ children }: LayoutProps) => {
         navigate('/login');
     };
 
+    const isAdmin = profile?.role === 'admin';
+
     const navigation = [
         { name: 'Platform', href: '/', icon: LayoutDashboard },
         { name: 'History', href: '/history', icon: History },
-        { name: 'Examiners', href: '/examiners', icon: UserCheck },
+        { name: 'Examiners', href: '/examiners', icon: UserCheck, adminOnly: true },
         { name: 'Customers', href: '/customers', icon: Users },
         { name: 'Settings', href: '/settings', icon: Settings },
         { name: 'Help', href: '/help', icon: HelpCircle },
-    ];
+    ].filter(item => !item.adminOnly || isAdmin);
 
     return (
         <div className="min-h-screen bg-background flex">
