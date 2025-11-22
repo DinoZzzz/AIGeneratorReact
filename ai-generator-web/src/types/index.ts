@@ -52,6 +52,22 @@ export interface User {
     name?: string;
 }
 
+export interface ReportType {
+    id: number;
+    type: string;
+}
+
+export interface Examiner {
+    id: string;
+    name: string;
+    lastName: string;
+    username: string;
+    title?: string;
+    isAdmin: boolean;
+    password?: string; // Only used for creation/update payload
+    accreditations: number[]; // List of ReportType IDs
+}
+
 export interface ReportForm {
     id: string;
     ordinal: number;
