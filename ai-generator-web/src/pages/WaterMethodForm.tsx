@@ -4,6 +4,7 @@ import { reportService } from '../services/reportService';
 import { Input } from '../components/ui/Input';
 import { Select } from '../components/ui/Select';
 import { Button } from '../components/ui/Button';
+import { Loader2, Save, ArrowLeft, FileDown, Calculator, Plus, ArrowRight, ChevronLeft } from 'lucide-react';
 import { Loader2, Save, ArrowLeft, FileDown, Plus, ArrowRight, ChevronLeft, Calculator } from 'lucide-react';
 import { Stepper } from '../components/ui/Stepper';
 import * as calc from '../lib/calculations/report';
@@ -27,35 +28,19 @@ const initialState: Partial<ReportForm> = {
     pressure_start: 0,
     pressure_end: 0,
     pane_diameter: 0,
-    examination_date: new Date().toISOString().split('T')[0],
-    examination_duration: '30:00', // Default 30 min for water
-    stock: '',
-    remark: '',
-    deviation: '',
+    ro_height: 0,
     depositional_height: 0,
-    pipeline_slope: 0
+    pipeline_slope: 0,
 };
 
 interface CalculatedResults {
     waterLoss: number;
     waterVolumeLoss: number;
     totalWettedArea: number;
-    wettedShaftSurface: number;
-    wettedPipeSurface: number;
     allowedLossL: number;
-    allowedLossMm: number;
     result: number;
     satisfies: boolean;
-    hydrostaticHeight: number;
 }
-
-const NUMERIC_FIELDS = [
-    'type_id', 'draft_id', 'material_type_id', 'pane_material_id', 'examination_procedure_id',
-    'temperature', 'pipe_length', 'pipe_diameter', 'pane_width', 'pane_length',
-    'water_height', 'water_height_start', 'water_height_end',
-    'pressure_start', 'pressure_end', 'pane_diameter',
-    'customer_id', 'construction_id', 'ordinal', 'depositional_height', 'pipeline_slope'
-];
 
 export const WaterMethodForm = () => {
     const { id, customerId, constructionId } = useParams();
@@ -69,13 +54,9 @@ export const WaterMethodForm = () => {
         waterLoss: 0,
         waterVolumeLoss: 0,
         totalWettedArea: 0,
-        wettedShaftSurface: 0,
-        wettedPipeSurface: 0,
         allowedLossL: 0,
-        allowedLossMm: 0,
         result: 0,
-        satisfies: false,
-        hydrostaticHeight: 0
+        satisfies: false
     });
 
     useEffect(() => {
@@ -86,17 +67,21 @@ export const WaterMethodForm = () => {
 
     useEffect(() => {
         // Recalculate whenever form data changes
-        const form = formData as ReportForm;
-        const results = calc.calculateWaterReport(form);
+        const results = calc.calculateWaterReport(formData as ReportForm);
+        setCalculated(results);
 
-        // Extra calculations not returned by calculateWaterReport wrapper
+        // Auto-generate deviation text
         const hydrostaticHeight = calc.calculateHydrostaticHeight(
-            form.draft_id,
-            form.water_height,
-            form.pipe_diameter,
-            form.depositional_height
+            formData.draft_id || 1,
+            formData.water_height || 0,
+            formData.pipe_diameter || 0,
+            formData.depositional_height || 0
         );
 
+        if (formData.draft_id === 2 && hydrostaticHeight < 1.0) {
+            const autoText = "Kod pojedinih dionica h2<100cm";
+            if (formData.deviation !== autoText) {
+                setFormData(prev => ({ ...prev, deviation: autoText }));
         const wettedPipe = calc.calculateWettedPipeSurface(form.draft_id, form.pipe_diameter, form.pipe_length);
         const wettedShaft = calc.calculateWettedShaftSurface(form.draft_id, form.material_type_id || 0, form.water_height, form.pane_diameter, form.pane_width, form.pane_length);
         const allowedLossMm = calc.calculateAllowedLossMm(results.allowedLossL, form.material_type_id || 0, form.pane_diameter || 0, form.pane_width || 0, form.pane_length || 0);
@@ -115,10 +100,7 @@ export const WaterMethodForm = () => {
             if (form.deviation !== deviationTarget) {
                 setFormData(prev => ({ ...prev, deviation: deviationTarget }));
             }
-        } else if (form.deviation === deviationTarget) {
-            setFormData(prev => ({ ...prev, deviation: "" }));
         }
-
     }, [formData]);
 
     const loadReport = async (reportId: string) => {
@@ -134,28 +116,22 @@ export const WaterMethodForm = () => {
         }
     };
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value, type } = e.target;
-        let finalValue: string | number = value;
-
-        if (type === 'number' || NUMERIC_FIELDS.includes(name)) {
-            finalValue = parseFloat(value) || 0;
-        }
-
         setFormData(prev => ({
             ...prev,
-            [name]: finalValue
+            [name]: type === 'number' ? parseFloat(value) || 0 : value
         }));
     };
 
-    const handleSave = async (createNext: boolean = false) => {
+    const saveReport = async (shouldRedirect: boolean) => {
         try {
             setLoading(true);
             const dataToSave = {
                 ...formData,
-                satisfies: calculated.satisfies,
-                customer_id: customerId ? customerId : formData.customer_id,
-                construction_id: constructionId ? constructionId : formData.construction_id,
+                ...calculated,
+                customer_id: customerId ? parseInt(customerId) : formData.customer_id,
+                construction_id: constructionId ? parseInt(constructionId) : formData.construction_id,
                 type_id: 1 // Ensure it's water type
             };
 
@@ -165,6 +141,7 @@ export const WaterMethodForm = () => {
                 await reportService.update(id!, dataToSave as ReportForm);
             }
 
+            if (shouldRedirect) {
             if (createNext) {
                 setFormData({
                     ...initialState,
@@ -193,11 +170,12 @@ export const WaterMethodForm = () => {
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        handleSave(true);
+        saveReport(true);
     };
 
     const handleSaveAndNew = (e: React.MouseEvent) => {
         e.preventDefault();
+        saveReport(false);
         handleSave(true);
     };
 
@@ -228,7 +206,7 @@ export const WaterMethodForm = () => {
     }
 
     return (
-        <div className="w-full max-w-[1800px] mx-auto space-y-6 px-6">
+        <div className="max-w-5xl mx-auto space-y-8">
             <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-4">
                     <Button
@@ -240,7 +218,7 @@ export const WaterMethodForm = () => {
                     </Button>
                     <div>
                         <h1 className="text-2xl font-bold text-foreground">
-                            AI Generator
+                            {id === 'new' ? 'New Water Test Report' : 'Edit Report'}
                         </h1>
                         <p className="text-sm text-muted-foreground">
                             {step === 1 ? 'Step 1: Parameters & Dimensions' : 'Step 2: Measurements & Results'}
@@ -290,6 +268,161 @@ export const WaterMethodForm = () => {
                 {/* Step 1: Parameters & Dimensions */}
                 {step === 1 && (
                     <div className="lg:col-span-3 space-y-6">
+                        {/* Basic Info Card */}
+                        <div className="bg-card shadow-sm rounded-xl border border-border p-6">
+                            <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center">
+                                <Calculator className="h-5 w-5 mr-2 text-primary" />
+                                Test Parameters
+                            </h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <Select
+                                    label="Draft"
+                                    name="draft_id"
+                                    value={formData.draft_id}
+                                    onChange={handleChange}
+                                    options={[
+                                        { value: 1, label: 'Testing of Shaft' },
+                                        { value: 2, label: 'Testing of Pipe' },
+                                        { value: 3, label: 'Testing of Shaft and Pipe' },
+                                        { value: 8, label: 'Testing of Gully' },
+                                    ]}
+                                />
+                                <Select
+                                    label="Material Type"
+                                    name="material_type_id"
+                                    value={formData.material_type_id}
+                                    onChange={handleChange}
+                                    options={[
+                                        { value: 1, label: 'Shaft (Round)' },
+                                        { value: 2, label: 'Shaft (Rectangular)' },
+                                    ]}
+                                />
+                                <Input
+                                    label="Examination Date"
+                                    type="date"
+                                    name="examination_date"
+                                    value={formData.examination_date?.toString().split('T')[0]}
+                                    onChange={handleChange}
+                                />
+                                <Input
+                                    label="Temperature (°C)"
+                                    type="number"
+                                    name="temperature"
+                                    value={formData.temperature}
+                                    onChange={handleChange}
+                                />
+                                <Input
+                                    label="Stock / Section"
+                                    name="stock"
+                                    value={formData.stock || ''}
+                                    onChange={handleChange}
+                                />
+                            </div>
+                        </div>
+
+                        {/* Dimensions Card */}
+                        <div className="bg-card shadow-sm rounded-xl border border-border p-6">
+                            <h3 className="text-lg font-semibold text-foreground mb-4">Dimensions</h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                {isShaftRound && (
+                                    <>
+                                        <Input
+                                            label="Pane Diameter (m)"
+                                            type="number"
+                                            step="0.01"
+                                            name="pane_diameter"
+                                            value={formData.pane_diameter}
+                                            onChange={handleChange}
+                                        />
+                                        <Input
+                                            label="Ro Height (m)"
+                                            type="number"
+                                            step="0.01"
+                                            name="ro_height"
+                                            value={formData.ro_height}
+                                            onChange={handleChange}
+                                        />
+                                    </>
+                                )}
+                                {isShaftRectangular && (
+                                    <>
+                                        <Input
+                                            label="Pane Width (m)"
+                                            type="number"
+                                            step="0.01"
+                                            name="pane_width"
+                                            value={formData.pane_width}
+                                            onChange={handleChange}
+                                        />
+                                        <Input
+                                            label="Pane Length (m)"
+                                            type="number"
+                                            step="0.01"
+                                            name="pane_length"
+                                            value={formData.pane_length}
+                                            onChange={handleChange}
+                                        />
+                                        <Input
+                                            label="Pane Height (m)"
+                                            type="number"
+                                            step="0.01"
+                                            name="pane_height"
+                                            value={formData.pane_height}
+                                            onChange={handleChange}
+                                        />
+                                    </>
+                                )}
+
+                                <Input
+                                    label="Water Height (m)"
+                                    type="number"
+                                    step="0.01"
+                                    name="water_height"
+                                    value={formData.water_height}
+                                    onChange={handleChange}
+                                />
+
+                                {showPipeFields && (
+                                    <>
+                                        <Input
+                                            label="Pipe Diameter (m)"
+                                            type="number"
+                                            step="0.01"
+                                            name="pipe_diameter"
+                                            value={formData.pipe_diameter}
+                                            onChange={handleChange}
+                                        />
+                                        <Input
+                                            label="Pipe Length (m)"
+                                            type="number"
+                                            step="0.01"
+                                            name="pipe_length"
+                                            value={formData.pipe_length}
+                                            onChange={handleChange}
+                                        />
+                                    </>
+                                )}
+
+                                {showGullyFields && (
+                                    <>
+                                        <Input
+                                            label="Depositional Height (m)"
+                                            type="number"
+                                            step="0.01"
+                                            name="depositional_height"
+                                            value={formData.depositional_height}
+                                            onChange={handleChange}
+                                        />
+                                        <Input
+                                            label="Slope (%)"
+                                            type="number"
+                                            step="0.01"
+                                            name="pipeline_slope"
+                                            value={formData.pipeline_slope}
+                                            onChange={handleChange}
+                                        />
+                                    </>
+                                )}
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                             {/* Basic Info Card */}
                             <div className="bg-card shadow-sm rounded-xl border border-border p-6">
@@ -557,7 +690,7 @@ export const WaterMethodForm = () => {
 
 const ResultRow = ({ label, value, highlight = false }: { label: string, value: string, highlight?: boolean }) => (
     <div className="flex justify-between items-center">
-        <span className={cn(highlight ? "font-semibold text-foreground" : "text-muted-foreground")}>{label}</span>
-        <span className={cn("font-medium", highlight ? "text-primary" : "text-foreground")}>{value}</span>
+        <span className={cn("text-sm", highlight ? "font-semibold text-foreground" : "text-muted-foreground")}>{label}</span>
+        <span className={cn("font-medium", highlight ? "text-lg text-primary" : "text-foreground")}>{value}</span>
     </div>
 );
