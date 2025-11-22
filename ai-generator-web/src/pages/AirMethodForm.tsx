@@ -87,19 +87,34 @@ export const AirMethodForm = () => {
         const results = calc.calculateAirReport(formData as ReportForm, allowedLoss);
 
         let diameter = 0;
+        // Diameter logic: Draft 1 (Shaft) uses PaneDiameter, others (Pipe) use PipeDiameter
+        // Note: Draft 3 (Shaft+Pipe) calculation usually bases time on Pipe Diameter for Air method
         if (formData.draft_id === 1) {
             diameter = formData.pane_diameter || 0;
         } else {
             diameter = formData.pipe_diameter || 0;
         }
 
-        let method: 'LA' | 'LB' | 'LC' | 'LD' = 'LA';
-        const p = formData.pressure_start || 0;
-        if (p >= 200) method = 'LD';
-        else if (p >= 100) method = 'LC';
-        else if (p >= 50) method = 'LB';
+        // Determine method ID (LA=1, LB=2, LC=3, LD=4)
+        // If procedure is selected, use its ID directly (Assuming procedure.id corresponds to 1,2,3,4)
+        // Fallback to pressure logic if procedure ID logic isn't strictly 1-4
+        // Logic from C# TestTimeClass.cs uses procedureId directly (1,2,3,4)
+        let procedureId = 1;
+        if (selectedProcedure) {
+             procedureId = selectedProcedure.id;
+        } else {
+            // Fallback estimation based on pressure if procedure not loaded
+            const p = formData.pressure_start || 0;
+            if (p >= 200) procedureId = 4; // LD
+            else if (p >= 100) procedureId = 3; // LC
+            else if (p >= 50) procedureId = 2; // LB
+        }
 
-        const requiredTestTime = calculateRequiredTestTime(method, diameter, formData.draft_id === 1);
+        const requiredTestTime = calculateRequiredTestTime(
+            procedureId,
+            formData.draft_id || 1,
+            diameter * 1000 // Convert meters to mm
+        );
 
         setCalculated({
             pressureLoss: results.pressureLoss,

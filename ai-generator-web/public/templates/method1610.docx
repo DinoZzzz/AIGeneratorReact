@@ -1,0 +1,4 @@
+This is a placeholder for the Microsoft Word template (method1610.docx).
+The real file must be placed here.
+It should be a valid .docx file containing Mustache tags like {workOrder}, {#airTests}...{/airTests}.
+See docFinal/Legacy_Exports.md for the full specification.
