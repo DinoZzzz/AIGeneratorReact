@@ -57,21 +57,10 @@ function App() {
                       <Routes>
                         <Route path="/" element={<Dashboard />} />
                         <Route path="/history" element={<History />} />
+                        <Route path="/history/:id" element={<HistoryDetails />} />
                         <Route path="/examiners" element={<Examiners />} />
                         <Route path="/settings" element={<Settings />} />
                         <Route path="/help" element={<Help />} />
-            {/* Protected Routes */}
-            <Route
-              path="/*"
-              element={
-                <ProtectedRoute>
-                  <Layout>
-                    <Routes>
-                      <Route path="/" element={<Dashboard />} />
-                      <Route path="/history" element={<History />} />
-                      <Route path="/history/:id" element={<HistoryDetails />} />
-                      <Route path="/examiners" element={<Examiners />} />
-                      <Route path="/help" element={<Help />} />
 
                         <Route path="/reports" element={<Reports />} />
                         <Route path="/reports/new" element={<WaterMethodForm />} />

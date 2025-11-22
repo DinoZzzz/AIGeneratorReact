@@ -5,13 +5,13 @@ import { supabase } from '../lib/supabase';
 import { Input } from '../components/ui/Input';
 import { Select } from '../components/ui/Select';
 import { Button } from '../components/ui/Button';
-import { Loader2, Save, ArrowLeft, FileDown, Calculator, Plus, ArrowRight, ChevronLeft } from 'lucide-react';
+import { Loader2, Save, ArrowLeft, FileDown, Plus, ArrowRight, ChevronLeft } from 'lucide-react';
 import { Stepper } from '../components/ui/Stepper';
 import * as calc from '../lib/calculations/report';
 import { generatePDF } from '../lib/pdfGenerator';
 import type { ReportForm, ExaminationProcedure } from '../types';
 import { cn } from '../lib/utils';
-import { calculateRequiredTestTime, formatTime } from '../lib/calculations/testTime';
+import { calculateRequiredTestTime } from '../lib/calculations/testTime';
 
 // Initial empty state
 const initialState: Partial<ReportForm> = {
@@ -47,7 +47,7 @@ export const AirMethodForm = () => {
     const [loading, setLoading] = useState(false);
     const [formData, setFormData] = useState<Partial<ReportForm>>(initialState);
     const [procedures, setProcedures] = useState<ExaminationProcedure[]>([]);
-    const [step, setStep] = useState<1 | 2>(1); // Step state
+    const [step, setStep] = useState<1 | 2>(1);
     const [calculated, setCalculated] = useState<CalculatedResults>({
         pressureLoss: 0,
         allowedLoss: 0,
@@ -64,27 +64,10 @@ export const AirMethodForm = () => {
     }, [id]);
 
     useEffect(() => {
-        // Recalculate whenever form data changes
         const selectedProcedure = procedures.find(p => p.id === formData.examination_procedure_id);
-        const allowedLoss = selectedProcedure?.allowed_loss || 0.10; // Default to 0.10 if not found
-
+        const allowedLoss = selectedProcedure?.allowed_loss || 0.10;
         const results = calc.calculateAirReport(formData as ReportForm, allowedLoss);
 
-        // Calculate Test Time
-        // Clause 13.2 says "Testing of individual pipes...".
-        // Let's use the pipe diameter if it exists, otherwise pane diameter.
-
-        // Find selected procedure
-        const procedure = procedures.find(p => p.id === formData.examination_procedure_id);
-        const allowedLoss = procedure?.allowed_loss || 0.10; // Fallback
-
-        // Calculate Pressure Loss
-        const pressureLoss = calc.calculatePressureLoss(formData.pressure_start || 0, formData.pressure_end || 0);
-
-        // Calculate Satisfies
-        const satisfies = calc.isSatisfying(0, 0, 2, pressureLoss, allowedLoss);
-
-        // Calculate Test Time (using ported logic)
         let diameter = 0;
         if (formData.draft_id === 1) {
             diameter = formData.pane_diameter || 0;
@@ -92,9 +75,6 @@ export const AirMethodForm = () => {
             diameter = formData.pipe_diameter || 0;
         }
 
-        // Method is usually derived from pressure.
-        // 10mbar = LA, 50mbar = LB, 100mbar = LC, 200mbar = LD.
-        // Let's guess method based on start pressure.
         let method: 'LA' | 'LB' | 'LC' | 'LD' = 'LA';
         const p = formData.pressure_start || 0;
         if (p >= 200) method = 'LD';
@@ -104,13 +84,11 @@ export const AirMethodForm = () => {
         const requiredTestTime = calculateRequiredTestTime(method, diameter, formData.draft_id === 1);
 
         setCalculated({
-            ...results,
+            pressureLoss: results.pressureLoss,
+            allowedLoss: results.allowedLoss,
+            satisfies: results.satisfies,
+            testTime: '00:00',
             requiredTestTime
-            pressureLoss,
-            allowedLoss,
-            satisfies,
-            testTime: testTimeString,
-            requiredTestTime: timeMinutes
         });
     }, [formData, procedures]);
 
@@ -132,7 +110,7 @@ export const AirMethodForm = () => {
         }
     };
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
         const { name, value, type } = e.target;
         setFormData(prev => ({
             ...prev,
@@ -148,7 +126,7 @@ export const AirMethodForm = () => {
                 ...calculated,
                 customer_id: customerId ? parseInt(customerId) : formData.customer_id,
                 construction_id: constructionId ? parseInt(constructionId) : formData.construction_id,
-                type_id: 2 // Ensure it's air type
+                type_id: 2
             };
 
             if (id === 'new') {
@@ -157,21 +135,17 @@ export const AirMethodForm = () => {
                 await reportService.update(id!, dataToSave as ReportForm);
             }
 
-            if (shouldRedirect) {
-            if (createNext) {
-                // Reset form for new entry but keep some fields like construction/date
+            if (!shouldRedirect) {
                 setFormData({
                     ...initialState,
                     customer_id: dataToSave.customer_id,
                     construction_id: dataToSave.construction_id,
                     examination_date: dataToSave.examination_date,
-                    // Keep procedure, draft, material type
                     examination_procedure_id: dataToSave.examination_procedure_id,
                     draft_id: dataToSave.draft_id,
                     material_type_id: dataToSave.material_type_id,
-                    pane_material_id: dataToSave.pane_material_id,
                 });
-                setStep(1); // Go back to start
+                setStep(1);
                 navigate(`/customers/${customerId}/constructions/${constructionId}/reports/new/air`);
                 alert('Report saved. Ready for next entry.');
             } else {
@@ -211,22 +185,9 @@ export const AirMethodForm = () => {
         }
     };
 
-    const handleSaveAndNew = (e: React.MouseEvent) => {
-        e.preventDefault();
-        handleSave(true);
-    };
-
-    // Helper for formatting time
-    const formatTime = (minutes: number) => {
-        const m = Math.floor(minutes);
-        const s = Math.round((minutes - m) * 60);
-        return `${m}:${s.toString().padStart(2, '0')}`;
-    };
-
-    // Visibility Logic
     const isShaftRound = formData.material_type_id === 1;
     const isShaftRectangular = formData.material_type_id === 2;
-    const showPipeFields = formData.draft_id !== 1; // 1 = Shaft only
+    const showPipeFields = formData.draft_id !== 1;
 
     if (loading && id && id !== 'new') {
         return (
@@ -237,14 +198,10 @@ export const AirMethodForm = () => {
     }
 
     return (
-        <div className="max-w-5xl mx-auto space-y-8">
+        <div className="w-full max-w-[1800px] mx-auto px-6 space-y-8">
             <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-4">
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={handleBack}
-                    >
+                    <Button variant="ghost" size="icon" onClick={handleBack}>
                         <ArrowLeft className="h-6 w-6 text-muted-foreground" />
                     </Button>
                     <div>
@@ -252,188 +209,96 @@ export const AirMethodForm = () => {
                             {id === 'new' ? 'New Air Test Report' : 'Edit Report'}
                         </h1>
                         <p className="text-sm text-muted-foreground">
-                             {step === 1 ? 'Step 1: Parameters & Dimensions' : 'Step 2: Measurements & Results'}
+                            {step === 1 ? 'Step 1: Parameters & Dimensions' : 'Step 2: Measurements & Results'}
                         </p>
                     </div>
                 </div>
                 <div className="flex space-x-3">
                     {step === 2 && (
                         <>
-                            <Button
-                                variant="outline"
-                                onClick={() => generatePDF(formData)}
-                            >
+                            <Button variant="outline" onClick={() => generatePDF(formData)}>
                                 <FileDown className="h-4 w-4 mr-2" />
                                 Export PDF
                             </Button>
-                            <Button
-                                variant="outline"
-                                onClick={handleSaveAndNew}
-                                disabled={loading}
-                            >
+                            <Button variant="outline" onClick={handleSaveAndNew}>
                                 <Plus className="h-4 w-4 mr-2" />
                                 Save & New
-                            </Button>
-                            <Button
-                                onClick={(e) => { e.preventDefault(); handleSave(false); }}
-                                disabled={loading}
-                            >
-                                {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
-                                Save
                             </Button>
                         </>
                     )}
                 </div>
             </div>
 
-            <div className="mb-8">
-                <Stepper
-                    steps={['Parameters & Dimensions', 'Measurements & Results']}
-                    currentStep={step - 1}
-                    onStepClick={(s) => setStep((s + 1) as 1 | 2)}
-                />
-            </div>
+            <Stepper
+                steps={['Parameters', 'Measurements']}
+                currentStep={step - 1}
+                onStepClick={(s) => setStep((s + 1) as 1 | 2)}
+            />
 
-            <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                 {/* Step 1: Parameters & Dimensions */}
+            <form onSubmit={handleSubmit} className="space-y-6">
                 {step === 1 && (
-                    <div className="lg:col-span-3 space-y-6">
-                        {/* Basic Info Card */}
-                        <div className="bg-card shadow-sm rounded-xl border border-border p-6">
-                            <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center">
-                                <Calculator className="h-5 w-5 mr-2 text-primary" />
-                                Test Parameters
-                            </h3>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <Select
-                                    label="Examination Procedure"
-                                    name="examination_procedure_id"
-                                    value={formData.examination_procedure_id || ''}
-                                    onChange={handleChange}
-                                    options={procedures.map(p => ({ value: p.id, label: p.name }))}
-                                />
-                                <Select
-                                    label="Draft"
-                                    name="draft_id"
-                                    value={formData.draft_id}
-                                    onChange={handleChange}
-                                    options={[
-                                        { value: 1, label: 'Testing of Shaft' },
-                                        { value: 2, label: 'Testing of Pipe' },
-                                        { value: 3, label: 'Testing of Shaft and Pipe' },
-                                    ]}
-                                />
-                                <Select
-                                    label="Material Type"
-                                    name="material_type_id"
-                                    value={formData.material_type_id}
-                                    onChange={handleChange}
-                                    options={[
-                                        { value: 1, label: 'Shaft (Round)' },
-                                        { value: 2, label: 'Shaft (Rectangular)' },
-                                    ]}
-                                />
-                                <Input
-                                    label="Examination Date"
-                                    type="date"
-                                    name="examination_date"
-                                    value={formData.examination_date?.toString().split('T')[0]}
-                                    onChange={handleChange}
-                                />
-                                <div className="grid grid-cols-2 gap-2">
-                                    <Input
-                                        label="Start Time"
-                                        type="time"
-                                        name="examination_start_time"
-                                        value={formData.examination_start_time || ''}
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                            {/* Basic Info Card */}
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <div className="lg:col-span-3 grid grid-cols-1 md:grid-cols-3 gap-6">
                             <div className="bg-card shadow-sm rounded-xl border border-border p-6">
-                                <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center">
-                                    <Calculator className="h-5 w-5 mr-2 text-primary" />
-                                    Test Parameters
-                                </h3>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <h3 className="text-lg font-semibold text-foreground mb-4">General Info</h3>
+                                <div className="space-y-4">
                                     <Select
                                         label="Examination Procedure"
                                         name="examination_procedure_id"
-                                        value={formData.examination_procedure_id || ''}
+                                        value={formData.examination_procedure_id}
                                         onChange={handleChange}
-                                        options={procedures.map(p => ({ value: p.id, label: p.name }))}
+                                    >
+                                        <option value="">Select procedure</option>
+                                        {procedures.map(p => (
+                                            <option key={p.id} value={p.id}>{p.name}</option>
+                                        ))}
+                                    </Select>
+                                    <Input
+                                        label="Examination Date"
+                                        type="date"
+                                        name="examination_date"
+                                        value={formData.examination_date}
+                                        onChange={handleChange}
                                     />
+                                    <Input
+                                        label="Temperature (°C)"
+                                        type="number"
+                                        step="0.1"
+                                        name="temperature"
+                                        value={formData.temperature}
+                                        onChange={handleChange}
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="bg-card shadow-sm rounded-xl border border-border p-6">
+                                <h3 className="text-lg font-semibold text-foreground mb-4">Structure Type</h3>
+                                <div className="space-y-4">
                                     <Select
-                                        label="Draft"
+                                        label="Draft Type"
                                         name="draft_id"
                                         value={formData.draft_id}
                                         onChange={handleChange}
-                                        options={[
-                                            { value: 1, label: 'Testing of Shaft' },
-                                            { value: 2, label: 'Testing of Pipe' },
-                                            { value: 3, label: 'Testing of Shaft and Pipe' },
-                                        ]}
-                                    />
+                                    >
+                                        <option value={1}>Shaft only</option>
+                                        <option value={2}>Pipes only</option>
+                                        <option value={3}>Shaft + Pipes</option>
+                                    </Select>
                                     <Select
                                         label="Material Type"
                                         name="material_type_id"
                                         value={formData.material_type_id}
                                         onChange={handleChange}
-                                        options={[
-                                            { value: 1, label: 'Shaft (Round)' },
-                                            { value: 2, label: 'Shaft (Rectangular)' },
-                                        ]}
-                                    />
-                                    <Input
-                                        label="Examination Date"
-                                        type="date"
-                                        name="examination_date"
-                                        value={formData.examination_date?.toString().split('T')[0]}
-                                        onChange={handleChange}
-                                    />
-                                    <div className="grid grid-cols-2 gap-2">
-                                        <Input
-                                            label="Start Time"
-                                            type="time"
-                                            name="examination_start_time"
-                                            value={formData.examination_start_time || ''}
-                                            onChange={handleChange}
-                                        />
-                                        <Input
-                                            label="End Time"
-                                            type="time"
-                                            name="examination_end_time"
-                                            value={formData.examination_end_time || ''}
-                                            onChange={handleChange}
-                                        />
-                                    </div>
-                                    <Input
-                                        label="Temperature (°C)"
-                                        type="number"
-                                        name="temperature"
-                                        value={formData.temperature}
-                                        onChange={handleChange}
-                                    />
-                                    <Input
-                                        label="Stock / Section"
-                                        name="stock"
-                                        value={formData.stock || ''}
-                                        onChange={handleChange}
-                                    />
-                                </div>
-
-                                <div className="mt-6 flex items-center justify-center bg-muted/20 rounded-lg border-2 border-dashed border-muted p-8">
-                                    {/* Placeholder for Image/Scheme */}
-                                    <div className="text-center text-muted-foreground">
-                                        <p>Scheme: {formData.draft_id}</p>
-                                        <span className="text-xs">(Scheme display not implemented)</span>
-                                    </div>
+                                    >
+                                        <option value={1}>Round Shaft</option>
+                                        <option value={2}>Rectangular Shaft</option>
+                                    </Select>
                                 </div>
                             </div>
-                        </div>
 
-                            {/* Dimensions Card */}
-                            <div className="bg-card shadow-sm rounded-xl border border-border p-6 h-fit">
+                            <div className="bg-card shadow-sm rounded-xl border border-border p-6">
                                 <h3 className="text-lg font-semibold text-foreground mb-4">Dimensions</h3>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div className="space-y-4">
                                     {isShaftRound && (
                                         <Input
                                             label="Pane Diameter (m)"
@@ -462,17 +327,8 @@ export const AirMethodForm = () => {
                                                 value={formData.pane_length}
                                                 onChange={handleChange}
                                             />
-                                            <Input
-                                                label="Pane Height (m)"
-                                                type="number"
-                                                step="0.01"
-                                                name="pane_height"
-                                                value={formData.pane_height}
-                                                onChange={handleChange}
-                                            />
                                         </>
                                     )}
-
                                     {showPipeFields && (
                                         <>
                                             <Input
@@ -497,7 +353,7 @@ export const AirMethodForm = () => {
                             </div>
                         </div>
 
-                        <div className="flex justify-end">
+                        <div className="lg:col-span-3 flex justify-end">
                             <Button type="button" onClick={() => setStep(2)} size="lg">
                                 Next Step <ArrowRight className="ml-2 h-5 w-5" />
                             </Button>
@@ -505,13 +361,11 @@ export const AirMethodForm = () => {
                     </div>
                 )}
 
-                {/* Step 2: Measurements & Results */}
                 {step === 2 && (
-                    <>
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                         <div className="lg:col-span-2 space-y-6">
-                            {/* Measurements Card */}
                             <div className="bg-card shadow-sm rounded-xl border border-border p-6">
-                                <h3 className="text-lg font-semibold text-foreground mb-4">Pressure Measurements</h3>
+                                <h3 className="text-lg font-semibold text-foreground mb-4">Pressure & Time</h3>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <Input
                                         label="Start Pressure (mbar)"
@@ -529,12 +383,25 @@ export const AirMethodForm = () => {
                                         value={formData.pressure_end}
                                         onChange={handleChange}
                                     />
+                                    <Input
+                                        label="Start Time"
+                                        type="time"
+                                        name="examination_start_time"
+                                        value={formData.examination_start_time}
+                                        onChange={handleChange}
+                                    />
+                                    <Input
+                                        label="End Time"
+                                        type="time"
+                                        name="examination_end_time"
+                                        value={formData.examination_end_time}
+                                        onChange={handleChange}
+                                    />
                                 </div>
                             </div>
 
-                            {/* Remarks & Deviation */}
                             <div className="bg-card shadow-sm rounded-xl border border-border p-6">
-                                <h3 className="text-lg font-semibold text-foreground mb-4">Notes</h3>
+                                <h3 className="text-lg font-semibold text-foreground mb-4">Remarks</h3>
                                 <div className="space-y-4">
                                     <div>
                                         <label className="text-sm font-medium mb-1 block">Remark</label>
@@ -543,6 +410,7 @@ export const AirMethodForm = () => {
                                             value={formData.remark || ''}
                                             onChange={handleChange}
                                             className="w-full min-h-[80px] rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                                            placeholder="Enter any remarks..."
                                         />
                                     </div>
                                     <div>
@@ -552,19 +420,25 @@ export const AirMethodForm = () => {
                                             value={formData.deviation || ''}
                                             onChange={handleChange}
                                             className="w-full min-h-[80px] rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                                            placeholder="Enter any deviations from standard..."
                                         />
                                     </div>
                                 </div>
                             </div>
 
-                             <div className="flex justify-between pt-4">
+                            <div className="flex justify-between pt-4">
                                 <Button type="button" variant="outline" onClick={() => setStep(1)} size="lg">
                                     <ChevronLeft className="mr-2 h-5 w-5" /> Previous Step
                                 </Button>
-                             </div>
+                                <div className="flex space-x-3">
+                                    <Button type="submit" size="lg">
+                                        <Save className="mr-2 h-4 w-4" />
+                                        Save Report
+                                    </Button>
+                                </div>
+                            </div>
                         </div>
 
-                        {/* Right Column: Results */}
                         <div className="lg:col-span-1">
                             <div className="bg-card shadow-sm rounded-xl border border-border p-6 sticky top-6">
                                 <h3 className="text-lg font-semibold text-foreground mb-6">Calculated Results</h3>
@@ -594,27 +468,13 @@ export const AirMethodForm = () => {
                                             <ResultRow label="Allowed Loss" value={`${calculated.allowedLoss.toFixed(2)} mbar`} highlight />
                                         </div>
                                         <div className="pt-4 border-t border-border">
-                                            <ResultRow label="Required Time" value={`${formatTime(calculated.requiredTestTime)} min`} />
-                                            <ResultRow label="Stabilization Time" value="05:00 min" />
-                                            <ResultRow
-                                                label="Actual Time"
-                                                value={
-                                                    formData.examination_start_time && formData.examination_end_time
-                                                        ? (() => {
-                                                            const start = new Date(`1970-01-01T${formData.examination_start_time}`);
-                                                            const end = new Date(`1970-01-01T${formData.examination_end_time}`);
-                                                            const diff = (end.getTime() - start.getTime()) / 60000;
-                                                            return diff > 0 ? `${formatTime(diff)} min` : '-';
-                                                        })()
-                                                        : '-'
-                                                }
-                                            />
+                                            <ResultRow label="Required Time" value={`${calculated.requiredTestTime.toFixed(0)} min`} />
                                         </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
-                    </>
+                    </div>
                 )}
             </form>
         </div>
@@ -625,7 +485,5 @@ const ResultRow = ({ label, value, highlight = false }: { label: string, value: 
     <div className="flex justify-between items-center">
         <span className={cn("text-sm", highlight ? "font-semibold text-foreground" : "text-muted-foreground")}>{label}</span>
         <span className={cn("font-medium", highlight ? "text-lg text-primary" : "text-foreground")}>{value}</span>
-        <span className={cn(highlight ? "font-semibold text-foreground" : "text-muted-foreground")}>{label}</span>
-        <span className={cn("font-medium", highlight ? "text-primary" : "text-foreground")}>{value}</span>
     </div>
 );
