@@ -160,7 +160,7 @@ export const ExaminerDialog = ({ open, onOpenChange, examiner, onSave }: Examine
                         <Checkbox
                             id="isAdmin"
                             checked={formData.isAdmin}
-                            onCheckedChange={(checked) => setFormData({ ...formData, isAdmin: checked as boolean })}
+                            onCheckedChange={(checked: boolean) => setFormData({ ...formData, isAdmin: checked })}
                         />
                         <Label htmlFor="isAdmin">Administrator</Label>
                     </div>

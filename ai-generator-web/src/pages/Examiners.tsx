@@ -5,8 +5,6 @@ import { Input } from '../components/ui/Input';
 import { ExaminerDialog } from '../components/examiners/ExaminerDialog';
 import { examinerService } from '../services/examinerService';
 import type { Examiner, ReportType } from '../types';
-import { cn } from '../lib/utils';
-import { useAuth } from '../context/AuthContext';
 
 export const Examiners = () => {
     const [examiners, setExaminers] = useState<Examiner[]>([]);
@@ -15,7 +13,6 @@ export const Examiners = () => {
     const [search, setSearch] = useState('');
     const [dialogOpen, setDialogOpen] = useState(false);
     const [selectedExaminer, setSelectedExaminer] = useState<Examiner | null>(null);
-    const { user } = useAuth(); // In a real app we would check if user is admin via profile
 
     // Assuming current user is admin for demo purposes or checking a claim
     // For now we'll just allow editing since the C# app logic checks for IsAdmin locally

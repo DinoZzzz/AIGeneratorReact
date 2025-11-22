@@ -109,8 +109,8 @@ export const WaterMethodForm = () => {
             const dataToSave = {
                 ...formData,
                 ...calculated,
-                customer_id: customerId ? parseInt(customerId) : formData.customer_id,
-                construction_id: constructionId ? parseInt(constructionId) : formData.construction_id,
+                customer_id: customerId || formData.customer_id,
+                construction_id: constructionId || formData.construction_id,
                 type_id: 1
             };
 

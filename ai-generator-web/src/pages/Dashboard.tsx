@@ -33,28 +33,6 @@ export const Dashboard = () => {
                 reports: reportsCount || 0
             });
 
-            // Fetch recent reports
-            const { data: reports } = await supabase
-                .from('reports')
-                .select(`
-                    id,
-                    examination_date,
-                    type_id,
-                    satisfies,
-                    constructions (
-                        name,
-                        work_order,
-                        customers (
-                            name
-                        )
-                    )
-                `)
-                .order('created_at', { ascending: false })
-                .limit(5);
-
-            if (reports) {
-                setRecentReports(reports as unknown as DashboardReport[]);
-            }
 
         } catch (error) {
             console.error('Error loading dashboard data:', error);
