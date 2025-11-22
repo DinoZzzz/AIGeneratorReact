@@ -16,16 +16,23 @@ import { supabase } from '../lib/supabase';
 
 // Function to load file from Supabase Storage
 const loadFile = async (path: string): Promise<ArrayBuffer> => {
-    const { data, error } = await supabase.storage
+    // Use getPublicUrl to bypass potential client-side caching issues with .download()
+    const { data } = supabase.storage
         .from('templates')
-        .download(path);
+        .getPublicUrl(path);
 
-    if (error) {
-        console.error('Supabase Storage Error:', error);
-        throw new Error(`Failed to download template: ${JSON.stringify(error)}`);
+    if (!data.publicUrl) {
+        throw new Error('Failed to get public URL for template');
     }
 
-    return await data.arrayBuffer();
+    // Add timestamp to prevent caching
+    const response = await fetch(`${data.publicUrl}?t=${new Date().getTime()}`);
+
+    if (!response.ok) {
+        throw new Error(`Failed to download template: ${response.statusText}`);
+    }
+
+    return await response.arrayBuffer();
 };
 
 // Helper to format date
@@ -47,6 +54,12 @@ export const generateWordDocument = async (reports: ReportForm[], metaData: Expo
 
         // 2. Prepare the zip
         const zip = new PizZip(templateContent);
+
+        // Check for valid docx structure
+        if (!zip.files['word/document.xml']) {
+            console.error("Invalid docx structure. Files found:", Object.keys(zip.files));
+            throw new Error("The uploaded template is not a valid Word (.docx) file. It is missing 'word/document.xml'. Please ensure you are uploading a standard Word document.");
+        }
 
         // 3. Create docxtemplater instance
         const doc = new Docxtemplater(zip, {
