@@ -67,13 +67,15 @@ export const calculateWettedShaftSurface = (
     paneWidth: number = 0,
     paneLength: number = 0
 ): number => {
+    // Draft 2 is Pipe Only (Scheme C), but spec implies Shaft surface is calculated.
+    // Draft 6 is unknown, keeping exclusion if valid.
     if (draftId === 6) return 0;
 
     if (materialTypeId === 1) {
-        // Round Shaft
+        // Round Shaft / Gully
         return (paneDiameter * paneDiameter * PI / 4) + (paneDiameter * PI * waterHeight);
     } else if (materialTypeId === 2) {
-        // Rectangular Shaft
+        // Rectangular Shaft / Gully
         return (paneLength * paneWidth) + 2 * (paneLength * waterHeight) + 2 * (paneWidth * waterHeight);
     }
     return 0;
@@ -84,6 +86,7 @@ export const calculateWettedPipeSurface = (
     pipeDiameter: number,
     pipeLength: number
 ): number => {
+    // Exclude Shaft Only (1) and Gully Only (4)
     if (draftId === 1 || draftId === 4) return 0;
     return round2(pipeDiameter * pipeDiameter * PI / 4) + (pipeDiameter * PI * pipeLength);
 };
@@ -96,9 +99,11 @@ export const calculateTotalWettedArea = (
 };
 
 export const getCriteria = (draftId: number): number => {
-    if (draftId === 1) return 0.401;
-    else if (draftId === 2) return 0.201;
-    else if (draftId === 3) return 0.15;
+    if (draftId === 1) return 0.401; // Shaft (Scheme A)
+    else if (draftId === 2) return 0.15; // Pipe (Scheme C) - Updated to match reference
+    else if (draftId === 3) return 0.201; // Shaft + Pipe (Scheme B)
+    else if (draftId === 4) return 0.401; // Gully (Scheme D) - Assuming same as Shaft
+    else if (draftId === 5) return 0.201; // Gully + Pipe (Scheme E) - Same as Shaft + Pipe
     return 0;
 };
 
@@ -189,6 +194,13 @@ export const calculateWaterReport = (form: ReportForm) => {
     const totalWettedArea = calculateTotalWettedArea(wettedPipeSurface, wettedShaftSurface);
     const criteria = getCriteria(form.draft_id);
     const allowedLossL = calculateAllowedLossL(criteria, totalWettedArea);
+    const allowedLossMm = calculateAllowedLossMm(
+        allowedLossL,
+        form.material_type_id || 1,
+        form.pane_diameter,
+        form.pane_width,
+        form.pane_length
+    );
     const result = calculateResult(waterVolumeLoss, totalWettedArea);
     const satisfies = isSatisfying(result, criteria, 1);
 
@@ -197,6 +209,7 @@ export const calculateWaterReport = (form: ReportForm) => {
         waterVolumeLoss,
         totalWettedArea,
         allowedLossL,
+        allowedLossMm,
         result,
         satisfies
     };

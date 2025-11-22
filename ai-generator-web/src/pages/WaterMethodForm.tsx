@@ -16,11 +16,14 @@ const initialState: Partial<ReportForm> = {
     type_id: 1, // Water
     draft_id: 1,
     material_type_id: 1, // Shaft
+    pane_material_id: 1, // Default to PVC for round shaft
+    pipe_material_id: 1, // Default to PVC for pipe
     temperature: 0,
     pipe_length: 0,
     pipe_diameter: 0,
     pane_width: 0,
     pane_length: 0,
+    pane_height: 0,
     water_height: 0,
     water_height_start: 0,
     water_height_end: 0,
@@ -31,13 +34,19 @@ const initialState: Partial<ReportForm> = {
     depositional_height: 0,
     pipeline_slope: 0,
     examination_date: new Date().toISOString().split('T')[0],
+    examination_duration: '00:30:00', // Default 30 minutes
+    saturation_time: '01:00:00', // Default 1 hour
 };
 
 interface CalculatedResults {
     waterLoss: number;
     waterVolumeLoss: number;
+    wettedShaftSurface: number;
+    wettedPipeSurface: number;
     totalWettedArea: number;
     allowedLossL: number;
+    allowedLossMm: number;
+    hydrostaticHeight: number;
     result: number;
     satisfies: boolean;
 }
@@ -51,8 +60,12 @@ export const WaterMethodForm = () => {
     const [calculated, setCalculated] = useState<CalculatedResults>({
         waterLoss: 0,
         waterVolumeLoss: 0,
+        wettedShaftSurface: 0,
+        wettedPipeSurface: 0,
         totalWettedArea: 0,
         allowedLossL: 0,
+        allowedLossMm: 0,
+        hydrostaticHeight: 0,
         result: 0,
         satisfies: false
     });
@@ -76,18 +89,83 @@ export const WaterMethodForm = () => {
         }
     }, [id, loadReport]);
 
-    useEffect(() => {
-        const results = calc.calculateWaterReport(formData as ReportForm);
-        setCalculated(results);
 
+    useEffect(() => {
+        // Convert inputs from mm/cm to meters for calculations
+        const formDataInMeters = {
+            ...formData,
+            pane_diameter: (formData.pane_diameter || 0) / 1000, // mm to m
+            pane_width: (formData.pane_width || 0) / 100, // cm to m (for rectangular)
+            pane_length: (formData.pane_length || 0) / 100, // cm to m (for rectangular)
+            pane_height: (formData.pane_height || 0) / 100, // cm to m
+            pipe_diameter: (formData.pipe_diameter || 0) / 1000, // mm to m
+            water_height: (formData.water_height || 0) / 100, // cm to m
+            depositional_height: (formData.depositional_height || 0) // already in m
+        };
+
+        const results = calc.calculateWaterReport(formDataInMeters as ReportForm);
+
+        // Calculate wetted shaft surface separately for display
+        const wettedShaftSurface = calc.calculateWettedShaftSurface(
+            formData.draft_id || 1,
+            formData.material_type_id || 1,
+            (formData.water_height || 0) / 100, // cm to m
+            (formData.pane_diameter || 0) / 1000, // mm to m
+            (formData.pane_width || 0) / 100, // cm to m (for rectangular)
+            (formData.pane_length || 0) / 100 // cm to m (for rectangular)
+        );
+
+        // Calculate wetted pipe surface separately for display
+        let wettedPipeSurface = 0;
+
+        // For Schema C (Pipe Only), calculate both main pipe and secondary pipe surfaces
+        if (formData.draft_id === 2) {
+            // Main pipe surface (pane_diameter)
+            const mainPipeDiameter = (formData.pane_diameter || 0) / 1000; // mm to m
+            const mainPipeSurface = calc.calculateWettedPipeSurface(
+                formData.draft_id,
+                mainPipeDiameter,
+                formData.pipe_length || 0
+            );
+
+            // Secondary pipe surface (pipe_diameter)
+            const secondaryPipeDiameter = (formData.pipe_diameter || 0) / 1000; // mm to m
+            const secondaryPipeSurface = calc.calculateWettedPipeSurface(
+                formData.draft_id,
+                secondaryPipeDiameter,
+                formData.pipe_length || 0
+            );
+
+            wettedPipeSurface = mainPipeSurface + secondaryPipeSurface;
+        } else {
+            // For other schemes, use single pipe calculation
+            wettedPipeSurface = calc.calculateWettedPipeSurface(
+                formData.draft_id || 1,
+                (formData.pipe_diameter || 0) / 1000, // mm to m
+                formData.pipe_length || 0 // already in m
+            );
+        }
+
+        // Calculate hydrostatic height
         const hydrostaticHeight = calc.calculateHydrostaticHeight(
             formData.draft_id || 1,
-            formData.water_height || 0,
-            formData.pipe_diameter || 0,
+            (formData.water_height || 0) / 100, // cm to m
+            (formData.pipe_diameter || 0) / 1000, // mm to m
             formData.depositional_height || 0
         );
 
+        setCalculated({ ...results, wettedShaftSurface, wettedPipeSurface, hydrostaticHeight });
+
+        // Auto-fill deviation text for Schema C when hydrostatic height < 100cm
         if (formData.draft_id === 2 && hydrostaticHeight < 1.0) {
+            const autoText = "Kod pojedinih dionica h2<100cm";
+            if (formData.deviation !== autoText) {
+                setFormData(prev => ({ ...prev, deviation: autoText }));
+            }
+        }
+
+        // Auto-fill deviation text for Schema B when water height <= 100cm
+        if (formData.draft_id === 3 && (formData.water_height || 0) <= 100) {
             const autoText = "Kod pojedinih dionica h2<100cm";
             if (formData.deviation !== autoText) {
                 setFormData(prev => ({ ...prev, deviation: autoText }));
@@ -177,8 +255,10 @@ export const WaterMethodForm = () => {
 
     const isShaftRound = formData.material_type_id === 1;
     const isShaftRectangular = formData.material_type_id === 2;
-    const showPipeFields = formData.draft_id !== 1;
-    const showGullyFields = formData.draft_id === 2;
+    // Schemes B (3), C (2), E (5) have pipes. Scheme A (1) and D (4) do not.
+    const showPipeFields = [2, 3, 5].includes(formData.draft_id || 0);
+    // Scheme E (5) is Gully + Pipe, Scheme D (4) is Gully.
+    const showGullyFields = [4, 5].includes(formData.draft_id || 0);
 
     if (loading && id && id !== 'new') {
         return (
@@ -255,23 +335,42 @@ export const WaterMethodForm = () => {
                                 <h3 className="text-lg font-semibold text-foreground mb-4">Structure Type</h3>
                                 <div className="space-y-4">
                                     <Select
-                                        label="Draft Type"
+                                        label="Scheme"
                                         name="draft_id"
                                         value={formData.draft_id}
                                         onChange={handleChange}
                                     >
-                                        <option value={1}>Shaft only</option>
-                                        <option value={2}>Pipes only</option>
-                                        <option value={3}>Shaft + Pipes</option>
+                                        <option value={1}>Shema A – Ispitivanje okna</option>
+                                        <option value={3}>Shema B – Ispitivanje okna i cijelovoda</option>
+                                        <option value={2}>Shema C – Ispitivanje cijelovoda</option>
+                                        <option value={4}>Shema D – Ispitivanje slivnika</option>
+                                        <option value={5}>Shema E – Ispitivanje slivnika i cijelovoda</option>
                                     </Select>
                                     <Select
-                                        label="Material Type"
+                                        label={formData.draft_id === 4 || formData.draft_id === 5 ? "Gully Type" : "Shaft Type"}
                                         name="material_type_id"
                                         value={formData.material_type_id}
                                         onChange={handleChange}
                                     >
-                                        <option value={1}>Round Shaft</option>
-                                        <option value={2}>Rectangular Shaft</option>
+                                        <option value={1}>Round {formData.draft_id === 4 || formData.draft_id === 5 ? 'Gully' : 'Shaft'}</option>
+                                        <option value={2}>Rectangular {formData.draft_id === 4 || formData.draft_id === 5 ? 'Gully' : 'Shaft'}</option>
+                                    </Select>
+                                    <Select
+                                        label={formData.draft_id === 4 || formData.draft_id === 5 ? "Gully Material" : "Shaft Material"}
+                                        name="pane_material_id"
+                                        value={formData.pane_material_id || (isShaftRound ? 1 : 6)}
+                                        onChange={handleChange}
+                                    >
+                                        {isShaftRound ? (
+                                            <>
+                                                <option value={1}>PVC</option>
+                                                <option value={2}>PE</option>
+                                                <option value={3}>PEHD</option>
+                                                <option value={4}>GRP</option>
+                                            </>
+                                        ) : (
+                                            <option value={6}>Armirano betonska</option>
+                                        )}
                                     </Select>
                                 </div>
                             </div>
@@ -281,9 +380,9 @@ export const WaterMethodForm = () => {
                                 <div className="space-y-4">
                                     {isShaftRound && (
                                         <Input
-                                            label="Pane Diameter (m)"
+                                            label={formData.draft_id === 4 || formData.draft_id === 5 ? "Gully Diameter (mm)" : "Pane Diameter (mm)"}
                                             type="number"
-                                            step="0.01"
+                                            step="1"
                                             name="pane_diameter"
                                             value={formData.pane_diameter}
                                             onChange={handleChange}
@@ -292,7 +391,7 @@ export const WaterMethodForm = () => {
                                     {isShaftRectangular && (
                                         <>
                                             <Input
-                                                label="Pane Width (m)"
+                                                label={formData.draft_id === 4 || formData.draft_id === 5 ? "Gully Width (cm)" : "Pane Width (cm)"}
                                                 type="number"
                                                 step="0.01"
                                                 name="pane_width"
@@ -300,29 +399,93 @@ export const WaterMethodForm = () => {
                                                 onChange={handleChange}
                                             />
                                             <Input
-                                                label="Pane Length (m)"
+                                                label={formData.draft_id === 4 || formData.draft_id === 5 ? "Gully Length (cm)" : "Pane Length (cm)"}
                                                 type="number"
                                                 step="0.01"
                                                 name="pane_length"
                                                 value={formData.pane_length}
                                                 onChange={handleChange}
                                             />
+                                            <Input
+                                                label={formData.draft_id === 4 || formData.draft_id === 5 ? "Gully Height (cm)" : "Shaft Height (cm)"}
+                                                type="number"
+                                                step="0.01"
+                                                name="pane_height"
+                                                value={formData.pane_height}
+                                                onChange={handleChange}
+                                            />
                                         </>
                                     )}
+
+                                    {formData.draft_id === 2 && (
+                                        <Input
+                                            label="Main Pipe Diameter (mm)"
+                                            type="number"
+                                            step="1"
+                                            name="pane_diameter"
+                                            value={formData.pane_diameter}
+                                            onChange={handleChange}
+                                        />
+                                    )}
+
+                                    {isShaftRound && (
+                                        <Input
+                                            label="Ro Height (cm)"
+                                            type="number"
+                                            step="0.01"
+                                            name="ro_height"
+                                            value={formData.ro_height}
+                                            onChange={handleChange}
+                                        />
+                                    )}
+
                                     <Input
-                                        label="Water Height (m)"
+                                        label="Water Height (cm)"
                                         type="number"
                                         step="0.01"
                                         name="water_height"
                                         value={formData.water_height}
                                         onChange={handleChange}
                                     />
+                                    <div>
+                                        <label className="text-sm font-medium mb-1 block">Duration (mm:ss)</label>
+                                        <input
+                                            type="text"
+                                            name="examination_duration"
+                                            value={formData.examination_duration || '00:30:00'}
+                                            onChange={handleChange}
+                                            placeholder="00:30:00"
+                                            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="text-sm font-medium mb-1 block">Saturation Time (hh:mm)</label>
+                                        <input
+                                            type="text"
+                                            name="saturation_time"
+                                            value={formData.saturation_time || '01:00:00'}
+                                            onChange={handleChange}
+                                            placeholder="01:00:00"
+                                            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                                        />
+                                    </div>
                                     {showPipeFields && (
                                         <>
+                                            <Select
+                                                label="Pipe Material"
+                                                name="pipe_material_id"
+                                                value={formData.pipe_material_id || 1}
+                                                onChange={handleChange}
+                                            >
+                                                <option value={1}>PVC</option>
+                                                <option value={2}>PE</option>
+                                                <option value={3}>PEHD</option>
+                                                <option value={4}>GRP</option>
+                                            </Select>
                                             <Input
-                                                label="Pipe Diameter (m)"
+                                                label="Pipe Diameter (mm)"
                                                 type="number"
-                                                step="0.01"
+                                                step="1"
                                                 name="pipe_diameter"
                                                 value={formData.pipe_diameter}
                                                 onChange={handleChange}
@@ -335,18 +498,6 @@ export const WaterMethodForm = () => {
                                                 value={formData.pipe_length}
                                                 onChange={handleChange}
                                             />
-                                        </>
-                                    )}
-                                    {showGullyFields && (
-                                        <>
-                                            <Input
-                                                label="Depositional Height (m)"
-                                                type="number"
-                                                step="0.01"
-                                                name="depositional_height"
-                                                value={formData.depositional_height}
-                                                onChange={handleChange}
-                                            />
                                             <Input
                                                 label="Slope (%)"
                                                 type="number"
@@ -356,6 +507,16 @@ export const WaterMethodForm = () => {
                                                 onChange={handleChange}
                                             />
                                         </>
+                                    )}
+                                    {showGullyFields && (
+                                        <Input
+                                            label="Depositional Height (m)"
+                                            type="number"
+                                            step="0.01"
+                                            name="depositional_height"
+                                            value={formData.depositional_height}
+                                            onChange={handleChange}
+                                        />
                                     )}
                                 </div>
                             </div>
@@ -457,10 +618,18 @@ export const WaterMethodForm = () => {
                                     </div>
 
                                     <div className="space-y-4">
-                                        <ResultRow label="Water Loss" value={`${calculated.waterLoss.toFixed(2)} mm`} />
-                                        <ResultRow label="Volume Loss" value={`${calculated.waterVolumeLoss.toFixed(4)} l`} />
+                                        <ResultRow label="Wetted Shaft Surface" value={`${calculated.wettedShaftSurface.toFixed(2)} m²`} />
+                                        {showPipeFields && (
+                                            <ResultRow label="Wetted Pipe Surface" value={`${calculated.wettedPipeSurface.toFixed(2)} m²`} />
+                                        )}
                                         <ResultRow label="Total Wetted Area" value={`${calculated.totalWettedArea.toFixed(2)} m²`} />
                                         <ResultRow label="Allowed Loss" value={`${calculated.allowedLossL.toFixed(2)} l`} />
+                                        <ResultRow label="Allowed Loss" value={`${calculated.allowedLossMm.toFixed(2)} mm`} />
+                                        {showPipeFields && calculated.hydrostaticHeight > 0 && (
+                                            <ResultRow label="Hydrostatic Height" value={`${(calculated.hydrostaticHeight * 100).toFixed(0)} cm`} />
+                                        )}
+                                        <ResultRow label="Water Loss" value={`${calculated.waterLoss.toFixed(2)} mm`} />
+                                        <ResultRow label="Volume Loss" value={`${calculated.waterVolumeLoss.toFixed(4)} l`} />
                                         <div className="pt-4 border-t border-border">
                                             <ResultRow label="Result" value={`${calculated.result.toFixed(2)} l/m²`} highlight />
                                         </div>
