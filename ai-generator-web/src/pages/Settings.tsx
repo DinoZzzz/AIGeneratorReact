@@ -240,7 +240,24 @@ export const Settings = () => {
                         )}
 
                         {materials.length === 0 ? (
-                            <p className="text-muted-foreground text-center py-8">No materials found.</p>
+                            <div className="text-center py-12 bg-muted/30 rounded-lg border border-dashed border-border">
+                                <div className="flex flex-col items-center justify-center">
+                                    <Loader2 className="h-8 w-8 text-muted-foreground/50 mb-4" />
+                                    <p className="text-lg font-medium text-foreground">No materials found</p>
+                                    <p className="text-sm text-muted-foreground mt-1">
+                                        Add materials to be used in reports.
+                                    </p>
+                                    {isAdmin && (
+                                        <button
+                                            onClick={() => setIsAdding(true)}
+                                            className="mt-4 inline-flex items-center px-3 py-2 text-sm font-medium text-primary-foreground bg-primary rounded-md hover:bg-primary/90 transition-colors"
+                                        >
+                                            <Plus className="h-4 w-4 mr-2" />
+                                            Add Material
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
                         ) : (
                             <div className="border border-border rounded-md divide-y divide-border">
                                 {materials.map((material) => (

@@ -16,6 +16,7 @@ export const Reports = () => {
     const [selectedReports, setSelectedReports] = useState<Set<string>>(new Set());
     const [exportDialogOpen, setExportDialogOpen] = useState(false);
     const [isExporting, setIsExporting] = useState(false);
+    const [isNewReportOpen, setIsNewReportOpen] = useState(false);
 
     useEffect(() => {
         loadReports();
@@ -106,12 +107,41 @@ export const Reports = () => {
                             Export Selected ({selectedReports.size})
                         </Button>
                     )}
-                    <Button asChild>
-                        <Link to="/reports/new">
+                    <div className="relative inline-block text-left">
+                        <Button onClick={() => setIsNewReportOpen(!isNewReportOpen)}>
                             <Plus className="h-4 w-4 mr-2" />
                             New Report
-                        </Link>
-                    </Button>
+                        </Button>
+                        {isNewReportOpen && (
+                            <div className="absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-popover ring-1 ring-black ring-opacity-5 focus:outline-none z-50 border border-border">
+                                <div className="py-1" role="menu" aria-orientation="vertical">
+                                    <Link
+                                        to="/reports/new"
+                                        className="block px-4 py-2 text-sm text-popover-foreground hover:bg-accent hover:text-accent-foreground"
+                                        role="menuitem"
+                                        onClick={() => setIsNewReportOpen(false)}
+                                    >
+                                        Water Method
+                                    </Link>
+                                    <Link
+                                        to="/reports/new/air"
+                                        className="block px-4 py-2 text-sm text-popover-foreground hover:bg-accent hover:text-accent-foreground"
+                                        role="menuitem"
+                                        onClick={() => setIsNewReportOpen(false)}
+                                    >
+                                        Air Method
+                                    </Link>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                    {/* Overlay to close dropdown when clicking outside */}
+                    {isNewReportOpen && (
+                        <div
+                            className="fixed inset-0 z-40"
+                            onClick={() => setIsNewReportOpen(false)}
+                        />
+                    )}
                 </div>
             </div>
 

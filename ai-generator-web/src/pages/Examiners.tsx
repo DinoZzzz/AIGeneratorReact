@@ -133,6 +133,15 @@ export const Examiners = () => {
                                         <div className="flex flex-col items-center justify-center">
                                             <UserCheck className="h-12 w-12 text-muted-foreground/50 mb-4" />
                                             <p className="text-lg font-medium text-foreground">No examiners found</p>
+                                            <p className="text-sm text-muted-foreground mt-1">
+                                                Add examiners to manage their accreditations and assignments.
+                                            </p>
+                                            {isAdmin && (
+                                                <Button onClick={openNew} variant="outline" className="mt-4">
+                                                    <Plus className="h-4 w-4 mr-2" />
+                                                    Add Examiner
+                                                </Button>
+                                            )}
                                         </div>
                                     </td>
                                 </tr>

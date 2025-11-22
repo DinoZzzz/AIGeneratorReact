@@ -18,6 +18,7 @@ export const ConstructionReports = () => {
     const [loading, setLoading] = useState(true);
     const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+    const [isNewReportOpen, setIsNewReportOpen] = useState(false);
 
     useEffect(() => {
         if (customerId && constructionId) {
@@ -158,20 +159,44 @@ export const ConstructionReports = () => {
                     </div>
                 </div>
                 <div className="flex space-x-3">
-                    <Link
-                        to={`/customers/${customerId}/constructions/${constructionId}/reports/new/water`}
-                        className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                    >
-                        <Plus className="h-5 w-5 mr-2" />
-                        New Water Report
-                    </Link>
-                    <Link
-                        to={`/customers/${customerId}/constructions/${constructionId}/reports/new/air`}
-                        className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-sky-600 hover:bg-sky-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sky-500"
-                    >
-                        <Plus className="h-5 w-5 mr-2" />
-                        New Air Report
-                    </Link>
+                    <div className="relative inline-block text-left">
+                        <button
+                            onClick={() => setIsNewReportOpen(!isNewReportOpen)}
+                            className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                        >
+                            <Plus className="h-5 w-5 mr-2" />
+                            New Report
+                        </button>
+                        {isNewReportOpen && (
+                            <div className="absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 focus:outline-none z-50">
+                                <div className="py-1" role="menu" aria-orientation="vertical">
+                                    <Link
+                                        to={`/customers/${customerId}/constructions/${constructionId}/reports/new/water`}
+                                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                                        role="menuitem"
+                                        onClick={() => setIsNewReportOpen(false)}
+                                    >
+                                        Water Method
+                                    </Link>
+                                    <Link
+                                        to={`/customers/${customerId}/constructions/${constructionId}/reports/new/air`}
+                                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                                        role="menuitem"
+                                        onClick={() => setIsNewReportOpen(false)}
+                                    >
+                                        Air Method
+                                    </Link>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                    {/* Overlay to close dropdown when clicking outside */}
+                    {isNewReportOpen && (
+                        <div
+                            className="fixed inset-0 z-40"
+                            onClick={() => setIsNewReportOpen(false)}
+                        />
+                    )}
                     <button
                         onClick={handleBulkExport}
                         className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"

@@ -90,7 +90,7 @@ export const History = () => {
 
                     {/* Pagination Controls */}
                     <div className="flex items-center gap-2">
-                         <span className="text-sm text-gray-700">
+                        <span className="text-sm text-gray-700">
                             Page {page + 1} of {totalPages || 1}
                         </span>
                         <button
@@ -143,14 +143,20 @@ export const History = () => {
                         <tbody className="bg-white divide-y divide-gray-200">
                             {loading ? (
                                 <tr>
-                                    <td colSpan={6} className="px-6 py-4 text-center">
-                                        <Loader2 className="h-8 w-8 animate-spin mx-auto text-indigo-500" />
+                                    <td colSpan={6} className="px-6 py-4 text-center text-gray-500">
+                                        <Loader2 className="h-6 w-6 animate-spin inline-block mr-2" /> Loading...
                                     </td>
                                 </tr>
                             ) : exports.length === 0 ? (
                                 <tr>
-                                    <td colSpan={6} className="px-6 py-4 text-center text-gray-500">
-                                        No history found.
+                                    <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
+                                        <div className="flex flex-col items-center justify-center">
+                                            <Search className="h-12 w-12 text-gray-300 mb-4" />
+                                            <p className="text-lg font-medium text-gray-900">No history found</p>
+                                            <p className="text-sm text-gray-500 mt-1">
+                                                Exported reports and their history will appear here.
+                                            </p>
+                                        </div>
                                     </td>
                                 </tr>
                             ) : (
@@ -179,7 +185,6 @@ export const History = () => {
                                             >
                                                 <ExternalLink className="h-4 w-4 mr-1" /> Open
                                             </button>
-                                            {/* Assuming anyone can delete for now, or restrict to admin if currentUser.role exists */}
                                             <button
                                                 onClick={() => handleDelete(item.id)}
                                                 className="text-red-600 hover:text-red-900 inline-flex items-center"
