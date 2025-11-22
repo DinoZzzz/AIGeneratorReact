@@ -90,7 +90,7 @@ export const DashboardStats = () => {
                 <h3 className="text-lg font-bold mb-4 w-full text-left">Naručitelji</h3>
 
                 {/* Chart Container with Fixed Min Height */}
-                <div className="w-full h-64 min-h-[256px] flex justify-center items-center relative">
+                <div className="w-full h-64 min-h-[256px] relative">
                     <ResponsiveContainer width="100%" height="100%">
                         <PieChart>
                             <Pie
@@ -112,21 +112,21 @@ export const DashboardStats = () => {
                     </ResponsiveContainer>
                 </div>
 
-                 <div className="w-full mt-2 space-y-1">
+                <div className="w-full mt-2 space-y-1">
                     {customerStats.map((stat, index) => {
-                         const total = customerStats.reduce((acc, curr) => acc + curr.count, 0);
-                         const percent = total > 0 ? Math.round((stat.count / total) * 100) : 0;
-                         return (
-                             <div key={stat.id} className="flex items-center justify-between text-sm">
-                                 <div className="flex items-center">
-                                     <div className="w-3 h-3 rounded-full mr-2" style={{ backgroundColor: COLORS[index % COLORS.length] }}></div>
-                                     <span>{stat.name} ({percent}%)</span>
-                                 </div>
-                                 <span className="font-semibold">{stat.count}</span>
-                             </div>
-                         );
+                        const total = customerStats.reduce((acc, curr) => acc + curr.count, 0);
+                        const percent = total > 0 ? Math.round((stat.count / total) * 100) : 0;
+                        return (
+                            <div key={stat.id} className="flex items-center justify-between text-sm">
+                                <div className="flex items-center">
+                                    <div className="w-3 h-3 rounded-full mr-2" style={{ backgroundColor: COLORS[index % COLORS.length] }}></div>
+                                    <span>{stat.name} ({percent}%)</span>
+                                </div>
+                                <span className="font-semibold">{stat.count}</span>
+                            </div>
+                        );
                     })}
-                 </div>
+                </div>
                 <button className="mt-4 text-sm text-blue-600 dark:text-blue-400 hover:underline w-full text-right">
                     Pregledaj sve
                 </button>
@@ -145,7 +145,7 @@ export const DashboardStats = () => {
                         </div>
                     ))}
                 </div>
-                 <button className="mt-auto pt-4 text-sm text-blue-600 dark:text-blue-400 hover:underline w-full text-right">
+                <button className="mt-auto pt-4 text-sm text-blue-600 dark:text-blue-400 hover:underline w-full text-right">
                     Pregledaj sve
                 </button>
             </div>

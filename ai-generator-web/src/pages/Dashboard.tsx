@@ -25,7 +25,7 @@ export const Dashboard = () => {
             // Fetch counts
             const { count: customersCount } = await supabase.from('customers').select('*', { count: 'exact', head: true });
             const { count: constructionsCount } = await supabase.from('constructions').select('*', { count: 'exact', head: true });
-            const { count: reportsCount } = await supabase.from('reports').select('*', { count: 'exact', head: true });
+            const { count: reportsCount } = await supabase.from('report_forms').select('*', { count: 'exact', head: true });
 
             setStats({
                 customers: customersCount || 0,
