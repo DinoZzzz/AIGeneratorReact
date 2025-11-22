@@ -25,28 +25,19 @@ export const Settings = () => {
     const checkAdminStatus = async () => {
         if (!user) return;
 
-        // Check if the user exists in the admin_users table
-        // We try to fetch a record where user_id matches current user
-        // Note: 'admin_users' table name is an assumption based on user request.
-        // If table doesn't exist, this will error, which we catch.
+        // Check role in profiles table
         try {
             const { data, error } = await supabase
-                .from('admin_users')
-                .select('*')
-                .eq('user_id', user.id)
-                .limit(1);
+                .from('profiles')
+                .select('role')
+                .eq('id', user.id)
+                .single();
 
-            if (!error && data && data.length > 0) {
+            if (!error && data && data.role === 'admin') {
                 setIsAdmin(true);
-            } else {
-                // Fallback: Check user metadata just in case
-                const metaRole = user.user_metadata?.role || user.app_metadata?.role;
-                if (metaRole === 'admin') {
-                    setIsAdmin(true);
-                }
             }
         } catch (err) {
-            console.warn('Error checking admin status (table might not exist):', err);
+            console.warn('Error checking admin status:', err);
         }
     };
 
@@ -121,7 +112,6 @@ export const Settings = () => {
 
         try {
             // Check usage in report_forms
-            // We check both pane_material_id and pipe_material_id
             const { data: usageData, error: usageError } = await supabase
                 .from('report_forms')
                 .select('id')

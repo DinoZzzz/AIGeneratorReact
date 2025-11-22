@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { reportService } from '../services/reportService';
+import { supabase } from '../lib/supabase';
 import { Input } from '../components/ui/Input';
 import { Select } from '../components/ui/Select';
 import { Button } from '../components/ui/Button';
@@ -8,7 +9,7 @@ import { Loader2, Save, ArrowLeft, FileDown, Plus, ArrowRight, ChevronLeft } fro
 import { Stepper } from '../components/ui/Stepper';
 import * as calc from '../lib/calculations/report';
 import { generatePDF } from '../lib/pdfGenerator';
-import type { ReportForm } from '../types';
+import type { ReportForm, ReportDraft, MaterialType, Material } from '../types';
 import { cn } from '../lib/utils';
 
 // Initial empty state
@@ -17,8 +18,8 @@ const initialState: Partial<ReportForm> = {
     draft_id: 1,
     dionica: '',
     material_type_id: 1, // Shaft
-    pane_material_id: 1, // Default to PVC for round shaft
-    pipe_material_id: 1, // Default to PVC for pipe
+    pane_material_id: 1,
+    pipe_material_id: 1,
     temperature: 0,
     pipe_length: 0,
     pipe_diameter: 0,
@@ -57,6 +58,9 @@ export const WaterMethodForm = () => {
     const navigate = useNavigate();
     const [loading, setLoading] = useState(false);
     const [formData, setFormData] = useState<Partial<ReportForm>>(initialState);
+    const [drafts, setDrafts] = useState<ReportDraft[]>([]);
+    const [materialTypes, setMaterialTypes] = useState<MaterialType[]>([]);
+    const [materials, setMaterials] = useState<Material[]>([]);
     const [step, setStep] = useState<1 | 2>(1);
     const [calculated, setCalculated] = useState<CalculatedResults>({
         waterLoss: 0,
@@ -70,6 +74,18 @@ export const WaterMethodForm = () => {
         result: 0,
         satisfies: false
     });
+
+    const loadLookups = useCallback(async () => {
+        const [draftRes, matTypeRes, matRes] = await Promise.all([
+            supabase.from('report_drafts').select('*').order('id'),
+            supabase.from('material_types').select('*').order('id'),
+            supabase.from('materials').select('*').order('name')
+        ]);
+
+        if (draftRes.data) setDrafts(draftRes.data);
+        if (matTypeRes.data) setMaterialTypes(matTypeRes.data);
+        if (matRes.data) setMaterials(matRes.data);
+    }, []);
 
     const loadReport = useCallback(async (reportId: string) => {
         try {
@@ -85,10 +101,11 @@ export const WaterMethodForm = () => {
     }, []);
 
     useEffect(() => {
+        loadLookups();
         if (id && id !== 'new') {
             loadReport(id);
         }
-    }, [id, loadReport]);
+    }, [id, loadLookups, loadReport]);
 
 
     useEffect(() => {
@@ -184,7 +201,7 @@ export const WaterMethodForm = () => {
 
         if (type === 'number') {
             finalValue = parseFloat(value) || 0;
-        } else if (['draft_id', 'material_type_id'].includes(name)) {
+        } else if (['draft_id', 'material_type_id', 'pane_material_id', 'pipe_material_id'].includes(name)) {
             finalValue = parseInt(value, 10) || 0;
         }
 
@@ -260,9 +277,7 @@ export const WaterMethodForm = () => {
 
     const isShaftRound = formData.material_type_id === 1;
     const isShaftRectangular = formData.material_type_id === 2;
-    // Schemes B (3), C (2), E (5) have pipes. Scheme A (1) and D (4) do not.
     const showPipeFields = [2, 3, 5].includes(formData.draft_id || 0);
-    // Scheme E (5) is Gully + Pipe, Scheme D (4) is Gully.
     const showGullyFields = [4, 5].includes(formData.draft_id || 0);
 
     if (loading && id && id !== 'new') {
@@ -353,11 +368,18 @@ export const WaterMethodForm = () => {
                                         value={formData.draft_id}
                                         onChange={handleChange}
                                     >
-                                        <option value={1}>Shema A – Ispitivanje okna</option>
-                                        <option value={3}>Shema B – Ispitivanje okna i cijelovoda</option>
-                                        <option value={2}>Shema C – Ispitivanje cijelovoda</option>
-                                        <option value={4}>Shema D – Ispitivanje slivnika</option>
-                                        <option value={5}>Shema E – Ispitivanje slivnika i cijelovoda</option>
+                                        {drafts.length === 0 && (
+                                            <>
+                                                <option value={1}>Shema A – Ispitivanje okna</option>
+                                                <option value={3}>Shema B – Ispitivanje okna i cijelovoda</option>
+                                                <option value={2}>Shema C – Ispitivanje cijelovoda</option>
+                                                <option value={4}>Shema D – Ispitivanje slivnika</option>
+                                                <option value={5}>Shema E – Ispitivanje slivnika i cijelovoda</option>
+                                            </>
+                                        )}
+                                        {drafts.map(d => (
+                                            <option key={d.id} value={d.id}>{d.name}</option>
+                                        ))}
                                     </Select>
                                     <Select
                                         label={formData.draft_id === 4 || formData.draft_id === 5 ? "Gully Type" : "Shaft Type"}
@@ -365,8 +387,15 @@ export const WaterMethodForm = () => {
                                         value={formData.material_type_id}
                                         onChange={handleChange}
                                     >
-                                        <option value={1}>Round {formData.draft_id === 4 || formData.draft_id === 5 ? 'Gully' : 'Shaft'}</option>
-                                        <option value={2}>Rectangular {formData.draft_id === 4 || formData.draft_id === 5 ? 'Gully' : 'Shaft'}</option>
+                                        {materialTypes.length === 0 && (
+                                            <>
+                                                <option value={1}>Round</option>
+                                                <option value={2}>Rectangular</option>
+                                            </>
+                                        )}
+                                        {materialTypes.map(m => (
+                                            <option key={m.id} value={m.id}>{m.name}</option>
+                                        ))}
                                     </Select>
                                     <Select
                                         label={formData.draft_id === 4 || formData.draft_id === 5 ? "Gully Material" : "Shaft Material"}
@@ -374,15 +403,12 @@ export const WaterMethodForm = () => {
                                         value={formData.pane_material_id || (isShaftRound ? 1 : 6)}
                                         onChange={handleChange}
                                     >
-                                        {isShaftRound ? (
-                                            <>
-                                                <option value={1}>PVC</option>
-                                                <option value={2}>PE</option>
-                                                <option value={3}>PEHD</option>
-                                                <option value={4}>GRP</option>
-                                            </>
+                                        {materials.length > 0 ? (
+                                            materials.map(m => (
+                                                <option key={m.id} value={m.id}>{m.name}</option>
+                                            ))
                                         ) : (
-                                            <option value={6}>Armirano betonska</option>
+                                            <option value={1}>Standard Material</option>
                                         )}
                                     </Select>
                                 </div>
@@ -519,10 +545,13 @@ export const WaterMethodForm = () => {
                                                 value={formData.pipe_material_id || 1}
                                                 onChange={handleChange}
                                             >
-                                                <option value={1}>PVC</option>
-                                                <option value={2}>PE</option>
-                                                <option value={3}>PEHD</option>
-                                                <option value={4}>GRP</option>
+                                                {materials.length > 0 ? (
+                                                    materials.map(m => (
+                                                        <option key={m.id} value={m.id}>{m.name}</option>
+                                                    ))
+                                                ) : (
+                                                    <option value={1}>Standard Pipe</option>
+                                                )}
                                             </Select>
                                             <Input
                                                 label="Pipe Diameter (mm)"

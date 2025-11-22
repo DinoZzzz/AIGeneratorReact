@@ -9,7 +9,7 @@ import { Loader2, Save, ArrowLeft, FileDown, Plus, ArrowRight, ChevronLeft } fro
 import { Stepper } from '../components/ui/Stepper';
 import * as calc from '../lib/calculations/report';
 import { generatePDF } from '../lib/pdfGenerator';
-import type { ReportForm, ExaminationProcedure } from '../types';
+import type { ReportForm, ExaminationProcedure, ReportDraft, MaterialType } from '../types';
 import { cn } from '../lib/utils';
 import { calculateRequiredTestTime } from '../lib/calculations/testTime';
 
@@ -47,6 +47,8 @@ export const AirMethodForm = () => {
     const [loading, setLoading] = useState(false);
     const [formData, setFormData] = useState<Partial<ReportForm>>(initialState);
     const [procedures, setProcedures] = useState<ExaminationProcedure[]>([]);
+    const [drafts, setDrafts] = useState<ReportDraft[]>([]);
+    const [materialTypes, setMaterialTypes] = useState<MaterialType[]>([]);
     const [step, setStep] = useState<1 | 2>(1);
     const [calculated, setCalculated] = useState<CalculatedResults>({
         pressureLoss: 0,
@@ -56,9 +58,16 @@ export const AirMethodForm = () => {
         requiredTestTime: 0
     });
 
-    const loadProcedures = useCallback(async () => {
-        const { data } = await supabase.from('examination_procedures').select('*');
-        if (data) setProcedures(data);
+    const loadLookups = useCallback(async () => {
+        const [procRes, draftRes, matTypeRes] = await Promise.all([
+            supabase.from('examination_procedures').select('*').order('id'),
+            supabase.from('report_drafts').select('*').order('id'),
+            supabase.from('material_types').select('*').order('id')
+        ]);
+
+        if (procRes.data) setProcedures(procRes.data);
+        if (draftRes.data) setDrafts(draftRes.data);
+        if (matTypeRes.data) setMaterialTypes(matTypeRes.data);
     }, []);
 
     const loadReport = useCallback(async (reportId: string) => {
@@ -75,11 +84,11 @@ export const AirMethodForm = () => {
     }, []);
 
     useEffect(() => {
-        loadProcedures();
+        loadLookups();
         if (id && id !== 'new') {
             loadReport(id);
         }
-    }, [id, loadProcedures, loadReport]);
+    }, [id, loadLookups, loadReport]);
 
     useEffect(() => {
         const selectedProcedure = procedures.find(p => p.id === formData.examination_procedure_id);
@@ -88,26 +97,20 @@ export const AirMethodForm = () => {
 
         let diameter = 0;
         // Diameter logic: Draft 1 (Shaft) uses PaneDiameter, others (Pipe) use PipeDiameter
-        // Note: Draft 3 (Shaft+Pipe) calculation usually bases time on Pipe Diameter for Air method
         if (formData.draft_id === 1) {
             diameter = formData.pane_diameter || 0;
         } else {
             diameter = formData.pipe_diameter || 0;
         }
 
-        // Determine method ID (LA=1, LB=2, LC=3, LD=4)
-        // If procedure is selected, use its ID directly (Assuming procedure.id corresponds to 1,2,3,4)
-        // Fallback to pressure logic if procedure ID logic isn't strictly 1-4
-        // Logic from C# TestTimeClass.cs uses procedureId directly (1,2,3,4)
         let procedureId = 1;
         if (selectedProcedure) {
             procedureId = selectedProcedure.id;
         } else {
-            // Fallback estimation based on pressure if procedure not loaded
             const p = formData.pressure_start || 0;
-            if (p >= 200) procedureId = 4; // LD
-            else if (p >= 100) procedureId = 3; // LC
-            else if (p >= 50) procedureId = 2; // LB
+            if (p >= 200) procedureId = 4;
+            else if (p >= 100) procedureId = 3;
+            else if (p >= 50) procedureId = 2;
         }
 
         const requiredTestTime = calculateRequiredTestTime(
@@ -170,6 +173,7 @@ export const AirMethodForm = () => {
                 });
                 setStep(1);
                 navigate(`/customers/${customerId}/constructions/${constructionId}/reports/new/air`);
+                // We use a toast or alert here, ideally ToastContext
                 alert('Report saved. Ready for next entry.');
             } else {
                 if (customerId && constructionId) {
@@ -303,9 +307,10 @@ export const AirMethodForm = () => {
                                         value={formData.draft_id}
                                         onChange={handleChange}
                                     >
-                                        <option value={1}>Shaft only</option>
-                                        <option value={2}>Pipes only</option>
-                                        <option value={3}>Shaft + Pipes</option>
+                                        {drafts.length === 0 && <option value={1}>Shaft only</option>}
+                                        {drafts.map(d => (
+                                            <option key={d.id} value={d.id}>{d.name}</option>
+                                        ))}
                                     </Select>
                                     <Select
                                         label="Material Type"
@@ -313,8 +318,10 @@ export const AirMethodForm = () => {
                                         value={formData.material_type_id}
                                         onChange={handleChange}
                                     >
-                                        <option value={1}>Round Shaft</option>
-                                        <option value={2}>Rectangular Shaft</option>
+                                        {materialTypes.length === 0 && <option value={1}>Round</option>}
+                                        {materialTypes.map(m => (
+                                            <option key={m.id} value={m.id}>{m.name}</option>
+                                        ))}
                                     </Select>
                                 </div>
                             </div>

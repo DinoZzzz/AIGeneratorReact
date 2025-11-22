@@ -4,26 +4,25 @@ import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { Label } from '../ui/Label';
 import { Checkbox } from '../ui/Checkbox';
-import type { Examiner, ReportType } from '../../types';
+import type { Profile, ReportType } from '../../types';
 import { examinerService } from '../../services/examinerService';
 
 interface ExaminerDialogProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
-    examiner: Examiner | null;
-    onSave: (examiner: Partial<Examiner>) => Promise<void>;
+    examiner: Profile | null;
+    onSave: (examiner: Partial<Profile>) => Promise<void>;
 }
 
 export const ExaminerDialog = ({ open, onOpenChange, examiner, onSave }: ExaminerDialogProps) => {
     const [loading, setLoading] = useState(false);
     const [reportTypes, setReportTypes] = useState<ReportType[]>([]);
-    const [formData, setFormData] = useState<Partial<Examiner>>({
+    const [formData, setFormData] = useState<Partial<Profile>>({
         name: '',
-        lastName: '',
+        last_name: '',
         username: '',
         title: '',
-        password: '',
-        isAdmin: false,
+        role: 'user',
         accreditations: []
     });
 
@@ -37,21 +36,19 @@ export const ExaminerDialog = ({ open, onOpenChange, examiner, onSave }: Examine
                 setFormData({
                     id: examiner.id,
                     name: examiner.name,
-                    lastName: examiner.lastName,
+                    last_name: examiner.last_name,
                     username: examiner.username,
                     title: examiner.title || '',
-                    password: '', // Don't show password
-                    isAdmin: examiner.isAdmin,
+                    role: examiner.role,
                     accreditations: examiner.accreditations
                 });
             } else {
                 setFormData({
                     name: '',
-                    lastName: '',
+                    last_name: '',
                     username: '',
                     title: '',
-                    password: '',
-                    isAdmin: false,
+                    role: 'user',
                     accreditations: []
                 });
             }
@@ -66,7 +63,7 @@ export const ExaminerDialog = ({ open, onOpenChange, examiner, onSave }: Examine
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
-        if (!formData.name || !formData.lastName || !formData.username || (!examiner && !formData.password)) {
+        if (!formData.name || !formData.last_name || !formData.username) {
             alert('Please fill in all required fields');
             return;
         }
@@ -118,8 +115,8 @@ export const ExaminerDialog = ({ open, onOpenChange, examiner, onSave }: Examine
                             <Label htmlFor="lastName">Last Name</Label>
                             <Input
                                 id="lastName"
-                                value={formData.lastName}
-                                onChange={e => setFormData({ ...formData, lastName: e.target.value })}
+                                value={formData.last_name}
+                                onChange={e => setFormData({ ...formData, last_name: e.target.value })}
                                 required
                             />
                         </div>
@@ -145,22 +142,19 @@ export const ExaminerDialog = ({ open, onOpenChange, examiner, onSave }: Examine
                         </div>
                     </div>
 
-                    <div className="space-y-2">
-                        <Label htmlFor="password">{examiner ? 'New Password (leave blank to keep current)' : 'Password'}</Label>
-                        <Input
-                            id="password"
-                            type="password"
-                            value={formData.password}
-                            onChange={e => setFormData({ ...formData, password: e.target.value })}
-                            required={!examiner}
-                        />
-                    </div>
+                    {/* Note: Password field removed as creating users is not handled here directly */}
+                    {!examiner && (
+                        <div className="text-sm text-yellow-600 bg-yellow-50 p-2 rounded">
+                            Creating a new examiner requires an existing user account or admin setup.
+                            Currently this form only updates profile data.
+                        </div>
+                    )}
 
                     <div className="flex items-center space-x-2">
                         <Checkbox
                             id="isAdmin"
-                            checked={formData.isAdmin}
-                            onCheckedChange={(checked: boolean) => setFormData({ ...formData, isAdmin: checked })}
+                            checked={formData.role === 'admin'}
+                            onCheckedChange={(checked: boolean) => setFormData({ ...formData, role: checked ? 'admin' : 'user' })}
                         />
                         <Label htmlFor="isAdmin">Administrator</Label>
                     </div>

@@ -4,15 +4,15 @@ import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { ExaminerDialog } from '../components/examiners/ExaminerDialog';
 import { examinerService } from '../services/examinerService';
-import type { Examiner, ReportType } from '../types';
+import type { Profile, ReportType } from '../types';
 
 export const Examiners = () => {
-    const [examiners, setExaminers] = useState<Examiner[]>([]);
+    const [examiners, setExaminers] = useState<Profile[]>([]);
     const [reportTypes, setReportTypes] = useState<ReportType[]>([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
     const [dialogOpen, setDialogOpen] = useState(false);
-    const [selectedExaminer, setSelectedExaminer] = useState<Examiner | null>(null);
+    const [selectedExaminer, setSelectedExaminer] = useState<Profile | null>(null);
 
     // Assuming current user is admin for demo purposes or checking a claim
     // For now we'll just allow editing since the C# app logic checks for IsAdmin locally
@@ -37,7 +37,7 @@ export const Examiners = () => {
         }
     };
 
-    const handleSave = async (examinerData: Partial<Examiner>) => {
+    const handleSave = async (examinerData: Partial<Profile>) => {
         await examinerService.saveExaminer(examinerData);
         await loadData();
     };
@@ -49,7 +49,7 @@ export const Examiners = () => {
         }
     };
 
-    const openEdit = (examiner: Examiner) => {
+    const openEdit = (examiner: Profile) => {
         setSelectedExaminer(examiner);
         setDialogOpen(true);
     };
@@ -60,6 +60,7 @@ export const Examiners = () => {
     };
 
     const getAccreditationNames = (ids: number[]) => {
+        if (!ids) return '';
         return ids
             .map(id => reportTypes.find(t => t.id === id)?.type)
             .filter(Boolean)
@@ -68,7 +69,7 @@ export const Examiners = () => {
 
     const filteredExaminers = examiners.filter(e =>
         e.name.toLowerCase().includes(search.toLowerCase()) ||
-        e.lastName.toLowerCase().includes(search.toLowerCase()) ||
+        e.last_name.toLowerCase().includes(search.toLowerCase()) ||
         e.username.toLowerCase().includes(search.toLowerCase())
     );
 
@@ -151,9 +152,9 @@ export const Examiners = () => {
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <div className="flex flex-col">
                                                 <span className="font-medium text-foreground">
-                                                    {examiner.name} {examiner.lastName} {examiner.title}
+                                                    {examiner.name} {examiner.last_name} {examiner.title}
                                                 </span>
-                                                {examiner.isAdmin && (
+                                                {examiner.role === 'admin' && (
                                                     <span className="text-xs text-primary font-medium">Administrator</span>
                                                 )}
                                             </div>
