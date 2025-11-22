@@ -87,12 +87,19 @@ export const ConstructionReports = () => {
         generateBulkPDF(reportsToExport, `Reports_${construction?.work_order || 'bundle'}.pdf`);
     };
 
-    const handleExportConfirm = async (metaData: ExportMetaData) => {
+    const handleExportConfirm = async (metaData: ExportMetaData, dialogSelectedReports?: ReportForm[]) => {
         setIsExporting(true);
         try {
-            const reportsToExport = selectedIds.size > 0
-                ? reports.filter(r => r.id && selectedIds.has(r.id))
-                : reports;
+            let reportsToExport: ReportForm[] = [];
+
+            if (dialogSelectedReports && dialogSelectedReports.length > 0) {
+                reportsToExport = dialogSelectedReports;
+            } else if (selectedIds.size > 0) {
+                reportsToExport = reports.filter(r => r.id && selectedIds.has(r.id));
+            } else {
+                // Fallback: if no selection in dialog (shouldn't happen due to validation) and no pre-selection
+                reportsToExport = reports;
+            }
 
             await generateWordDocument(reportsToExport, metaData, user?.id);
         } catch (error) {
@@ -300,6 +307,7 @@ export const ConstructionReports = () => {
                     constructionPart: construction.name,
                     certifierName: profile?.name ? `${profile.name} ${profile.last_name}` : ''
                 }}
+                reports={selectedIds.size === 0 ? reports : undefined}
             />
 
             <div className="bg-white shadow rounded-lg overflow-hidden">
@@ -317,6 +325,7 @@ export const ConstructionReports = () => {
                             <th className="w-10 px-6 py-3"></th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Dionica</th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Draft</th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                             <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
@@ -348,6 +357,9 @@ export const ConstructionReports = () => {
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                     {report.type_id === 1 ? 'Water' : 'Air'}
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">
+                                    {report.dionica || report.stock || '-'}
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                     {report.draft?.name || '-'}

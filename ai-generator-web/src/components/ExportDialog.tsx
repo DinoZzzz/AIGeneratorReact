@@ -1,15 +1,16 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from './ui/Dialog';
 import { Button } from './ui/Button';
-import type { User } from '../types';
+import type { User, ReportForm } from '../types';
 
 interface ExportDialogProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
-    onConfirm: (data: ExportMetaData) => void;
+    onConfirm: (data: ExportMetaData, selectedReports?: ReportForm[]) => void;
     certifiers?: User[]; // Assuming we might fetch these, or user enters name
     loading?: boolean;
     defaultValues?: Partial<ExportMetaData>;
+    reports?: ReportForm[]; // Optional: if provided, allows selection inside dialog
 }
 
 export interface ExportMetaData {
@@ -22,7 +23,7 @@ export interface ExportMetaData {
     certifierName: string;
 }
 
-export const ExportDialog = ({ open, onOpenChange, onConfirm, loading = false, defaultValues }: ExportDialogProps) => {
+export const ExportDialog = ({ open, onOpenChange, onConfirm, loading = false, defaultValues, reports }: ExportDialogProps) => {
     const [data, setData] = useState<ExportMetaData>({
         constructionPart: defaultValues?.constructionPart || '',
         drainage: defaultValues?.drainage || '',
@@ -33,21 +34,64 @@ export const ExportDialog = ({ open, onOpenChange, onConfirm, loading = false, d
         certifierName: defaultValues?.certifierName || '',
     });
 
+    const [selectedReportIds, setSelectedReportIds] = useState<Set<string>>(new Set());
+
     // Update state when defaultValues change or dialog opens
-    // This is simple but effective for this use case
-    if (open && defaultValues && data.constructionPart === '' && defaultValues.constructionPart) {
-        setData(prev => ({
-            ...prev,
-            ...defaultValues
-        }));
-    }
+    useEffect(() => {
+        if (open) {
+            if (defaultValues && data.constructionPart === '' && defaultValues.constructionPart) {
+                setData(prev => ({
+                    ...prev,
+                    ...defaultValues
+                }));
+            }
+            // If reports are provided, select all by default
+            if (reports && reports.length > 0) {
+                const allIds = reports.map(r => r.id).filter((id): id is string => !!id);
+                setSelectedReportIds(new Set(allIds));
+            } else {
+                setSelectedReportIds(new Set());
+            }
+        }
+    }, [open, defaultValues, reports]);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        onConfirm(data);
+
+        let selectedReports: ReportForm[] | undefined;
+        if (reports && reports.length > 0) {
+            if (selectedReportIds.size === 0) {
+                alert("Please select at least one report to export.");
+                return;
+            }
+            selectedReports = reports.filter(r => r.id && selectedReportIds.has(r.id));
+        }
+
+        onConfirm(data, selectedReports);
+
         // Don't close immediately if loading, let parent handle it or close after success
         if (!loading) {
             onOpenChange(false);
+        }
+    };
+
+    const toggleReport = (id: string) => {
+        const newSelected = new Set(selectedReportIds);
+        if (newSelected.has(id)) {
+            newSelected.delete(id);
+        } else {
+            newSelected.add(id);
+        }
+        setSelectedReportIds(newSelected);
+    };
+
+    const toggleSelectAll = () => {
+        if (!reports) return;
+        if (selectedReportIds.size === reports.length) {
+            setSelectedReportIds(new Set());
+        } else {
+            const allIds = reports.map(r => r.id).filter((id): id is string => !!id);
+            setSelectedReportIds(new Set(allIds));
         }
     };
 
@@ -58,6 +102,50 @@ export const ExportDialog = ({ open, onOpenChange, onConfirm, loading = false, d
                     <DialogTitle>Export Report Options</DialogTitle>
                 </DialogHeader>
                 <form onSubmit={handleSubmit} className="space-y-4 py-4">
+
+                    {/* Report Selection Section */}
+                    {reports && reports.length > 0 && (
+                        <div className="border rounded-md p-4 bg-gray-50 space-y-3">
+                            <div className="flex items-center justify-between">
+                                <h3 className="font-semibold text-sm text-gray-900">Select Reports to Export</h3>
+                                <button
+                                    type="button"
+                                    onClick={toggleSelectAll}
+                                    className="text-xs text-blue-600 hover:text-blue-800"
+                                >
+                                    {selectedReportIds.size === reports.length ? 'Deselect All' : 'Select All'}
+                                </button>
+                            </div>
+                            <div className="max-h-40 overflow-y-auto space-y-2 border-t pt-2">
+                                {reports.map((report) => (
+                                    <div key={report.id} className="flex items-center space-x-2">
+                                        <input
+                                            type="checkbox"
+                                            id={`report-${report.id}`}
+                                            checked={report.id ? selectedReportIds.has(report.id) : false}
+                                            onChange={() => report.id && toggleReport(report.id)}
+                                            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                        />
+                                        <label htmlFor={`report-${report.id}`} className="text-sm text-gray-700 flex-1 truncate cursor-pointer">
+                                            <span className="font-medium">{report.type_id === 1 ? 'Water' : 'Air'}</span>
+                                            <span className="mx-1">-</span>
+                                            {(report.dionica || report.stock) && (
+                                                <>
+                                                    <span className="font-medium text-gray-900">{report.dionica || report.stock}</span>
+                                                    <span className="mx-1">-</span>
+                                                </>
+                                            )}
+                                            <span>{new Date(report.examination_date).toLocaleDateString()}</span>
+                                        </label>
+                                    </div>
+                                ))}
+                            </div>
+                            <div className="text-xs text-gray-500 text-right">
+                                {selectedReportIds.size} selected
+                            </div>
+                        </div>
+                    )}
+
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
                             <label className="text-sm font-medium leading-none">Construction Part</label>
