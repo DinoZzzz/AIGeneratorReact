@@ -39,7 +39,7 @@ const formatNum = (num: number, decimals = 2) => {
     return num.toFixed(decimals);
 };
 
-export const generateWordDocument = async (reports: ReportForm[], metaData: ExportMetaData) => {
+export const generateWordDocument = async (reports: ReportForm[], metaData: ExportMetaData, userId?: string) => {
     try {
         // 1. Load the template from Supabase Storage
         const templateContent = await loadFile('method1610.docx');
@@ -63,33 +63,32 @@ export const generateWordDocument = async (reports: ReportForm[], metaData: Expo
         let customer: any = construction?.customer;
 
         if (!construction && firstReport.construction_id) {
-             const { data: constr } = await supabase
-                .from('constructions') // Changed from customer_constructions to constructions
+            const { data: constr } = await supabase
+                .from('constructions')
                 .select('*, customer:customers(*)')
                 .eq('id', firstReport.construction_id)
                 .single();
 
-             if (constr) {
-                 construction = constr;
-                 customer = constr.customer;
-             }
+            if (constr) {
+                construction = constr;
+                customer = constr.customer;
+            }
         }
 
         // Fetch Procedure data for all air reports if missing
         const airReportsNeedData = reports.filter(r => r.type_id === 2 && !(r as any).examination_procedure);
         if (airReportsNeedData.length > 0) {
-             const { data: procedures } = await supabase.from('examination_procedures').select('*');
-             if (procedures) {
-                 reports.forEach(r => {
-                     if (r.type_id === 2 && !(r as any).examination_procedure) {
-                         (r as any).examination_procedure = procedures.find(p => p.id === r.examination_procedure_id);
-                     }
-                 });
-             }
+            const { data: procedures } = await supabase.from('examination_procedures').select('*');
+            if (procedures) {
+                reports.forEach(r => {
+                    if (r.type_id === 2 && !(r as any).examination_procedure) {
+                        (r as any).examination_procedure = procedures.find(p => p.id === r.examination_procedure_id);
+                    }
+                });
+            }
         }
 
         // Fetch Material names if missing
-        // We try to fetch materials for reports that have IDs but no joined objects
         const materialIds = new Set<number>();
         reports.forEach(r => {
             if (r.pipe_material_id && !(r as any).pipe_material) materialIds.add(r.pipe_material_id);
@@ -172,12 +171,6 @@ export const generateWordDocument = async (reports: ReportForm[], metaData: Expo
                 const totalWetted = calculateTotalWettedArea(wettedPipe, wettedShaft);
 
                 // For report display: Allowed Loss in Liters
-                // We need to re-derive it.
-                // Ideally we store it, but here we calculate.
-                // We need Criteria.
-                // Importing getCriteria creates a dependency cycle or duplicate logic.
-                // Let's rely on DB if possible, but here we calc.
-                // Assuming Criteria logic from report.ts:
                 let criteria = 0.401; // Default
                 if (r.draft_id === 2) criteria = 0.15;
                 else if (r.draft_id === 3 || r.draft_id === 5) criteria = 0.201;
@@ -256,8 +249,58 @@ export const generateWordDocument = async (reports: ReportForm[], metaData: Expo
             mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
         });
 
-        // 7. Save
+        // 7. Save file
         saveAs(blob, `${metaData.constructionPart || 'Report'}_${new Date().getTime()}.docx`);
+
+        // 8. Save to History (Database)
+        if (userId) {
+            try {
+                // Determine common values
+                const constructionId = construction?.id || firstReport.construction_id;
+                const customerId = customer?.id || firstReport.customer_id;
+                // Use the type of the first report as default, or 0 if mixed/unknown
+                const typeId = firstReport.type_id || 0;
+
+                // Create export record
+                const { data: exportData, error: exportError } = await supabase
+                    .from('report_exports')
+                    .insert({
+                        certifier_id: userId,
+                        user_id: userId,
+                        construction_part: metaData.constructionPart || 'Unknown Part',
+                        construction_id: constructionId,
+                        customer_id: customerId,
+                        type_id: typeId,
+                        created_at: new Date().toISOString(),
+                        is_finished: true,
+                        certification_time: new Date().toISOString(),
+                        examination_date: new Date().toISOString() // Default to now, or use dateRange if parsed
+                    })
+                    .select()
+                    .single();
+
+                if (exportError) throw exportError;
+
+                if (exportData) {
+                    // Create export forms records
+                    const exportForms = reports.map((r, index) => ({
+                        export_id: exportData.id,
+                        form_id: r.id, // Changed from report_id to form_id to match interface
+                        type_id: r.type_id,
+                        ordinal: index + 1
+                    }));
+
+                    const { error: formsError } = await supabase
+                        .from('report_export_forms')
+                        .insert(exportForms);
+
+                    if (formsError) throw formsError;
+                }
+            } catch (dbError) {
+                console.error("Error saving to history:", dbError);
+                // Don't block the file download if history save fails, but log it
+            }
+        }
 
     } catch (error) {
         console.error("Error generating document:", error);

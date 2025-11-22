@@ -13,8 +13,8 @@ export const historyService = {
             .from('report_exports')
             .select(`
                 *,
-                certifier:users!certifier_id(name, email),
-                user:users!user_id(name, email),
+                certifier:profiles!certifier_id(name, email),
+                user:profiles!user_id(name, email),
                 report_export_forms(count)
             `, { count: 'exact' });
 
@@ -23,7 +23,7 @@ export const historyService = {
         }
 
         query = query.order(sortBy, { ascending: sortOrder === 'asc' })
-                     .range(page * pageSize, (page + 1) * pageSize - 1);
+            .range(page * pageSize, (page + 1) * pageSize - 1);
 
         const { data, error, count } = await query;
 
@@ -46,8 +46,8 @@ export const historyService = {
             .from('report_exports')
             .select(`
                 *,
-                certifier:users!certifier_id(name, email),
-                user:users!user_id(name, email)
+                certifier:profiles!certifier_id(name, email),
+                user:profiles!user_id(name, email)
             `)
             .eq('id', id)
             .single();

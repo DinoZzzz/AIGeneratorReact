@@ -11,7 +11,7 @@ import { generateWordDocument } from '../services/wordExportService';
 import { useAuth } from '../context/AuthContext';
 
 export const Reports = () => {
-    const { profile } = useAuth();
+    const { user, profile } = useAuth();
     const [reports, setReports] = useState<ReportForm[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -75,7 +75,7 @@ export const Reports = () => {
         setIsExporting(true);
         try {
             const selectedData = reports.filter(r => selectedReports.has(r.id));
-            await generateWordDocument(selectedData, metaData);
+            await generateWordDocument(selectedData, metaData, user?.id);
         } catch (error) {
             console.error(error);
             alert('Failed to generate report');
