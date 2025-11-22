@@ -43,29 +43,36 @@ export const calculatePressureLoss = (start: number, end: number): number => {
 };
 
 export const calculateWaterVolumeLoss = (
-    loss: number,
+    loss: number, // in mm
     materialTypeId: number,
-    paneDiameter: number = 0,
-    paneWidth: number = 0,
-    paneLength: number = 0
+    paneDiameter: number = 0, // m
+    paneWidth: number = 0, // m
+    paneLength: number = 0 // m
 ): number => {
+    // Loss is in mm. Surface area * height change.
+    // To get Liters (dm^3):
+    // Area in m^2. Height in mm -> m: height/1000.
+    // Volume in m^3. 1 m^3 = 1000 L.
+    // Effectively: Area (m^2) * loss (mm) = Liters.
+
     if (materialTypeId === 1) {
         // Round Shaft
-        return loss * paneDiameter * paneDiameter * PI / 4;
+        return loss * (paneDiameter * paneDiameter * PI / 4);
     } else if (materialTypeId === 2) {
         // Rectangular Shaft
-        return loss * paneWidth * paneLength;
+        return loss * (paneWidth * paneLength);
     }
     return 0;
 };
 
+// Function expects dimensions in METERS
 export const calculateWettedShaftSurface = (
     draftId: number,
     materialTypeId: number,
-    waterHeight: number,
-    paneDiameter: number = 0,
-    paneWidth: number = 0,
-    paneLength: number = 0
+    waterHeight: number, // m
+    paneDiameter: number = 0, // m
+    paneWidth: number = 0, // m
+    paneLength: number = 0 // m
 ): number => {
     // Draft 2 is Pipe Only (Scheme C), but spec implies Shaft surface is calculated.
     // Draft 6 is unknown, keeping exclusion if valid.
@@ -83,8 +90,8 @@ export const calculateWettedShaftSurface = (
 
 export const calculateWettedPipeSurface = (
     draftId: number,
-    pipeDiameter: number,
-    pipeLength: number
+    pipeDiameter: number, // m
+    pipeLength: number // m
 ): number => {
     // Exclude Shaft Only (1) and Gully Only (4)
     if (draftId === 1 || draftId === 4) return 0;
@@ -121,14 +128,17 @@ export const calculateAllowedLossMm = (
     paneWidth: number = 0,
     paneLength: number = 0
 ): number => {
-    let val = 1;
+    // allowedLossL (Liters) = Area(m2) * Height(mm)
+    // Height(mm) = allowedLossL / Area(m2)
+
+    let area = 1;
     if (materialTypeId === 1) {
-        val = paneDiameter * paneDiameter * PI / 4;
+        area = paneDiameter * paneDiameter * PI / 4;
     } else if (materialTypeId === 2) {
-        val = paneLength * paneWidth;
+        area = paneLength * paneWidth;
     }
 
-    return val === 0 ? 0 : round2(allowedLossL / val);
+    return area === 0 ? 0 : round2(allowedLossL / area);
 };
 
 export const calculateResult = (
@@ -154,9 +164,9 @@ export const isSatisfying = (
 
 export const calculateHydrostaticHeight = (
     draftId: number,
-    waterHeight: number,
-    pipeDiameter: number,
-    depositionalHeight: number = 0
+    waterHeight: number, // m
+    pipeDiameter: number, // m
+    depositionalHeight: number = 0 // m
 ): number => {
     if (draftId === 8) {
         return Math.abs(waterHeight - depositionalHeight - pipeDiameter);
@@ -167,6 +177,15 @@ export const calculateHydrostaticHeight = (
 // Wrapper functions for forms
 export const calculateWaterReport = (form: ReportForm) => {
     const waterLoss = calculateWaterLoss(form.water_height_start, form.water_height_end);
+
+    // In calculateWaterVolumeLoss, we used to pass raw form values, but now we assume caller converts to meters if not done in form.
+    // The WaterMethodForm component converts values to meters before calling this wrapper in one place,
+    // but here we just pass `form`.
+    // IMPORTANT: The `form` object passed here usually has raw input values (e.g. cm, mm).
+    // However, the individual calculator functions are pure and unit-agnostic or expect meters.
+    // We should standardize inputs.
+    // Based on `WaterMethodForm.tsx` line 88, it creates a `formDataInMeters` object.
+    // So we can assume `form` here has meters for dimensions.
 
     const waterVolumeLoss = calculateWaterVolumeLoss(
         waterLoss,
@@ -216,6 +235,8 @@ export const calculateWaterReport = (form: ReportForm) => {
 };
 
 export const calculateAirReport = (form: ReportForm, allowedLoss: number = 0.10) => {
+    // For Air, calculatePressureLoss uses simple subtraction.
+    // form.pressure_start/end are usually mbar.
     const pressureLoss = calculatePressureLoss(form.pressure_start, form.pressure_end);
     const satisfies = isSatisfying(0, 0, 2, pressureLoss, allowedLoss);
 

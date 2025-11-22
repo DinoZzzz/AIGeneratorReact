@@ -19,6 +19,7 @@ export interface ExaminationProcedure {
     id: number;
     name: string;
     allowed_loss: number;
+    pressure?: number;
 }
 
 export interface Customer {
@@ -57,15 +58,16 @@ export interface ReportType {
     type: string;
 }
 
-export interface Examiner {
+export interface Profile {
     id: string;
+    email?: string;
     name: string;
-    lastName: string;
+    last_name: string;
     username: string;
     title?: string;
-    isAdmin: boolean;
-    password?: string; // Only used for creation/update payload
+    role: 'user' | 'admin';
     accreditations: number[]; // List of ReportType IDs
+    is_admin?: boolean; // Helper property for UI
 }
 
 export interface ReportForm {
@@ -120,6 +122,9 @@ export interface ReportForm {
     // Joined fields
     construction?: Construction;
     draft?: ReportDraft;
+    pipe_material?: Material;
+    pane_material?: Material;
+    examination_procedure?: ExaminationProcedure;
 }
 
 export interface ReportExport {
@@ -142,8 +147,8 @@ export interface ReportExport {
     updated_at: string;
 
     // Joined
-    certifier?: User;
-    user?: User;
+    certifier?: Profile;
+    user?: Profile;
     forms_count?: number;
 }
 

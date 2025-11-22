@@ -47,15 +47,11 @@ const renderReportPage = async (doc: jsPDF, report: Partial<ReportForm>) => {
     const pageHeight = doc.internal.pageSize.height;
 
     // Load Assets
-    let logoImg, sketchImg, tableImg;
+    let logoImg, sketchImg;
     try {
         logoImg = await loadImage('/assets/ai_icon.png');
         const schemeNum = report.draft_id || 1;
         sketchImg = await loadImage(`/assets/Scheme${schemeNum}.PNG`);
-
-        if (report.type_id === 2) {
-            tableImg = await loadImage('/assets/table.PNG');
-        }
     } catch (e) {
         console.warn('Failed to load some images', e);
     }
@@ -199,7 +195,7 @@ const renderReportPage = async (doc: jsPDF, report: Partial<ReportForm>) => {
             addLeft('Visina kanala', `${(report.pane_height || 0).toFixed(2)} cm`);
         } else {
             addLeft(widthLabel, `${(report.pane_width || 0).toFixed(2)} cm`);
-            addLeft('Dužina okna', `${(report.pane_length || 0).toFixed(2)} cm`);
+            addLeft(lengthLabel, `${(report.pane_length || 0).toFixed(2)} cm`);
             addLeft(heightLabel, `${(report.pane_height || 0).toFixed(2)} cm`);
         }
     }

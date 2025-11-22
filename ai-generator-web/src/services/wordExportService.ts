@@ -8,17 +8,23 @@ import {
     calculateWaterVolumeLoss,
     calculateAllowedLossL,
     calculateResult,
-    calculateTotalWettedArea
+    calculateTotalWettedArea,
+    calculateWettedShaftSurface,
+    calculateWettedPipeSurface
 } from '../lib/calculations/report';
 import { supabase } from '../lib/supabase';
 
-// Function to load file from url
-const loadFile = async (url: string): Promise<ArrayBuffer> => {
-    const response = await fetch(url);
-    if (!response.ok) {
-        throw new Error(`Failed to load template: ${response.statusText}`);
+// Function to load file from Supabase Storage
+const loadFile = async (path: string): Promise<ArrayBuffer> => {
+    const { data, error } = await supabase.storage
+        .from('templates')
+        .download(path);
+
+    if (error) {
+        throw new Error(`Failed to download template: ${error.message}`);
     }
-    return await response.arrayBuffer();
+
+    return await data.arrayBuffer();
 };
 
 // Helper to format date
@@ -35,8 +41,8 @@ const formatNum = (num: number, decimals = 2) => {
 
 export const generateWordDocument = async (reports: ReportForm[], metaData: ExportMetaData) => {
     try {
-        // 1. Load the template
-        const templateContent = await loadFile('/templates/method1610.docx');
+        // 1. Load the template from Supabase Storage
+        const templateContent = await loadFile('method1610.docx');
 
         // 2. Prepare the zip
         const zip = new PizZip(templateContent);
@@ -53,13 +59,12 @@ export const generateWordDocument = async (reports: ReportForm[], metaData: Expo
         const firstReport = reports[0];
 
         // Fetch Construction and Customer data if missing
-        // This addresses the "Unsafe Type Casting" issue by ensuring we have data.
         let construction: any = (firstReport as any).construction;
         let customer: any = construction?.customer;
 
         if (!construction && firstReport.construction_id) {
              const { data: constr } = await supabase
-                .from('customer_constructions')
+                .from('constructions') // Changed from customer_constructions to constructions
                 .select('*, customer:customers(*)')
                 .eq('id', firstReport.construction_id)
                 .single();
@@ -71,7 +76,6 @@ export const generateWordDocument = async (reports: ReportForm[], metaData: Expo
         }
 
         // Fetch Procedure data for all air reports if missing
-        // This is needed for the table
         const airReportsNeedData = reports.filter(r => r.type_id === 2 && !(r as any).examination_procedure);
         if (airReportsNeedData.length > 0) {
              const { data: procedures } = await supabase.from('examination_procedures').select('*');
@@ -84,14 +88,31 @@ export const generateWordDocument = async (reports: ReportForm[], metaData: Expo
              }
         }
 
-        // Fetch Material Names if missing (for summary)
-        // Optimally we'd have a materials table map
-        // For now, we'll try to fetch if we can, otherwise fallback to ID
-        // Assuming we can't easily fetch all material names without a 'materials' table reference which might be 'material_types' or 'materials'
-        // We will leave the IDs or try to fetch if we knew the table.
-        // Based on 'cbMaterialType' in C#, there is IMaterialType and IMaterial.
-        // Let's attempt to fetch from 'materials' if it exists, otherwise ignore.
-        // We'll skip this to avoid breaking if table doesn't exist, as it's less critical than Construction/Customer.
+        // Fetch Material names if missing
+        // We try to fetch materials for reports that have IDs but no joined objects
+        const materialIds = new Set<number>();
+        reports.forEach(r => {
+            if (r.pipe_material_id && !(r as any).pipe_material) materialIds.add(r.pipe_material_id);
+            if (r.pane_material_id && !(r as any).pane_material) materialIds.add(r.pane_material_id);
+        });
+
+        if (materialIds.size > 0) {
+            const { data: materials } = await supabase
+                .from('materials')
+                .select('*')
+                .in('id', Array.from(materialIds));
+
+            if (materials) {
+                reports.forEach(r => {
+                    if (r.pipe_material_id && !(r as any).pipe_material) {
+                        (r as any).pipe_material = materials.find((m: any) => m.id === r.pipe_material_id);
+                    }
+                    if (r.pane_material_id && !(r as any).pane_material) {
+                        (r as any).pane_material = materials.find((m: any) => m.id === r.pane_material_id);
+                    }
+                });
+            }
+        }
 
 
         // Group calculations for aggregation fields
@@ -123,7 +144,7 @@ export const generateWordDocument = async (reports: ReportForm[], metaData: Expo
                     pipeLength: (r.draft_id === 4 || r.pipe_length === 0) ? '-' : formatNum(r.pipe_length, 2),
                     procedureInfo: procText,
                     allowedLoss: allowedLoss,
-                    pressureLoss: formatNum(calculatePressureLoss(r), 2),
+                    pressureLoss: formatNum(calculatePressureLoss(r.pressure_start, r.pressure_end), 2),
                     constVal: "0.23"
                 };
             });
@@ -132,16 +153,48 @@ export const generateWordDocument = async (reports: ReportForm[], metaData: Expo
         const waterReports = reports
             .filter(r => r.type_id === 1) // Water
             .sort((a, b) => a.ordinal - b.ordinal)
-            .map((r, index) => ({
-                ordinal: index + 1,
-                stock: r.stock || '-',
-                allowedLoss: formatNum(calculateAllowedLossL(r), 2),
-                waterVolumeLoss: formatNum(calculateWaterVolumeLoss(r), 2),
-                result: formatNum(calculateResult(r), 2)
-            }));
+            .map((r, index) => {
+                // Ensure meter conversion for calculations
+                const rMeters = {
+                    ...r,
+                    pane_diameter: r.pane_diameter / 1000,
+                    pane_width: r.pane_width / 100,
+                    pane_length: r.pane_length / 100,
+                    pipe_diameter: r.pipe_diameter / 1000,
+                    water_height: r.water_height / 100
+                };
 
-        const uniquePipeMaterials = Array.from(new Set(pipeReports.map(r => (r as any).pipe_material?.name || r.pipe_material_id))).join(', ');
-        const uniquePaneMaterials = Array.from(new Set(reports.map(r => (r as any).pane_material?.name || r.pane_material_id))).join(', ');
+                const waterLoss = Math.abs(r.water_height_end - r.water_height_start);
+                const volLoss = calculateWaterVolumeLoss(waterLoss, r.material_type_id || 1, rMeters.pane_diameter, rMeters.pane_width, rMeters.pane_length);
+
+                const wettedShaft = calculateWettedShaftSurface(r.draft_id, r.material_type_id || 1, rMeters.water_height, rMeters.pane_diameter, rMeters.pane_width, rMeters.pane_length);
+                const wettedPipe = calculateWettedPipeSurface(r.draft_id, rMeters.pipe_diameter, r.pipe_length);
+                const totalWetted = calculateTotalWettedArea(wettedPipe, wettedShaft);
+
+                // For report display: Allowed Loss in Liters
+                // We need to re-derive it.
+                // Ideally we store it, but here we calculate.
+                // We need Criteria.
+                // Importing getCriteria creates a dependency cycle or duplicate logic.
+                // Let's rely on DB if possible, but here we calc.
+                // Assuming Criteria logic from report.ts:
+                let criteria = 0.401; // Default
+                if (r.draft_id === 2) criteria = 0.15;
+                else if (r.draft_id === 3 || r.draft_id === 5) criteria = 0.201;
+
+                const allowedLossL = calculateAllowedLossL(criteria, totalWetted);
+
+                return {
+                    ordinal: index + 1,
+                    stock: r.stock || '-',
+                    allowedLoss: formatNum(allowedLossL, 2),
+                    waterVolumeLoss: formatNum(volLoss, 2),
+                    result: formatNum(calculateResult(volLoss, totalWetted), 2)
+                };
+            });
+
+        const uniquePipeMaterials = Array.from(new Set(pipeReports.map(r => (r as any).pipe_material?.name || r.pipe_material_id))).filter(Boolean).join(', ');
+        const uniquePaneMaterials = Array.from(new Set(reports.map(r => (r as any).pane_material?.name || r.pane_material_id))).filter(Boolean).join(', ');
 
         const uniquePipeDiameters = Array.from(new Set(pipeReports.map(r => `ø ${r.pipe_diameter * 1000}`))).join(', ');
         const uniquePaneDiameters = Array.from(new Set(reports.map(r => `ø ${r.pane_diameter * 1000}`))).join(', ');
