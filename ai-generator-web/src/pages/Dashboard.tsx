@@ -1,30 +1,19 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Users, HardHat, FileText, Activity, ArrowUpRight } from 'lucide-react';
+import { Users, HardHat, FileText, ArrowUpRight } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { cn } from '../lib/utils';
-
-interface DashboardReport {
-    id: string;
-    examination_date: string;
-    type_id: number;
-    satisfies: boolean;
-    constructions: {
-        name: string;
-        work_order: string;
-        customers: {
-            name: string;
-        };
-    };
-}
+import { useAuth } from '../context/AuthContext';
+import { DashboardStats } from '../components/dashboard/DashboardStats';
+import { DashboardCustomersTable } from '../components/dashboard/DashboardCustomersTable';
 
 export const Dashboard = () => {
+    const { user } = useAuth();
     const [stats, setStats] = useState({
         customers: 0,
         constructions: 0,
         reports: 0
     });
-    const [recentReports, setRecentReports] = useState<DashboardReport[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -44,29 +33,6 @@ export const Dashboard = () => {
                 reports: reportsCount || 0
             });
 
-            // Fetch recent reports
-            const { data: reports } = await supabase
-                .from('report_forms')
-                .select(`
-                    id,
-                    examination_date,
-                    type_id,
-                    satisfies,
-                    constructions (
-                        name,
-                        work_order,
-                        customers (
-                            name
-                        )
-                    )
-                `)
-                .order('created_at', { ascending: false })
-                .limit(5);
-
-            if (reports) {
-                setRecentReports(reports as unknown as DashboardReport[]);
-            }
-
         } catch (error) {
             console.error('Error loading dashboard data:', error);
         } finally {
@@ -74,18 +40,26 @@ export const Dashboard = () => {
         }
     };
 
+    const getUserName = () => {
+        if (!user) return 'Korisnik';
+        return user.user_metadata?.name || user.email?.split('@')[0] || 'Korisnik';
+    };
+
     if (loading) {
         return <div className="flex justify-center p-8">Loading...</div>;
     }
 
     return (
-        <div className="space-y-8">
-            <div>
-                <h1 className="text-3xl font-bold tracking-tight text-foreground">Platform</h1>
-                <p className="text-muted-foreground mt-1">Overview of your testing activities.</p>
+        <div className="space-y-8 max-w-[1600px] mx-auto">
+            {/* Welcome Header */}
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div>
+                    <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-foreground">Pozdrav, {getUserName()}</h1>
+                    <p className="text-lg text-muted-foreground mt-1">Vaš generator je spreman.</p>
+                </div>
             </div>
 
-            {/* Stats Grid */}
+            {/* Stats Grid (Summary Cards) */}
             <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
                 <StatsCard
                     title="Total Customers"
@@ -113,58 +87,11 @@ export const Dashboard = () => {
                 />
             </div>
 
-            {/* Recent Activity */}
-            <div className="bg-card shadow-sm rounded-xl border border-border overflow-hidden">
-                <div className="px-6 py-5 border-b border-border flex items-center justify-between bg-muted/30">
-                    <h3 className="text-lg font-semibold text-foreground flex items-center">
-                        <Activity className="h-5 w-5 mr-2 text-muted-foreground" />
-                        Recent Reports
-                    </h3>
-                    <Link to="/reports" className="text-sm font-medium text-primary hover:text-primary/80 flex items-center">
-                        View all <ArrowUpRight className="ml-1 h-4 w-4" />
-                    </Link>
-                </div>
-                <ul className="divide-y divide-border">
-                    {recentReports.map((report) => (
-                        <li key={report.id} className="px-6 py-4 hover:bg-muted/50 transition-colors">
-                            <div className="flex items-center justify-between">
-                                <div className="flex-1 min-w-0 pr-4">
-                                    <div className="flex items-center">
-                                        <p className="text-sm font-medium text-primary truncate">
-                                            {report.type_id === 1 ? 'Water Test' : 'Air Test'}
-                                        </p>
-                                        <span className="mx-2 text-muted-foreground">•</span>
-                                        <p className="text-sm text-muted-foreground truncate">
-                                            {report.constructions?.name} ({report.constructions?.work_order})
-                                        </p>
-                                    </div>
-                                    <div className="mt-1 flex items-center text-xs text-muted-foreground">
-                                        <Users className="flex-shrink-0 mr-1.5 h-3.5 w-3.5" />
-                                        {report.constructions?.customers?.name}
-                                        <span className="mx-2">•</span>
-                                        {new Date(report.examination_date).toLocaleDateString()}
-                                    </div>
-                                </div>
-                                <div className="flex-shrink-0">
-                                    <span className={cn(
-                                        "px-2.5 py-0.5 inline-flex text-xs font-medium rounded-full",
-                                        report.satisfies
-                                            ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
-                                            : "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400"
-                                    )}>
-                                        {report.satisfies ? 'Passed' : 'Failed'}
-                                    </span>
-                                </div>
-                            </div>
-                        </li>
-                    ))}
-                    {recentReports.length === 0 && (
-                        <li className="px-6 py-8 text-center text-muted-foreground">
-                            No recent reports found.
-                        </li>
-                    )}
-                </ul>
-            </div>
+            {/* Charts & Stats Row */}
+            <DashboardStats />
+
+            {/* Main Content: Customers Table */}
+            <DashboardCustomersTable />
         </div>
     );
 };
@@ -180,7 +107,7 @@ interface StatsCardProps {
 
 const StatsCard = ({ title, value, icon: Icon, href, color, bgColor }: StatsCardProps) => {
     return (
-        <Link to={href} className="group block bg-card overflow-hidden shadow-sm rounded-xl border border-border hover:shadow-md transition-all duration-200">
+        <Link to={href} className="group block bg-white dark:bg-slate-900 overflow-hidden shadow-sm rounded-xl border border-border hover:shadow-md transition-all duration-200">
             <div className="p-6">
                 <div className="flex items-center">
                     <div className={cn("flex-shrink-0 p-3 rounded-lg", bgColor)}>

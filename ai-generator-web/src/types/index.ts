@@ -120,3 +120,39 @@ export interface ReportForm {
     construction?: Construction;
     draft?: ReportDraft;
 }
+
+export interface ReportExport {
+    id: string;
+    type_id: number;
+    construction_id: string;
+    customer_id: string;
+    certifier_id: string;
+    user_id: string;
+    drainage?: string;
+    water_remark?: string;
+    water_deviation?: string;
+    air_remark?: string;
+    air_deviation?: string;
+    is_finished: boolean;
+    certification_time: string;
+    examination_date: string;
+    construction_part: string;
+    created_at: string;
+    updated_at: string;
+
+    // Joined
+    certifier?: User;
+    user?: User;
+    forms_count?: number;
+}
+
+export interface ReportExportForm {
+    id: string;
+    type_id: number;
+    form_id: string;
+    report_form?: ReportForm;
+    export_id: string;
+    ordinal: number;
+    created_at: string;
+    updated_at: string;
+}
