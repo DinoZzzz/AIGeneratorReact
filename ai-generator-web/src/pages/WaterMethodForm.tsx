@@ -118,25 +118,29 @@ export const WaterMethodForm = () => {
         // Calculate wetted pipe surface separately for display
         let wettedPipeSurface = 0;
 
-        // For Schema C (Pipe Only), calculate both main pipe and secondary pipe surfaces
+        // For Schema C (Pipe Only), calculate based on shaft type
         if (formData.draft_id === 2) {
-            // Main pipe surface (pane_diameter)
-            const mainPipeDiameter = (formData.pane_diameter || 0) / 1000; // mm to m
-            const mainPipeSurface = calc.calculateWettedPipeSurface(
-                formData.draft_id,
-                mainPipeDiameter,
-                formData.pipe_length || 0
-            );
+            if (formData.material_type_id === 1) {
+                // Round: Main pipe (covered by wettedShaftSurface) + secondary pipe
+                const secondaryPipeDiameter = (formData.pipe_diameter || 0) / 1000; // mm to m
+                const secondaryPipeSurface = calc.calculateWettedPipeSurface(
+                    formData.draft_id,
+                    secondaryPipeDiameter,
+                    formData.pipe_length || 0
+                );
 
-            // Secondary pipe surface (pipe_diameter)
-            const secondaryPipeDiameter = (formData.pipe_diameter || 0) / 1000; // mm to m
-            const secondaryPipeSurface = calc.calculateWettedPipeSurface(
-                formData.draft_id,
-                secondaryPipeDiameter,
-                formData.pipe_length || 0
-            );
+                wettedPipeSurface = secondaryPipeSurface;
+            } else if (formData.material_type_id === 2) {
+                // Rectangular: Channel (covered by wettedShaftSurface) + small pipe
+                const secondaryPipeDiameter = (formData.pipe_diameter || 0) / 1000; // mm to m
+                const secondaryPipeSurface = calc.calculateWettedPipeSurface(
+                    formData.draft_id,
+                    secondaryPipeDiameter,
+                    formData.pipe_length || 0
+                );
 
-            wettedPipeSurface = mainPipeSurface + secondaryPipeSurface;
+                wettedPipeSurface = secondaryPipeSurface;
+            }
         } else {
             // For other schemes, use single pipe calculation
             wettedPipeSurface = calc.calculateWettedPipeSurface(
@@ -388,7 +392,7 @@ export const WaterMethodForm = () => {
                                             onChange={handleChange}
                                         />
                                     )}
-                                    {isShaftRectangular && (
+                                    {isShaftRectangular && formData.draft_id !== 2 && (
                                         <>
                                             <Input
                                                 label={formData.draft_id === 4 || formData.draft_id === 5 ? "Gully Width (cm)" : "Pane Width (cm)"}
@@ -417,7 +421,7 @@ export const WaterMethodForm = () => {
                                         </>
                                     )}
 
-                                    {formData.draft_id === 2 && (
+                                    {formData.draft_id === 2 && isShaftRound && (
                                         <Input
                                             label="Main Pipe Diameter (mm)"
                                             type="number"
@@ -426,6 +430,35 @@ export const WaterMethodForm = () => {
                                             value={formData.pane_diameter}
                                             onChange={handleChange}
                                         />
+                                    )}
+
+                                    {formData.draft_id === 2 && isShaftRectangular && (
+                                        <>
+                                            <Input
+                                                label="Channel Width (cm)"
+                                                type="number"
+                                                step="0.01"
+                                                name="pane_width"
+                                                value={formData.pane_width}
+                                                onChange={handleChange}
+                                            />
+                                            <Input
+                                                label="Channel Length (cm)"
+                                                type="number"
+                                                step="0.01"
+                                                name="pane_length"
+                                                value={formData.pane_length}
+                                                onChange={handleChange}
+                                            />
+                                            <Input
+                                                label="Channel Height (cm)"
+                                                type="number"
+                                                step="0.01"
+                                                name="pane_height"
+                                                value={formData.pane_height}
+                                                onChange={handleChange}
+                                            />
+                                        </>
                                     )}
 
                                     {isShaftRound && (
