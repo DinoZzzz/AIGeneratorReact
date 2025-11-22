@@ -21,7 +21,8 @@ const loadFile = async (path: string): Promise<ArrayBuffer> => {
         .download(path);
 
     if (error) {
-        throw new Error(`Failed to download template: ${error.message}`);
+        console.error('Supabase Storage Error:', error);
+        throw new Error(`Failed to download template: ${JSON.stringify(error)}`);
     }
 
     return await data.arrayBuffer();

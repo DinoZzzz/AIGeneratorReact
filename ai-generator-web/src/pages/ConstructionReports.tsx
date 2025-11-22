@@ -3,17 +3,20 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { reportService } from '../services/reportService';
 import { constructionService } from '../services/constructionService';
 import { customerService } from '../services/customerService';
-import { Plus, Pencil, Trash2, FileDown, ArrowLeft, Loader2, GripVertical } from 'lucide-react';
+import { Plus, Pencil, Trash2, FileDown, ArrowLeft, Loader2, GripVertical, FileText } from 'lucide-react';
 import type { ReportForm, Construction, Customer } from '../types';
 import clsx from 'clsx';
 import { generatePDF, generateBulkPDF } from '../lib/pdfGenerator';
+import { generateWordDocument } from '../services/wordExportService';
+import { ExportDialog } from '../components/ExportDialog';
+import type { ExportMetaData } from '../components/ExportDialog';
 import { Breadcrumbs } from '../components/ui/Breadcrumbs';
 import { useAuth } from '../context/AuthContext';
 
 export const ConstructionReports = () => {
     const { customerId, constructionId } = useParams();
     const navigate = useNavigate();
-    const { profile } = useAuth();
+    const { user, profile } = useAuth();
     const [reports, setReports] = useState<ReportForm[]>([]);
     const [construction, setConstruction] = useState<Construction | null>(null);
     const [customer, setCustomer] = useState<Customer | null>(null);
@@ -21,6 +24,8 @@ export const ConstructionReports = () => {
     const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
     const [isNewReportOpen, setIsNewReportOpen] = useState(false);
+    const [exportDialogOpen, setExportDialogOpen] = useState(false);
+    const [isExporting, setIsExporting] = useState(false);
 
     // Check accreditations (1 = Water, 2 = Air)
     const hasWaterAccreditation = profile?.accreditations?.includes(1) ?? false;
@@ -80,6 +85,22 @@ export const ConstructionReports = () => {
             : reports;
 
         generateBulkPDF(reportsToExport, `Reports_${construction?.work_order || 'bundle'}.pdf`);
+    };
+
+    const handleExportConfirm = async (metaData: ExportMetaData) => {
+        setIsExporting(true);
+        try {
+            const reportsToExport = selectedIds.size > 0
+                ? reports.filter(r => r.id && selectedIds.has(r.id))
+                : reports;
+
+            await generateWordDocument(reportsToExport, metaData, user?.id);
+        } catch (error) {
+            console.error(error);
+            alert('Failed to generate report');
+        } finally {
+            setIsExporting(false);
+        }
     };
 
     const toggleSelectAll = () => {
@@ -254,6 +275,13 @@ export const ConstructionReports = () => {
                         />
                     )}
                     <button
+                        onClick={() => setExportDialogOpen(true)}
+                        className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                    >
+                        <FileText className="h-5 w-5 mr-2 text-gray-500" />
+                        Generate Reports
+                    </button>
+                    <button
                         onClick={handleBulkExport}
                         className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                     >
@@ -262,6 +290,17 @@ export const ConstructionReports = () => {
                     </button>
                 </div>
             </div>
+
+            <ExportDialog
+                open={exportDialogOpen}
+                onOpenChange={setExportDialogOpen}
+                onConfirm={handleExportConfirm}
+                loading={isExporting}
+                defaultValues={{
+                    constructionPart: construction.name,
+                    certifierName: profile?.name ? `${profile.name} ${profile.last_name}` : ''
+                }}
+            />
 
             <div className="bg-white shadow rounded-lg overflow-hidden">
                 <table className="min-w-full divide-y divide-gray-200">
