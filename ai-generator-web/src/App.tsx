@@ -12,6 +12,7 @@ import { ConstructionForm } from './pages/ConstructionForm';
 import { ConstructionReports } from './pages/ConstructionReports';
 import { Dashboard } from './pages/Dashboard';
 import { History } from './pages/History';
+import { HistoryDetails } from './pages/HistoryDetails';
 import { Examiners } from './pages/Examiners';
 import { Help } from './pages/Help';
 import { Settings } from './pages/Settings';
@@ -59,6 +60,18 @@ function App() {
                         <Route path="/examiners" element={<Examiners />} />
                         <Route path="/settings" element={<Settings />} />
                         <Route path="/help" element={<Help />} />
+            {/* Protected Routes */}
+            <Route
+              path="/*"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <Routes>
+                      <Route path="/" element={<Dashboard />} />
+                      <Route path="/history" element={<History />} />
+                      <Route path="/history/:id" element={<HistoryDetails />} />
+                      <Route path="/examiners" element={<Examiners />} />
+                      <Route path="/help" element={<Help />} />
 
                         <Route path="/reports" element={<Reports />} />
                         <Route path="/reports/new" element={<WaterMethodForm />} />
