@@ -12,6 +12,38 @@ export const customerService = {
         return data;
     },
 
+    async getCustomers(
+        page: number = 1,
+        pageSize: number = 10,
+        sortBy: string = 'name',
+        sortOrder: 'asc' | 'desc' = 'asc',
+        search: string = ''
+    ) {
+        let query = supabase
+            .from('customers')
+            .select('*', { count: 'exact' });
+
+        if (search) {
+            // Sanitize search input by removing commas to prevent Supabase OR syntax errors
+            const sanitizedSearch = search.replace(/,/g, '');
+            if (sanitizedSearch) {
+                query = query.or(`name.ilike.%${sanitizedSearch}%,location.ilike.%${sanitizedSearch}%,work_order.ilike.%${sanitizedSearch}%,contact_person.ilike.%${sanitizedSearch}%,email.ilike.%${sanitizedSearch}%`);
+            }
+        }
+
+        // Map UI sort keys to DB columns if necessary (they seem to match snake_case mostly)
+        // Assuming sortBy is passed as the DB column name
+        query = query.order(sortBy, { ascending: sortOrder === 'asc' });
+
+        const start = (page - 1) * pageSize;
+        const end = start + pageSize - 1;
+
+        const { data, error, count } = await query.range(start, end);
+
+        if (error) throw error;
+        return { data, count };
+    },
+
     async getById(id: string) {
         const { data, error } = await supabase
             .from('customers')
