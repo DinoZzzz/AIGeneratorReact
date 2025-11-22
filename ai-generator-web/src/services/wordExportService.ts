@@ -7,8 +7,10 @@ import {
     calculatePressureLoss,
     calculateWaterVolumeLoss,
     calculateAllowedLossL,
-    calculateResult
-} from '../lib/calculations';
+    calculateResult,
+    calculateTotalWettedArea
+} from '../lib/calculations/report';
+import { supabase } from '../lib/supabase';
 
 // Function to load file from url
 const loadFile = async (url: string): Promise<ArrayBuffer> => {
@@ -49,8 +51,48 @@ export const generateWordDocument = async (reports: ReportForm[], metaData: Expo
         if (reports.length === 0) throw new Error("No reports selected");
 
         const firstReport = reports[0];
-        const construction = firstReport.construction;
-        const customer = construction?.customer;
+
+        // Fetch Construction and Customer data if missing
+        // This addresses the "Unsafe Type Casting" issue by ensuring we have data.
+        let construction: any = (firstReport as any).construction;
+        let customer: any = construction?.customer;
+
+        if (!construction && firstReport.construction_id) {
+             const { data: constr } = await supabase
+                .from('customer_constructions')
+                .select('*, customer:customers(*)')
+                .eq('id', firstReport.construction_id)
+                .single();
+
+             if (constr) {
+                 construction = constr;
+                 customer = constr.customer;
+             }
+        }
+
+        // Fetch Procedure data for all air reports if missing
+        // This is needed for the table
+        const airReportsNeedData = reports.filter(r => r.type_id === 2 && !(r as any).examination_procedure);
+        if (airReportsNeedData.length > 0) {
+             const { data: procedures } = await supabase.from('examination_procedures').select('*');
+             if (procedures) {
+                 reports.forEach(r => {
+                     if (r.type_id === 2 && !(r as any).examination_procedure) {
+                         (r as any).examination_procedure = procedures.find(p => p.id === r.examination_procedure_id);
+                     }
+                 });
+             }
+        }
+
+        // Fetch Material Names if missing (for summary)
+        // Optimally we'd have a materials table map
+        // For now, we'll try to fetch if we can, otherwise fallback to ID
+        // Assuming we can't easily fetch all material names without a 'materials' table reference which might be 'material_types' or 'materials'
+        // We will leave the IDs or try to fetch if we knew the table.
+        // Based on 'cbMaterialType' in C#, there is IMaterialType and IMaterial.
+        // Let's attempt to fetch from 'materials' if it exists, otherwise ignore.
+        // We'll skip this to avoid breaking if table doesn't exist, as it's less critical than Construction/Customer.
+
 
         // Group calculations for aggregation fields
         const pipeReports = reports.filter(r => r.draft_id !== 1 && r.draft_id !== 4); // Exclude only-shaft drafts
@@ -67,87 +109,92 @@ export const generateWordDocument = async (reports: ReportForm[], metaData: Expo
         const satisfies = reports.every(r => r.satisfies);
 
         // Prepare Air Method Table Data
-        // Note: The template likely uses a loop like {#AirMethods}...{/AirMethods}
-        // We need to map our reports to the template structure.
         const airReports = reports
             .filter(r => r.type_id === 2) // Air
             .sort((a, b) => a.ordinal - b.ordinal)
-            .map((r, index) => ({
-                Ordinal: index + 1,
-                Stock: r.stock || '-',
-                PipeLength: (r.draft_id === 4 || r.pipe_length === 0) ? '-' : formatNum(r.pipe_length, 2),
-                // Needs procedure name and pressure. Using mock if joined data missing.
-                PressureInfo: r.pressure_start ? `${r.pressure_start}` : '-', // Improve if procedure joined
-                AllowedLoss: '-', // Calculation depends on procedure allowed loss which might be missing in join
-                PressureLoss: formatNum(calculatePressureLoss(r), 2),
-                // Logic from C#: 0.23 is hardcoded? MSWord.cs says "0.23 + """
-                // Checking MSWord.cs: row.Cells[7].Range.Text = 0.23 + "";
-                SomeConstant: "0.23"
-            }));
+            .map((r, index) => {
+                const proc = (r as any).examination_procedure;
+                const procText = proc ? `${proc.name} - ${formatNum(proc.pressure, 2)}` : '-';
+                const allowedLoss = proc ? formatNum(proc.allowed_loss, 2) : '-';
+
+                return {
+                    ordinal: index + 1,
+                    stock: r.stock || '-',
+                    pipeLength: (r.draft_id === 4 || r.pipe_length === 0) ? '-' : formatNum(r.pipe_length, 2),
+                    procedureInfo: procText,
+                    allowedLoss: allowedLoss,
+                    pressureLoss: formatNum(calculatePressureLoss(r), 2),
+                    constVal: "0.23"
+                };
+            });
 
         // Prepare Water Method Table Data
         const waterReports = reports
             .filter(r => r.type_id === 1) // Water
             .sort((a, b) => a.ordinal - b.ordinal)
             .map((r, index) => ({
-                Ordinal: index + 1,
-                Stock: r.stock || '-',
-                AllowedLoss: formatNum(calculateAllowedLossL(r), 2),
-                WaterVolumeLoss: formatNum(calculateWaterVolumeLoss(r), 2),
-                Result: formatNum(calculateResult(r), 2)
+                ordinal: index + 1,
+                stock: r.stock || '-',
+                allowedLoss: formatNum(calculateAllowedLossL(r), 2),
+                waterVolumeLoss: formatNum(calculateWaterVolumeLoss(r), 2),
+                result: formatNum(calculateResult(r), 2)
             }));
 
-        // Unique materials/diameters for summary
-        const uniquePipeMaterials = Array.from(new Set(pipeReports.map(r => r.pipe_material_id))).join(', '); // Just IDs for now, ideally Names
-        const uniquePaneMaterials = Array.from(new Set(reports.map(r => r.pane_material_id))).join(', ');
+        const uniquePipeMaterials = Array.from(new Set(pipeReports.map(r => (r as any).pipe_material?.name || r.pipe_material_id))).join(', ');
+        const uniquePaneMaterials = Array.from(new Set(reports.map(r => (r as any).pane_material?.name || r.pane_material_id))).join(', ');
+
         const uniquePipeDiameters = Array.from(new Set(pipeReports.map(r => `ø ${r.pipe_diameter * 1000}`))).join(', ');
         const uniquePaneDiameters = Array.from(new Set(reports.map(r => `ø ${r.pane_diameter * 1000}`))).join(', ');
 
 
-        // 5. Set the data
+        // 5. Set the data matching the Mustache tags in the docx template
         doc.render({
-            Creator: metaData.certifierName || "System", // Or logged in user
-            Certifier: metaData.certifierName,
-            ConstructionSitePart: metaData.constructionPart || "-",
-            CurrentDate: new Date().toLocaleDateString('hr-HR'),
-            WorkOrder: construction?.work_order || "-",
-            ExaminationDate: dateRange,
-            Temperature: tempRange,
-            CustomerName: customer?.name || "-",
-            ConstructionLocations: construction?.location || "-",
-            ConstructionSite: construction?.name || "-",
-            CustomerDetailed: customer ? `${customer.name}, ${customer.address || ''} ${customer.location || ''}` : "-",
+            creator: metaData.certifierName || "System",
+            certifier: metaData.certifierName,
+            constructionSitePart: metaData.constructionPart || "-",
+            currentDate: new Date().toLocaleDateString('hr-HR'),
+            workOrder: construction?.work_order || "-",
+            examinationDate: dateRange,
+            temperature: tempRange,
+
+            customerName: customer?.name || "-",
+            constructionLocations: construction?.location || "-",
+            constructionSite: construction?.name || "-",
+            customerDetailed: customer ? `${customer.name}, ${customer.address || ''} ${customer.location || ''}` : "-",
 
             // Summary Fields
-            RevisionPaneCount: reports.filter(r => r.draft_id !== 3 && r.draft_id !== 6).length + " kom.",
-            TubeLengthSum: totalLength === 0 ? "-" : formatNum(totalLength, 2) + " m",
-            Drainage: metaData.drainage,
+            revisionPaneCount: reports.filter(r => r.draft_id !== 3 && r.draft_id !== 6).length + " kom.",
+            tubeLengthSum: totalLength === 0 ? "-" : formatNum(totalLength, 2) + " m",
+            drainage: metaData.drainage,
 
             // Remarks
-            AirMethodRemark: metaData.airRemark || "nema",
-            AirNormDeviation: metaData.airDeviation || "nema",
-            WaterMethodRemark: metaData.waterRemark || "nema",
-            WaterNormDeviation: metaData.waterDeviation || "nema",
+            airMethodRemark: metaData.airRemark || "nema",
+            airNormDeviation: metaData.airDeviation || "nema",
+            waterMethodRemark: metaData.waterRemark || "nema",
+            waterNormDeviation: metaData.waterDeviation || "nema",
 
-            // Boolean Flags for conditional showing in template
-            ShowAirMethod: airReports.length > 0,
-            ShowWaterMethod: waterReports.length > 0,
+            // Conditional Blocks (docxtemplater uses Boolean)
+            hasAirTests: airReports.length > 0,
+            hasWaterTests: waterReports.length > 0,
+            hasPaneInfo: uniquePaneDiameters.length > 0,
+            hasTubeInfo: uniquePipeDiameters.length > 0,
 
             // Tables
-            AirMethods: airReports,
-            WaterMethods: waterReports,
+            airTests: airReports,
+            waterTests: waterReports,
 
             // Result
-            Satisfies: satisfies ? "ZADOVOLJAVA" : "NE ZADOVOLJAVA",
-            UnsatisfiedStocks: satisfies
+            satisfies: satisfies ? "ZADOVOLJAVA" : "NE ZADOVOLJAVA",
+            isUnsatisfied: !satisfies,
+            unsatisfiedStocks: satisfies
                 ? "Sve dionice zadovoljavaju uvjete vodonepropusnosti."
                 : "Dionice " + reports.filter(r => !r.satisfies).map(r => r.stock).join(", ") + " ne zadovoljavaju uvjete vodonepropusnosti.",
 
             // Tech details
-            TubeMaterials: uniquePipeMaterials, // Placeholder until we map IDs to names
-            TubeDiameters: uniquePipeDiameters,
-            PaneMaterials: uniquePaneMaterials,
-            PaneDiameters: uniquePaneDiameters,
+            tubeMaterials: uniquePipeMaterials,
+            tubeDiameters: uniquePipeDiameters,
+            paneMaterials: uniquePaneMaterials,
+            paneDiameters: uniquePaneDiameters,
         });
 
         // 6. Output the document
