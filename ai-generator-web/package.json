@@ -8,7 +8,7 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview --port 8080 --host",
-    "start": "vite preview --port $PORT --host",
+    "start": "serve -s dist -l $PORT",
     "test": "vitest"
   },
   "dependencies": {
@@ -29,6 +29,7 @@
     "react-dom": "^19.2.0",
     "react-router-dom": "^7.9.6",
     "recharts": "^3.4.1",
+    "serve": "^14.2.5",
     "tailwind-merge": "^3.4.0"
   },
   "devDependencies": {

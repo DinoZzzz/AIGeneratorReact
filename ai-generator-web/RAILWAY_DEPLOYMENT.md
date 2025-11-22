@@ -68,6 +68,8 @@ npm install && npm run build
 ### Start Command
 ```bash
 npm run start
+# OR directly:
+npx serve -s dist -l $PORT
 ```
 
 ### Port Configuration
