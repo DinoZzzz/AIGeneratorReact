@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { reportService } from '../services/reportService';
 import { supabase } from '../lib/supabase';
@@ -56,12 +56,30 @@ export const AirMethodForm = () => {
         requiredTestTime: 0
     });
 
+    const loadProcedures = useCallback(async () => {
+        const { data } = await supabase.from('examination_procedures').select('*');
+        if (data) setProcedures(data);
+    }, []);
+
+    const loadReport = useCallback(async (reportId: string) => {
+        try {
+            setLoading(true);
+            const data = await reportService.getById(reportId);
+            setFormData(data);
+        } catch (error) {
+            console.error('Error loading report:', error);
+            alert('Failed to load report');
+        } finally {
+            setLoading(false);
+        }
+    }, []);
+
     useEffect(() => {
         loadProcedures();
         if (id && id !== 'new') {
             loadReport(id);
         }
-    }, [id]);
+    }, [id, loadProcedures, loadReport]);
 
     useEffect(() => {
         const selectedProcedure = procedures.find(p => p.id === formData.examination_procedure_id);
@@ -91,24 +109,6 @@ export const AirMethodForm = () => {
             requiredTestTime
         });
     }, [formData, procedures]);
-
-    const loadProcedures = async () => {
-        const { data } = await supabase.from('examination_procedures').select('*');
-        if (data) setProcedures(data);
-    };
-
-    const loadReport = async (reportId: string) => {
-        try {
-            setLoading(true);
-            const data = await reportService.getById(reportId);
-            setFormData(data);
-        } catch (error) {
-            console.error('Error loading report:', error);
-            alert('Failed to load report');
-        } finally {
-            setLoading(false);
-        }
-    };
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
         const { name, value, type } = e.target;
