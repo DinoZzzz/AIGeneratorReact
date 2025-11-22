@@ -15,6 +15,7 @@ import { cn } from '../lib/utils';
 const initialState: Partial<ReportForm> = {
     type_id: 1, // Water
     draft_id: 1,
+    dionica: '',
     material_type_id: 1, // Shaft
     pane_material_id: 1, // Default to PVC for round shaft
     pipe_material_id: 1, // Default to PVC for pipe
@@ -338,6 +339,14 @@ export const WaterMethodForm = () => {
                             <div className="bg-card shadow-sm rounded-xl border border-border p-6">
                                 <h3 className="text-lg font-semibold text-foreground mb-4">Structure Type</h3>
                                 <div className="space-y-4">
+                                    <Input
+                                        label="Dionica"
+                                        type="text"
+                                        name="dionica"
+                                        value={formData.dionica}
+                                        onChange={handleChange}
+                                        placeholder="Enter section name"
+                                    />
                                     <Select
                                         label="Scheme"
                                         name="draft_id"
@@ -541,7 +550,7 @@ export const WaterMethodForm = () => {
                                             />
                                         </>
                                     )}
-                                    {showGullyFields && (
+                                    {showGullyFields && formData.draft_id !== 4 && (
                                         <Input
                                             label="Depositional Height (m)"
                                             type="number"
@@ -658,7 +667,7 @@ export const WaterMethodForm = () => {
                                         <ResultRow label="Total Wetted Area" value={`${calculated.totalWettedArea.toFixed(2)} m²`} />
                                         <ResultRow label="Allowed Loss" value={`${calculated.allowedLossL.toFixed(2)} l`} />
                                         <ResultRow label="Allowed Loss" value={`${calculated.allowedLossMm.toFixed(2)} mm`} />
-                                        {showPipeFields && calculated.hydrostaticHeight > 0 && (
+                                        {showPipeFields && formData.draft_id !== 5 && calculated.hydrostaticHeight > 0 && (
                                             <ResultRow label="Hydrostatic Height" value={`${(calculated.hydrostaticHeight * 100).toFixed(0)} cm`} />
                                         )}
                                         <ResultRow label="Water Loss" value={`${calculated.waterLoss.toFixed(2)} mm`} />
