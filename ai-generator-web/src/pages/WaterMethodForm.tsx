@@ -214,15 +214,18 @@ export const WaterMethodForm = () => {
     const saveReport = async (shouldRedirect: boolean) => {
         try {
             setLoading(true);
+            // Only save 'satisfies' from calculated - all other fields are display-only
+            // Remove id from formData to avoid sending undefined id when creating
+            const { id: formId, ...formDataWithoutId } = formData;
             const dataToSave = {
-                ...formData,
-                ...calculated,
+                ...formDataWithoutId,
+                satisfies: calculated.satisfies,
                 customer_id: customerId || formData.customer_id,
                 construction_id: constructionId || formData.construction_id,
                 type_id: 1
             };
 
-            if (id === 'new') {
+            if (!id || id === 'new') {
                 await reportService.create(dataToSave as ReportForm);
             } else {
                 await reportService.update(id!, dataToSave as ReportForm);

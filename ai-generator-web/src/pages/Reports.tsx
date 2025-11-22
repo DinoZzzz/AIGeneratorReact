@@ -77,6 +77,35 @@ export const Reports = () => {
         }
     };
 
+    const handleDeleteSelected = async () => {
+        const count = selectedReports.size;
+
+        // First confirmation
+        if (!window.confirm(`Are you sure you want to delete ${count} selected report${count > 1 ? 's' : ''}?`)) {
+            return;
+        }
+
+        // Second confirmation
+        if (!window.confirm(`This action cannot be undone. Delete ${count} report${count > 1 ? 's' : ''} permanently?`)) {
+            return;
+        }
+
+        try {
+            // Delete all selected reports
+            await Promise.all(
+                Array.from(selectedReports).map(id => reportService.delete(id))
+            );
+
+            // Update the UI
+            setReports(reports.filter(r => !selectedReports.has(r.id)));
+            setSelectedReports(new Set());
+
+            alert(`Successfully deleted ${count} report${count > 1 ? 's' : ''}`);
+        } catch (err: unknown) {
+            alert('Failed to delete reports: ' + (err as Error).message);
+        }
+    };
+
     if (loading) {
         return (
             <div className="flex justify-center items-center h-64">
@@ -94,18 +123,28 @@ export const Reports = () => {
                 </div>
                 <div className="flex space-x-2">
                     {selectedReports.size > 0 && (
-                        <Button
-                            variant="outline"
-                            onClick={() => setExportDialogOpen(true)}
-                            disabled={isExporting}
-                        >
-                            {isExporting ? (
-                                <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                            ) : (
-                                <Download className="h-4 w-4 mr-2" />
-                            )}
-                            Export Selected ({selectedReports.size})
-                        </Button>
+                        <>
+                            <Button
+                                variant="outline"
+                                onClick={handleDeleteSelected}
+                                className="text-destructive hover:text-destructive hover:bg-destructive/10 border-destructive/30"
+                            >
+                                <Trash2 className="h-4 w-4 mr-2" />
+                                Delete Selected ({selectedReports.size})
+                            </Button>
+                            <Button
+                                variant="outline"
+                                onClick={() => setExportDialogOpen(true)}
+                                disabled={isExporting}
+                            >
+                                {isExporting ? (
+                                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                                ) : (
+                                    <Download className="h-4 w-4 mr-2" />
+                                )}
+                                Export Selected ({selectedReports.size})
+                            </Button>
+                        </>
                     )}
                     <div className="relative inline-block text-left">
                         <Button onClick={() => setIsNewReportOpen(!isNewReportOpen)}>

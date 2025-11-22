@@ -122,6 +122,35 @@ export const ConstructionReports = () => {
         }
     };
 
+    const handleDeleteSelected = async () => {
+        const count = selectedIds.size;
+
+        // First confirmation
+        if (!window.confirm(`Are you sure you want to delete ${count} selected report${count > 1 ? 's' : ''}?`)) {
+            return;
+        }
+
+        // Second confirmation
+        if (!window.confirm(`This action cannot be undone. Delete ${count} report${count > 1 ? 's' : ''} permanently?`)) {
+            return;
+        }
+
+        try {
+            // Delete all selected reports
+            await Promise.all(
+                Array.from(selectedIds).map(id => reportService.delete(id))
+            );
+
+            // Update the UI
+            setReports(reports.filter(r => !selectedIds.has(r.id)));
+            setSelectedIds(new Set());
+
+            alert(`Successfully deleted ${count} report${count > 1 ? 's' : ''}`);
+        } catch (err: unknown) {
+            alert('Failed to delete reports: ' + (err as Error).message);
+        }
+    };
+
     if (loading) {
         return (
             <div className="flex justify-center items-center h-64">
@@ -159,6 +188,15 @@ export const ConstructionReports = () => {
                     </div>
                 </div>
                 <div className="flex space-x-3">
+                    {selectedIds.size > 0 && (
+                        <button
+                            onClick={handleDeleteSelected}
+                            className="inline-flex items-center px-4 py-2 border border-red-300 rounded-md shadow-sm text-sm font-medium text-red-700 bg-white hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                        >
+                            <Trash2 className="h-5 w-5 mr-2" />
+                            Delete Selected ({selectedIds.size})
+                        </button>
+                    )}
                     <div className="relative inline-block text-left">
                         <button
                             onClick={() => setIsNewReportOpen(!isNewReportOpen)}
