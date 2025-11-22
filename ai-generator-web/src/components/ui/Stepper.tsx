@@ -1,4 +1,4 @@
-import React from 'react';
+
 import { Check } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
@@ -8,7 +8,7 @@ interface StepperProps {
     onStepClick?: (step: number) => void;
 }
 
-export const Stepper: React.FC<StepperProps> = ({ steps, currentStep, onStepClick }) => {
+export const Stepper = ({ steps, currentStep, onStepClick }: StepperProps) => {
     return (
         <div className="w-full py-4">
             <div className="flex items-center justify-center">
