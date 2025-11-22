@@ -101,7 +101,7 @@ export const AirMethodForm = () => {
         // Logic from C# TestTimeClass.cs uses procedureId directly (1,2,3,4)
         let procedureId = 1;
         if (selectedProcedure) {
-             procedureId = selectedProcedure.id;
+            procedureId = selectedProcedure.id;
         } else {
             // Fallback estimation based on pressure if procedure not loaded
             const p = formData.pressure_start || 0;
@@ -127,9 +127,17 @@ export const AirMethodForm = () => {
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
         const { name, value, type } = e.target;
+        let finalValue: string | number | boolean = value;
+
+        if (type === 'number') {
+            finalValue = parseFloat(value) || 0;
+        } else if (['draft_id', 'material_type_id', 'examination_procedure_id'].includes(name)) {
+            finalValue = parseInt(value, 10) || 0;
+        }
+
         setFormData(prev => ({
             ...prev,
-            [name]: type === 'number' ? parseFloat(value) || 0 : value
+            [name]: finalValue
         }));
     };
 

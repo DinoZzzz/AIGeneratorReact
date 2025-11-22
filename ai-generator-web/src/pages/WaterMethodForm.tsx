@@ -97,9 +97,17 @@ export const WaterMethodForm = () => {
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
         const { name, value, type } = e.target;
+        let finalValue: string | number | boolean = value;
+
+        if (type === 'number') {
+            finalValue = parseFloat(value) || 0;
+        } else if (['draft_id', 'material_type_id'].includes(name)) {
+            finalValue = parseInt(value, 10) || 0;
+        }
+
         setFormData(prev => ({
             ...prev,
-            [name]: type === 'number' ? parseFloat(value) || 0 : value
+            [name]: finalValue
         }));
     };
 
