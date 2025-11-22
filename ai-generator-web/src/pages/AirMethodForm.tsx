@@ -6,6 +6,7 @@ import { Input } from '../components/ui/Input';
 import { Select } from '../components/ui/Select';
 import { Button } from '../components/ui/Button';
 import { Loader2, Save, ArrowLeft, FileDown, Calculator, Plus, ArrowRight, ChevronLeft } from 'lucide-react';
+import { Stepper } from '../components/ui/Stepper';
 import * as calc from '../lib/calculations/report';
 import { generatePDF } from '../lib/pdfGenerator';
 import type { ReportForm, ExaminationProcedure } from '../types';
@@ -36,6 +37,7 @@ interface CalculatedResults {
     pressureLoss: number;
     allowedLoss: number;
     satisfies: boolean;
+    testTime: string;
     requiredTestTime: number; // in minutes
 }
 
@@ -50,6 +52,7 @@ export const AirMethodForm = () => {
         pressureLoss: 0,
         allowedLoss: 0,
         satisfies: false,
+        testTime: '00:00',
         requiredTestTime: 0
     });
 
@@ -71,6 +74,17 @@ export const AirMethodForm = () => {
         // Clause 13.2 says "Testing of individual pipes...".
         // Let's use the pipe diameter if it exists, otherwise pane diameter.
 
+        // Find selected procedure
+        const procedure = procedures.find(p => p.id === formData.examination_procedure_id);
+        const allowedLoss = procedure?.allowed_loss || 0.10; // Fallback
+
+        // Calculate Pressure Loss
+        const pressureLoss = calc.calculatePressureLoss(formData.pressure_start || 0, formData.pressure_end || 0);
+
+        // Calculate Satisfies
+        const satisfies = calc.isSatisfying(0, 0, 2, pressureLoss, allowedLoss);
+
+        // Calculate Test Time (using ported logic)
         let diameter = 0;
         if (formData.draft_id === 1) {
             diameter = formData.pane_diameter || 0;
@@ -92,6 +106,11 @@ export const AirMethodForm = () => {
         setCalculated({
             ...results,
             requiredTestTime
+            pressureLoss,
+            allowedLoss,
+            satisfies,
+            testTime: testTimeString,
+            requiredTestTime: timeMinutes
         });
     }, [formData, procedures]);
 
@@ -139,33 +158,28 @@ export const AirMethodForm = () => {
             }
 
             if (shouldRedirect) {
+            if (createNext) {
+                // Reset form for new entry but keep some fields like construction/date
+                setFormData({
+                    ...initialState,
+                    customer_id: dataToSave.customer_id,
+                    construction_id: dataToSave.construction_id,
+                    examination_date: dataToSave.examination_date,
+                    // Keep procedure, draft, material type
+                    examination_procedure_id: dataToSave.examination_procedure_id,
+                    draft_id: dataToSave.draft_id,
+                    material_type_id: dataToSave.material_type_id,
+                    pane_material_id: dataToSave.pane_material_id,
+                });
+                setStep(1); // Go back to start
+                navigate(`/customers/${customerId}/constructions/${constructionId}/reports/new/air`);
+                alert('Report saved. Ready for next entry.');
+            } else {
                 if (customerId && constructionId) {
                     navigate(`/customers/${customerId}/constructions/${constructionId}/reports`);
                 } else {
                     navigate('/reports');
                 }
-            } else {
-                // Reset form for new entry, keeping some context
-                // We keep: procedure, draft, material, date
-                // We reset: stock, measurements
-                setFormData(prev => ({
-                    ...prev,
-                    stock: '',
-                    pipe_length: 0,
-                    pressure_start: 0,
-                    pressure_end: 0,
-                    examination_start_time: '',
-                    examination_end_time: '',
-                    satisfies: false,
-                    // Keep dimensions? Usually dimensions change per section, but maybe not pipe diameter.
-                    // Let's keep diameter/width/height as they might be same for a run.
-                    // Let's reset pressure.
-                }));
-                setStep(1);
-                if (id !== 'new') {
-                    navigate(`/customers/${customerId}/constructions/${constructionId}/reports/new/air`);
-                }
-                alert('Report saved. Ready for next entry.');
             }
         } catch (error) {
             console.error('Error saving report:', error);
@@ -195,6 +209,18 @@ export const AirMethodForm = () => {
                 navigate('/reports');
             }
         }
+    };
+
+    const handleSaveAndNew = (e: React.MouseEvent) => {
+        e.preventDefault();
+        handleSave(true);
+    };
+
+    // Helper for formatting time
+    const formatTime = (minutes: number) => {
+        const m = Math.floor(minutes);
+        const s = Math.round((minutes - m) * 60);
+        return `${m}:${s.toString().padStart(2, '0')}`;
     };
 
     // Visibility Logic
@@ -249,7 +275,7 @@ export const AirMethodForm = () => {
                                 Save & New
                             </Button>
                             <Button
-                                onClick={handleSubmit}
+                                onClick={(e) => { e.preventDefault(); handleSave(false); }}
                                 disabled={loading}
                             >
                                 {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
@@ -258,6 +284,14 @@ export const AirMethodForm = () => {
                         </>
                     )}
                 </div>
+            </div>
+
+            <div className="mb-8">
+                <Stepper
+                    steps={['Parameters & Dimensions', 'Measurements & Results']}
+                    currentStep={step - 1}
+                    onStepClick={(s) => setStep((s + 1) as 1 | 2)}
+                />
             </div>
 
             <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -312,88 +346,154 @@ export const AirMethodForm = () => {
                                         type="time"
                                         name="examination_start_time"
                                         value={formData.examination_start_time || ''}
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                            {/* Basic Info Card */}
+                            <div className="bg-card shadow-sm rounded-xl border border-border p-6">
+                                <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center">
+                                    <Calculator className="h-5 w-5 mr-2 text-primary" />
+                                    Test Parameters
+                                </h3>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <Select
+                                        label="Examination Procedure"
+                                        name="examination_procedure_id"
+                                        value={formData.examination_procedure_id || ''}
+                                        onChange={handleChange}
+                                        options={procedures.map(p => ({ value: p.id, label: p.name }))}
+                                    />
+                                    <Select
+                                        label="Draft"
+                                        name="draft_id"
+                                        value={formData.draft_id}
+                                        onChange={handleChange}
+                                        options={[
+                                            { value: 1, label: 'Testing of Shaft' },
+                                            { value: 2, label: 'Testing of Pipe' },
+                                            { value: 3, label: 'Testing of Shaft and Pipe' },
+                                        ]}
+                                    />
+                                    <Select
+                                        label="Material Type"
+                                        name="material_type_id"
+                                        value={formData.material_type_id}
+                                        onChange={handleChange}
+                                        options={[
+                                            { value: 1, label: 'Shaft (Round)' },
+                                            { value: 2, label: 'Shaft (Rectangular)' },
+                                        ]}
+                                    />
+                                    <Input
+                                        label="Examination Date"
+                                        type="date"
+                                        name="examination_date"
+                                        value={formData.examination_date?.toString().split('T')[0]}
+                                        onChange={handleChange}
+                                    />
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <Input
+                                            label="Start Time"
+                                            type="time"
+                                            name="examination_start_time"
+                                            value={formData.examination_start_time || ''}
+                                            onChange={handleChange}
+                                        />
+                                        <Input
+                                            label="End Time"
+                                            type="time"
+                                            name="examination_end_time"
+                                            value={formData.examination_end_time || ''}
+                                            onChange={handleChange}
+                                        />
+                                    </div>
+                                    <Input
+                                        label="Temperature (°C)"
+                                        type="number"
+                                        name="temperature"
+                                        value={formData.temperature}
                                         onChange={handleChange}
                                     />
                                     <Input
-                                        label="End Time"
-                                        type="time"
-                                        name="examination_end_time"
-                                        value={formData.examination_end_time || ''}
+                                        label="Stock / Section"
+                                        name="stock"
+                                        value={formData.stock || ''}
                                         onChange={handleChange}
                                     />
                                 </div>
-                                <Input
-                                    label="Stock / Section"
-                                    name="stock"
-                                    value={formData.stock || ''}
-                                    onChange={handleChange}
-                                />
+
+                                <div className="mt-6 flex items-center justify-center bg-muted/20 rounded-lg border-2 border-dashed border-muted p-8">
+                                    {/* Placeholder for Image/Scheme */}
+                                    <div className="text-center text-muted-foreground">
+                                        <p>Scheme: {formData.draft_id}</p>
+                                        <span className="text-xs">(Scheme display not implemented)</span>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
-                        {/* Dimensions Card */}
-                        <div className="bg-card shadow-sm rounded-xl border border-border p-6">
-                            <h3 className="text-lg font-semibold text-foreground mb-4">Dimensions</h3>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                {isShaftRound && (
-                                    <Input
-                                        label="Pane Diameter (m)"
-                                        type="number"
-                                        step="0.01"
-                                        name="pane_diameter"
-                                        value={formData.pane_diameter}
-                                        onChange={handleChange}
-                                    />
-                                )}
-                                {isShaftRectangular && (
-                                    <>
+                            {/* Dimensions Card */}
+                            <div className="bg-card shadow-sm rounded-xl border border-border p-6 h-fit">
+                                <h3 className="text-lg font-semibold text-foreground mb-4">Dimensions</h3>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    {isShaftRound && (
                                         <Input
-                                            label="Pane Width (m)"
+                                            label="Pane Diameter (m)"
                                             type="number"
                                             step="0.01"
-                                            name="pane_width"
-                                            value={formData.pane_width}
+                                            name="pane_diameter"
+                                            value={formData.pane_diameter}
                                             onChange={handleChange}
                                         />
-                                        <Input
-                                            label="Pane Length (m)"
-                                            type="number"
-                                            step="0.01"
-                                            name="pane_length"
-                                            value={formData.pane_length}
-                                            onChange={handleChange}
-                                        />
-                                        <Input
-                                            label="Pane Height (m)"
-                                            type="number"
-                                            step="0.01"
-                                            name="pane_height"
-                                            value={formData.pane_height}
-                                            onChange={handleChange}
-                                        />
-                                    </>
-                                )}
+                                    )}
+                                    {isShaftRectangular && (
+                                        <>
+                                            <Input
+                                                label="Pane Width (m)"
+                                                type="number"
+                                                step="0.01"
+                                                name="pane_width"
+                                                value={formData.pane_width}
+                                                onChange={handleChange}
+                                            />
+                                            <Input
+                                                label="Pane Length (m)"
+                                                type="number"
+                                                step="0.01"
+                                                name="pane_length"
+                                                value={formData.pane_length}
+                                                onChange={handleChange}
+                                            />
+                                            <Input
+                                                label="Pane Height (m)"
+                                                type="number"
+                                                step="0.01"
+                                                name="pane_height"
+                                                value={formData.pane_height}
+                                                onChange={handleChange}
+                                            />
+                                        </>
+                                    )}
 
-                                {showPipeFields && (
-                                    <>
-                                        <Input
-                                            label="Pipe Diameter (m)"
-                                            type="number"
-                                            step="0.01"
-                                            name="pipe_diameter"
-                                            value={formData.pipe_diameter}
-                                            onChange={handleChange}
-                                        />
-                                        <Input
-                                            label="Pipe Length (m)"
-                                            type="number"
-                                            step="0.01"
-                                            name="pipe_length"
-                                            value={formData.pipe_length}
-                                            onChange={handleChange}
-                                        />
-                                    </>
-                                )}
+                                    {showPipeFields && (
+                                        <>
+                                            <Input
+                                                label="Pipe Diameter (m)"
+                                                type="number"
+                                                step="0.01"
+                                                name="pipe_diameter"
+                                                value={formData.pipe_diameter}
+                                                onChange={handleChange}
+                                            />
+                                            <Input
+                                                label="Pipe Length (m)"
+                                                type="number"
+                                                step="0.01"
+                                                name="pipe_length"
+                                                value={formData.pipe_length}
+                                                onChange={handleChange}
+                                            />
+                                        </>
+                                    )}
+                                </div>
                             </div>
                         </div>
 
@@ -429,6 +529,31 @@ export const AirMethodForm = () => {
                                         value={formData.pressure_end}
                                         onChange={handleChange}
                                     />
+                                </div>
+                            </div>
+
+                            {/* Remarks & Deviation */}
+                            <div className="bg-card shadow-sm rounded-xl border border-border p-6">
+                                <h3 className="text-lg font-semibold text-foreground mb-4">Notes</h3>
+                                <div className="space-y-4">
+                                    <div>
+                                        <label className="text-sm font-medium mb-1 block">Remark</label>
+                                        <textarea
+                                            name="remark"
+                                            value={formData.remark || ''}
+                                            onChange={handleChange}
+                                            className="w-full min-h-[80px] rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="text-sm font-medium mb-1 block">Deviation</label>
+                                        <textarea
+                                            name="deviation"
+                                            value={formData.deviation || ''}
+                                            onChange={handleChange}
+                                            className="w-full min-h-[80px] rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                                        />
+                                    </div>
                                 </div>
                             </div>
 
@@ -470,6 +595,7 @@ export const AirMethodForm = () => {
                                         </div>
                                         <div className="pt-4 border-t border-border">
                                             <ResultRow label="Required Time" value={`${formatTime(calculated.requiredTestTime)} min`} />
+                                            <ResultRow label="Stabilization Time" value="05:00 min" />
                                             <ResultRow
                                                 label="Actual Time"
                                                 value={
@@ -499,5 +625,7 @@ const ResultRow = ({ label, value, highlight = false }: { label: string, value: 
     <div className="flex justify-between items-center">
         <span className={cn("text-sm", highlight ? "font-semibold text-foreground" : "text-muted-foreground")}>{label}</span>
         <span className={cn("font-medium", highlight ? "text-lg text-primary" : "text-foreground")}>{value}</span>
+        <span className={cn(highlight ? "font-semibold text-foreground" : "text-muted-foreground")}>{label}</span>
+        <span className={cn("font-medium", highlight ? "text-primary" : "text-foreground")}>{value}</span>
     </div>
 );

@@ -46,6 +46,28 @@ export interface Construction {
     customer?: Customer; // Joined
 }
 
+export interface User {
+    id: string;
+    email: string;
+    name?: string;
+}
+
+export interface ReportType {
+    id: number;
+    type: string;
+}
+
+export interface Examiner {
+    id: string;
+    name: string;
+    lastName: string;
+    username: string;
+    title?: string;
+    isAdmin: boolean;
+    password?: string; // Only used for creation/update payload
+    accreditations: number[]; // List of ReportType IDs
+}
+
 export interface ReportForm {
     id: string;
     ordinal: number;
@@ -97,4 +119,40 @@ export interface ReportForm {
     // Joined fields
     construction?: Construction;
     draft?: ReportDraft;
+}
+
+export interface ReportExport {
+    id: string;
+    type_id: number;
+    construction_id: string;
+    customer_id: string;
+    certifier_id: string;
+    user_id: string;
+    drainage?: string;
+    water_remark?: string;
+    water_deviation?: string;
+    air_remark?: string;
+    air_deviation?: string;
+    is_finished: boolean;
+    certification_time: string;
+    examination_date: string;
+    construction_part: string;
+    created_at: string;
+    updated_at: string;
+
+    // Joined
+    certifier?: User;
+    user?: User;
+    forms_count?: number;
+}
+
+export interface ReportExportForm {
+    id: string;
+    type_id: number;
+    form_id: string;
+    report_form?: ReportForm;
+    export_id: string;
+    ordinal: number;
+    created_at: string;
+    updated_at: string;
 }
