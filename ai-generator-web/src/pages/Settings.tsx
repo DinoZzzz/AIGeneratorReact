@@ -12,10 +12,14 @@ export const Settings = () => {
     const [materials, setMaterials] = useState<Material[]>([]);
     const [isAdmin, setIsAdmin] = useState(false);
     const [loading, setLoading] = useState(true);
-    const [isAdding, setIsAdding] = useState(false);
+    const [addingType, setAddingType] = useState<number | null>(null); // 1=Shaft, 2=Pipe
     const [isEditing, setIsEditing] = useState<Material | null>(null);
-    const [formData, setFormData] = useState({ name: '' });
+    const [formData, setFormData] = useState({ name: '', material_type_id: 1 });
     const { addToast } = useToast();
+
+    // Separate materials by type (1 = Shaft, 2 = Pipe)
+    const shaftMaterials = materials.filter(m => m.material_type_id === 1);
+    const pipeMaterials = materials.filter(m => m.material_type_id === 2);
 
     useEffect(() => {
         checkAdminStatus();
@@ -25,7 +29,6 @@ export const Settings = () => {
     const checkAdminStatus = async () => {
         if (!user) return;
 
-        // Check role in profiles table
         try {
             const { data, error } = await supabase
                 .from('profiles')
@@ -59,27 +62,18 @@ export const Settings = () => {
 
     const handleAdd = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!formData.name.trim()) return;
+        if (!formData.name.trim() || !addingType) return;
 
         try {
-            // Fetch material_types first to get a valid ID
-            const { data: types } = await supabase
-                .from('material_types')
-                .select('id')
-                .limit(1);
-
-            // Default to 1 if fetch fails or empty, but prefer actual ID
-            const typeId = (types && types.length > 0) ? types[0].id : 1;
-
             const { error } = await supabase
                 .from('materials')
-                .insert([{ name: formData.name, material_type_id: typeId }]);
+                .insert([{ name: formData.name, material_type_id: addingType }]);
 
             if (error) throw error;
 
             addToast('Material added successfully', 'success');
-            setIsAdding(false);
-            setFormData({ name: '' });
+            setAddingType(null);
+            setFormData({ name: '', material_type_id: 1 });
             fetchMaterials();
         } catch (error: any) {
             addToast(error.message, 'error');
@@ -100,7 +94,7 @@ export const Settings = () => {
 
             addToast('Material updated successfully', 'success');
             setIsEditing(null);
-            setFormData({ name: '' });
+            setFormData({ name: '', material_type_id: 1 });
             fetchMaterials();
         } catch (error: any) {
             addToast(error.message, 'error');
@@ -139,6 +133,123 @@ export const Settings = () => {
         }
     };
 
+    const renderMaterialSection = (title: string, materialList: Material[], typeId: number) => {
+        const isAdding = addingType === typeId;
+        const isEditingInSection = isEditing && isEditing.material_type_id === typeId;
+
+        return (
+            <section className="bg-card rounded-lg border border-border p-6">
+                <div className="flex items-center justify-between mb-6">
+                    <h2 className="text-xl font-semibold text-foreground">{title}</h2>
+                    {isAdmin && (
+                        <button
+                            onClick={() => {
+                                setAddingType(typeId);
+                                setFormData({ name: '', material_type_id: typeId });
+                            }}
+                            className="inline-flex items-center px-3 py-2 text-sm font-medium text-primary-foreground bg-primary rounded-md hover:bg-primary/90 transition-colors"
+                        >
+                            <Plus className="h-4 w-4 mr-2" />
+                            Add {title.replace(' Materials', '')}
+                        </button>
+                    )}
+                </div>
+
+                {!isAdmin ? (
+                    <div className="text-center py-8 bg-muted/30 rounded-lg border border-dashed border-border">
+                        <Lock className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
+                        <p className="text-muted-foreground font-medium">Material management is restricted to administrators.</p>
+                    </div>
+                ) : loading ? (
+                    <div className="flex justify-center py-8">
+                        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                    </div>
+                ) : (
+                    <div className="space-y-4">
+                        {(isAdding || isEditingInSection) && (
+                            <form
+                                onSubmit={isAdding ? handleAdd : handleUpdate}
+                                className="bg-muted/50 p-4 rounded-lg mb-4 border border-border"
+                            >
+                                <h3 className="font-medium mb-3 text-foreground">
+                                    {isAdding ? `Add New ${title.replace(' Materials', '')}` : `Edit ${title.replace(' Materials', '')}`}
+                                </h3>
+                                <div className="flex gap-3">
+                                    <input
+                                        type="text"
+                                        value={formData.name}
+                                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                                        placeholder="Material name"
+                                        className="flex-1 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring"
+                                        autoFocus
+                                    />
+                                    <button
+                                        type="submit"
+                                        disabled={!formData.name.trim()}
+                                        className="px-4 py-2 text-sm font-medium text-primary-foreground bg-primary rounded-md hover:bg-primary/90 disabled:opacity-50"
+                                    >
+                                        Save
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setAddingType(null);
+                                            setIsEditing(null);
+                                            setFormData({ name: '', material_type_id: 1 });
+                                        }}
+                                        className="px-4 py-2 text-sm font-medium text-muted-foreground bg-transparent border border-input rounded-md hover:bg-accent hover:text-accent-foreground"
+                                    >
+                                        Cancel
+                                    </button>
+                                </div>
+                            </form>
+                        )}
+
+                        {materialList.length === 0 ? (
+                            <div className="text-center py-12 bg-muted/30 rounded-lg border border-dashed border-border">
+                                <div className="flex flex-col items-center justify-center">
+                                    <Loader2 className="h-8 w-8 text-muted-foreground/50 mb-4" />
+                                    <p className="text-lg font-medium text-foreground">No {title.toLowerCase()} found</p>
+                                    <p className="text-sm text-muted-foreground mt-1">
+                                        Add {title.toLowerCase()} to be used in reports.
+                                    </p>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="border border-border rounded-md divide-y divide-border">
+                                {materialList.map((material) => (
+                                    <div key={material.id} className="flex items-center justify-between p-4 hover:bg-muted/50 transition-colors">
+                                        <span className="font-medium text-foreground">{material.name}</span>
+                                        <div className="flex items-center gap-2">
+                                            <button
+                                                onClick={() => {
+                                                    setIsEditing(material);
+                                                    setFormData({ name: material.name, material_type_id: material.material_type_id });
+                                                    setAddingType(null);
+                                                }}
+                                                className="p-2 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-md transition-colors"
+                                                title="Edit"
+                                            >
+                                                <Edit className="h-4 w-4" />
+                                            </button>
+                                            <button
+                                                onClick={() => handleDelete(material.id)}
+                                                className="p-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-md transition-colors"
+                                                title="Remove"
+                                            >
+                                                <Trash2 className="h-4 w-4" />
+                                            </button>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                )}
+            </section>
+        );
+    };
+
     return (
         <div className="max-w-4xl mx-auto space-y-8">
             <h1 className="text-2xl font-bold text-foreground">Settings</h1>
@@ -164,122 +275,11 @@ export const Settings = () => {
                 </div>
             </section>
 
-            {/* Materials Section */}
-            <section className="bg-card rounded-lg border border-border p-6">
-                <div className="flex items-center justify-between mb-6">
-                    <h2 className="text-xl font-semibold text-foreground">Materials</h2>
-                    {isAdmin && (
-                        <button
-                            onClick={() => setIsAdding(true)}
-                            className="inline-flex items-center px-3 py-2 text-sm font-medium text-primary-foreground bg-primary rounded-md hover:bg-primary/90 transition-colors"
-                        >
-                            <Plus className="h-4 w-4 mr-2" />
-                            Add Material
-                        </button>
-                    )}
-                </div>
+            {/* Shaft Materials Section */}
+            {renderMaterialSection('Shaft Materials', shaftMaterials, 1)}
 
-                {!isAdmin ? (
-                    <div className="text-center py-8 bg-muted/30 rounded-lg border border-dashed border-border">
-                        <Lock className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
-                        <p className="text-muted-foreground font-medium">Material management is restricted to administrators.</p>
-                    </div>
-                ) : loading ? (
-                    <div className="flex justify-center py-8">
-                        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                    </div>
-                ) : (
-                    <div className="space-y-4">
-                        {(isAdding || isEditing) && (
-                            <form
-                                onSubmit={isAdding ? handleAdd : handleUpdate}
-                                className="bg-muted/50 p-4 rounded-lg mb-4 border border-border"
-                            >
-                                <h3 className="font-medium mb-3 text-foreground">
-                                    {isAdding ? 'Add New Material' : 'Edit Material'}
-                                </h3>
-                                <div className="flex gap-3">
-                                    <input
-                                        type="text"
-                                        value={formData.name}
-                                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                        placeholder="Material name"
-                                        className="flex-1 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring"
-                                        autoFocus
-                                    />
-                                    <button
-                                        type="submit"
-                                        disabled={!formData.name.trim()}
-                                        className="px-4 py-2 text-sm font-medium text-primary-foreground bg-primary rounded-md hover:bg-primary/90 disabled:opacity-50"
-                                    >
-                                        Save
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={() => {
-                                            setIsAdding(false);
-                                            setIsEditing(null);
-                                            setFormData({ name: '' });
-                                        }}
-                                        className="px-4 py-2 text-sm font-medium text-muted-foreground bg-transparent border border-input rounded-md hover:bg-accent hover:text-accent-foreground"
-                                    >
-                                        Cancel
-                                    </button>
-                                </div>
-                            </form>
-                        )}
-
-                        {materials.length === 0 ? (
-                            <div className="text-center py-12 bg-muted/30 rounded-lg border border-dashed border-border">
-                                <div className="flex flex-col items-center justify-center">
-                                    <Loader2 className="h-8 w-8 text-muted-foreground/50 mb-4" />
-                                    <p className="text-lg font-medium text-foreground">No materials found</p>
-                                    <p className="text-sm text-muted-foreground mt-1">
-                                        Add materials to be used in reports.
-                                    </p>
-                                    {isAdmin && (
-                                        <button
-                                            onClick={() => setIsAdding(true)}
-                                            className="mt-4 inline-flex items-center px-3 py-2 text-sm font-medium text-primary-foreground bg-primary rounded-md hover:bg-primary/90 transition-colors"
-                                        >
-                                            <Plus className="h-4 w-4 mr-2" />
-                                            Add Material
-                                        </button>
-                                    )}
-                                </div>
-                            </div>
-                        ) : (
-                            <div className="border border-border rounded-md divide-y divide-border">
-                                {materials.map((material) => (
-                                    <div key={material.id} className="flex items-center justify-between p-4 hover:bg-muted/50 transition-colors">
-                                        <span className="font-medium text-foreground">{material.name}</span>
-                                        <div className="flex items-center gap-2">
-                                            <button
-                                                onClick={() => {
-                                                    setIsEditing(material);
-                                                    setFormData({ name: material.name });
-                                                    setIsAdding(false);
-                                                }}
-                                                className="p-2 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-md transition-colors"
-                                                title="Edit"
-                                            >
-                                                <Edit className="h-4 w-4" />
-                                            </button>
-                                            <button
-                                                onClick={() => handleDelete(material.id)}
-                                                className="p-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-md transition-colors"
-                                                title="Remove"
-                                            >
-                                                <Trash2 className="h-4 w-4" />
-                                            </button>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                    </div>
-                )}
-            </section>
+            {/* Pipe Materials Section */}
+            {renderMaterialSection('Pipe Materials', pipeMaterials, 2)}
         </div>
     );
 };
