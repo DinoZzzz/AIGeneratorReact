@@ -122,13 +122,10 @@ export const AirMethodForm = () => {
     useEffect(() => {
         const selectedProcedure = procedures.find(p => p.id === formData.examination_procedure_id);
 
-        let diameterMm = 0;
-        // Diameter logic: Draft 1 (Shaft) uses PaneDiameter (mm), others (Pipe) use PipeDiameter (m)
-        if (formData.draft_id === 1) {
-            diameterMm = formData.pane_diameter || 0;
-        } else {
-            diameterMm = (formData.pipe_diameter || 0) * 1000;
-        }
+        // Diameter logic: Always use shaft diameter (pane_diameter) for test time
+        // Schema A (Draft 1): Shaft only - halve the time
+        // Schema B (Draft 2/3): Shaft + Pipeline - full time
+        const diameterMm = formData.pane_diameter || 0;
 
         let procedureId = 1;
         if (selectedProcedure) {
@@ -159,15 +156,12 @@ export const AirMethodForm = () => {
         const requirements = getAirTestRequirements(method, materialKey, diameterMm);
 
         // Shaft logic: Halve the time if it's a shaft test (Draft 1)
-        // Note: The table doesn't explicitly say this, but it's carried over from previous logic.
-        // If the user wants strict table adherence for shafts too, we might need to remove this.
-        // For now, keeping it as it was in testTime.ts
         let finalTime = requirements.requiredTime;
         if (formData.draft_id === 1) {
             finalTime = finalTime / 2;
         }
 
-        const allowedLoss = requirements.allowedDrop; // Use table value!
+        const allowedLoss = requirements.allowedDrop;
 
         const results = calc.calculateAirReport(formData as ReportForm, allowedLoss);
 
@@ -206,16 +200,19 @@ export const AirMethodForm = () => {
             setLoading(true);
             const dataToSave = {
                 ...formData,
-                ...calculated,
-                customer_id: customerId || formData.customer_id,
-                construction_id: constructionId || formData.construction_id,
+                satisfies: calculated.satisfies,
+                allowed_loss: calculated.allowedLoss,
+                pressure_loss: calculated.pressureLoss,
+                required_test_time: calculated.requiredTestTime,
+                customer_id: (customerId && customerId !== 'undefined') ? customerId : (formData.customer_id || undefined),
+                construction_id: (constructionId && constructionId !== 'undefined') ? constructionId : (formData.construction_id || undefined),
                 type_id: 2
             };
 
-            if (id === 'new') {
+            if (id === 'new' || id === 'undefined' || !id) {
                 await reportService.create(dataToSave as ReportForm);
             } else {
-                await reportService.update(id!, dataToSave as ReportForm);
+                await reportService.update(id, dataToSave as ReportForm);
             }
 
             if (!shouldRedirect) {
@@ -271,7 +268,9 @@ export const AirMethodForm = () => {
 
     const isShaftRound = formData.material_type_id === 1;
     const isShaftRectangular = formData.material_type_id === 2;
-    const showPipeFields = formData.draft_id !== 1;
+    // Show pipe fields for Schema B (Draft 2), Schema C (Draft 3), and Schema E (Draft 5)
+    // Hide for Schema A (Draft 1) and Schema D (Draft 4)
+    const showPipeFields = formData.draft_id === 2 || formData.draft_id === 3 || formData.draft_id === 5;
 
     if (loading && id && id !== 'new') {
         return (
@@ -441,9 +440,8 @@ export const AirMethodForm = () => {
                                     {showPipeFields && (
                                         <>
                                             <Input
-                                                label={t('reports.form.pipeDiameterM')}
+                                                label={t('reports.form.pipeDiameterMm')}
                                                 type="number"
-                                                step="0.01"
                                                 name="pipe_diameter"
                                                 value={formData.pipe_diameter}
                                                 onChange={handleChange}

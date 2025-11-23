@@ -98,6 +98,11 @@ export interface ReportForm {
     pressure_end: number;
     ro_height: number;
     pane_diameter: number;
+
+    // Calculated values
+    allowed_loss?: number;
+    pressure_loss?: number;
+    required_test_time?: number;
     depositional_height: number;
 
     // Times
