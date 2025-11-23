@@ -26,6 +26,7 @@ export const ConstructionReports = () => {
     const [isNewReportOpen, setIsNewReportOpen] = useState(false);
     const [exportDialogOpen, setExportDialogOpen] = useState(false);
     const [isExporting, setIsExporting] = useState(false);
+    const [actionMessage, setActionMessage] = useState<{ text: string; type: 'info' | 'error' } | null>(null);
 
     // Check accreditations (1 = Water, 2 = Air)
     const hasWaterAccreditation = profile?.accreditations?.includes(1) ?? false;
@@ -74,7 +75,14 @@ export const ConstructionReports = () => {
     };
 
     const handleExportPDF = (report: ReportForm) => {
-        generatePDF(report);
+        setActionMessage({ text: 'Generating PDF...', type: 'info' });
+        try {
+            generatePDF(report);
+            setActionMessage(null);
+        } catch (error) {
+            console.error('Failed to export PDF:', error);
+            setActionMessage({ text: 'Failed to export PDF. Please try again.', type: 'error' });
+        }
     };
 
     const handleBulkExport = () => {
@@ -84,11 +92,19 @@ export const ConstructionReports = () => {
             ? reports.filter(r => r.id && selectedIds.has(r.id))
             : reports;
 
-        generateBulkPDF(reportsToExport, `Reports_${construction?.work_order || 'bundle'}.pdf`);
+        setActionMessage({ text: 'Generating PDF export...', type: 'info' });
+        try {
+            generateBulkPDF(reportsToExport, `Reports_${construction?.work_order || 'bundle'}.pdf`);
+            setActionMessage(null);
+        } catch (error) {
+            console.error('Failed to export PDFs:', error);
+            setActionMessage({ text: 'Failed to export PDFs. Please try again.', type: 'error' });
+        }
     };
 
     const handleExportConfirm = async (metaData: ExportMetaData, dialogSelectedReports?: ReportForm[]) => {
         setIsExporting(true);
+        setActionMessage({ text: 'Generating Word document...', type: 'info' });
         try {
             let reportsToExport: ReportForm[] = [];
 
@@ -102,9 +118,10 @@ export const ConstructionReports = () => {
             }
 
             await generateWordDocument(reportsToExport, metaData, user?.id);
+            setActionMessage(null);
         } catch (error) {
             console.error(error);
-            alert('Failed to generate report');
+            setActionMessage({ text: 'Failed to generate report. Please try again.', type: 'error' });
         } finally {
             setIsExporting(false);
         }
@@ -200,6 +217,11 @@ export const ConstructionReports = () => {
 
     return (
         <div className="space-y-6">
+            {actionMessage && (
+                <div className={`px-4 py-3 rounded-md border ${actionMessage.type === 'error' ? 'border-destructive text-destructive bg-destructive/10' : 'border-border text-foreground bg-muted/50'}`}>
+                    {actionMessage.text}
+                </div>
+            )}
             <Breadcrumbs items={[
                 { label: 'Customers', path: '/customers' },
                 { label: customer.name, path: `/customers` },

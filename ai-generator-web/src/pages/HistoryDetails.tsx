@@ -19,6 +19,7 @@ export const HistoryDetails = () => {
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
     const [isExporting, setIsExporting] = useState(false);
     const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+    const [actionMessage, setActionMessage] = useState<{ text: string; type: 'info' | 'error' } | null>(null);
 
     useEffect(() => {
         const loadData = async () => {
@@ -44,6 +45,7 @@ export const HistoryDetails = () => {
     const handleDownloadReport = async (formId: string) => {
         if (!exportData) return;
 
+        setActionMessage({ text: 'Downloading report...', type: 'info' });
         setDownloadingFormId(formId);
         try {
             // Fetch the full report data for this specific form
@@ -58,9 +60,10 @@ export const HistoryDetails = () => {
 
             // Generate single PDF
             generatePDF(reportData);
+            setActionMessage(null);
         } catch (error) {
             console.error('Failed to download report:', error);
-            alert('Failed to download report. Please try again.');
+            setActionMessage({ text: 'Failed to download report. Please try again.', type: 'error' });
         } finally {
             setDownloadingFormId(null);
         }
@@ -70,6 +73,7 @@ export const HistoryDetails = () => {
         if (forms.length === 0 || !exportData) return;
 
         setIsExporting(true);
+        setActionMessage({ text: 'Generating PDF export...', type: 'info' });
         try {
             // Get the form IDs to export
             const formIdsToExport = selectedIds.size > 0
@@ -95,9 +99,10 @@ export const HistoryDetails = () => {
 
             // Generate bulk PDF
             generateBulkPDF(orderedReports, `${exportData.construction_part}_Reports.pdf`);
+            setActionMessage(null);
         } catch (error) {
             console.error('Failed to export reports:', error);
-            alert('Failed to export reports. Please try again.');
+            setActionMessage({ text: 'Failed to export reports. Please try again.', type: 'error' });
         } finally {
             setIsExporting(false);
         }
@@ -107,6 +112,7 @@ export const HistoryDetails = () => {
         if (forms.length === 0 || !exportData) return;
 
         setIsExporting(true);
+        setActionMessage({ text: 'Generating Word document...', type: 'info' });
         try {
             const formIdsToExport = selectedIds.size > 0
                 ? Array.from(selectedIds)
@@ -142,9 +148,10 @@ export const HistoryDetails = () => {
             };
 
             await generateWordDocument(orderedReports, metaData);
+            setActionMessage(null);
         } catch (error) {
             console.error('Failed to export Word document:', error);
-            alert('Failed to export Word document. Please try again.');
+            setActionMessage({ text: 'Failed to export Word document. Please try again.', type: 'error' });
         } finally {
             setIsExporting(false);
         }
@@ -256,6 +263,12 @@ export const HistoryDetails = () => {
                     </h1>
                 </div>
             </div>
+
+            {actionMessage && (
+                <div className={`px-4 py-3 rounded-md border ${actionMessage.type === 'error' ? 'border-destructive text-destructive bg-destructive/10' : 'border-border text-foreground bg-muted/50'}`}>
+                    {actionMessage.text}
+                </div>
+            )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Metadata Card */}

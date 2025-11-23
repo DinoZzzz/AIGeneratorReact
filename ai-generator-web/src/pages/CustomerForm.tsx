@@ -117,7 +117,7 @@ export const CustomerForm = () => {
     if (loading && id && id !== 'new') {
         return (
             <div className="flex justify-center items-center h-64">
-                <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
             </div>
         );
     }
@@ -128,25 +128,25 @@ export const CustomerForm = () => {
                 <div className="flex items-center space-x-4">
                     <button
                         onClick={() => navigate('/customers')}
-                        className="p-2 rounded-full hover:bg-gray-100"
+                        className="p-2 rounded-full hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
                     >
-                        <ArrowLeft className="h-6 w-6 text-gray-500" />
+                        <ArrowLeft className="h-6 w-6" />
                     </button>
-                    <h1 className="text-2xl font-bold text-gray-900">
+                    <h1 className="text-2xl font-bold text-foreground">
                         {id === 'new' ? 'New Customer' : 'Edit Customer'}
                     </h1>
                 </div>
                 <button
                     onClick={handleSubmit}
                     disabled={loading}
-                    className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+                    className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-primary-foreground bg-primary hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring disabled:opacity-50"
                 >
                     {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Save className="h-5 w-5 mr-2" />}
                     Save
                 </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-6 bg-white shadow rounded-lg p-6">
+            <form onSubmit={handleSubmit} className="space-y-6 bg-card shadow rounded-lg p-6 border border-border">
                 <div className="grid grid-cols-1 gap-6">
                     <div>
                         <Input
