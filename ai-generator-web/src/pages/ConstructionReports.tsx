@@ -376,7 +376,7 @@ export const ConstructionReports = () => {
                             </div>
                         </div>
                     ) : (
-                        reports.map((report, index) => (
+                        reports.map((report) => (
                             <div
                                 key={report.id}
                                 className={clsx(

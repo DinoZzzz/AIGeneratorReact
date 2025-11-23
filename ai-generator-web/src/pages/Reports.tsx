@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { reportService } from '../services/reportService';
 import type { ReportForm } from '../types';
-import { Loader2, Trash2, Edit, FileText, Download, CheckSquare, Square } from 'lucide-react';
+import { Loader2, Trash2, Edit, FileText, Download } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { cn } from '../lib/utils';
 import { Button } from '../components/ui/Button';

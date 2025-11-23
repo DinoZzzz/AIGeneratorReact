@@ -119,7 +119,7 @@ export const ExaminerDialog = ({ open, onOpenChange, examiner, onSave }: Examine
                     <DialogTitle>{examiner ? t('examiners.dialog.edit') : t('examiners.dialog.new')}</DialogTitle>
                 </DialogHeader>
                 <form onSubmit={handleSubmit} className="space-y-4 py-4">
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div className="space-y-2">
                             <Label htmlFor="name">{t('examiners.dialog.firstName')}</Label>
                             <Input
@@ -140,7 +140,7 @@ export const ExaminerDialog = ({ open, onOpenChange, examiner, onSave }: Examine
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div className="space-y-2">
                             <Label htmlFor="username">{t('examiners.dialog.username')}</Label>
                             <Input
@@ -160,7 +160,7 @@ export const ExaminerDialog = ({ open, onOpenChange, examiner, onSave }: Examine
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div className="space-y-2">
                             <Label htmlFor="email">{t('examiners.dialog.email')} {!examiner && <span className="text-destructive">*</span>}</Label>
                             <Input
@@ -212,7 +212,7 @@ export const ExaminerDialog = ({ open, onOpenChange, examiner, onSave }: Examine
                         </div>
                     </div>
 
-                    <div className="flex justify-end space-x-2 mt-6">
+                    <div className="flex flex-col sm:flex-row justify-end gap-2 sm:space-x-2 mt-6">
                         <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                             {t('examiners.dialog.cancel')}
                         </Button>
