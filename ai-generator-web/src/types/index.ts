@@ -159,3 +159,14 @@ export interface ReportExportForm {
     created_at: string;
     updated_at: string;
 }
+
+export interface ReportFile {
+    id: string;
+    construction_id?: string;
+    report_id?: string;
+    file_path: string;
+    file_name: string;
+    description?: string;
+    created_at: string;
+    type?: string; // e.g. 'image', 'pdf'
+}
