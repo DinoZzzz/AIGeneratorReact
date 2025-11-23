@@ -99,24 +99,24 @@ export const ExportDialog = ({ open, onOpenChange, onConfirm, loading = false, d
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
-                    <DialogTitle>Export Report Options</DialogTitle>
+                    <DialogTitle className="text-foreground">Export Report Options</DialogTitle>
                 </DialogHeader>
                 <form onSubmit={handleSubmit} className="space-y-4 py-4">
 
                     {/* Report Selection Section */}
                     {reports && reports.length > 0 && (
-                        <div className="border rounded-md p-4 bg-gray-50 space-y-3">
+                        <div className="border border-border rounded-md p-4 bg-muted/30 space-y-3">
                             <div className="flex items-center justify-between">
-                                <h3 className="font-semibold text-sm text-gray-900">Select Reports to Export</h3>
+                                <h3 className="font-semibold text-sm text-foreground">Select Reports to Export</h3>
                                 <button
                                     type="button"
                                     onClick={toggleSelectAll}
-                                    className="text-xs text-blue-600 hover:text-blue-800"
+                                    className="text-xs text-primary hover:text-primary/80"
                                 >
                                     {selectedReportIds.size === reports.length ? 'Deselect All' : 'Select All'}
                                 </button>
                             </div>
-                            <div className="max-h-40 overflow-y-auto space-y-2 border-t pt-2">
+                            <div className="max-h-40 overflow-y-auto space-y-2 border-t border-border pt-2">
                                 {reports.map((report) => (
                                     <div key={report.id} className="flex items-center space-x-2">
                                         <input
@@ -124,23 +124,23 @@ export const ExportDialog = ({ open, onOpenChange, onConfirm, loading = false, d
                                             id={`report-${report.id}`}
                                             checked={report.id ? selectedReportIds.has(report.id) : false}
                                             onChange={() => report.id && toggleReport(report.id)}
-                                            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                            className="rounded border-input text-primary focus:ring-ring"
                                         />
-                                        <label htmlFor={`report-${report.id}`} className="text-sm text-gray-700 flex-1 truncate cursor-pointer">
-                                            <span className="font-medium">{report.type_id === 1 ? 'Water' : 'Air'}</span>
-                                            <span className="mx-1">-</span>
+                                        <label htmlFor={`report-${report.id}`} className="text-sm text-foreground flex-1 truncate cursor-pointer">
+                                            <span className="font-medium text-foreground">{report.type_id === 1 ? 'Water' : 'Air'}</span>
+                                            <span className="mx-1 text-muted-foreground">-</span>
                                             {(report.dionica || report.stock) && (
                                                 <>
-                                                    <span className="font-medium text-gray-900">{report.dionica || report.stock}</span>
-                                                    <span className="mx-1">-</span>
+                                                    <span className="font-medium text-foreground">{report.dionica || report.stock}</span>
+                                                    <span className="mx-1 text-muted-foreground">-</span>
                                                 </>
                                             )}
-                                            <span>{new Date(report.examination_date).toLocaleDateString()}</span>
+                                            <span className="text-muted-foreground">{new Date(report.examination_date).toLocaleDateString()}</span>
                                         </label>
                                     </div>
                                 ))}
                             </div>
-                            <div className="text-xs text-gray-500 text-right">
+                            <div className="text-xs text-muted-foreground text-right">
                                 {selectedReportIds.size} selected
                             </div>
                         </div>

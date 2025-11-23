@@ -60,7 +60,7 @@ export const Constructions = () => {
     if (loading) {
         return (
             <div className="flex justify-center items-center h-64">
-                <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
             </div>
         );
     }
@@ -81,74 +81,74 @@ export const Constructions = () => {
                 <div className="flex items-center space-x-4">
                     <button
                         onClick={() => navigate('/customers')}
-                        className="p-2 rounded-full hover:bg-gray-100"
+                        className="p-2 rounded-full hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
                     >
-                        <ArrowLeft className="h-6 w-6 text-gray-500" />
+                        <ArrowLeft className="h-6 w-6" />
                     </button>
                     <div>
-                        <h1 className="text-2xl font-bold text-gray-900">Construction Sites</h1>
-                        <p className="text-sm text-gray-500">for {customer.name}</p>
+                        <h1 className="text-2xl font-bold text-foreground">Construction Sites</h1>
+                        <p className="text-sm text-muted-foreground">for {customer.name}</p>
                     </div>
                 </div>
                 <Link
                     to={`/customers/${customerId}/constructions/new`}
-                    className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                    className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-primary-foreground bg-primary hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring"
                 >
                     <Plus className="h-5 w-5 mr-2" />
                     New Construction
                 </Link>
             </div>
 
-            <div className="bg-white shadow rounded-lg overflow-hidden">
-                <div className="p-4 border-b border-gray-200">
+            <div className="bg-card shadow rounded-lg overflow-hidden border border-border">
+                <div className="p-4 border-b border-border">
                     <input
                         type="text"
                         placeholder="Search constructions..."
-                        className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                        className="w-full px-4 py-2 border border-input rounded-md bg-background text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-ring focus:border-ring"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />
                 </div>
 
-                <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
+                <table className="min-w-full divide-y divide-border">
+                    <thead className="bg-muted/50">
                         <tr>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Work Order</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
-                            <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Work Order</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Name</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Location</th>
+                            <th className="px-6 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">Actions</th>
                         </tr>
                     </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
+                    <tbody className="bg-card divide-y divide-border">
                         {filteredConstructions.map((construction) => (
-                            <tr key={construction.id} className="hover:bg-gray-50">
-                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                            <tr key={construction.id} className="hover:bg-muted/50 transition-colors">
+                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-foreground">
                                     {construction.work_order}
                                 </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
                                     {construction.name}
                                 </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
                                     {construction.location}
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-3">
                                     <Link
                                         to={`/customers/${customerId}/constructions/${construction.id}/reports`}
-                                        className="text-green-600 hover:text-green-900 inline-flex items-center"
+                                        className="text-green-600 hover:text-green-700 inline-flex items-center"
                                         title="View Reports"
                                     >
                                         <FileText className="h-4 w-4" />
                                     </Link>
                                     <Link
                                         to={`/customers/${customerId}/constructions/${construction.id}`}
-                                        className="text-blue-600 hover:text-blue-900 inline-flex items-center"
+                                        className="text-primary hover:text-primary/80 inline-flex items-center"
                                         title="Edit"
                                     >
                                         <Pencil className="h-4 w-4" />
                                     </Link>
                                     <button
                                         onClick={() => handleDelete(construction.id)}
-                                        className="text-red-600 hover:text-red-900 inline-flex items-center"
+                                        className="text-destructive hover:text-destructive/80 inline-flex items-center"
                                         title="Delete"
                                     >
                                         <Trash2 className="h-4 w-4" />
@@ -158,7 +158,7 @@ export const Constructions = () => {
                         ))}
                         {filteredConstructions.length === 0 && (
                             <tr>
-                                <td colSpan={4} className="px-6 py-4 text-center text-sm text-gray-500">
+                                <td colSpan={4} className="px-6 py-4 text-center text-sm text-muted-foreground">
                                     No construction sites found.
                                 </td>
                             </tr>

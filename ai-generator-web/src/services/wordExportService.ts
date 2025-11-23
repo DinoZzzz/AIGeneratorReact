@@ -392,14 +392,20 @@ export const generateWordDocument = async (reports: ReportForm[], metaData: Expo
                     .insert({
                         certifier_id: userId,
                         user_id: userId,
+                        certifier_name: metaData.certifierName || null,
                         construction_part: metaData.constructionPart || 'Unknown Part',
                         construction_id: constructionId,
                         customer_id: customerId,
                         type_id: typeId,
+                        drainage: metaData.drainage || null,
+                        water_remark: metaData.waterRemark || null,
+                        water_deviation: metaData.waterDeviation || null,
+                        air_remark: metaData.airRemark || null,
+                        air_deviation: metaData.airDeviation || null,
                         created_at: new Date().toISOString(),
                         is_finished: true,
                         certification_time: new Date().toISOString(),
-                        examination_date: new Date().toISOString() // Default to now, or use dateRange if parsed
+                        examination_date: firstReport.examination_date || new Date().toISOString()
                     })
                     .select()
                     .single();

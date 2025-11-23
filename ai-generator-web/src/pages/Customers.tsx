@@ -76,15 +76,15 @@ export const Customers = () => {
     const totalPages = Math.ceil(totalCount / pageSize);
 
     const SortIcon = ({ field }: { field: SortField }) => {
-        if (sortBy !== field) return <ArrowUpDown className="h-4 w-4 ml-1 text-gray-400" />;
+        if (sortBy !== field) return <ArrowUpDown className="h-4 w-4 ml-1 text-muted-foreground" />;
         return sortOrder === 'asc'
-            ? <ArrowUp className="h-4 w-4 ml-1 text-blue-600" />
-            : <ArrowDown className="h-4 w-4 ml-1 text-blue-600" />;
+            ? <ArrowUp className="h-4 w-4 ml-1 text-primary" />
+            : <ArrowDown className="h-4 w-4 ml-1 text-primary" />;
     };
 
     const TableHeader = ({ field, label }: { field: SortField, label: string }) => (
         <th
-            className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+            className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider cursor-pointer hover:bg-muted transition-colors"
             onClick={() => handleSort(field)}
         >
             <div className="flex items-center">
@@ -97,25 +97,25 @@ export const Customers = () => {
     return (
         <div className="space-y-6">
             <div className="flex justify-between items-center">
-                <h1 className="text-2xl font-bold text-gray-900">Customers</h1>
+                <h1 className="text-2xl font-bold text-foreground">Customers</h1>
                 <Link
                     to="/customers/new"
-                    className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                    className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-primary-foreground bg-primary hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring transition-colors"
                 >
                     <Plus className="h-5 w-5 mr-2" />
                     New Customer
                 </Link>
             </div>
 
-            <div className="bg-white shadow rounded-lg overflow-hidden">
-                <div className="p-4 border-b border-gray-200">
+            <div className="bg-card shadow rounded-lg overflow-hidden border border-border">
+                <div className="p-4 border-b border-border">
                     <div className="relative rounded-md shadow-sm max-w-md">
                         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                            <Search className="h-5 w-5 text-gray-400" />
+                            <Search className="h-5 w-5 text-muted-foreground" />
                         </div>
                         <input
                             type="text"
-                            className="focus:ring-blue-500 focus:border-blue-500 block w-full pl-10 sm:text-sm border-gray-300 rounded-md"
+                            className="focus:ring-2 focus:ring-ring focus:border-input block w-full pl-10 sm:text-sm border-input bg-background text-foreground placeholder-muted-foreground rounded-md"
                             placeholder="Search customers..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
@@ -124,62 +124,62 @@ export const Customers = () => {
                 </div>
 
                 <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-gray-200">
-                        <thead className="bg-gray-50">
+                    <table className="min-w-full divide-y divide-border">
+                        <thead className="bg-muted/50">
                             <tr>
                                 <TableHeader field="work_order" label="Work Order" />
                                 <TableHeader field="name" label="Name" />
                                 <TableHeader field="location" label="Location" />
                                 <TableHeader field="address" label="Address" />
-                                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                <th className="px-6 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">Actions</th>
                             </tr>
                         </thead>
-                        <tbody className="bg-white divide-y divide-gray-200">
+                        <tbody className="bg-card divide-y divide-border">
                             {loading ? (
                                 <tr>
-                                    <td colSpan={5} className="px-6 py-4 text-center text-sm text-gray-500">
+                                    <td colSpan={5} className="px-6 py-4 text-center text-sm text-muted-foreground">
                                         Loading...
                                     </td>
                                 </tr>
                             ) : customers.length === 0 ? (
                                 <tr>
-                                    <td colSpan={5} className="px-6 py-4 text-center text-sm text-gray-500">
+                                    <td colSpan={5} className="px-6 py-4 text-center text-sm text-muted-foreground">
                                         No customers found.
                                     </td>
                                 </tr>
                             ) : (
                                 customers.map((customer) => (
-                                    <tr key={customer.id} className="hover:bg-gray-50">
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                    <tr key={customer.id} className="hover:bg-muted/50 transition-colors">
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">
                                             {customer.work_order}
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-foreground">
                                             {customer.name}
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
                                             {customer.location}
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
                                             {customer.address}
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-3">
                                             <Link
                                                 to={`/customers/${customer.id}/constructions`}
-                                                className="text-gray-600 hover:text-gray-900 inline-flex items-center"
+                                                className="text-muted-foreground hover:text-foreground inline-flex items-center transition-colors"
                                                 title="View Constructions"
                                             >
                                                 <Building2 className="h-4 w-4" />
                                             </Link>
                                             <Link
                                                 to={`/customers/${customer.id}`}
-                                                className="text-blue-600 hover:text-blue-900 inline-flex items-center"
+                                                className="text-primary hover:text-primary/80 inline-flex items-center transition-colors"
                                                 title="Edit"
                                             >
                                                 <Pencil className="h-4 w-4" />
                                             </Link>
                                             <button
                                                 onClick={() => handleDelete(customer.id)}
-                                                className="text-red-600 hover:text-red-900 inline-flex items-center"
+                                                className="text-destructive hover:text-destructive/80 inline-flex items-center transition-colors"
                                                 title="Delete"
                                             >
                                                 <Trash2 className="h-4 w-4" />
@@ -193,27 +193,27 @@ export const Customers = () => {
                 </div>
 
                 {/* Pagination */}
-                <div className="bg-white px-4 py-3 border-t border-gray-200 sm:px-6">
+                <div className="bg-card px-4 py-3 border-t border-border sm:px-6">
                     <div className="flex items-center justify-between">
                         <div className="flex-1 flex justify-between sm:hidden">
                             <button
                                 onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                                 disabled={currentPage === 1}
-                                className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:bg-gray-100 disabled:text-gray-400"
+                                className="relative inline-flex items-center px-4 py-2 border border-input text-sm font-medium rounded-md text-foreground bg-card hover:bg-accent disabled:opacity-50 transition-colors"
                             >
                                 Previous
                             </button>
                             <button
                                 onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                                 disabled={currentPage === totalPages}
-                                className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:bg-gray-100 disabled:text-gray-400"
+                                className="ml-3 relative inline-flex items-center px-4 py-2 border border-input text-sm font-medium rounded-md text-foreground bg-card hover:bg-accent disabled:opacity-50 transition-colors"
                             >
                                 Next
                             </button>
                         </div>
                         <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
                             <div>
-                                <p className="text-sm text-gray-700">
+                                <p className="text-sm text-foreground">
                                     Showing <span className="font-medium">{((currentPage - 1) * pageSize) + 1}</span> to <span className="font-medium">{Math.min(currentPage * pageSize, totalCount)}</span> of <span className="font-medium">{totalCount}</span> results
                                 </p>
                             </div>
@@ -222,7 +222,7 @@ export const Customers = () => {
                                     <button
                                         onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                                         disabled={currentPage === 1}
-                                        className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:bg-gray-100 disabled:text-gray-400"
+                                        className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-input bg-card text-sm font-medium text-muted-foreground hover:bg-accent disabled:opacity-50 transition-colors"
                                     >
                                         <span className="sr-only">Previous</span>
                                         <ChevronLeft className="h-5 w-5" aria-hidden="true" />
@@ -231,12 +231,9 @@ export const Customers = () => {
                                     {/* Page Numbers */}
                                     {[...Array(totalPages)].map((_, idx) => {
                                         const pageNum = idx + 1;
-                                        // Simple logic to show current, first, last, and surroundings can be added if needed.
-                                        // For now, showing all or limited range. Given pageSize 10, assume not too many pages for now.
-                                        // Or let's just show current page status.
                                         if (totalPages > 7 && (pageNum < currentPage - 1 || pageNum > currentPage + 1) && pageNum !== 1 && pageNum !== totalPages) {
                                             if (pageNum === currentPage - 2 || pageNum === currentPage + 2) {
-                                                return <span key={pageNum} className="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700">...</span>;
+                                                return <span key={pageNum} className="relative inline-flex items-center px-4 py-2 border border-input bg-card text-sm font-medium text-foreground">...</span>;
                                             }
                                             return null;
                                         }
@@ -245,10 +242,10 @@ export const Customers = () => {
                                             <button
                                                 key={pageNum}
                                                 onClick={() => setCurrentPage(pageNum)}
-                                                className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
+                                                className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium transition-colors ${
                                                     currentPage === pageNum
-                                                        ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'
-                                                        : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
+                                                        ? 'z-10 bg-primary/10 border-primary text-primary'
+                                                        : 'bg-card border-input text-muted-foreground hover:bg-accent'
                                                 }`}
                                             >
                                                 {pageNum}
@@ -259,7 +256,7 @@ export const Customers = () => {
                                     <button
                                         onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                                         disabled={currentPage === totalPages}
-                                        className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:bg-gray-100 disabled:text-gray-400"
+                                        className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-input bg-card text-sm font-medium text-muted-foreground hover:bg-accent disabled:opacity-50 transition-colors"
                                     >
                                         <span className="sr-only">Next</span>
                                         <ChevronRight className="h-5 w-5" aria-hidden="true" />

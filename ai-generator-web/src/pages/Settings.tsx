@@ -257,21 +257,56 @@ export const Settings = () => {
             {/* Appearance Section */}
             <section className="bg-card rounded-lg border border-border p-6">
                 <h2 className="text-xl font-semibold mb-4 text-foreground">Appearance</h2>
-                <div className="flex items-center justify-between">
-                    <div className="space-y-1">
-                        <p className="font-medium text-foreground">Dark Mode</p>
-                        <p className="text-sm text-muted-foreground">Toggle dark mode for the application</p>
-                    </div>
-                    <button
-                        onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ${theme === 'dark' ? 'bg-primary' : 'bg-input'
-                            }`}
-                    >
-                        <span
-                            className={`inline-block h-4 w-4 transform rounded-full bg-background transition-transform ${theme === 'dark' ? 'translate-x-6' : 'translate-x-1'
+                <div className="space-y-4">
+                    <div>
+                        <p className="font-medium text-foreground mb-3">Theme</p>
+                        <p className="text-sm text-muted-foreground mb-4">Select your preferred theme or use system preference</p>
+                        <div className="grid grid-cols-3 gap-3">
+                            <button
+                                onClick={() => setTheme('light')}
+                                className={`p-4 rounded-lg border-2 transition-all ${
+                                    theme === 'light'
+                                        ? 'border-primary bg-primary/10'
+                                        : 'border-border bg-background hover:border-primary/50'
                                 }`}
-                        />
-                    </button>
+                            >
+                                <div className="flex flex-col items-center gap-2">
+                                    <div className="w-8 h-8 rounded-full bg-white border-2 border-gray-300 flex items-center justify-center">
+                                        <div className="w-4 h-4 rounded-full bg-yellow-400"></div>
+                                    </div>
+                                    <span className="text-sm font-medium text-foreground">Light</span>
+                                </div>
+                            </button>
+                            <button
+                                onClick={() => setTheme('dark')}
+                                className={`p-4 rounded-lg border-2 transition-all ${
+                                    theme === 'dark'
+                                        ? 'border-primary bg-primary/10'
+                                        : 'border-border bg-background hover:border-primary/50'
+                                }`}
+                            >
+                                <div className="flex flex-col items-center gap-2">
+                                    <div className="w-8 h-8 rounded-full bg-slate-900 border-2 border-slate-700 flex items-center justify-center">
+                                        <div className="w-3 h-3 rounded-full bg-slate-400"></div>
+                                    </div>
+                                    <span className="text-sm font-medium text-foreground">Dark</span>
+                                </div>
+                            </button>
+                            <button
+                                onClick={() => setTheme('system')}
+                                className={`p-4 rounded-lg border-2 transition-all ${
+                                    theme === 'system'
+                                        ? 'border-primary bg-primary/10'
+                                        : 'border-border bg-background hover:border-primary/50'
+                                }`}
+                            >
+                                <div className="flex flex-col items-center gap-2">
+                                    <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-white to-slate-900 border-2 border-gray-400"></div>
+                                    <span className="text-sm font-medium text-foreground">System</span>
+                                </div>
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </section>
 

@@ -131,6 +131,7 @@ export interface ReportExport {
     customer_id: string;
     certifier_id: string;
     user_id: string;
+    certifier_name?: string;
     drainage?: string;
     water_remark?: string;
     water_deviation?: string;

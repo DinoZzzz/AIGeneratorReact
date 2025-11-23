@@ -92,33 +92,34 @@
     }
 
     .dark {
-        --background: 222 47% 11%;
+        /* Optimized Dark Mode - Better contrast and readability */
+        --background: 220 26% 14%;
         --foreground: 210 40% 98%;
 
-        --card: 222 47% 11%;
+        --card: 220 20% 18%;
         --card-foreground: 210 40% 98%;
 
-        --popover: 222 47% 11%;
+        --popover: 220 20% 18%;
         --popover-foreground: 210 40% 98%;
 
-        --primary: 217.2 91.2% 59.8%;
-        --primary-foreground: 222.2 47.4% 11.2%;
+        --primary: 217 91% 60%;
+        --primary-foreground: 210 40% 98%;
 
-        --secondary: 217.2 32.6% 17.5%;
+        --secondary: 220 17% 24%;
         --secondary-foreground: 210 40% 98%;
 
-        --muted: 217.2 32.6% 17.5%;
-        --muted-foreground: 215 20.2% 65.1%;
+        --muted: 220 17% 24%;
+        --muted-foreground: 215 20% 70%;
 
-        --accent: 217.2 32.6% 17.5%;
+        --accent: 220 17% 24%;
         --accent-foreground: 210 40% 98%;
 
-        --destructive: 0 62.8% 30.6%;
+        --destructive: 0 73% 57%;
         --destructive-foreground: 210 40% 98%;
 
-        --border: 217.2 32.6% 17.5%;
-        --input: 217.2 32.6% 17.5%;
-        --ring: 224.3 76.3% 48%;
+        --border: 220 17% 24%;
+        --input: 220 17% 24%;
+        --ring: 217 91% 60%;
     }
 
     * {
@@ -129,5 +130,18 @@
         background-color: hsl(var(--background));
         color: hsl(var(--foreground));
         font-feature-settings: "rlig" 1, "calt" 1;
+    }
+
+    /* Smooth transitions for theme changes */
+    @media (prefers-reduced-motion: no-preference) {
+        :root {
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        * {
+            transition-property: background-color, border-color, color, fill, stroke, box-shadow;
+            transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+            transition-duration: 200ms;
+        }
     }
 }

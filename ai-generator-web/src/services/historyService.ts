@@ -13,8 +13,8 @@ export const historyService = {
             .from('report_exports')
             .select(`
                 *,
-                certifier:profiles!certifier_id(name, email),
-                user:profiles!user_id(name, email),
+                certifier:profiles!certifier_id(name, last_name, email),
+                user:profiles!user_id(name, last_name, email),
                 report_export_forms(count)
             `, { count: 'exact' });
 
@@ -46,8 +46,8 @@ export const historyService = {
             .from('report_exports')
             .select(`
                 *,
-                certifier:profiles!certifier_id(name, email),
-                user:profiles!user_id(name, email)
+                certifier:profiles!certifier_id(name, last_name, email),
+                user:profiles!user_id(name, last_name, email)
             `)
             .eq('id', id)
             .single();

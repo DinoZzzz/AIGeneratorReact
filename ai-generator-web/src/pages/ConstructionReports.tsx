@@ -189,7 +189,7 @@ export const ConstructionReports = () => {
     if (loading) {
         return (
             <div className="flex justify-center items-center h-64">
-                <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
             </div>
         );
     }
@@ -211,13 +211,13 @@ export const ConstructionReports = () => {
                 <div className="flex items-center space-x-4">
                     <button
                         onClick={() => navigate(`/customers/${customerId}/constructions`)}
-                        className="p-2 rounded-full hover:bg-gray-100"
+                        className="p-2 rounded-full hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
                     >
-                        <ArrowLeft className="h-6 w-6 text-gray-500" />
+                        <ArrowLeft className="h-6 w-6" />
                     </button>
                     <div>
-                        <h1 className="text-2xl font-bold text-gray-900">Reports</h1>
-                        <p className="text-sm text-gray-500">
+                        <h1 className="text-2xl font-bold text-foreground">Reports</h1>
+                        <p className="text-sm text-muted-foreground">
                             for {construction.name} ({construction.work_order}) - {customer.name}
                         </p>
                     </div>
@@ -226,7 +226,7 @@ export const ConstructionReports = () => {
                     {selectedIds.size > 0 && (
                         <button
                             onClick={handleDeleteSelected}
-                            className="inline-flex items-center px-4 py-2 border border-red-300 rounded-md shadow-sm text-sm font-medium text-red-700 bg-white hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                            className="inline-flex items-center px-4 py-2 border border-destructive/40 rounded-md shadow-sm text-sm font-medium text-destructive bg-transparent hover:bg-destructive/10 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-destructive transition-colors"
                         >
                             <Trash2 className="h-5 w-5 mr-2" />
                             Delete Selected ({selectedIds.size})
@@ -237,18 +237,18 @@ export const ConstructionReports = () => {
                             onClick={() => setIsNewReportOpen(!isNewReportOpen)}
                             disabled={!hasAnyAccreditation}
                             title={!hasAnyAccreditation ? "You don't have any accreditations" : ""}
-                            className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-primary-foreground bg-primary hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             <Plus className="h-5 w-5 mr-2" />
                             New Report
                         </button>
                         {isNewReportOpen && (
-                            <div className="absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 focus:outline-none z-50">
+                            <div className="absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-card border border-border shadow-border/40 focus:outline-none z-50">
                                 <div className="py-1" role="menu" aria-orientation="vertical">
                                     {hasWaterAccreditation && (
                                         <Link
                                             to={`/customers/${customerId}/constructions/${constructionId}/reports/new/water`}
-                                            className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                                            className="block px-4 py-2 text-sm text-foreground hover:bg-muted"
                                             role="menuitem"
                                             onClick={() => setIsNewReportOpen(false)}
                                         >
@@ -258,7 +258,7 @@ export const ConstructionReports = () => {
                                     {hasAirAccreditation && (
                                         <Link
                                             to={`/customers/${customerId}/constructions/${constructionId}/reports/new/air`}
-                                            className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                                            className="block px-4 py-2 text-sm text-foreground hover:bg-muted"
                                             role="menuitem"
                                             onClick={() => setIsNewReportOpen(false)}
                                         >
@@ -266,7 +266,7 @@ export const ConstructionReports = () => {
                                         </Link>
                                     )}
                                     {!hasAnyAccreditation && (
-                                        <div className="px-4 py-2 text-sm text-gray-500">
+                                        <div className="px-4 py-2 text-sm text-muted-foreground">
                                             No accreditations available
                                         </div>
                                     )}
@@ -274,7 +274,6 @@ export const ConstructionReports = () => {
                             </div>
                         )}
                     </div>
-                    {/* Overlay to close dropdown when clicking outside */}
                     {isNewReportOpen && (
                         <div
                             className="fixed inset-0 z-40"
@@ -283,16 +282,16 @@ export const ConstructionReports = () => {
                     )}
                     <button
                         onClick={() => setExportDialogOpen(true)}
-                        className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                        className="inline-flex items-center px-4 py-2 border border-input rounded-md shadow-sm text-sm font-medium text-foreground bg-card hover:bg-accent focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring transition-colors"
                     >
-                        <FileText className="h-5 w-5 mr-2 text-gray-500" />
+                        <FileText className="h-5 w-5 mr-2 text-muted-foreground" />
                         Generate Reports
                     </button>
                     <button
                         onClick={handleBulkExport}
-                        className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                        className="inline-flex items-center px-4 py-2 border border-input rounded-md shadow-sm text-sm font-medium text-foreground bg-card hover:bg-accent focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring transition-colors"
                     >
-                        <FileDown className="h-5 w-5 mr-2 text-gray-500" />
+                        <FileDown className="h-5 w-5 mr-2 text-muted-foreground" />
                         {selectedIds.size > 0 ? `Export Selected (${selectedIds.size})` : 'Export All'}
                     </button>
                 </div>
@@ -310,32 +309,32 @@ export const ConstructionReports = () => {
                 reports={selectedIds.size === 0 ? reports : undefined}
             />
 
-            <div className="bg-white shadow rounded-lg overflow-hidden">
-                <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
+            <div className="bg-card shadow rounded-lg overflow-hidden border border-border">
+                <table className="min-w-full divide-y divide-border">
+                    <thead className="bg-muted/50">
                         <tr>
                             <th className="w-10 px-6 py-3">
                                 <input
                                     type="checkbox"
-                                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                    className="rounded border-input text-primary focus:ring-ring"
                                     checked={reports.length > 0 && selectedIds.size === reports.length}
                                     onChange={toggleSelectAll}
                                 />
                             </th>
                             <th className="w-10 px-6 py-3"></th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Dionica</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Draft</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                            <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Date</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Type</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Dionica</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Draft</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Status</th>
+                            <th className="px-6 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">Actions</th>
                         </tr>
                     </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
+                    <tbody className="bg-card divide-y divide-border">
                         {reports.map((report, index) => (
                             <tr
                                 key={report.id}
-                                className="hover:bg-gray-50 cursor-move"
+                                className="hover:bg-muted/50 cursor-move transition-colors"
                                 draggable
                                 onDragStart={() => handleDragStart(index)}
                                 onDragOver={handleDragOver}
@@ -344,32 +343,32 @@ export const ConstructionReports = () => {
                                 <td className="px-6 py-4 whitespace-nowrap">
                                     <input
                                         type="checkbox"
-                                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                        className="rounded border-input text-primary focus:ring-ring"
                                         checked={report.id ? selectedIds.has(report.id) : false}
                                         onChange={() => report.id && toggleSelect(report.id)}
                                     />
                                 </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-gray-400 cursor-grab active:cursor-grabbing">
+                                <td className="px-6 py-4 whitespace-nowrap text-muted-foreground cursor-grab active:cursor-grabbing">
                                     <GripVertical className="h-5 w-5" />
                                 </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">
                                     {new Date(report.examination_date).toLocaleDateString()}
                                 </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
                                     {report.type_id === 1 ? 'Water' : 'Air'}
                                 </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground font-medium">
                                     {report.dionica || report.stock || '-'}
                                 </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
                                     {report.draft?.name || '-'}
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap">
                                     <span className={clsx(
                                         "px-2 inline-flex text-xs leading-5 font-semibold rounded-full",
                                         report.satisfies
-                                            ? "bg-green-100 text-green-800"
-                                            : "bg-red-100 text-red-800"
+                                            ? "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400"
+                                            : "bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-400"
                                     )}>
                                         {report.satisfies ? 'Satisfies' : 'Failed'}
                                     </span>
@@ -377,7 +376,7 @@ export const ConstructionReports = () => {
                                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-3">
                                     <button
                                         onClick={() => handleExportPDF(report)}
-                                        className="text-gray-600 hover:text-gray-900 inline-flex items-center"
+                                        className="text-muted-foreground hover:text-foreground inline-flex items-center"
                                         title="Export PDF"
                                     >
                                         <FileDown className="h-4 w-4" />
@@ -387,14 +386,14 @@ export const ConstructionReports = () => {
                                             ? `/customers/${customerId}/constructions/${constructionId}/reports/${report.id}`
                                             : `/customers/${customerId}/constructions/${constructionId}/reports/air/${report.id}`
                                         }
-                                        className="text-blue-600 hover:text-blue-900 inline-flex items-center"
+                                        className="text-primary hover:text-primary/80 inline-flex items-center"
                                         title="Edit"
                                     >
                                         <Pencil className="h-4 w-4" />
                                     </Link>
                                     <button
                                         onClick={() => report.id && handleDelete(report.id)}
-                                        className="text-red-600 hover:text-red-900 inline-flex items-center"
+                                        className="text-destructive hover:text-destructive/80 inline-flex items-center"
                                         title="Delete"
                                     >
                                         <Trash2 className="h-4 w-4" />
@@ -404,7 +403,7 @@ export const ConstructionReports = () => {
                         ))}
                         {reports.length === 0 && (
                             <tr>
-                                <td colSpan={7} className="px-6 py-4 text-center text-sm text-gray-500">
+                                <td colSpan={7} className="px-6 py-4 text-center text-sm text-muted-foreground">
                                     No reports found for this construction site.
                                 </td>
                             </tr>
