@@ -168,7 +168,10 @@ const renderReportPage = async (doc: jsPDF, report: Partial<ReportForm>) => {
 
     // Material Name Logic
     let materialName = '-';
-    if (report.material_type_id === 1) { // Round
+    if (report.type_id === 2) { // Air Method
+        const airMats: Record<number, string> = { 1: 'PVC', 2: 'Betonska' };
+        materialName = airMats[report.pipe_material_id || 1] || 'PVC';
+    } else if (report.material_type_id === 1) { // Water Method - Round
         const mats = ['PVC', 'PE', 'PEHD', 'GRP'];
         materialName = mats[(report.pane_material_id || 1) - 1] || 'PVC';
     } else {
@@ -200,12 +203,20 @@ const renderReportPage = async (doc: jsPDF, report: Partial<ReportForm>) => {
         }
     }
 
-    addLeft('Visina vode', `${(report.water_height || 0).toFixed(2)} cm`);
 
-    if (report.type_id === 2) { // Air specific
-        addLeft('V. Zasićenja', report.saturation_time || '-');
+    // Water Method specific
+    if (report.type_id === 1) {
+        addLeft('Visina vode', `${(report.water_height || 0).toFixed(2)} cm`);
     }
+
+    // Air Method specific
+    if (report.type_id === 2) {
+        const procNames: Record<number, string> = { 1: 'LA', 2: 'LB', 3: 'LC', 4: 'LD' };
+        addLeft('Metoda ispitivanja', procNames[report.examination_procedure_id || 1] || 'LA');
+    }
+
     addLeft('Trajanje', report.examination_duration || '-');
+
 
 
     // --- Right Column Inputs (Pipe Info) ---
@@ -301,6 +312,142 @@ const renderReportPage = async (doc: jsPDF, report: Partial<ReportForm>) => {
         addRight('Gubitak vode', `${waterLoss.toFixed(2)} mm`);
         addRight('ΔV', `${volLoss.toFixed(4)} l`);
         addRight('Izmjereni gubitak', `${result.toFixed(2)} l/m²`);
+    } else if (report.type_id === 2) { // Air Method Results
+        // Right Column - Air specific measurements
+        const stabTime = report.stabilization_time || '00:00';
+        addRight('Vrijeme stabilizacije', stabTime.toString());
+
+        const examDuration = report.examination_duration || '00:00';
+        addRight('Trajanje', examDuration.toString());
+
+        // Format required test time (convert minutes to mm:ss)
+        const testTimeMins = report.required_test_time || 0;
+        const testMins = Math.floor(testTimeMins);
+        const testSecs = Math.round((testTimeMins - testMins) * 60);
+        addRight('Vrijeme ispitivanja', `${testMins}m ${testSecs.toString().padStart(2, '0')}s`);
+
+        addRight('Tlak na početku', `${(report.pressure_start || 0).toFixed(2)} mbar`);
+        addRight('Tlak na kraju', `${(report.pressure_end || 0).toFixed(2)} mbar`);
+        addRight('Pad tlaka', `${(report.pressure_loss || 0).toFixed(2)} mbar`);
+
+        // Sync Y for table
+        currentY = Math.max(leftY, rightY) + 10;
+
+        // Draw EN 1610 Table
+        const tableY = currentY;
+        const tableWidth = 170;
+        const tableX = (pageWidth - tableWidth) / 2;
+
+        doc.setFontSize(8);
+        doc.setFont('helvetica', 'bold');
+
+        // Main headers
+        doc.text('SUHE BETONSKE CIJEVI', tableX + 40, tableY, { align: 'center' });
+        doc.text('OSTALE CIJEVI', tableX + 130, tableY, { align: 'center' });
+
+        // Table data
+        doc.setFontSize(7);
+        let y = tableY + 4;
+
+        // Headers row 1 - Postupak ispitivanja
+        doc.text('Postupak ispitivanja', tableX + 20, y, { align: 'center' });
+        let x = tableX + 40;
+        ['LA', 'LB', 'LC', 'LD'].forEach(m => {
+            doc.text(m, x + 6.5, y, { align: 'center' });
+            x += 13;
+        });
+        doc.text('Postupak ispitivanja', tableX + 90, y, { align: 'center' });
+        x = tableX + 130;
+        ['LA', 'LB', 'LC', 'LD'].forEach(m => {
+            doc.text(m, x + 6.5, y, { align: 'center' });
+            x += 13;
+        });
+
+        // Headers row 2 - ispitni tlak
+        y += 4;
+        doc.text('ispitni tlak', tableX + 20, y, { align: 'center' });
+        x = tableX + 40;
+        ['10', '50', '100', '200'].forEach(p => {
+            doc.text(p, x + 6.5, y, { align: 'center' });
+            x += 13;
+        });
+        doc.text('ispitni tlak', tableX + 90, y, { align: 'center' });
+        x = tableX + 130;
+        ['10', '50', '100', '200'].forEach(p => {
+            doc.text(p, x + 6.5, y, { align: 'center' });
+            x += 13;
+        });
+
+        // Headers row 3 - dozvoljeni pad tlaka
+        y += 4;
+        doc.text('dozvoljeni pad', tableX + 20, y, { align: 'center' });
+        doc.text('tlaka', tableX + 20, y + 3, { align: 'center' });
+        x = tableX + 40;
+        ['2,5', '10', '15', '15'].forEach(d => {
+            doc.text(d, x + 6.5, y + 1.5, { align: 'center' });
+            x += 13;
+        });
+        doc.text('dozvoljeni pad', tableX + 90, y, { align: 'center' });
+        doc.text('tlaka', tableX + 90, y + 3, { align: 'center' });
+        x = tableX + 130;
+        ['2,5', '10', '15', '15'].forEach(d => {
+            doc.text(d, x + 6.5, y + 1.5, { align: 'center' });
+            x += 13;
+        });
+
+        // Data rows
+        y += 7;
+        doc.setFont('helvetica', 'normal');
+        const rows = [
+            { d: '100', c: [5, 4, 3, 1.5], o: [5, 4, 3, 1.5] },
+            { d: '200', c: [5, 4, 3, 1.5], o: [5, 4, 3, 1.5] },
+            { d: '300', c: [5, 4, 3, 1.5], o: [7, 6, 4, 2] },
+            { d: '400', c: [7, 6, 4, 2], o: [10, 7, 5, 2.5] },
+            { d: '600', c: [11, 8, 6, 3], o: [14, 11, 6, 4] },
+            { d: '800', c: [14, 11, 8, 4], o: [19, 15, 11, 5] },
+            { d: '1000', c: [18, 14, 10, 5], o: [24, 19, 14, 7] }
+        ];
+
+        rows.forEach(row => {
+            doc.text(row.d, tableX + 20, y, { align: 'center' });
+            x = tableX + 40;
+            row.c.forEach((t: number) => {
+                doc.text(t.toString(), x + 6.5, y, { align: 'center' });
+                x += 13;
+            });
+            doc.text(row.d, tableX + 90, y, { align: 'center' });
+            x = tableX + 130;
+            row.o.forEach((t: number) => {
+                doc.text(t.toString(), x + 6.5, y, { align: 'center' });
+                x += 13;
+            });
+            y += 4;
+        });
+
+        // Draw table borders
+        doc.setDrawColor(0);
+        doc.setLineWidth(0.1);
+        doc.rect(tableX, tableY - 2, tableWidth, y - tableY + 2);
+
+        // Vertical lines
+        const colWidths = [40, 13, 13, 13, 13, 40, 13, 13, 13, 13];
+        x = tableX;
+        for (let i = 0; i < colWidths.length; i++) {
+            x += colWidths[i];
+            if (i !== colWidths.length - 1) {
+                doc.line(x, tableY - 2, x, y);
+            }
+        }
+
+        // Horizontal lines
+        doc.line(tableX, tableY + 2, tableX + tableWidth, tableY + 2);
+        doc.line(tableX, tableY + 6, tableX + tableWidth, tableY + 6);
+        doc.line(tableX, tableY + 13, tableX + tableWidth, tableY + 13);
+        doc.line(tableX, tableY + 17, tableX + tableWidth, tableY + 17);
+
+        currentY = y + 5;
+        leftY = currentY;
+        rightY = currentY;
     }
 
     // --- Footer ---
