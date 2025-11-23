@@ -442,60 +442,61 @@ const renderReportPage = async (doc: jsPDF, report: Partial<ReportForm>, userPro
         const tableWidth = 170;
         const tableX = (pageWidth - tableWidth) / 2;
 
-        doc.setFontSize(7);
+        doc.setDrawColor(0);
+        doc.setLineWidth(0.2);
+
+        // Main category headers
+        doc.setFontSize(8);
         doc.setFont('helvetica', 'bold');
+        doc.text('SUHE BETONSKE CIJEVI', tableX + 42.5, tableY + 2, { align: 'center' });
+        doc.text('OSTALE CIJEVI', tableX + 127.5, tableY + 2, { align: 'center' });
 
-        // Main headers
-        doc.text('SUHE BETONSKE CIJEVI', tableX + 33, tableY, { align: 'center' });
-        doc.text('OSTALE CIJEVI', tableX + 137, tableY, { align: 'center' });
+        // Column configuration: DN(17) + 4 methods(13 each) + gap(32) + DN(17) + 4 methods(13 each)
+        const colWidths = [17, 13, 13, 13, 13, 32, 13, 13, 13, 13];
 
-        // Table data
-        doc.setFontSize(6);
-        let y = tableY + 4;
+        let y = tableY + 6;
+        doc.setFontSize(7);
 
-        // Headers row 1 - Postupak ispitivanja
-        doc.text('Postupak ispitivanja', tableX + 13, y, { align: 'center' });
-        let x = tableX + 26;
-        ['LA', 'LB', 'LC', 'LD'].forEach(m => {
-            doc.text(m, x + 6.5, y, { align: 'center' });
-            x += 13;
-        });
-        doc.text('Postupak ispitivanja', tableX + 97, y, { align: 'center' });
-        x = tableX + 110;
-        ['LA', 'LB', 'LC', 'LD'].forEach(m => {
-            doc.text(m, x + 6.5, y, { align: 'center' });
-            x += 13;
-        });
+        // First header row - Methods
+        doc.text('DN', tableX + 8.5, y, { align: 'center' });
+        doc.text('LA', tableX + 23.5, y, { align: 'center' });
+        doc.text('LB', tableX + 36.5, y, { align: 'center' });
+        doc.text('LC', tableX + 49.5, y, { align: 'center' });
+        doc.text('LD', tableX + 62.5, y, { align: 'center' });
 
-        // Headers row 2 - ispitni tlak
+        doc.text('DN', tableX + 93.5, y, { align: 'center' });
+        doc.text('LA', tableX + 106.5, y, { align: 'center' });
+        doc.text('LB', tableX + 119.5, y, { align: 'center' });
+        doc.text('LC', tableX + 132.5, y, { align: 'center' });
+        doc.text('LD', tableX + 145.5, y, { align: 'center' });
+
+        // Second header row - Pressure (mbar)
         y += 4;
-        doc.text('ispitni tlak', tableX + 13, y, { align: 'center' });
-        x = tableX + 26;
-        ['10', '50', '100', '200'].forEach(p => {
-            doc.text(p, x + 6.5, y, { align: 'center' });
-            x += 13;
-        });
-        doc.text('ispitni tlak', tableX + 97, y, { align: 'center' });
-        x = tableX + 110;
-        ['10', '50', '100', '200'].forEach(p => {
-            doc.text(p, x + 6.5, y, { align: 'center' });
-            x += 13;
-        });
+        doc.text('(mm)', tableX + 8.5, y, { align: 'center' });
+        doc.text('10', tableX + 23.5, y, { align: 'center' });
+        doc.text('50', tableX + 36.5, y, { align: 'center' });
+        doc.text('100', tableX + 49.5, y, { align: 'center' });
+        doc.text('200', tableX + 62.5, y, { align: 'center' });
 
-        // Headers row 3 - dozvoljeni pad tlaka
+        doc.text('(mm)', tableX + 93.5, y, { align: 'center' });
+        doc.text('10', tableX + 106.5, y, { align: 'center' });
+        doc.text('50', tableX + 119.5, y, { align: 'center' });
+        doc.text('100', tableX + 132.5, y, { align: 'center' });
+        doc.text('200', tableX + 145.5, y, { align: 'center' });
+
+        // Third header row - Allowed pressure drop
         y += 4;
-        doc.text('dozvoljeni pad tlaka', tableX + 13, y + 1, { align: 'center' });
-        x = tableX + 26;
-        ['2,5', '10', '15', '15'].forEach(d => {
-            doc.text(d, x + 6.5, y + 1, { align: 'center' });
-            x += 13;
-        });
-        doc.text('dozvoljeni pad tlaka', tableX + 97, y + 1, { align: 'center' });
-        x = tableX + 110;
-        ['2,5', '10', '15', '15'].forEach(d => {
-            doc.text(d, x + 6.5, y + 1, { align: 'center' });
-            x += 13;
-        });
+        doc.text('mbar', tableX + 8.5, y, { align: 'center' });
+        doc.text('2,5', tableX + 23.5, y, { align: 'center' });
+        doc.text('10', tableX + 36.5, y, { align: 'center' });
+        doc.text('15', tableX + 49.5, y, { align: 'center' });
+        doc.text('15', tableX + 62.5, y, { align: 'center' });
+
+        doc.text('mbar', tableX + 93.5, y, { align: 'center' });
+        doc.text('2,5', tableX + 106.5, y, { align: 'center' });
+        doc.text('10', tableX + 119.5, y, { align: 'center' });
+        doc.text('15', tableX + 132.5, y, { align: 'center' });
+        doc.text('15', tableX + 145.5, y, { align: 'center' });
 
         // Data rows
         y += 5;
@@ -511,41 +512,51 @@ const renderReportPage = async (doc: jsPDF, report: Partial<ReportForm>, userPro
         ];
 
         rows.forEach(row => {
-            doc.text(row.d, tableX + 13, y, { align: 'center' });
-            x = tableX + 26;
-            row.c.forEach((t: number) => {
-                doc.text(t.toString(), x + 6.5, y, { align: 'center' });
-                x += 13;
-            });
-            doc.text(row.d, tableX + 97, y, { align: 'center' });
-            x = tableX + 110;
-            row.o.forEach((t: number) => {
-                doc.text(t.toString(), x + 6.5, y, { align: 'center' });
-                x += 13;
-            });
+            doc.text(row.d, tableX + 8.5, y, { align: 'center' });
+            doc.text(row.c[0].toString(), tableX + 23.5, y, { align: 'center' });
+            doc.text(row.c[1].toString(), tableX + 36.5, y, { align: 'center' });
+            doc.text(row.c[2].toString(), tableX + 49.5, y, { align: 'center' });
+            doc.text(row.c[3].toString(), tableX + 62.5, y, { align: 'center' });
+
+            doc.text(row.d, tableX + 93.5, y, { align: 'center' });
+            doc.text(row.o[0].toString(), tableX + 106.5, y, { align: 'center' });
+            doc.text(row.o[1].toString(), tableX + 119.5, y, { align: 'center' });
+            doc.text(row.o[2].toString(), tableX + 132.5, y, { align: 'center' });
+            doc.text(row.o[3].toString(), tableX + 145.5, y, { align: 'center' });
+
             y += 4;
         });
 
-        // Draw table borders
-        doc.setDrawColor(0);
-        doc.setLineWidth(0.1);
-        doc.rect(tableX, tableY - 2, tableWidth, y - tableY + 2);
+        // Draw all borders
+        const tableHeight = y - tableY - 2;
 
-        // Vertical lines - adjusted column widths
-        const colWidths = [26, 13, 13, 13, 13, 32, 13, 13, 13, 13];
-        x = tableX;
+        // Outer border
+        doc.setLineWidth(0.2);
+        doc.rect(tableX, tableY, tableWidth, tableHeight);
+
+        // Vertical lines
+        let xPos = tableX;
         for (let i = 0; i < colWidths.length; i++) {
-            x += colWidths[i];
-            if (i !== colWidths.length - 1) {
-                doc.line(x, tableY - 2, x, y);
+            xPos += colWidths[i];
+            if (i < colWidths.length - 1) {
+                doc.line(xPos, tableY, xPos, tableY + tableHeight);
             }
         }
 
         // Horizontal lines
-        doc.line(tableX, tableY + 2, tableX + tableWidth, tableY + 2);
-        doc.line(tableX, tableY + 6, tableX + tableWidth, tableY + 6);
-        doc.line(tableX, tableY + 10, tableX + tableWidth, tableY + 10);
-        doc.line(tableX, tableY + 15, tableX + tableWidth, tableY + 15);
+        doc.line(tableX, tableY + 4, tableX + tableWidth, tableY + 4); // After main header
+        doc.line(tableX, tableY + 8, tableX + tableWidth, tableY + 8); // After methods
+        doc.line(tableX, tableY + 12, tableX + tableWidth, tableY + 12); // After pressure
+        doc.setLineWidth(0.25);
+        doc.line(tableX, tableY + 16, tableX + tableWidth, tableY + 16); // Before data (thicker)
+
+        // Thin lines between data rows
+        doc.setLineWidth(0.1);
+        let rowLine = tableY + 20;
+        for (let i = 0; i < rows.length - 1; i++) {
+            doc.line(tableX, rowLine, tableX + tableWidth, rowLine);
+            rowLine += 4;
+        }
 
         currentY = y + 3;
         leftY = currentY;
