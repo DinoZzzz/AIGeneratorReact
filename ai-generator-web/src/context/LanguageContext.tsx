@@ -777,6 +777,94 @@ Object.assign(translations.en, {
     'reports.airMethod': 'Air Method'
 });
 
+// Export dialog translations
+Object.assign(translations.hr, {
+    'export.optionsTitle': 'Opcije izvoza izvještaja',
+    'export.selectReports': 'Odaberite izvještaje za izvoz',
+    'export.selectAll': 'Odaberi sve',
+    'export.deselectAll': 'Poništi odabir',
+    'export.selected': 'odabrano',
+    'export.constructionPart': 'Dio gradilišta',
+    'export.constructionPartPlaceholder': 'npr. Faza 1',
+    'export.drainage': 'Drenaža',
+    'export.drainagePlaceholder': 'Tip sustava...',
+    'export.remark': 'Napomena',
+    'export.remarkPlaceholder': 'Napomene...',
+    'export.deviation': 'Odstupanje',
+    'export.deviationPlaceholder': 'Odstupanja od norme...',
+    'export.certifierName': 'Certifikator',
+    'export.certifierPlaceholder': 'Ime i prezime certifikatora',
+    'export.attachments': 'Prilozi',
+    'export.attachmentsHelp': 'Dodajte fotografije ili PDF dokumente koji će biti priloženi izvještaju',
+    'export.cancel': 'Odustani',
+    'export.exporting': 'Izvoz u tijeku...',
+    'export.exportReport': 'Izvezi izvještaj'
+});
+
+Object.assign(translations.en, {
+    'export.optionsTitle': 'Export Report Options',
+    'export.selectReports': 'Select Reports to Export',
+    'export.selectAll': 'Select All',
+    'export.deselectAll': 'Deselect All',
+    'export.selected': 'selected',
+    'export.constructionPart': 'Construction Part',
+    'export.constructionPartPlaceholder': 'e.g. Phase 1',
+    'export.drainage': 'Drainage',
+    'export.drainagePlaceholder': 'System type...',
+    'export.remark': 'Remark',
+    'export.remarkPlaceholder': 'Notes...',
+    'export.deviation': 'Deviation',
+    'export.deviationPlaceholder': 'Norm deviations...',
+    'export.certifierName': 'Certifier Name',
+    'export.certifierPlaceholder': 'Name of the person certifying...',
+    'export.attachments': 'Attachments',
+    'export.attachmentsHelp': 'Add photos or PDFs to attach to the report',
+    'export.cancel': 'Cancel',
+    'export.exporting': 'Exporting...',
+    'export.exportReport': 'Export Report'
+});
+
+// Clean HR overrides for report forms (accents)
+Object.assign(translations.hr, {
+    'reports.form.editTitle': 'Uredi izvještaj',
+    'reports.form.generalInfo': 'Opće informacije',
+    'reports.form.notesSection': 'Bilješke',
+    'reports.form.calculatedResults': 'Izračunati rezultati',
+    'reports.form.nextStep': 'Sljedeći korak',
+    'reports.form.saveReport': 'Spremi izvještaj',
+    'reports.form.saveSuccess': 'Izvještaj spremljen. Spreman za novi unos.',
+    'reports.form.loadError': 'Neuspjelo učitavanje izvještaja',
+    'reports.form.temperature': 'Temperatura (°C)',
+    'reports.form.paneWidthM': 'Širina okna (m)',
+    'reports.form.paneLengthM': 'Dužina okna (m)',
+    'reports.form.pipeLengthM': 'Dužina cijevi (m)',
+    'reports.form.startPressure': 'Početni tlak (mbar)',
+    'reports.form.endPressure': 'Završni tlak (mbar)',
+    'reports.form.startTime': 'Početak',
+    'reports.form.allowedLoss': 'Dopušteni gubitak',
+    'reports.form.schemeA': 'Shema A – Ispitivanje okna',
+    'reports.form.schemeB': 'Shema B – Ispitivanje okna i cijelovoda',
+    'reports.form.schemeC': 'Shema C – Ispitivanje cijelovoda',
+    'reports.form.schemeD': 'Shema D – Ispitivanje slivnika',
+    'reports.form.schemeE': 'Shema E – Ispitivanje slivnika i cijelovoda',
+    'reports.form.paneWidthCm': 'Širina okna (cm)',
+    'reports.form.paneLengthCm': 'Dužina okna (cm)',
+    'reports.form.gullyWidth': 'Širina slivnika (cm)',
+    'reports.form.gullyLength': 'Dužina slivnika (cm)',
+    'reports.form.channelWidth': 'Širina kanala (cm)',
+    'reports.form.channelLength': 'Dužina kanala (cm)',
+    'reports.form.pipeLengthMeters': 'Dužina cijevi (m)',
+    'reports.form.depositionalHeight': 'Visina taloženja (m)',
+    'reports.form.startWaterLevel': 'Početna razina vode (mm)',
+    'reports.form.endWaterLevel': 'Završna razina vode (mm)',
+    'reports.form.totalWettedArea': 'Ukupna mokra površina',
+    'reports.form.wettedShaftSurface': 'Mokra površina okna',
+    'reports.form.wettedPipeSurface': 'Mokra površina cijevi',
+    'reports.form.allowedLossLiters': 'Dopušteni gubitak (l)',
+    'reports.form.allowedLossMm': 'Dopušteni gubitak (mm)',
+    'reports.form.resultUnit': 'l/m²'
+});
+
 // Help translations
 Object.assign(translations.hr, {
     'help.title': 'Pomoć',

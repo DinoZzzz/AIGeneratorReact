@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from './ui/Dialog';
 import { Button } from './ui/Button';
 import type { User, ReportForm, ReportFile } from '../types';
 import { FileUploader } from './FileUploader';
+import { useLanguage } from '../context/LanguageContext';
 
 interface ExportDialogProps {
     open: boolean;
@@ -29,6 +30,7 @@ export interface ExportMetaData {
 }
 
 export const ExportDialog = ({ open, onOpenChange, onConfirm, loading = false, defaultValues, reports, constructionId, uploadedFiles = [], onFileUploaded, onFileDeleted }: ExportDialogProps) => {
+    const { t } = useLanguage();
     const [data, setData] = useState<ExportMetaData>({
         constructionPart: defaultValues?.constructionPart || '',
         drainage: defaultValues?.drainage || '',
@@ -104,7 +106,7 @@ export const ExportDialog = ({ open, onOpenChange, onConfirm, loading = false, d
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
-                    <DialogTitle className="text-foreground">Export Report Options</DialogTitle>
+                    <DialogTitle className="text-foreground">{t('export.optionsTitle')}</DialogTitle>
                 </DialogHeader>
                 <form onSubmit={handleSubmit} className="space-y-4 py-4">
 
@@ -112,13 +114,13 @@ export const ExportDialog = ({ open, onOpenChange, onConfirm, loading = false, d
                     {reports && reports.length > 0 && (
                         <div className="border border-border rounded-md p-4 bg-muted/30 space-y-3">
                             <div className="flex items-center justify-between">
-                                <h3 className="font-semibold text-sm text-foreground">Select Reports to Export</h3>
+                                <h3 className="font-semibold text-sm text-foreground">{t('export.selectReports')}</h3>
                                 <button
                                     type="button"
                                     onClick={toggleSelectAll}
                                     className="text-xs text-primary hover:text-primary/80"
                                 >
-                                    {selectedReportIds.size === reports.length ? 'Deselect All' : 'Select All'}
+                                    {selectedReportIds.size === reports.length ? t('export.deselectAll') : t('export.selectAll')}
                                 </button>
                             </div>
                             <div className="max-h-40 overflow-y-auto space-y-2 border-t border-border pt-2">
@@ -132,7 +134,7 @@ export const ExportDialog = ({ open, onOpenChange, onConfirm, loading = false, d
                                             className="rounded border-input text-primary focus:ring-ring"
                                         />
                                         <label htmlFor={`report-${report.id}`} className="text-sm text-foreground flex-1 truncate cursor-pointer">
-                                            <span className="font-medium text-foreground">{report.type_id === 1 ? 'Water' : 'Air'}</span>
+                                            <span className="font-medium text-foreground">{report.type_id === 1 ? t('reports.waterMethod') : t('reports.airMethod')}</span>
                                             <span className="mx-1 text-muted-foreground">-</span>
                                             {(report.dionica || report.stock) && (
                                                 <>
@@ -146,54 +148,54 @@ export const ExportDialog = ({ open, onOpenChange, onConfirm, loading = false, d
                                 ))}
                             </div>
                             <div className="text-xs text-muted-foreground text-right">
-                                {selectedReportIds.size} selected
+                                {selectedReportIds.size} {t('export.selected')}
                             </div>
                         </div>
                     )}
 
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
-                            <label className="text-sm font-medium leading-none">Construction Part</label>
+                            <label className="text-sm font-medium leading-none">{t('export.constructionPart')}</label>
                             <input
                                 className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
                                 value={data.constructionPart}
                                 onChange={(e) => setData({ ...data, constructionPart: e.target.value })}
-                                placeholder="e.g. Faza 1"
+                                placeholder={t('export.constructionPartPlaceholder')}
                                 disabled={loading}
                             />
                         </div>
                         <div className="space-y-2">
-                            <label className="text-sm font-medium leading-none">Drainage</label>
+                            <label className="text-sm font-medium leading-none">{t('export.drainage')}</label>
                             <input
                                 className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
                                 value={data.drainage}
                                 onChange={(e) => setData({ ...data, drainage: e.target.value })}
-                                placeholder="System type..."
+                                placeholder={t('export.drainagePlaceholder')}
                                 disabled={loading}
                             />
                         </div>
                     </div>
 
                     <div className="space-y-2">
-                        <h3 className="font-semibold text-sm text-muted-foreground">Air Method</h3>
+                        <h3 className="font-semibold text-sm text-muted-foreground">{t('reports.airMethod')}</h3>
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
-                                <label className="text-sm font-medium">Remark</label>
+                                <label className="text-sm font-medium">{t('export.remark')}</label>
                                 <textarea
                                     className="flex min-h-[60px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
                                     value={data.airRemark}
                                     onChange={(e) => setData({ ...data, airRemark: e.target.value })}
-                                    placeholder="Notes for air method..."
+                                    placeholder={t('export.remarkPlaceholder')}
                                     disabled={loading}
                                 />
                             </div>
                             <div className="space-y-2">
-                                <label className="text-sm font-medium">Deviation</label>
+                                <label className="text-sm font-medium">{t('export.deviation')}</label>
                                 <textarea
                                     className="flex min-h-[60px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
                                     value={data.airDeviation}
                                     onChange={(e) => setData({ ...data, airDeviation: e.target.value })}
-                                    placeholder="Norm deviations..."
+                                    placeholder={t('export.deviationPlaceholder')}
                                     disabled={loading}
                                 />
                             </div>
@@ -201,25 +203,25 @@ export const ExportDialog = ({ open, onOpenChange, onConfirm, loading = false, d
                     </div>
 
                     <div className="space-y-2">
-                        <h3 className="font-semibold text-sm text-muted-foreground">Water Method</h3>
+                        <h3 className="font-semibold text-sm text-muted-foreground">{t('reports.waterMethod')}</h3>
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
-                                <label className="text-sm font-medium">Remark</label>
+                                <label className="text-sm font-medium">{t('export.remark')}</label>
                                 <textarea
                                     className="flex min-h-[60px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
                                     value={data.waterRemark}
                                     onChange={(e) => setData({ ...data, waterRemark: e.target.value })}
-                                    placeholder="Notes for water method..."
+                                    placeholder={t('export.remarkPlaceholder')}
                                     disabled={loading}
                                 />
                             </div>
                             <div className="space-y-2">
-                                <label className="text-sm font-medium">Deviation</label>
+                                <label className="text-sm font-medium">{t('export.deviation')}</label>
                                 <textarea
                                     className="flex min-h-[60px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
                                     value={data.waterDeviation}
                                     onChange={(e) => setData({ ...data, waterDeviation: e.target.value })}
-                                    placeholder="Norm deviations..."
+                                    placeholder={t('export.deviationPlaceholder')}
                                     disabled={loading}
                                 />
                             </div>
@@ -227,20 +229,20 @@ export const ExportDialog = ({ open, onOpenChange, onConfirm, loading = false, d
                     </div>
 
                     <div className="space-y-2">
-                        <label className="text-sm font-medium leading-none">Certifier Name</label>
+                        <label className="text-sm font-medium leading-none">{t('export.certifierName')}</label>
                         <input
                             className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
                             value={data.certifierName}
                             onChange={(e) => setData({ ...data, certifierName: e.target.value })}
-                            placeholder="Name of the person certifying..."
+                            placeholder={t('export.certifierPlaceholder')}
                             disabled={loading}
                         />
                     </div>
 
                     {/* File Upload Section */}
                     <div className="space-y-2 border-t border-border pt-4">
-                        <h3 className="font-semibold text-sm text-foreground">Prilozi ({uploadedFiles.length})</h3>
-                        <p className="text-xs text-muted-foreground">Dodajte fotografije ili PDF dokumente koji će biti priloženi izvještaju</p>
+                        <h3 className="font-semibold text-sm text-foreground">{t("export.attachments")} ({uploadedFiles.length})</h3>
+                        <p className="text-xs text-muted-foreground">{t("export.attachmentsHelp")}</p>
                         <FileUploader
                             constructionId={constructionId}
                             onUploadComplete={onFileUploaded}
@@ -250,9 +252,9 @@ export const ExportDialog = ({ open, onOpenChange, onConfirm, loading = false, d
                     </div>
 
                     <DialogFooter>
-                        <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>Cancel</Button>
+                        <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>{t('export.cancel')}</Button>
                         <Button type="submit" disabled={loading}>
-                            {loading ? 'Exporting...' : 'Export Report'}
+                            {loading ? t('export.exporting') : t('export.exportReport')}
                         </Button>
                     </DialogFooter>
                 </form>
@@ -260,3 +262,6 @@ export const ExportDialog = ({ open, onOpenChange, onConfirm, loading = false, d
         </Dialog>
     );
 };
+
+
+
