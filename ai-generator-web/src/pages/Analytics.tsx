@@ -26,7 +26,6 @@ export const Analytics = () => {
             setLoading(true);
             setError(null);
             try {
-                const now = new Date();
                 // Report forms: pass/fail + durations by type
                 const { data: forms, error: formsError } = await supabase
                     .from('report_forms')
