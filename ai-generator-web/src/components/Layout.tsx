@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 import {
     LayoutDashboard,
     Users,
@@ -10,7 +11,8 @@ import {
     X,
     History,
     UserCheck,
-    HelpCircle
+    HelpCircle,
+    BarChart3
 } from 'lucide-react';
 import { useState } from 'react';
 import { cn } from '../lib/utils';
@@ -24,6 +26,7 @@ export const Layout = ({ children }: LayoutProps) => {
     const navigate = useNavigate();
     const location = useLocation();
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+    const { t } = useLanguage();
 
     const handleSignOut = async () => {
         await signOut();
@@ -33,12 +36,13 @@ export const Layout = ({ children }: LayoutProps) => {
     const isAdmin = profile?.role === 'admin';
 
     const navigation = [
-        { name: 'Platform', href: '/', icon: LayoutDashboard },
-        { name: 'History', href: '/history', icon: History },
-        { name: 'Examiners', href: '/examiners', icon: UserCheck, adminOnly: true },
-        { name: 'Customers', href: '/customers', icon: Users },
-        { name: 'Settings', href: '/settings', icon: Settings },
-        { name: 'Help', href: '/help', icon: HelpCircle },
+        { name: t('nav.platform'), href: '/', icon: LayoutDashboard },
+        { name: t('nav.history'), href: '/history', icon: History },
+        { name: t('nav.examiners'), href: '/examiners', icon: UserCheck, adminOnly: true },
+        { name: t('nav.customers'), href: '/customers', icon: Users },
+        { name: t('nav.settings'), href: '/settings', icon: Settings },
+        { name: t('nav.analytics'), href: '/analytics', icon: BarChart3 },
+        { name: t('nav.help'), href: '/help', icon: HelpCircle },
     ].filter(item => !item.adminOnly || isAdmin);
 
     return (
@@ -114,7 +118,7 @@ export const Layout = ({ children }: LayoutProps) => {
                             className="w-full flex items-center px-4 py-2 text-sm font-medium text-destructive rounded-lg hover:bg-destructive/10 transition-colors"
                         >
                             <LogOut className="mr-3 h-5 w-5" />
-                            Sign Out
+                            {t('nav.signOut')}
                         </button>
                     </div>
                 </div>

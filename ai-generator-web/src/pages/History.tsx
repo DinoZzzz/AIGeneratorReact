@@ -3,9 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import { historyService } from '../services/historyService';
 import type { ReportExport } from '../types';
 import { Loader2, Search, Trash2, ExternalLink, ChevronLeft, ChevronRight } from 'lucide-react';
+import { useLanguage } from '../context/LanguageContext';
 
 export const History = () => {
     const navigate = useNavigate();
+    const { t } = useLanguage();
     const [exports, setExports] = useState<ReportExport[]>([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
@@ -19,7 +21,7 @@ export const History = () => {
     useEffect(() => {
         const timer = setTimeout(() => {
             setDebouncedSearch(search);
-            setPage(0); // Reset to first page on search change
+            setPage(0);
         }, 500);
         return () => clearTimeout(timer);
     }, [search]);
@@ -76,7 +78,7 @@ export const History = () => {
     return (
         <div className="space-y-6">
             <div className="flex justify-between items-center">
-                <h1 className="text-2xl font-bold text-foreground">History</h1>
+                <h1 className="text-2xl font-bold text-foreground">{t('history.title')}</h1>
             </div>
 
             <div className="bg-card shadow rounded-lg border border-border">
@@ -87,7 +89,7 @@ export const History = () => {
                         </div>
                         <input
                             type="text"
-                            placeholder="Search construction part..."
+                            placeholder={t('history.searchPlaceholder')}
                             className="block w-full pl-10 pr-3 py-2 border border-input rounded-md leading-5 bg-background text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-input sm:text-sm"
                             value={search}
                             onChange={handleSearchChange}
@@ -97,7 +99,7 @@ export const History = () => {
                     {/* Pagination Controls */}
                     <div className="flex items-center gap-2">
                         <span className="text-sm text-foreground">
-                            Page {page + 1} of {totalPages || 1}
+                            {t('history.page')} {page + 1} {t('history.of')} {totalPages || 1}
                         </span>
                         <button
                             onClick={() => setPage(p => Math.max(0, p - 1))}
@@ -121,28 +123,28 @@ export const History = () => {
                         <thead className="bg-muted/50">
                             <tr>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                                    Certifier
+                                    {t('history.certifier')}
                                 </th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                                    Created By
+                                    {t('history.createdBy')}
                                 </th>
                                 <th
                                     className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider cursor-pointer hover:text-foreground transition-colors"
                                     onClick={() => handleSort('construction_part')}
                                 >
-                                    Construction Part {sortColumn === 'construction_part' && (sortOrder === 'asc' ? '↑' : '↓')}
+                                    {t('history.constructionPart')} {sortColumn === 'construction_part' && (sortOrder === 'asc' ? '▲' : '▼')}
                                 </th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                                    Forms Count
+                                    {t('history.formsCount')}
                                 </th>
                                 <th
                                     className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider cursor-pointer hover:text-foreground transition-colors"
                                     onClick={() => handleSort('created_at')}
                                 >
-                                    Creation Time {sortColumn === 'created_at' && (sortOrder === 'asc' ? '↑' : '↓')}
+                                    {t('history.creationTime')} {sortColumn === 'created_at' && (sortOrder === 'asc' ? '▲' : '▼')}
                                 </th>
                                 <th className="px-6 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                                    Actions
+                                    {t('exportDetails.action')}
                                 </th>
                             </tr>
                         </thead>
@@ -150,7 +152,7 @@ export const History = () => {
                             {loading ? (
                                 <tr>
                                     <td colSpan={6} className="px-6 py-4 text-center text-muted-foreground">
-                                        <Loader2 className="h-6 w-6 animate-spin inline-block mr-2" /> Loading...
+                                        <Loader2 className="h-6 w-6 animate-spin inline-block mr-2" /> {t('history.loading')}
                                     </td>
                                 </tr>
                             ) : exports.length === 0 ? (
@@ -158,9 +160,9 @@ export const History = () => {
                                     <td colSpan={6} className="px-6 py-12 text-center text-muted-foreground">
                                         <div className="flex flex-col items-center justify-center">
                                             <Search className="h-12 w-12 text-muted-foreground/50 mb-4" />
-                                            <p className="text-lg font-medium text-foreground">No history found</p>
+                                            <p className="text-lg font-medium text-foreground">{t('history.noDataTitle')}</p>
                                             <p className="text-sm text-muted-foreground mt-1">
-                                                Exported reports and their history will appear here.
+                                                {t('history.noDataDesc')}
                                             </p>
                                         </div>
                                     </td>
@@ -192,16 +194,16 @@ export const History = () => {
                                             <button
                                                 onClick={() => navigate(`/history/${item.id}`)}
                                                 className="text-primary hover:text-primary/80 mr-4 inline-flex items-center transition-colors"
-                                                title="Open"
+                                                title={t('history.open')}
                                             >
-                                                <ExternalLink className="h-4 w-4 mr-1" /> Open
+                                                <ExternalLink className="h-4 w-4 mr-1" /> {t('history.open')}
                                             </button>
                                             <button
                                                 onClick={() => handleDelete(item.id)}
                                                 className="text-destructive hover:text-destructive/80 inline-flex items-center transition-colors"
-                                                title="Remove"
+                                                title={t('history.remove')}
                                             >
-                                                <Trash2 className="h-4 w-4 mr-1" /> Remove
+                                                <Trash2 className="h-4 w-4 mr-1" /> {t('history.remove')}
                                             </button>
                                         </td>
                                     </tr>

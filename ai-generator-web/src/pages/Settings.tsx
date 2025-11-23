@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useTheme } from '../context/ThemeContext';
+import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
 import type { Material } from '../types';
@@ -8,6 +9,7 @@ import { useToast } from '../context/ToastContext';
 
 export const Settings = () => {
     const { theme, setTheme } = useTheme();
+    const { language, setLanguage, t } = useLanguage();
     const { user } = useAuth();
     const [materials, setMaterials] = useState<Material[]>([]);
     const [isAdmin, setIsAdmin] = useState(false);
@@ -252,7 +254,35 @@ export const Settings = () => {
 
     return (
         <div className="max-w-4xl mx-auto space-y-8">
-            <h1 className="text-2xl font-bold text-foreground">Settings</h1>
+            <h1 className="text-2xl font-bold text-foreground">{t('nav.settings')}</h1>
+
+            {/* Language */}
+            <section className="bg-card rounded-lg border border-border p-6">
+                <h2 className="text-xl font-semibold mb-2 text-foreground">{t('settings.language')}</h2>
+                <p className="text-sm text-muted-foreground mb-4">{t('settings.languageDescription')}</p>
+                <div className="flex gap-3">
+                    <button
+                        onClick={() => setLanguage('hr')}
+                        className={`px-4 py-2 rounded-md border text-sm font-medium transition-colors ${
+                            language === 'hr'
+                                ? 'border-primary bg-primary/10 text-primary'
+                                : 'border-border bg-background text-foreground hover:border-primary/50'
+                        }`}
+                    >
+                        {t('language.croatian')}
+                    </button>
+                    <button
+                        onClick={() => setLanguage('en')}
+                        className={`px-4 py-2 rounded-md border text-sm font-medium transition-colors ${
+                            language === 'en'
+                                ? 'border-primary bg-primary/10 text-primary'
+                                : 'border-border bg-background text-foreground hover:border-primary/50'
+                        }`}
+                    >
+                        {t('language.english')}
+                    </button>
+                </div>
+            </section>
 
             {/* Appearance Section */}
             <section className="bg-card rounded-lg border border-border p-6">

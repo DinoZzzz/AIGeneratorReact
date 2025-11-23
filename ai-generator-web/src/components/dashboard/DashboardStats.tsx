@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { supabase } from '../../lib/supabase';
+import { useLanguage } from '../../context/LanguageContext';
 
 interface StatItem {
     name: string;
@@ -20,6 +21,7 @@ export const DashboardStats = () => {
     const [customerStats, setCustomerStats] = useState<StatItem[]>([]);
     const [examinerStats, setExaminerStats] = useState<ExaminerStat[]>([]);
     const [loading, setLoading] = useState(true);
+    const { t } = useLanguage();
 
     useEffect(() => {
         fetchStats();
@@ -133,13 +135,13 @@ export const DashboardStats = () => {
 
     const COLORS = ['#23b14d', '#f29f05', '#d3efdb'];
 
-    if (loading) return <div>Loading stats...</div>;
+    if (loading) return <div>{t('dashboard.loading')}</div>;
 
     return (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Customers Pie Chart */}
             <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-lg p-4 shadow-sm flex flex-col items-center">
-                <h3 className="text-lg font-bold mb-4 w-full text-left">Naručitelji</h3>
+                <h3 className="text-lg font-bold mb-4 w-full text-left">{t('dashboard.topCustomers')}</h3>
 
                 {/* Chart Container with Fixed Min Height */}
                 <div className="w-full h-64 min-h-[256px] relative">
@@ -167,20 +169,20 @@ export const DashboardStats = () => {
 
             {/* Examiners List */}
             <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-lg p-4 shadow-sm">
-                <h3 className="text-lg font-bold mb-4">Ispitivači</h3>
+                <h3 className="text-lg font-bold mb-4">{t('dashboard.examiners')}</h3>
                 <div className="space-y-4">
                     {examinerStats.length === 0 ? (
-                        <p className="text-sm text-gray-500 dark:text-gray-400">Nema podataka</p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">{t('dashboard.noCustomers')}</p>
                     ) : (
                         examinerStats.map((stat) => (
                             <div key={stat.id} className="flex flex-col space-y-1">
                                 <span className="font-semibold text-base">{stat.name}</span>
                                 <div className="flex gap-4 text-xs text-gray-600 dark:text-gray-400">
                                     <span>
-                                        Danas: <span className="font-semibold text-emerald-600 dark:text-emerald-400">{stat.todayCount}</span>
+                                        {t('dashboard.today')}: <span className="font-semibold text-emerald-600 dark:text-emerald-400">{stat.todayCount}</span>
                                     </span>
                                     <span>
-                                        Ovaj tjedan: <span className="font-semibold text-blue-600 dark:text-blue-400">{stat.weekCount}</span>
+                                        {t('dashboard.thisWeek')}: <span className="font-semibold text-blue-600 dark:text-blue-400">{stat.weekCount}</span>
                                     </span>
                                 </div>
                             </div>

@@ -6,6 +6,7 @@ import { Label } from '../ui/Label';
 import { Checkbox } from '../ui/Checkbox';
 import type { Profile, ReportType } from '../../types';
 import { examinerService } from '../../services/examinerService';
+import { useLanguage } from '../../context/LanguageContext';
 
 interface ExaminerDialogProps {
     open: boolean;
@@ -27,6 +28,7 @@ export const ExaminerDialog = ({ open, onOpenChange, examiner, onSave }: Examine
         role: 'user',
         accreditations: []
     });
+    const { t } = useLanguage();
 
     useEffect(() => {
         loadReportTypes();
@@ -114,12 +116,12 @@ export const ExaminerDialog = ({ open, onOpenChange, examiner, onSave }: Examine
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="sm:max-w-[600px]">
                 <DialogHeader>
-                    <DialogTitle>{examiner ? 'Edit Examiner' : 'New Examiner'}</DialogTitle>
+                    <DialogTitle>{examiner ? t('examiners.dialog.edit') : t('examiners.dialog.new')}</DialogTitle>
                 </DialogHeader>
                 <form onSubmit={handleSubmit} className="space-y-4 py-4">
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
-                            <Label htmlFor="name">First Name</Label>
+                            <Label htmlFor="name">{t('examiners.dialog.firstName')}</Label>
                             <Input
                                 id="name"
                                 value={formData.name}
@@ -128,7 +130,7 @@ export const ExaminerDialog = ({ open, onOpenChange, examiner, onSave }: Examine
                             />
                         </div>
                         <div className="space-y-2">
-                            <Label htmlFor="lastName">Last Name</Label>
+                            <Label htmlFor="lastName">{t('examiners.dialog.lastName')}</Label>
                             <Input
                                 id="lastName"
                                 value={formData.last_name}
@@ -140,7 +142,7 @@ export const ExaminerDialog = ({ open, onOpenChange, examiner, onSave }: Examine
 
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
-                            <Label htmlFor="username">Username</Label>
+                            <Label htmlFor="username">{t('examiners.dialog.username')}</Label>
                             <Input
                                 id="username"
                                 value={formData.username}
@@ -149,7 +151,7 @@ export const ExaminerDialog = ({ open, onOpenChange, examiner, onSave }: Examine
                             />
                         </div>
                         <div className="space-y-2">
-                            <Label htmlFor="title">Title</Label>
+                            <Label htmlFor="title">{t('examiners.dialog.title')}</Label>
                             <Input
                                 id="title"
                                 value={formData.title}
@@ -160,7 +162,7 @@ export const ExaminerDialog = ({ open, onOpenChange, examiner, onSave }: Examine
 
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
-                            <Label htmlFor="email">Email {!examiner && <span className="text-destructive">*</span>}</Label>
+                            <Label htmlFor="email">{t('examiners.dialog.email')} {!examiner && <span className="text-destructive">*</span>}</Label>
                             <Input
                                 id="email"
                                 type="email"
@@ -171,8 +173,8 @@ export const ExaminerDialog = ({ open, onOpenChange, examiner, onSave }: Examine
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="password">
-                                Password {!examiner && <span className="text-destructive">*</span>}
-                                {examiner && <span className="text-xs text-muted-foreground ml-1">(leave empty to keep current)</span>}
+                                {t('examiners.dialog.password')} {!examiner && <span className="text-destructive">*</span>}
+                                {examiner && <span className="text-xs text-muted-foreground ml-1">{t('examiners.dialog.passwordHint')}</span>}
                             </Label>
                             <Input
                                 id="password"
@@ -180,7 +182,7 @@ export const ExaminerDialog = ({ open, onOpenChange, examiner, onSave }: Examine
                                 value={formData.password}
                                 onChange={e => setFormData({ ...formData, password: e.target.value })}
                                 required={!examiner}
-                                placeholder={examiner ? "Enter new password to change" : ""}
+                                placeholder={examiner ? t('examiners.dialog.passwordPlaceholder') : ""}
                             />
                         </div>
                     </div>
@@ -191,11 +193,11 @@ export const ExaminerDialog = ({ open, onOpenChange, examiner, onSave }: Examine
                             checked={formData.role === 'admin'}
                             onCheckedChange={(checked: boolean) => setFormData({ ...formData, role: checked ? 'admin' : 'user' })}
                         />
-                        <Label htmlFor="isAdmin">Administrator</Label>
+                        <Label htmlFor="isAdmin">{t('examiners.dialog.admin')}</Label>
                     </div>
 
                     <div className="space-y-2">
-                        <Label>Accreditations</Label>
+                        <Label>{t('examiners.dialog.accreditations')}</Label>
                         <div className="border rounded-md p-4 space-y-2 max-h-40 overflow-y-auto">
                             {reportTypes.map(type => (
                                 <div key={type.id} className="flex items-center space-x-2">
@@ -212,10 +214,10 @@ export const ExaminerDialog = ({ open, onOpenChange, examiner, onSave }: Examine
 
                     <div className="flex justify-end space-x-2 mt-6">
                         <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-                            Cancel
+                            {t('examiners.dialog.cancel')}
                         </Button>
                         <Button type="submit" disabled={loading}>
-                            {loading ? 'Saving...' : 'Save'}
+                            {loading ? t('examiners.dialog.saving') : t('examiners.dialog.save')}
                         </Button>
                     </div>
                 </form>

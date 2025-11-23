@@ -62,6 +62,7 @@ export const WaterMethodForm = () => {
     const [materialTypes, setMaterialTypes] = useState<MaterialType[]>([]);
     const [materials, setMaterials] = useState<Material[]>([]);
     const [step, setStep] = useState<1 | 2>(1);
+    const [dionicaError, setDionicaError] = useState<string>('');
     const [calculated, setCalculated] = useState<CalculatedResults>({
         waterLoss: 0,
         waterVolumeLoss: 0,
@@ -205,6 +206,10 @@ export const WaterMethodForm = () => {
             finalValue = parseInt(value, 10) || 0;
         }
 
+        if (name === 'dionica' && dionicaError) {
+            setDionicaError('');
+        }
+
         setFormData(prev => ({
             ...prev,
             [name]: finalValue
@@ -214,6 +219,12 @@ export const WaterMethodForm = () => {
     const saveReport = async (shouldRedirect: boolean) => {
         try {
             setLoading(true);
+            if (!formData.dionica?.trim()) {
+                setDionicaError('Dionica is required');
+                setStep(1);
+                setLoading(false);
+                return;
+            }
             // Only save 'satisfies' from calculated - all other fields are display-only
             // Remove id from formData to avoid sending undefined id when creating
             const { id: formId, ...formDataWithoutId } = formData;
@@ -365,6 +376,7 @@ export const WaterMethodForm = () => {
                                         onChange={handleChange}
                                         placeholder="Enter section name"
                                     />
+                                    {dionicaError && <p className="mt-1 text-sm text-destructive">{dionicaError}</p>}
                                     <Select
                                         label="Scheme"
                                         name="draft_id"

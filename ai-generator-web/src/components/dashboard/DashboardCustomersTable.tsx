@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Search, Plus, ChevronDown, ChevronUp } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
+import { useLanguage } from '../../context/LanguageContext';
 
 interface ActiveConstruction {
     id: string;
@@ -22,6 +23,7 @@ export const DashboardCustomersTable = () => {
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
     const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
+    const { t } = useLanguage();
 
     useEffect(() => {
         fetchCustomers();
@@ -103,14 +105,14 @@ export const DashboardCustomersTable = () => {
     return (
         <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-lg shadow-sm overflow-hidden">
             <div className="p-4 border-b border-gray-200 dark:border-slate-700 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <h2 className="text-xl font-bold">Naručitelji</h2>
+                <h2 className="text-xl font-bold">{t('dashboard.customersTable')}</h2>
 
                 <div className="flex items-center gap-2 w-full sm:w-auto">
                     <div className="relative flex-1 sm:flex-initial">
                         <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
                         <input
                             type="text"
-                            placeholder="Search..."
+                            placeholder={t('dashboard.search')}
                             className="pl-9 pr-4 py-2 bg-gray-100 dark:bg-slate-800 border-none rounded-md text-sm w-full sm:w-64 focus:ring-2 focus:ring-blue-500"
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
@@ -121,7 +123,7 @@ export const DashboardCustomersTable = () => {
                         className="flex items-center justify-center bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
                     >
                         <Plus className="h-4 w-4 mr-2" />
-                        Dodaj naručitelja
+                        {t('dashboard.addCustomer')}
                     </Link>
                 </div>
             </div>
@@ -130,19 +132,19 @@ export const DashboardCustomersTable = () => {
                 <table className="w-full text-left text-sm">
                     <thead className="bg-gray-50 dark:bg-slate-800 border-b border-gray-200 dark:border-slate-700">
                         <tr>
-                            <th className="px-6 py-3 font-medium text-gray-500 dark:text-gray-400">Work Order</th>
-                            <th className="px-6 py-3 font-medium text-gray-500 dark:text-gray-400">Naručitelj</th>
-                            <th className="px-6 py-3 font-medium text-gray-500 dark:text-gray-400">Aktivni Radni Nalozi</th>
+                            <th className="px-6 py-3 font-medium text-gray-500 dark:text-gray-400">{t('dashboard.workOrder')}</th>
+                            <th className="px-6 py-3 font-medium text-gray-500 dark:text-gray-400">{t('dashboard.customer')}</th>
+                            <th className="px-6 py-3 font-medium text-gray-500 dark:text-gray-400">{t('dashboard.activeOrders')}</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-200 dark:divide-slate-700">
                         {loading ? (
                             <tr>
-                                <td colSpan={3} className="px-6 py-8 text-center text-gray-500">Loading...</td>
+                                <td colSpan={3} className="px-6 py-8 text-center text-gray-500">{t('dashboard.loading')}</td>
                             </tr>
                         ) : customers.length === 0 ? (
                             <tr>
-                                <td colSpan={3} className="px-6 py-8 text-center text-gray-500">No customers found</td>
+                                <td colSpan={3} className="px-6 py-8 text-center text-gray-500">{t('dashboard.noCustomers')}</td>
                             </tr>
                         ) : (
                             customers.map((customer) => {
@@ -190,19 +192,19 @@ export const DashboardCustomersTable = () => {
                                                             {isExpanded ? (
                                                                 <>
                                                                     <ChevronUp className="h-3 w-3" />
-                                                                    Prikaži manje
+                                                                    {t('dashboard.showLess')}
                                                                 </>
                                                             ) : (
                                                                 <>
                                                                     <ChevronDown className="h-3 w-3" />
-                                                                    Prikaži još {customer.active_constructions.length - 3}
+                                                                    {t('dashboard.showMore')} {customer.active_constructions.length - 3}
                                                                 </>
                                                             )}
                                                         </button>
                                                     )}
                                                 </div>
                                             ) : (
-                                                <span className="text-gray-400 italic text-sm">None</span>
+                                                <span className="text-gray-400 italic text-sm">{t('dashboard.none')}</span>
                                             )}
                                         </td>
                                     </tr>

@@ -6,9 +6,11 @@ import { ExaminerDialog } from '../components/examiners/ExaminerDialog';
 import { examinerService } from '../services/examinerService';
 import type { Profile, ReportType } from '../types';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 
 export const Examiners = () => {
     const { profile } = useAuth();
+    const { t } = useLanguage();
     const [examiners, setExaminers] = useState<Profile[]>([]);
     const [reportTypes, setReportTypes] = useState<ReportType[]>([]);
     const [loading, setLoading] = useState(true);
@@ -43,7 +45,7 @@ export const Examiners = () => {
     };
 
     const handleDelete = async (id: string) => {
-        if (window.confirm('Are you sure you want to remove this examiner?')) {
+        if (window.confirm(t('examiners.removeConfirm'))) {
             await examinerService.deleteExaminer(id);
             await loadData();
         }
@@ -79,9 +81,9 @@ export const Examiners = () => {
             <div className="flex items-center justify-center min-h-[60vh]">
                 <div className="text-center">
                     <Lock className="h-16 w-16 mx-auto text-muted-foreground/50 mb-4" />
-                    <h2 className="text-2xl font-bold text-foreground mb-2">Access Denied</h2>
+                    <h2 className="text-2xl font-bold text-foreground mb-2">{t('examiners.accessDenied')}</h2>
                     <p className="text-muted-foreground">
-                        Only administrators can manage examiners.
+                        {t('examiners.accessDesc')}
                     </p>
                 </div>
             </div>
@@ -92,13 +94,13 @@ export const Examiners = () => {
         <div className="space-y-8">
             <div className="flex justify-between items-center">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight text-foreground">Examiners</h1>
-                    <p className="text-muted-foreground mt-1">Manage examiners and their accreditations.</p>
+                    <h1 className="text-3xl font-bold tracking-tight text-foreground">{t('examiners.title')}</h1>
+                    <p className="text-muted-foreground mt-1">{t('examiners.subtitle')}</p>
                 </div>
                 {isAdmin && (
                     <Button onClick={openNew}>
                         <Plus className="h-4 w-4 mr-2" />
-                        Add Examiner
+                        {t('examiners.add')}
                     </Button>
                 )}
             </div>
@@ -107,7 +109,7 @@ export const Examiners = () => {
                 <div className="relative flex-1 max-w-sm">
                     <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                     <Input
-                        placeholder="Search examiners..."
+                        placeholder={t('examiners.search')}
                         className="pl-9"
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
@@ -121,20 +123,20 @@ export const Examiners = () => {
                         <thead className="bg-muted/50">
                             <tr>
                                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                                    Full Name
+                                    {t('examiners.fullName')}
                                 </th>
                                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                                    Username
+                                    {t('examiners.username')}
                                 </th>
                                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                                    Email
+                                    {t('examiners.email')}
                                 </th>
                                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                                    Accreditations
+                                    {t('examiners.accreditations')}
                                 </th>
                                 {isAdmin && (
                                     <th scope="col" className="relative px-6 py-3">
-                                        <span className="sr-only">Actions</span>
+                                        <span className="sr-only">{t('examiners.actions')}</span>
                                     </th>
                                 )}
                             </tr>
@@ -143,7 +145,7 @@ export const Examiners = () => {
                             {loading ? (
                                 <tr>
                                     <td colSpan={5} className="px-6 py-12 text-center text-muted-foreground">
-                                        Loading...
+                                        {t('examiners.loading')}
                                     </td>
                                 </tr>
                             ) : filteredExaminers.length === 0 ? (
@@ -151,14 +153,14 @@ export const Examiners = () => {
                                     <td colSpan={5} className="px-6 py-12 text-center text-muted-foreground">
                                         <div className="flex flex-col items-center justify-center">
                                             <UserCheck className="h-12 w-12 text-muted-foreground/50 mb-4" />
-                                            <p className="text-lg font-medium text-foreground">No examiners found</p>
+                                            <p className="text-lg font-medium text-foreground">{t('examiners.noneFound')}</p>
                                             <p className="text-sm text-muted-foreground mt-1">
-                                                Add examiners to manage their accreditations and assignments.
+                                                {t('examiners.noneDesc')}
                                             </p>
                                             {isAdmin && (
                                                 <Button onClick={openNew} variant="outline" className="mt-4">
                                                     <Plus className="h-4 w-4 mr-2" />
-                                                    Add Examiner
+                                                    {t('examiners.add')}
                                                 </Button>
                                             )}
                                         </div>

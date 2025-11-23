@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { customerService } from '../services/customerService';
 import { Plus, Search, Pencil, Trash2, Building2, ChevronLeft, ChevronRight, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import type { Customer } from '../types';
+import { useLanguage } from '../context/LanguageContext';
 
 type SortField = 'work_order' | 'name' | 'location' | 'address';
 type SortOrder = 'asc' | 'desc';
@@ -12,6 +13,7 @@ export const Customers = () => {
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [debouncedSearch, setDebouncedSearch] = useState('');
+    const { t } = useLanguage();
 
     // Pagination & Sorting state
     const [currentPage, setCurrentPage] = useState(1);
@@ -53,7 +55,7 @@ export const Customers = () => {
     };
 
     const handleDelete = async (id: string) => {
-        if (window.confirm('Removing this customer will also remove all reports related to it. Do you want to continue?')) {
+        if (window.confirm(t('customers.deleteConfirm'))) {
             try {
                 await customerService.delete(id);
                 // Reload to update list and counts
@@ -97,13 +99,13 @@ export const Customers = () => {
     return (
         <div className="space-y-6">
             <div className="flex justify-between items-center">
-                <h1 className="text-2xl font-bold text-foreground">Customers</h1>
+                <h1 className="text-2xl font-bold text-foreground">{t('customers.title')}</h1>
                 <Link
                     to="/customers/new"
                     className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-primary-foreground bg-primary hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring transition-colors"
                 >
                     <Plus className="h-5 w-5 mr-2" />
-                    New Customer
+                    {t('customers.new')}
                 </Link>
             </div>
 
@@ -116,7 +118,7 @@ export const Customers = () => {
                         <input
                             type="text"
                             className="focus:ring-2 focus:ring-ring focus:border-input block w-full pl-10 sm:text-sm border-input bg-background text-foreground placeholder-muted-foreground rounded-md"
-                            placeholder="Search customers..."
+                            placeholder={t('customers.search')}
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                         />
@@ -127,24 +129,24 @@ export const Customers = () => {
                     <table className="min-w-full divide-y divide-border">
                         <thead className="bg-muted/50">
                             <tr>
-                                <TableHeader field="work_order" label="Work Order" />
-                                <TableHeader field="name" label="Name" />
-                                <TableHeader field="location" label="Location" />
-                                <TableHeader field="address" label="Address" />
-                                <th className="px-6 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">Actions</th>
+                                <TableHeader field="work_order" label={t('customers.workOrder')} />
+                                <TableHeader field="name" label={t('customers.name')} />
+                                <TableHeader field="location" label={t('customers.location')} />
+                                <TableHeader field="address" label={t('customers.address')} />
+                                <th className="px-6 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">{t('customers.actions')}</th>
                             </tr>
                         </thead>
                         <tbody className="bg-card divide-y divide-border">
                             {loading ? (
                                 <tr>
                                     <td colSpan={5} className="px-6 py-4 text-center text-sm text-muted-foreground">
-                                        Loading...
+                                        {t('customers.loading')}
                                     </td>
                                 </tr>
                             ) : customers.length === 0 ? (
                                 <tr>
                                     <td colSpan={5} className="px-6 py-4 text-center text-sm text-muted-foreground">
-                                        No customers found.
+                                        {t('customers.none')}
                                     </td>
                                 </tr>
                             ) : (
@@ -166,21 +168,21 @@ export const Customers = () => {
                                             <Link
                                                 to={`/customers/${customer.id}/constructions`}
                                                 className="text-muted-foreground hover:text-foreground inline-flex items-center transition-colors"
-                                                title="View Constructions"
+                                                title={t('customers.viewConstructions')}
                                             >
                                                 <Building2 className="h-4 w-4" />
                                             </Link>
                                             <Link
                                                 to={`/customers/${customer.id}`}
                                                 className="text-primary hover:text-primary/80 inline-flex items-center transition-colors"
-                                                title="Edit"
+                                                title={t('customers.edit')}
                                             >
                                                 <Pencil className="h-4 w-4" />
                                             </Link>
                                             <button
                                                 onClick={() => handleDelete(customer.id)}
                                                 className="text-destructive hover:text-destructive/80 inline-flex items-center transition-colors"
-                                                title="Delete"
+                                                title={t('customers.actions')}
                                             >
                                                 <Trash2 className="h-4 w-4" />
                                             </button>
@@ -196,25 +198,25 @@ export const Customers = () => {
                 <div className="bg-card px-4 py-3 border-t border-border sm:px-6">
                     <div className="flex items-center justify-between">
                         <div className="flex-1 flex justify-between sm:hidden">
-                            <button
-                                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                                disabled={currentPage === 1}
-                                className="relative inline-flex items-center px-4 py-2 border border-input text-sm font-medium rounded-md text-foreground bg-card hover:bg-accent disabled:opacity-50 transition-colors"
-                            >
-                                Previous
-                            </button>
-                            <button
-                                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                                disabled={currentPage === totalPages}
-                                className="ml-3 relative inline-flex items-center px-4 py-2 border border-input text-sm font-medium rounded-md text-foreground bg-card hover:bg-accent disabled:opacity-50 transition-colors"
-                            >
-                                Next
-                            </button>
-                        </div>
+                                    <button
+                                        onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                                        disabled={currentPage === 1}
+                                        className="relative inline-flex items-center px-4 py-2 border border-input text-sm font-medium rounded-md text-foreground bg-card hover:bg-accent disabled:opacity-50 transition-colors"
+                                    >
+                                        {t('customers.prev')}
+                                    </button>
+                                    <button
+                                        onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                                        disabled={currentPage === totalPages}
+                                        className="ml-3 relative inline-flex items-center px-4 py-2 border border-input text-sm font-medium rounded-md text-foreground bg-card hover:bg-accent disabled:opacity-50 transition-colors"
+                                    >
+                                        {t('customers.next')}
+                                    </button>
+                                </div>
                         <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
                             <div>
                                 <p className="text-sm text-foreground">
-                                    Showing <span className="font-medium">{((currentPage - 1) * pageSize) + 1}</span> to <span className="font-medium">{Math.min(currentPage * pageSize, totalCount)}</span> of <span className="font-medium">{totalCount}</span> results
+                                    {t('customers.showing')} <span className="font-medium">{((currentPage - 1) * pageSize) + 1}</span> {t('customers.to')} <span className="font-medium">{Math.min(currentPage * pageSize, totalCount)}</span> {t('customers.of')} <span className="font-medium">{totalCount}</span> {t('customers.results')}
                                 </p>
                             </div>
                             <div>
@@ -224,7 +226,7 @@ export const Customers = () => {
                                         disabled={currentPage === 1}
                                         className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-input bg-card text-sm font-medium text-muted-foreground hover:bg-accent disabled:opacity-50 transition-colors"
                                     >
-                                        <span className="sr-only">Previous</span>
+                                        <span className="sr-only">{t('customers.prev')}</span>
                                         <ChevronLeft className="h-5 w-5" aria-hidden="true" />
                                     </button>
 
@@ -258,7 +260,7 @@ export const Customers = () => {
                                         disabled={currentPage === totalPages}
                                         className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-input bg-card text-sm font-medium text-muted-foreground hover:bg-accent disabled:opacity-50 transition-colors"
                                     >
-                                        <span className="sr-only">Next</span>
+                                        <span className="sr-only">{t('customers.next')}</span>
                                         <ChevronRight className="h-5 w-5" aria-hidden="true" />
                                     </button>
                                 </nav>

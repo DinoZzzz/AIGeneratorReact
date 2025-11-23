@@ -5,6 +5,7 @@ import { customerService } from '../services/customerService';
 import { Plus, Pencil, Trash2, ArrowLeft, Loader2, FileText } from 'lucide-react';
 import type { Construction, Customer } from '../types';
 import { Breadcrumbs } from '../components/ui/Breadcrumbs';
+import { useLanguage } from '../context/LanguageContext';
 
 export const Constructions = () => {
     const { customerId } = useParams();
@@ -13,6 +14,7 @@ export const Constructions = () => {
     const [customer, setCustomer] = useState<Customer | null>(null);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
+    const { t } = useLanguage();
 
     useEffect(() => {
         if (customerId) {
@@ -38,7 +40,7 @@ export const Constructions = () => {
     };
 
     const handleDelete = async (id: string) => {
-        if (window.confirm('Are you sure you want to delete this construction site? This will also delete all associated reports.')) {
+        if (window.confirm(t('constructions.deleteConfirm'))) {
             try {
                 await constructionService.delete(id);
                 if (customerId) {
@@ -72,9 +74,9 @@ export const Constructions = () => {
     return (
         <div className="space-y-6">
             <Breadcrumbs items={[
-                { label: 'Customers', path: '/customers' },
+                { label: t('customers.title'), path: '/customers' },
                 { label: customer.name, path: '/customers' },
-                { label: 'Constructions' }
+                { label: t('constructions.title') }
             ]} />
 
             <div className="flex items-center justify-between">
@@ -86,8 +88,8 @@ export const Constructions = () => {
                         <ArrowLeft className="h-6 w-6" />
                     </button>
                     <div>
-                        <h1 className="text-2xl font-bold text-foreground">Construction Sites</h1>
-                        <p className="text-sm text-muted-foreground">for {customer.name}</p>
+                        <h1 className="text-2xl font-bold text-foreground">{t('constructions.title')}</h1>
+                        <p className="text-sm text-muted-foreground">{t('constructions.for')} {customer.name}</p>
                     </div>
                 </div>
                 <Link
@@ -95,7 +97,7 @@ export const Constructions = () => {
                     className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-primary-foreground bg-primary hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring"
                 >
                     <Plus className="h-5 w-5 mr-2" />
-                    New Construction
+                    {t('constructions.new')}
                 </Link>
             </div>
 
@@ -103,7 +105,7 @@ export const Constructions = () => {
                 <div className="p-4 border-b border-border">
                     <input
                         type="text"
-                        placeholder="Search constructions..."
+                        placeholder={t('constructions.search')}
                         className="w-full px-4 py-2 border border-input rounded-md bg-background text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-ring focus:border-ring"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
@@ -113,10 +115,10 @@ export const Constructions = () => {
                 <table className="min-w-full divide-y divide-border">
                     <thead className="bg-muted/50">
                         <tr>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Work Order</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Name</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Location</th>
-                            <th className="px-6 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">Actions</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">{t('constructions.workOrder')}</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">{t('constructions.name')}</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">{t('constructions.location')}</th>
+                            <th className="px-6 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">{t('constructions.actions')}</th>
                         </tr>
                     </thead>
                     <tbody className="bg-card divide-y divide-border">
@@ -135,21 +137,21 @@ export const Constructions = () => {
                                     <Link
                                         to={`/customers/${customerId}/constructions/${construction.id}/reports`}
                                         className="text-green-600 hover:text-green-700 inline-flex items-center"
-                                        title="View Reports"
+                                        title={t('constructions.viewReports')}
                                     >
                                         <FileText className="h-4 w-4" />
                                     </Link>
                                     <Link
                                         to={`/customers/${customerId}/constructions/${construction.id}`}
                                         className="text-primary hover:text-primary/80 inline-flex items-center"
-                                        title="Edit"
+                                        title={t('constructions.edit')}
                                     >
                                         <Pencil className="h-4 w-4" />
                                     </Link>
                                     <button
                                         onClick={() => handleDelete(construction.id)}
                                         className="text-destructive hover:text-destructive/80 inline-flex items-center"
-                                        title="Delete"
+                                        title={t('constructions.delete')}
                                     >
                                         <Trash2 className="h-4 w-4" />
                                     </button>
@@ -159,7 +161,7 @@ export const Constructions = () => {
                         {filteredConstructions.length === 0 && (
                             <tr>
                                 <td colSpan={4} className="px-6 py-4 text-center text-sm text-muted-foreground">
-                                    No construction sites found.
+                                    {t('constructions.none')}
                                 </td>
                             </tr>
                         )}

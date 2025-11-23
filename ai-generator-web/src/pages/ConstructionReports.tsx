@@ -12,11 +12,13 @@ import { ExportDialog } from '../components/ExportDialog';
 import type { ExportMetaData } from '../components/ExportDialog';
 import { Breadcrumbs } from '../components/ui/Breadcrumbs';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 
 export const ConstructionReports = () => {
     const { customerId, constructionId } = useParams();
     const navigate = useNavigate();
     const { user, profile } = useAuth();
+    const { t } = useLanguage();
     const [reports, setReports] = useState<ReportForm[]>([]);
     const [construction, setConstruction] = useState<Construction | null>(null);
     const [customer, setCustomer] = useState<Customer | null>(null);
@@ -212,7 +214,7 @@ export const ConstructionReports = () => {
     }
 
     if (!customer || !construction) {
-        return <div>Data not found</div>;
+        return <div>{t('reports.noData')}</div>;
     }
 
     return (
@@ -223,27 +225,27 @@ export const ConstructionReports = () => {
                 </div>
             )}
             <Breadcrumbs items={[
-                { label: 'Customers', path: '/customers' },
+                { label: t('customers.title'), path: '/customers' },
                 { label: customer.name, path: `/customers` },
                 { label: construction.name, path: `/customers/${customerId}/constructions` },
-                { label: 'Reports' }
+                { label: t('reports.title') }
             ]} />
 
             <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-4">
-                    <button
-                        onClick={() => navigate(`/customers/${customerId}/constructions`)}
-                        className="p-2 rounded-full hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
-                    >
-                        <ArrowLeft className="h-6 w-6" />
-                    </button>
-                    <div>
-                        <h1 className="text-2xl font-bold text-foreground">Reports</h1>
-                        <p className="text-sm text-muted-foreground">
-                            for {construction.name} ({construction.work_order}) - {customer.name}
-                        </p>
+                    <div className="flex items-center space-x-4">
+                        <button
+                            onClick={() => navigate(`/customers/${customerId}/constructions`)}
+                            className="p-2 rounded-full hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
+                        >
+                            <ArrowLeft className="h-6 w-6" />
+                        </button>
+                        <div>
+                            <h1 className="text-2xl font-bold text-foreground">{t('reports.title')}</h1>
+                            <p className="text-sm text-muted-foreground">
+                                {t('constructions.for')} {construction.name} ({construction.work_order}) - {customer.name}
+                            </p>
+                        </div>
                     </div>
-                </div>
                 <div className="flex space-x-3">
                     {selectedIds.size > 0 && (
                         <button
@@ -251,7 +253,7 @@ export const ConstructionReports = () => {
                             className="inline-flex items-center px-4 py-2 border border-destructive/40 rounded-md shadow-sm text-sm font-medium text-destructive bg-transparent hover:bg-destructive/10 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-destructive transition-colors"
                         >
                             <Trash2 className="h-5 w-5 mr-2" />
-                            Delete Selected ({selectedIds.size})
+                            {t('reports.deleteSelected')} ({selectedIds.size})
                         </button>
                     )}
                     <div className="relative inline-block text-left">
@@ -262,7 +264,7 @@ export const ConstructionReports = () => {
                             className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-primary-foreground bg-primary hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             <Plus className="h-5 w-5 mr-2" />
-                            New Report
+                            {t('reports.newReport')}
                         </button>
                         {isNewReportOpen && (
                             <div className="absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-card border border-border shadow-border/40 focus:outline-none z-50">
@@ -307,14 +309,14 @@ export const ConstructionReports = () => {
                         className="inline-flex items-center px-4 py-2 border border-input rounded-md shadow-sm text-sm font-medium text-foreground bg-card hover:bg-accent focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring transition-colors"
                     >
                         <FileText className="h-5 w-5 mr-2 text-muted-foreground" />
-                        Generate Reports
+                        {t('reports.generateReports')}
                     </button>
                     <button
                         onClick={handleBulkExport}
                         className="inline-flex items-center px-4 py-2 border border-input rounded-md shadow-sm text-sm font-medium text-foreground bg-card hover:bg-accent focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring transition-colors"
                     >
                         <FileDown className="h-5 w-5 mr-2 text-muted-foreground" />
-                        {selectedIds.size > 0 ? `Export Selected (${selectedIds.size})` : 'Export All'}
+                        {selectedIds.size > 0 ? `${t('reports.exportSelected')} (${selectedIds.size})` : t('reports.exportAll')}
                     </button>
                 </div>
             </div>
@@ -344,12 +346,12 @@ export const ConstructionReports = () => {
                                 />
                             </th>
                             <th className="w-10 px-6 py-3"></th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Date</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Type</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Dionica</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Draft</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Status</th>
-                            <th className="px-6 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">Actions</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">{t('reports.date')}</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">{t('reports.type')}</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">{t('reports.dionica')}</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">{t('reports.draft')}</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">{t('reports.status')}</th>
+                            <th className="px-6 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">{t('reports.actions')}</th>
                         </tr>
                     </thead>
                     <tbody className="bg-card divide-y divide-border">
@@ -392,14 +394,14 @@ export const ConstructionReports = () => {
                                             ? "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400"
                                             : "bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-400"
                                     )}>
-                                        {report.satisfies ? 'Satisfies' : 'Failed'}
+                                        {report.satisfies ? t('reports.satisfies') : t('reports.failed')}
                                     </span>
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-3">
                                     <button
                                         onClick={() => handleExportPDF(report)}
                                         className="text-muted-foreground hover:text-foreground inline-flex items-center"
-                                        title="Export PDF"
+                                        title={t('reports.exportPdf')}
                                     >
                                         <FileDown className="h-4 w-4" />
                                     </button>
@@ -409,14 +411,14 @@ export const ConstructionReports = () => {
                                             : `/customers/${customerId}/constructions/${constructionId}/reports/air/${report.id}`
                                         }
                                         className="text-primary hover:text-primary/80 inline-flex items-center"
-                                        title="Edit"
+                                        title={t('reports.edit')}
                                     >
                                         <Pencil className="h-4 w-4" />
                                     </Link>
                                     <button
                                         onClick={() => report.id && handleDelete(report.id)}
                                         className="text-destructive hover:text-destructive/80 inline-flex items-center"
-                                        title="Delete"
+                                        title={t('reports.delete')}
                                     >
                                         <Trash2 className="h-4 w-4" />
                                     </button>
@@ -426,7 +428,7 @@ export const ConstructionReports = () => {
                         {reports.length === 0 && (
                             <tr>
                                 <td colSpan={7} className="px-6 py-4 text-center text-sm text-muted-foreground">
-                                    No reports found for this construction site.
+                                    {t('reports.noData')}
                                 </td>
                             </tr>
                         )}

@@ -4,11 +4,13 @@ import { Users, HardHat, FileText, ArrowUpRight } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { cn } from '../lib/utils';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 import { DashboardStats } from '../components/dashboard/DashboardStats';
 import { DashboardCustomersTable } from '../components/dashboard/DashboardCustomersTable';
 
 export const Dashboard = () => {
     const { user } = useAuth();
+    const { t } = useLanguage();
     const [stats, setStats] = useState({
         customers: 0,
         constructions: 0,
@@ -47,7 +49,7 @@ export const Dashboard = () => {
     };
 
     if (loading) {
-        return <div className="flex justify-center p-8">Loading...</div>;
+        return <div className="flex justify-center p-8">{t('dashboard.loading')}</div>;
     }
 
     return (
@@ -55,15 +57,15 @@ export const Dashboard = () => {
             {/* Welcome Header */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
-                    <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-foreground">Pozdrav, {getUserName()}</h1>
-                    <p className="text-lg text-muted-foreground mt-1">Vaš generator je spreman.</p>
+                    <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-foreground">{t('dashboard.welcome')}, {getUserName()}</h1>
+                    <p className="text-lg text-muted-foreground mt-1">{t('dashboard.ready')}</p>
                 </div>
             </div>
 
             {/* Stats Grid (Summary Cards) */}
             <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
                 <StatsCard
-                    title="Total Customers"
+                    title={t('dashboard.totalCustomers')}
                     value={stats.customers}
                     icon={Users}
                     href="/customers"
@@ -71,14 +73,14 @@ export const Dashboard = () => {
                     bgColor="bg-blue-100"
                 />
                 <StatsCard
-                    title="Active Sites"
+                    title={t('dashboard.activeSites')}
                     value={stats.constructions}
                     icon={HardHat}
                     color="text-amber-600"
                     bgColor="bg-amber-100"
                 />
                 <StatsCard
-                    title="Total Reports"
+                    title={t('dashboard.totalReports')}
                     value={stats.reports}
                     icon={FileText}
                     href="/reports"
