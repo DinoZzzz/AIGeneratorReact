@@ -276,7 +276,7 @@ export const ConstructionReports = () => {
                                             role="menuitem"
                                             onClick={() => setIsNewReportOpen(false)}
                                         >
-                                            Water Method
+                                            {t('reports.waterMethod')}
                                         </Link>
                                     )}
                                     {hasAirAccreditation && (
@@ -286,7 +286,7 @@ export const ConstructionReports = () => {
                                             role="menuitem"
                                             onClick={() => setIsNewReportOpen(false)}
                                         >
-                                            Air Method
+                                            {t('reports.airMethod')}
                                         </Link>
                                     )}
                                     {!hasAnyAccreditation && (

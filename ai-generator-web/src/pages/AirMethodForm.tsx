@@ -12,6 +12,7 @@ import { generatePDF } from '../lib/pdfGenerator';
 import type { ReportForm, ExaminationProcedure, ReportDraft, MaterialType } from '../types';
 import { cn } from '../lib/utils';
 import { calculateRequiredTestTime } from '../lib/calculations/testTime';
+import { useLanguage } from '../context/LanguageContext';
 
 // Initial empty state
 const initialState: Partial<ReportForm> = {
@@ -44,6 +45,7 @@ interface CalculatedResults {
 export const AirMethodForm = () => {
     const { id, customerId, constructionId } = useParams();
     const navigate = useNavigate();
+    const { t } = useLanguage();
     const [loading, setLoading] = useState(false);
     const [formData, setFormData] = useState<Partial<ReportForm>>(initialState);
     const [procedures, setProcedures] = useState<ExaminationProcedure[]>([]);
@@ -77,11 +79,11 @@ export const AirMethodForm = () => {
             setFormData(data);
         } catch (error) {
             console.error('Error loading report:', error);
-            alert('Failed to load report');
+            alert(t('reports.form.loadError'));
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [t]);
 
     useEffect(() => {
         loadLookups();
@@ -174,7 +176,7 @@ export const AirMethodForm = () => {
                 setStep(1);
                 navigate(`/customers/${customerId}/constructions/${constructionId}/reports/new/air`);
                 // We use a toast or alert here, ideally ToastContext
-                alert('Report saved. Ready for next entry.');
+                alert(t('reports.form.saveSuccess'));
             } else {
                 if (customerId && constructionId) {
                     navigate(`/customers/${customerId}/constructions/${constructionId}/reports`);
@@ -184,7 +186,7 @@ export const AirMethodForm = () => {
             }
         } catch (error) {
             console.error('Error saving report:', error);
-            alert('Failed to save report');
+            alert(t('reports.form.saveError'));
         } finally {
             setLoading(false);
         }
@@ -233,10 +235,10 @@ export const AirMethodForm = () => {
                     </Button>
                     <div>
                         <h1 className="text-2xl font-bold text-foreground">
-                            {id === 'new' ? 'New Air Test Report' : 'Edit Report'}
+                            {id === 'new' ? t('reports.form.airTitleNew') : t('reports.form.editTitle')}
                         </h1>
                         <p className="text-sm text-muted-foreground">
-                            {step === 1 ? 'Step 1: Parameters & Dimensions' : 'Step 2: Measurements & Results'}
+                            {step === 1 ? t('reports.form.step1Desc') : t('reports.form.step2Desc')}
                         </p>
                     </div>
                 </div>
@@ -245,11 +247,11 @@ export const AirMethodForm = () => {
                         <>
                             <Button variant="outline" onClick={() => generatePDF(formData)}>
                                 <FileDown className="h-4 w-4 mr-2" />
-                                Export PDF
+                                {t('reports.form.exportPdf')}
                             </Button>
                             <Button variant="outline" onClick={handleSaveAndNew}>
                                 <Plus className="h-4 w-4 mr-2" />
-                                Save & New
+                                {t('reports.form.saveAndNew')}
                             </Button>
                         </>
                     )}
@@ -257,7 +259,7 @@ export const AirMethodForm = () => {
             </div>
 
             <Stepper
-                steps={['Parameters', 'Measurements']}
+                steps={[t('reports.form.stepper.parameters'), t('reports.form.stepper.measurements')]}
                 currentStep={step - 1}
                 onStepClick={(s) => setStep((s + 1) as 1 | 2)}
             />
@@ -267,28 +269,28 @@ export const AirMethodForm = () => {
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                         <div className="lg:col-span-3 grid grid-cols-1 md:grid-cols-3 gap-6">
                             <div className="bg-card shadow-sm rounded-xl border border-border p-6">
-                                <h3 className="text-lg font-semibold text-foreground mb-4">General Info</h3>
+                                <h3 className="text-lg font-semibold text-foreground mb-4">{t('reports.form.generalInfo')}</h3>
                                 <div className="space-y-4">
                                     <Select
-                                        label="Examination Procedure"
+                                        label={t('reports.form.examProcedure')}
                                         name="examination_procedure_id"
                                         value={formData.examination_procedure_id}
                                         onChange={handleChange}
                                     >
-                                        <option value="">Select procedure</option>
+                                        <option value="">{t('reports.form.selectProcedure')}</option>
                                         {procedures.map(p => (
                                             <option key={p.id} value={p.id}>{p.name}</option>
                                         ))}
                                     </Select>
                                     <Input
-                                        label="Examination Date"
+                                        label={t('reports.form.examDate')}
                                         type="date"
                                         name="examination_date"
                                         value={formData.examination_date}
                                         onChange={handleChange}
                                     />
                                     <Input
-                                        label="Temperature (°C)"
+                                        label={t('reports.form.temperature')}
                                         type="number"
                                         step="0.1"
                                         name="temperature"
@@ -299,26 +301,26 @@ export const AirMethodForm = () => {
                             </div>
 
                             <div className="bg-card shadow-sm rounded-xl border border-border p-6">
-                                <h3 className="text-lg font-semibold text-foreground mb-4">Structure Type</h3>
+                                <h3 className="text-lg font-semibold text-foreground mb-4">{t('reports.form.structureType')}</h3>
                                 <div className="space-y-4">
                                     <Select
-                                        label="Draft Type"
+                                        label={t('reports.form.draftType')}
                                         name="draft_id"
                                         value={formData.draft_id}
                                         onChange={handleChange}
                                     >
-                                        {drafts.length === 0 && <option value={1}>Shaft only</option>}
+                                        {drafts.length === 0 && <option value={1}>{t('reports.form.shaftOnly')}</option>}
                                         {drafts.map(d => (
                                             <option key={d.id} value={d.id}>{d.name}</option>
                                         ))}
                                     </Select>
                                     <Select
-                                        label="Material Type"
+                                        label={t('reports.form.materialType')}
                                         name="material_type_id"
                                         value={formData.material_type_id}
                                         onChange={handleChange}
                                     >
-                                        {materialTypes.length === 0 && <option value={1}>Round</option>}
+                                        {materialTypes.length === 0 && <option value={1}>{t('reports.form.round')}</option>}
                                         {materialTypes.map(m => (
                                             <option key={m.id} value={m.id}>{m.name}</option>
                                         ))}
@@ -327,11 +329,11 @@ export const AirMethodForm = () => {
                             </div>
 
                             <div className="bg-card shadow-sm rounded-xl border border-border p-6">
-                                <h3 className="text-lg font-semibold text-foreground mb-4">Dimensions</h3>
+                                <h3 className="text-lg font-semibold text-foreground mb-4">{t('reports.form.dimensions')}</h3>
                                 <div className="space-y-4">
                                     {isShaftRound && (
                                         <Input
-                                            label="Pane Diameter (m)"
+                                            label={t('reports.form.paneDiameterM')}
                                             type="number"
                                             step="0.01"
                                             name="pane_diameter"
@@ -342,7 +344,7 @@ export const AirMethodForm = () => {
                                     {isShaftRectangular && (
                                         <>
                                             <Input
-                                                label="Pane Width (m)"
+                                                label={t('reports.form.paneWidthM')}
                                                 type="number"
                                                 step="0.01"
                                                 name="pane_width"
@@ -350,7 +352,7 @@ export const AirMethodForm = () => {
                                                 onChange={handleChange}
                                             />
                                             <Input
-                                                label="Pane Length (m)"
+                                                label={t('reports.form.paneLengthM')}
                                                 type="number"
                                                 step="0.01"
                                                 name="pane_length"
@@ -362,7 +364,7 @@ export const AirMethodForm = () => {
                                     {showPipeFields && (
                                         <>
                                             <Input
-                                                label="Pipe Diameter (m)"
+                                                label={t('reports.form.pipeDiameterM')}
                                                 type="number"
                                                 step="0.01"
                                                 name="pipe_diameter"
@@ -370,7 +372,7 @@ export const AirMethodForm = () => {
                                                 onChange={handleChange}
                                             />
                                             <Input
-                                                label="Pipe Length (m)"
+                                                label={t('reports.form.pipeLengthM')}
                                                 type="number"
                                                 step="0.01"
                                                 name="pipe_length"
@@ -385,7 +387,7 @@ export const AirMethodForm = () => {
 
                         <div className="lg:col-span-3 flex justify-end">
                             <Button type="button" onClick={() => setStep(2)} size="lg">
-                                Next Step <ArrowRight className="ml-2 h-5 w-5" />
+                                {t('reports.form.nextStep')} <ArrowRight className="ml-2 h-5 w-5" />
                             </Button>
                         </div>
                     </div>
@@ -395,10 +397,10 @@ export const AirMethodForm = () => {
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                         <div className="lg:col-span-2 space-y-6">
                             <div className="bg-card shadow-sm rounded-xl border border-border p-6">
-                                <h3 className="text-lg font-semibold text-foreground mb-4">Pressure & Time</h3>
+                                <h3 className="text-lg font-semibold text-foreground mb-4">{t('reports.form.pressureTime')}</h3>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <Input
-                                        label="Start Pressure (mbar)"
+                                        label={t('reports.form.startPressure')}
                                         type="number"
                                         step="0.01"
                                         name="pressure_start"
@@ -406,7 +408,7 @@ export const AirMethodForm = () => {
                                         onChange={handleChange}
                                     />
                                     <Input
-                                        label="End Pressure (mbar)"
+                                        label={t('reports.form.endPressure')}
                                         type="number"
                                         step="0.01"
                                         name="pressure_end"
@@ -414,14 +416,14 @@ export const AirMethodForm = () => {
                                         onChange={handleChange}
                                     />
                                     <Input
-                                        label="Start Time"
+                                        label={t('reports.form.startTime')}
                                         type="time"
                                         name="examination_start_time"
                                         value={formData.examination_start_time}
                                         onChange={handleChange}
                                     />
                                     <Input
-                                        label="End Time"
+                                        label={t('reports.form.endTime')}
                                         type="time"
                                         name="examination_end_time"
                                         value={formData.examination_end_time}
@@ -431,26 +433,26 @@ export const AirMethodForm = () => {
                             </div>
 
                             <div className="bg-card shadow-sm rounded-xl border border-border p-6">
-                                <h3 className="text-lg font-semibold text-foreground mb-4">Remarks</h3>
+                                <h3 className="text-lg font-semibold text-foreground mb-4">{t('reports.form.remarksSection')}</h3>
                                 <div className="space-y-4">
                                     <div>
-                                        <label className="text-sm font-medium mb-1 block">Remark</label>
+                                        <label className="text-sm font-medium mb-1 block">{t('reports.form.remarkLabel')}</label>
                                         <textarea
                                             name="remark"
                                             value={formData.remark || ''}
                                             onChange={handleChange}
                                             className="w-full min-h-[80px] rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                                            placeholder="Enter any remarks..."
+                                            placeholder={t('reports.form.remarkPlaceholder')}
                                         />
                                     </div>
                                     <div>
-                                        <label className="text-sm font-medium mb-1 block">Deviation</label>
+                                        <label className="text-sm font-medium mb-1 block">{t('reports.form.deviationLabel')}</label>
                                         <textarea
                                             name="deviation"
                                             value={formData.deviation || ''}
                                             onChange={handleChange}
                                             className="w-full min-h-[80px] rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                                            placeholder="Enter any deviations from standard..."
+                                            placeholder={t('reports.form.deviationPlaceholder')}
                                         />
                                     </div>
                                 </div>
@@ -458,12 +460,12 @@ export const AirMethodForm = () => {
 
                             <div className="flex justify-between pt-4">
                                 <Button type="button" variant="outline" onClick={() => setStep(1)} size="lg">
-                                    <ChevronLeft className="mr-2 h-5 w-5" /> Previous Step
+                                    <ChevronLeft className="mr-2 h-5 w-5" /> {t('reports.form.prevStep')}
                                 </Button>
                                 <div className="flex space-x-3">
                                     <Button type="submit" size="lg">
                                         <Save className="mr-2 h-4 w-4" />
-                                        Save Report
+                                        {t('reports.form.saveReport')}
                                     </Button>
                                 </div>
                             </div>
@@ -471,7 +473,7 @@ export const AirMethodForm = () => {
 
                         <div className="lg:col-span-1">
                             <div className="bg-card shadow-sm rounded-xl border border-border p-6 sticky top-6">
-                                <h3 className="text-lg font-semibold text-foreground mb-6">Calculated Results</h3>
+                                <h3 className="text-lg font-semibold text-foreground mb-6">{t('reports.form.calculatedResults')}</h3>
 
                                 <div className="space-y-6">
                                     <div className={cn(
@@ -483,22 +485,22 @@ export const AirMethodForm = () => {
                                         <span className={cn(
                                             "text-sm font-medium uppercase tracking-wider mb-1",
                                             calculated.satisfies ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"
-                                        )}>Status</span>
+                                        )}>{t('reports.form.status')}</span>
                                         <span className={cn(
                                             "text-2xl font-bold",
                                             calculated.satisfies ? "text-green-700 dark:text-green-300" : "text-red-700 dark:text-red-300"
                                         )}>
-                                            {calculated.satisfies ? 'SATISFIES' : 'FAILED'}
+                                            {calculated.satisfies ? t('reports.form.satisfies') : t('reports.form.failed')}
                                         </span>
                                     </div>
 
                                     <div className="space-y-4">
-                                        <ResultRow label="Pressure Loss" value={`${calculated.pressureLoss.toFixed(2)} mbar`} />
+                                        <ResultRow label={t('reports.form.pressureLoss')} value={`${calculated.pressureLoss.toFixed(2)} mbar`} />
                                         <div className="pt-4 border-t border-border">
-                                            <ResultRow label="Allowed Loss" value={`${calculated.allowedLoss.toFixed(2)} mbar`} highlight />
+                                            <ResultRow label={t('reports.form.allowedLoss')} value={`${calculated.allowedLoss.toFixed(2)} mbar`} highlight />
                                         </div>
                                         <div className="pt-4 border-t border-border">
-                                            <ResultRow label="Required Time" value={`${calculated.requiredTestTime.toFixed(0)} min`} />
+                                            <ResultRow label={t('reports.form.requiredTime')} value={`${calculated.requiredTestTime.toFixed(0)} min`} />
                                         </div>
                                     </div>
                                 </div>

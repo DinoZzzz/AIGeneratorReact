@@ -11,6 +11,7 @@ import * as calc from '../lib/calculations/report';
 import { generatePDF } from '../lib/pdfGenerator';
 import type { ReportForm, ReportDraft, MaterialType, Material } from '../types';
 import { cn } from '../lib/utils';
+import { useLanguage } from '../context/LanguageContext';
 
 // Initial empty state
 const initialState: Partial<ReportForm> = {
@@ -56,6 +57,7 @@ interface CalculatedResults {
 export const WaterMethodForm = () => {
     const { id, customerId, constructionId } = useParams();
     const navigate = useNavigate();
+    const { t } = useLanguage();
     const [loading, setLoading] = useState(false);
     const [formData, setFormData] = useState<Partial<ReportForm>>(initialState);
     const [drafts, setDrafts] = useState<ReportDraft[]>([]);
@@ -95,11 +97,11 @@ export const WaterMethodForm = () => {
             setFormData(data);
         } catch (error) {
             console.error('Error loading report:', error);
-            alert('Failed to load report');
+            alert(t('reports.form.loadError'));
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [t]);
 
     useEffect(() => {
         loadLookups();
@@ -220,7 +222,7 @@ export const WaterMethodForm = () => {
         try {
             setLoading(true);
             if (!formData.dionica?.trim()) {
-                setDionicaError('Dionica is required');
+                setDionicaError(t('reports.form.dionicaRequired'));
                 setStep(1);
                 setLoading(false);
                 return;
@@ -251,7 +253,7 @@ export const WaterMethodForm = () => {
                 });
                 setStep(1);
                 navigate(`/customers/${customerId}/constructions/${constructionId}/reports/new/water`);
-                alert('Report saved. Ready for next entry.');
+                alert(t('reports.form.saveSuccess'));
             } else {
                 if (customerId && constructionId) {
                     navigate(`/customers/${customerId}/constructions/${constructionId}/reports`);
@@ -261,7 +263,7 @@ export const WaterMethodForm = () => {
             }
         } catch (error) {
             console.error('Error saving report:', error);
-            alert('Failed to save report');
+            alert(t('reports.form.saveError'));
         } finally {
             setLoading(false);
         }
@@ -311,10 +313,10 @@ export const WaterMethodForm = () => {
                     </Button>
                     <div>
                         <h1 className="text-2xl font-bold text-foreground">
-                            {id === 'new' ? 'New Water Test Report' : 'Edit Report'}
+                            {id === 'new' ? t('reports.form.waterTitleNew') : t('reports.form.editTitle')}
                         </h1>
                         <p className="text-sm text-muted-foreground">
-                            {step === 1 ? 'Step 1: Parameters & Dimensions' : 'Step 2: Measurements & Results'}
+                            {step === 1 ? t('reports.form.step1Desc') : t('reports.form.step2Desc')}
                         </p>
                     </div>
                 </div>
@@ -323,11 +325,11 @@ export const WaterMethodForm = () => {
                         <>
                             <Button variant="outline" onClick={() => generatePDF(formData)}>
                                 <FileDown className="h-4 w-4 mr-2" />
-                                Export PDF
+                                {t('reports.form.exportPdf')}
                             </Button>
                             <Button variant="outline" onClick={handleSaveAndNew}>
                                 <Plus className="h-4 w-4 mr-2" />
-                                Save & New
+                                {t('reports.form.saveAndNew')}
                             </Button>
                         </>
                     )}
@@ -335,7 +337,7 @@ export const WaterMethodForm = () => {
             </div>
 
             <Stepper
-                steps={['Parameters', 'Measurements']}
+                steps={[t('reports.form.stepper.parameters'), t('reports.form.stepper.measurements')]}
                 currentStep={step - 1}
                 onStepClick={(s) => setStep((s + 1) as 1 | 2)}
             />
@@ -345,17 +347,17 @@ export const WaterMethodForm = () => {
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                         <div className="lg:col-span-3 grid grid-cols-1 md:grid-cols-3 gap-6">
                             <div className="bg-card shadow-sm rounded-xl border border-border p-6">
-                                <h3 className="text-lg font-semibold text-foreground mb-4">General Info</h3>
+                                <h3 className="text-lg font-semibold text-foreground mb-4">{t('reports.form.generalInfo')}</h3>
                                 <div className="space-y-4">
                                     <Input
-                                        label="Examination Date"
+                                        label={t('reports.form.examDate')}
                                         type="date"
                                         name="examination_date"
                                         value={formData.examination_date}
                                         onChange={handleChange}
                                     />
                                     <Input
-                                        label="Temperature (°C)"
+                                        label={t('reports.form.temperature')}
                                         type="number"
                                         step="0.1"
                                         name="temperature"
@@ -366,30 +368,30 @@ export const WaterMethodForm = () => {
                             </div>
 
                             <div className="bg-card shadow-sm rounded-xl border border-border p-6">
-                                <h3 className="text-lg font-semibold text-foreground mb-4">Structure Type</h3>
+                                <h3 className="text-lg font-semibold text-foreground mb-4">{t('reports.form.structureType')}</h3>
                                 <div className="space-y-4">
                                     <Input
-                                        label="Dionica"
+                                        label={t('reports.form.dionicaLabel')}
                                         type="text"
                                         name="dionica"
                                         value={formData.dionica}
                                         onChange={handleChange}
-                                        placeholder="Enter section name"
+                                        placeholder={t('reports.form.dionicaPlaceholder')}
                                     />
                                     {dionicaError && <p className="mt-1 text-sm text-destructive">{dionicaError}</p>}
                                     <Select
-                                        label="Scheme"
+                                        label={t('reports.form.schemeLabel')}
                                         name="draft_id"
                                         value={formData.draft_id}
                                         onChange={handleChange}
                                     >
                                         {drafts.length === 0 && (
                                             <>
-                                                <option value={1}>Shema A – Ispitivanje okna</option>
-                                                <option value={3}>Shema B – Ispitivanje okna i cijelovoda</option>
-                                                <option value={2}>Shema C – Ispitivanje cijelovoda</option>
-                                                <option value={4}>Shema D – Ispitivanje slivnika</option>
-                                                <option value={5}>Shema E – Ispitivanje slivnika i cijelovoda</option>
+                                                <option value={1}>{t('reports.form.schemeA')}</option>
+                                                <option value={3}>{t('reports.form.schemeB')}</option>
+                                                <option value={2}>{t('reports.form.schemeC')}</option>
+                                                <option value={4}>{t('reports.form.schemeD')}</option>
+                                                <option value={5}>{t('reports.form.schemeE')}</option>
                                             </>
                                         )}
                                         {drafts.map(d => (
@@ -397,15 +399,15 @@ export const WaterMethodForm = () => {
                                         ))}
                                     </Select>
                                     <Select
-                                        label={formData.draft_id === 4 || formData.draft_id === 5 ? "Gully Type" : "Shaft Type"}
+                                        label={formData.draft_id === 4 || formData.draft_id === 5 ? t('reports.form.gullyType') : t('reports.form.shaftType')}
                                         name="material_type_id"
                                         value={formData.material_type_id}
                                         onChange={handleChange}
                                     >
                                         {materialTypes.length === 0 && (
                                             <>
-                                                <option value={1}>Round</option>
-                                                <option value={2}>Rectangular</option>
+                                                <option value={1}>{t('reports.form.round')}</option>
+                                                <option value={2}>{t('reports.form.rectangular')}</option>
                                             </>
                                         )}
                                         {materialTypes.map(m => (
@@ -413,7 +415,7 @@ export const WaterMethodForm = () => {
                                         ))}
                                     </Select>
                                     <Select
-                                        label={formData.draft_id === 4 || formData.draft_id === 5 ? "Gully Material" : "Shaft Material"}
+                                        label={formData.draft_id === 4 || formData.draft_id === 5 ? t('reports.form.gullyMaterial') : t('reports.form.shaftMaterial')}
                                         name="pane_material_id"
                                         value={formData.pane_material_id || (isShaftRound ? 1 : 6)}
                                         onChange={handleChange}
@@ -423,18 +425,18 @@ export const WaterMethodForm = () => {
                                                 <option key={m.id} value={m.id}>{m.name}</option>
                                             ))
                                         ) : (
-                                            <option value={1}>Standard Material</option>
+                                            <option value={1}>{t('reports.form.standardMaterial')}</option>
                                         )}
                                     </Select>
                                 </div>
                             </div>
 
                             <div className="bg-card shadow-sm rounded-xl border border-border p-6">
-                                <h3 className="text-lg font-semibold text-foreground mb-4">Dimensions</h3>
+                                <h3 className="text-lg font-semibold text-foreground mb-4">{t('reports.form.dimensions')}</h3>
                                 <div className="space-y-4">
                                     {isShaftRound && (
                                         <Input
-                                            label={formData.draft_id === 4 || formData.draft_id === 5 ? "Gully Diameter (mm)" : "Pane Diameter (mm)"}
+                                            label={formData.draft_id === 4 || formData.draft_id === 5 ? t('reports.form.gullyDiameter') : t('reports.form.paneDiameterMm')}
                                             type="number"
                                             step="1"
                                             name="pane_diameter"
@@ -445,7 +447,7 @@ export const WaterMethodForm = () => {
                                     {isShaftRectangular && formData.draft_id !== 2 && (
                                         <>
                                             <Input
-                                                label={formData.draft_id === 4 || formData.draft_id === 5 ? "Gully Width (cm)" : "Pane Width (cm)"}
+                                                label={formData.draft_id === 4 || formData.draft_id === 5 ? t('reports.form.gullyWidth') : t('reports.form.paneWidthCm')}
                                                 type="number"
                                                 step="0.01"
                                                 name="pane_width"
@@ -453,7 +455,7 @@ export const WaterMethodForm = () => {
                                                 onChange={handleChange}
                                             />
                                             <Input
-                                                label={formData.draft_id === 4 || formData.draft_id === 5 ? "Gully Length (cm)" : "Pane Length (cm)"}
+                                                label={formData.draft_id === 4 || formData.draft_id === 5 ? t('reports.form.gullyLength') : t('reports.form.paneLengthCm')}
                                                 type="number"
                                                 step="0.01"
                                                 name="pane_length"
@@ -461,7 +463,7 @@ export const WaterMethodForm = () => {
                                                 onChange={handleChange}
                                             />
                                             <Input
-                                                label={formData.draft_id === 4 || formData.draft_id === 5 ? "Gully Height (cm)" : "Shaft Height (cm)"}
+                                                label={formData.draft_id === 4 || formData.draft_id === 5 ? t('reports.form.gullyHeight') : t('reports.form.shaftHeight')}
                                                 type="number"
                                                 step="0.01"
                                                 name="pane_height"
@@ -473,7 +475,7 @@ export const WaterMethodForm = () => {
 
                                     {formData.draft_id === 2 && isShaftRound && (
                                         <Input
-                                            label="Main Pipe Diameter (mm)"
+                                            label={t('reports.form.mainPipeDiameter')}
                                             type="number"
                                             step="1"
                                             name="pane_diameter"
@@ -485,7 +487,7 @@ export const WaterMethodForm = () => {
                                     {formData.draft_id === 2 && isShaftRectangular && (
                                         <>
                                             <Input
-                                                label="Channel Width (cm)"
+                                                label={t('reports.form.channelWidth')}
                                                 type="number"
                                                 step="0.01"
                                                 name="pane_width"
@@ -493,7 +495,7 @@ export const WaterMethodForm = () => {
                                                 onChange={handleChange}
                                             />
                                             <Input
-                                                label="Channel Length (cm)"
+                                                label={t('reports.form.channelLength')}
                                                 type="number"
                                                 step="0.01"
                                                 name="pane_length"
@@ -501,7 +503,7 @@ export const WaterMethodForm = () => {
                                                 onChange={handleChange}
                                             />
                                             <Input
-                                                label="Channel Height (cm)"
+                                                label={t('reports.form.channelHeight')}
                                                 type="number"
                                                 step="0.01"
                                                 name="pane_height"
@@ -513,7 +515,7 @@ export const WaterMethodForm = () => {
 
                                     {isShaftRound && (
                                         <Input
-                                            label="Ro Height (cm)"
+                                            label={t('reports.form.roHeight')}
                                             type="number"
                                             step="0.01"
                                             name="ro_height"
@@ -523,7 +525,7 @@ export const WaterMethodForm = () => {
                                     )}
 
                                     <Input
-                                        label="Water Height (cm)"
+                                        label={t('reports.form.waterHeight')}
                                         type="number"
                                         step="0.01"
                                         name="water_height"
@@ -531,7 +533,7 @@ export const WaterMethodForm = () => {
                                         onChange={handleChange}
                                     />
                                     <div>
-                                        <label className="text-sm font-medium mb-1 block">Duration (mm:ss)</label>
+                                        <label className="text-sm font-medium mb-1 block">{t('reports.form.duration')}</label>
                                         <input
                                             type="text"
                                             name="examination_duration"
@@ -542,7 +544,7 @@ export const WaterMethodForm = () => {
                                         />
                                     </div>
                                     <div>
-                                        <label className="text-sm font-medium mb-1 block">Saturation Time (hh:mm)</label>
+                                        <label className="text-sm font-medium mb-1 block">{t('reports.form.saturationTime')}</label>
                                         <input
                                             type="text"
                                             name="saturation_time"
@@ -555,7 +557,7 @@ export const WaterMethodForm = () => {
                                     {showPipeFields && (
                                         <>
                                             <Select
-                                                label="Pipe Material"
+                                                label={t('reports.form.pipeMaterial')}
                                                 name="pipe_material_id"
                                                 value={formData.pipe_material_id || 1}
                                                 onChange={handleChange}
@@ -565,11 +567,11 @@ export const WaterMethodForm = () => {
                                                         <option key={m.id} value={m.id}>{m.name}</option>
                                                     ))
                                                 ) : (
-                                                    <option value={1}>Standard Pipe</option>
+                                                    <option value={1}>{t('reports.form.standardPipe')}</option>
                                                 )}
                                             </Select>
                                             <Input
-                                                label="Pipe Diameter (mm)"
+                                                label={t('reports.form.pipeDiameterMm')}
                                                 type="number"
                                                 step="1"
                                                 name="pipe_diameter"
@@ -577,7 +579,7 @@ export const WaterMethodForm = () => {
                                                 onChange={handleChange}
                                             />
                                             <Input
-                                                label="Pipe Length (m)"
+                                                label={t('reports.form.pipeLengthMeters')}
                                                 type="number"
                                                 step="0.01"
                                                 name="pipe_length"
@@ -585,7 +587,7 @@ export const WaterMethodForm = () => {
                                                 onChange={handleChange}
                                             />
                                             <Input
-                                                label="Slope (%)"
+                                                label={t('reports.form.slope')}
                                                 type="number"
                                                 step="0.01"
                                                 name="pipeline_slope"
@@ -596,7 +598,7 @@ export const WaterMethodForm = () => {
                                     )}
                                     {showGullyFields && formData.draft_id !== 4 && (
                                         <Input
-                                            label="Depositional Height (m)"
+                                            label={t('reports.form.depositionalHeight')}
                                             type="number"
                                             step="0.01"
                                             name="depositional_height"
@@ -610,7 +612,7 @@ export const WaterMethodForm = () => {
 
                         <div className="lg:col-span-3 flex justify-end">
                             <Button type="button" onClick={() => setStep(2)} size="lg">
-                                Next Step <ArrowRight className="ml-2 h-5 w-5" />
+                                {t('reports.form.nextStep')} <ArrowRight className="ml-2 h-5 w-5" />
                             </Button>
                         </div>
                     </div>
@@ -620,10 +622,10 @@ export const WaterMethodForm = () => {
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                         <div className="lg:col-span-2 space-y-6">
                             <div className="bg-card shadow-sm rounded-xl border border-border p-6">
-                                <h3 className="text-lg font-semibold text-foreground mb-4">Measurements</h3>
+                                <h3 className="text-lg font-semibold text-foreground mb-4">{t('reports.form.measurementsSection')}</h3>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <Input
-                                        label="Start Water Level (mm)"
+                                        label={t('reports.form.startWaterLevel')}
                                         type="number"
                                         step="0.01"
                                         name="water_height_start"
@@ -631,7 +633,7 @@ export const WaterMethodForm = () => {
                                         onChange={handleChange}
                                     />
                                     <Input
-                                        label="End Water Level (mm)"
+                                        label={t('reports.form.endWaterLevel')}
                                         type="number"
                                         step="0.01"
                                         name="water_height_end"
@@ -642,26 +644,26 @@ export const WaterMethodForm = () => {
                             </div>
 
                             <div className="bg-card shadow-sm rounded-xl border border-border p-6">
-                                <h3 className="text-lg font-semibold text-foreground mb-4">Notes</h3>
+                                <h3 className="text-lg font-semibold text-foreground mb-4">{t('reports.form.notesSection')}</h3>
                                 <div className="space-y-4">
                                     <div>
-                                        <label className="text-sm font-medium mb-1 block">Remark</label>
+                                        <label className="text-sm font-medium mb-1 block">{t('reports.form.remarkLabel')}</label>
                                         <textarea
                                             name="remark"
                                             value={formData.remark || ''}
                                             onChange={handleChange}
                                             className="w-full min-h-[80px] rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                                            placeholder="Enter any remarks..."
+                                            placeholder={t('reports.form.remarkPlaceholder')}
                                         />
                                     </div>
                                     <div>
-                                        <label className="text-sm font-medium mb-1 block">Deviation</label>
+                                        <label className="text-sm font-medium mb-1 block">{t('reports.form.deviationLabel')}</label>
                                         <textarea
                                             name="deviation"
                                             value={formData.deviation || ''}
                                             onChange={handleChange}
                                             className="w-full min-h-[80px] rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                                            placeholder="Enter any deviations from standard..."
+                                            placeholder={t('reports.form.deviationPlaceholder')}
                                         />
                                     </div>
                                 </div>
@@ -669,12 +671,12 @@ export const WaterMethodForm = () => {
 
                             <div className="flex justify-between pt-4">
                                 <Button type="button" variant="outline" onClick={() => setStep(1)} size="lg">
-                                    <ChevronLeft className="mr-2 h-5 w-5" /> Previous Step
+                                    <ChevronLeft className="mr-2 h-5 w-5" /> {t('reports.form.prevStep')}
                                 </Button>
                                 <div className="flex space-x-3">
                                     <Button type="submit" size="lg">
                                         <Save className="mr-2 h-4 w-4" />
-                                        Save Report
+                                        {t('reports.form.saveReport')}
                                     </Button>
                                 </div>
                             </div>
@@ -682,7 +684,7 @@ export const WaterMethodForm = () => {
 
                         <div className="lg:col-span-1">
                             <div className="bg-card shadow-sm rounded-xl border border-border p-6 sticky top-6">
-                                <h3 className="text-lg font-semibold text-foreground mb-6">Calculated Results</h3>
+                                <h3 className="text-lg font-semibold text-foreground mb-6">{t('reports.form.calculatedResults')}</h3>
 
                                 <div className="space-y-6">
                                     <div className={cn(
@@ -693,31 +695,31 @@ export const WaterMethodForm = () => {
                                     )}>
                                         <span className={cn(
                                             "text-sm font-medium uppercase tracking-wider mb-1",
-                                            calculated.satisfies ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"
-                                        )}>Status</span>
+                        calculated.satisfies ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"
+                                        )}>{t('reports.form.status')}</span>
                                         <span className={cn(
                                             "text-2xl font-bold",
                                             calculated.satisfies ? "text-green-700 dark:text-green-300" : "text-red-700 dark:text-red-300"
                                         )}>
-                                            {calculated.satisfies ? 'SATISFIES' : 'FAILED'}
+                                            {calculated.satisfies ? t('reports.form.satisfies') : t('reports.form.failed')}
                                         </span>
                                     </div>
 
                                     <div className="space-y-4">
-                                        <ResultRow label="Wetted Shaft Surface" value={`${calculated.wettedShaftSurface.toFixed(2)} m²`} />
+                                        <ResultRow label={t('reports.form.wettedShaftSurface')} value={`${calculated.wettedShaftSurface.toFixed(2)} m�`} />
                                         {showPipeFields && (
-                                            <ResultRow label="Wetted Pipe Surface" value={`${calculated.wettedPipeSurface.toFixed(2)} m²`} />
+                                            <ResultRow label={t('reports.form.wettedPipeSurface')} value={`${calculated.wettedPipeSurface.toFixed(2)} m�`} />
                                         )}
-                                        <ResultRow label="Total Wetted Area" value={`${calculated.totalWettedArea.toFixed(2)} m²`} />
-                                        <ResultRow label="Allowed Loss" value={`${calculated.allowedLossL.toFixed(2)} l`} />
-                                        <ResultRow label="Allowed Loss" value={`${calculated.allowedLossMm.toFixed(2)} mm`} />
+                                        <ResultRow label={t('reports.form.totalWettedArea')} value={`${calculated.totalWettedArea.toFixed(2)} m�`} />
+                                        <ResultRow label={t('reports.form.allowedLossLiters')} value={`${calculated.allowedLossL.toFixed(2)} ${t('reports.form.volumeLossUnit')}`} />
+                                        <ResultRow label={t('reports.form.allowedLossMm')} value={`${calculated.allowedLossMm.toFixed(2)} ${t('reports.form.waterLossUnitMm')}`} />
                                         {showPipeFields && formData.draft_id !== 5 && calculated.hydrostaticHeight > 0 && (
-                                            <ResultRow label="Hydrostatic Height" value={`${(calculated.hydrostaticHeight * 100).toFixed(0)} cm`} />
+                                            <ResultRow label={t('reports.form.hydrostaticHeight')} value={`${(calculated.hydrostaticHeight * 100).toFixed(0)} cm`} />
                                         )}
-                                        <ResultRow label="Water Loss" value={`${calculated.waterLoss.toFixed(2)} mm`} />
-                                        <ResultRow label="Volume Loss" value={`${calculated.waterVolumeLoss.toFixed(4)} l`} />
+                                        <ResultRow label={t('reports.form.waterLoss')} value={`${calculated.waterLoss.toFixed(2)} ${t('reports.form.waterLossUnitMm')}`} />
+                                        <ResultRow label={t('reports.form.volumeLoss')} value={`${calculated.waterVolumeLoss.toFixed(4)} ${t('reports.form.volumeLossUnit')}`} />
                                         <div className="pt-4 border-t border-border">
-                                            <ResultRow label="Result" value={`${calculated.result.toFixed(2)} l/m²`} highlight />
+                                            <ResultRow label={t('reports.form.result')} value={`${calculated.result.toFixed(2)} ${t('reports.form.resultUnit')}`} highlight />
                                         </div>
                                     </div>
                                 </div>

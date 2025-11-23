@@ -73,7 +73,7 @@ export const Settings = () => {
 
             if (error) throw error;
 
-            addToast('Material added successfully', 'success');
+            addToast(t('materials.added'), 'success');
             setAddingType(null);
             setFormData({ name: '', material_type_id: 1 });
             fetchMaterials();
@@ -94,7 +94,7 @@ export const Settings = () => {
 
             if (error) throw error;
 
-            addToast('Material updated successfully', 'success');
+            addToast(t('materials.updated'), 'success');
             setIsEditing(null);
             setFormData({ name: '', material_type_id: 1 });
             fetchMaterials();
@@ -104,7 +104,7 @@ export const Settings = () => {
     };
 
     const handleDelete = async (id: number) => {
-        if (!confirm('Are you sure you want to remove this material?')) return;
+        if (!confirm(t('materials.deleteConfirm'))) return;
 
         try {
             // Check usage in report_forms
@@ -117,7 +117,7 @@ export const Settings = () => {
             if (usageError) throw usageError;
 
             if (usageData && usageData.length > 0) {
-                addToast('Cannot remove material because it is used in reports.', 'error');
+                addToast(t('materials.inUseError'), 'error');
                 return;
             }
 
@@ -128,16 +128,26 @@ export const Settings = () => {
 
             if (error) throw error;
 
-            addToast('Material removed successfully', 'success');
+            addToast(t('materials.removed'), 'success');
             fetchMaterials();
         } catch (error: any) {
             addToast(error.message, 'error');
         }
     };
 
-    const renderMaterialSection = (title: string, materialList: Material[], typeId: number) => {
+    const renderMaterialSection = (materialList: Material[], typeId: number) => {
         const isAdding = addingType === typeId;
         const isEditingInSection = isEditing && isEditing.material_type_id === typeId;
+        const title = typeId === 1 ? t('materials.shaftTitle') : t('materials.pipeTitle');
+        const addLabel = typeId === 1 ? t('materials.addShaft') : t('materials.addPipe');
+        const formTitle = isAdding
+            ? typeId === 1
+                ? t('materials.newShaft')
+                : t('materials.newPipe')
+            : typeId === 1
+            ? t('materials.editShaft')
+            : t('materials.editPipe');
+        const emptyTitle = typeId === 1 ? t('materials.noneShaftTitle') : t('materials.nonePipeTitle');
 
         return (
             <section className="bg-card rounded-lg border border-border p-6">
@@ -152,7 +162,7 @@ export const Settings = () => {
                             className="inline-flex items-center px-3 py-2 text-sm font-medium text-primary-foreground bg-primary rounded-md hover:bg-primary/90 transition-colors"
                         >
                             <Plus className="h-4 w-4 mr-2" />
-                            Add {title.replace(' Materials', '')}
+                            {addLabel}
                         </button>
                     )}
                 </div>
@@ -160,7 +170,7 @@ export const Settings = () => {
                 {!isAdmin ? (
                     <div className="text-center py-8 bg-muted/30 rounded-lg border border-dashed border-border">
                         <Lock className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
-                        <p className="text-muted-foreground font-medium">Material management is restricted to administrators.</p>
+                        <p className="text-muted-foreground font-medium">{t('materials.restricted')}</p>
                     </div>
                 ) : loading ? (
                     <div className="flex justify-center py-8">
@@ -173,15 +183,13 @@ export const Settings = () => {
                                 onSubmit={isAdding ? handleAdd : handleUpdate}
                                 className="bg-muted/50 p-4 rounded-lg mb-4 border border-border"
                             >
-                                <h3 className="font-medium mb-3 text-foreground">
-                                    {isAdding ? `Add New ${title.replace(' Materials', '')}` : `Edit ${title.replace(' Materials', '')}`}
-                                </h3>
+                                <h3 className="font-medium mb-3 text-foreground">{formTitle}</h3>
                                 <div className="flex gap-3">
                                     <input
                                         type="text"
                                         value={formData.name}
                                         onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                        placeholder="Material name"
+                                        placeholder={t('materials.namePlaceholder')}
                                         className="flex-1 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring"
                                         autoFocus
                                     />
@@ -190,7 +198,7 @@ export const Settings = () => {
                                         disabled={!formData.name.trim()}
                                         className="px-4 py-2 text-sm font-medium text-primary-foreground bg-primary rounded-md hover:bg-primary/90 disabled:opacity-50"
                                     >
-                                        Save
+                                        {t('materials.save')}
                                     </button>
                                     <button
                                         type="button"
@@ -201,7 +209,7 @@ export const Settings = () => {
                                         }}
                                         className="px-4 py-2 text-sm font-medium text-muted-foreground bg-transparent border border-input rounded-md hover:bg-accent hover:text-accent-foreground"
                                     >
-                                        Cancel
+                                        {t('materials.cancel')}
                                     </button>
                                 </div>
                             </form>
@@ -211,10 +219,8 @@ export const Settings = () => {
                             <div className="text-center py-12 bg-muted/30 rounded-lg border border-dashed border-border">
                                 <div className="flex flex-col items-center justify-center">
                                     <Loader2 className="h-8 w-8 text-muted-foreground/50 mb-4" />
-                                    <p className="text-lg font-medium text-foreground">No {title.toLowerCase()} found</p>
-                                    <p className="text-sm text-muted-foreground mt-1">
-                                        Add {title.toLowerCase()} to be used in reports.
-                                    </p>
+                                    <p className="text-lg font-medium text-foreground">{emptyTitle}</p>
+                                    <p className="text-sm text-muted-foreground mt-1">{t('materials.noneDesc')}</p>
                                 </div>
                             </div>
                         ) : (
@@ -230,14 +236,14 @@ export const Settings = () => {
                                                     setAddingType(null);
                                                 }}
                                                 className="p-2 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-md transition-colors"
-                                                title="Edit"
+                                                title={t('materials.edit')}
                                             >
                                                 <Edit className="h-4 w-4" />
                                             </button>
                                             <button
                                                 onClick={() => handleDelete(material.id)}
                                                 className="p-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-md transition-colors"
-                                                title="Remove"
+                                                title={t('materials.remove')}
                                             >
                                                 <Trash2 className="h-4 w-4" />
                                             </button>
@@ -286,11 +292,11 @@ export const Settings = () => {
 
             {/* Appearance Section */}
             <section className="bg-card rounded-lg border border-border p-6">
-                <h2 className="text-xl font-semibold mb-4 text-foreground">Appearance</h2>
+                <h2 className="text-xl font-semibold mb-4 text-foreground">{t('settings.appearance')}</h2>
                 <div className="space-y-4">
                     <div>
-                        <p className="font-medium text-foreground mb-3">Theme</p>
-                        <p className="text-sm text-muted-foreground mb-4">Select your preferred theme or use system preference</p>
+                        <p className="font-medium text-foreground mb-3">{t('settings.theme')}</p>
+                        <p className="text-sm text-muted-foreground mb-4">{t('settings.themeDesc')}</p>
                         <div className="grid grid-cols-3 gap-3">
                             <button
                                 onClick={() => setTheme('light')}
@@ -304,7 +310,7 @@ export const Settings = () => {
                                     <div className="w-8 h-8 rounded-full bg-white border-2 border-gray-300 flex items-center justify-center">
                                         <div className="w-4 h-4 rounded-full bg-yellow-400"></div>
                                     </div>
-                                    <span className="text-sm font-medium text-foreground">Light</span>
+                                    <span className="text-sm font-medium text-foreground">{t('settings.light')}</span>
                                 </div>
                             </button>
                             <button
@@ -319,7 +325,7 @@ export const Settings = () => {
                                     <div className="w-8 h-8 rounded-full bg-slate-900 border-2 border-slate-700 flex items-center justify-center">
                                         <div className="w-3 h-3 rounded-full bg-slate-400"></div>
                                     </div>
-                                    <span className="text-sm font-medium text-foreground">Dark</span>
+                                    <span className="text-sm font-medium text-foreground">{t('settings.dark')}</span>
                                 </div>
                             </button>
                             <button
@@ -332,7 +338,7 @@ export const Settings = () => {
                             >
                                 <div className="flex flex-col items-center gap-2">
                                     <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-white to-slate-900 border-2 border-gray-400"></div>
-                                    <span className="text-sm font-medium text-foreground">System</span>
+                                    <span className="text-sm font-medium text-foreground">{t('settings.system')}</span>
                                 </div>
                             </button>
                         </div>
@@ -341,10 +347,10 @@ export const Settings = () => {
             </section>
 
             {/* Shaft Materials Section */}
-            {renderMaterialSection('Shaft Materials', shaftMaterials, 1)}
+            {renderMaterialSection(shaftMaterials, 1)}
 
             {/* Pipe Materials Section */}
-            {renderMaterialSection('Pipe Materials', pipeMaterials, 2)}
+            {renderMaterialSection(pipeMaterials, 2)}
         </div>
     );
 };

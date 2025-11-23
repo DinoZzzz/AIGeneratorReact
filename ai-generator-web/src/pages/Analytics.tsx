@@ -2,9 +2,11 @@ import { useMemo, useEffect, useState } from 'react';
 import { ArrowLeft, BarChart2, PieChart, Activity, Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
+import { useLanguage } from '../context/LanguageContext';
 
 export const Analytics = () => {
     const navigate = useNavigate();
+    const { t } = useLanguage();
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [stats, setStats] = useState<{
@@ -67,7 +69,7 @@ export const Analytics = () => {
                 });
             } catch (err: unknown) {
                 console.error('Failed to load analytics', err);
-                setError('Failed to load analytics. Please try again.');
+                setError(t('analytics.error'));
             } finally {
                 setLoading(false);
             }
@@ -83,13 +85,13 @@ export const Analytics = () => {
                     <button
                         onClick={() => navigate(-1)}
                         className="p-2 rounded-full hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
-                        aria-label="Go back"
+                        aria-label={t('common.back')}
                     >
                         <ArrowLeft className="h-5 w-5" />
                     </button>
                     <div>
-                        <h1 className="text-2xl font-bold text-foreground">Analytics</h1>
-                        <p className="text-sm text-muted-foreground">Overview of exports, pass/fail, and durations.</p>
+                        <h1 className="text-2xl font-bold text-foreground">{t('analytics.title')}</h1>
+                        <p className="text-sm text-muted-foreground">{t('analytics.subtitle')}</p>
                     </div>
                 </div>
             </div>
@@ -102,7 +104,7 @@ export const Analytics = () => {
 
             {loading ? (
                 <div className="flex items-center gap-2 text-muted-foreground">
-                    <Loader2 className="h-5 w-5 animate-spin" /> Loading analytics...
+                    <Loader2 className="h-5 w-5 animate-spin" /> {t('analytics.loading')}
                 </div>
             ) : (
                 <>
@@ -110,7 +112,7 @@ export const Analytics = () => {
                         <div className="bg-card border border-border rounded-xl shadow p-6 space-y-4">
                             <div className="flex items-center gap-2">
                                 <PieChart className="h-5 w-5 text-primary" />
-                                <h2 className="text-lg font-semibold text-foreground">Pass vs Fail</h2>
+                                <h2 className="text-lg font-semibold text-foreground">{t('analytics.passFail')}</h2>
                             </div>
                             <div className="relative flex items-center justify-center h-40">
                                 <svg viewBox="0 0 36 36" className="h-32 w-32">
@@ -140,15 +142,15 @@ export const Analytics = () => {
                                     <p className="text-2xl font-bold text-foreground">
                                         {Math.round(stats.pass ? (stats.pass / Math.max(stats.pass + stats.fail, 1)) * 100 : 0)}%
                                     </p>
-                                    <p className="text-xs text-muted-foreground">Pass rate</p>
+                                    <p className="text-xs text-muted-foreground">{t('analytics.passRate')}</p>
                                 </div>
                             </div>
                             <div className="flex justify-between text-sm">
-                                <span className="text-foreground">Pass</span>
+                                <span className="text-foreground">{t('analytics.pass')}</span>
                                 <span className="text-muted-foreground">{stats.pass}</span>
                             </div>
                             <div className="flex justify-between text-sm">
-                                <span className="text-foreground">Fail</span>
+                                <span className="text-foreground">{t('analytics.fail')}</span>
                                 <span className="text-muted-foreground">{stats.fail}</span>
                             </div>
                         </div>
@@ -158,10 +160,10 @@ export const Analytics = () => {
                         <div className="bg-card border border-border rounded-xl shadow p-6">
                             <div className="flex items-center gap-2 mb-4">
                                 <Activity className="h-5 w-5 text-primary" />
-                                <h2 className="text-lg font-semibold text-foreground">Average Test Duration</h2>
+                                <h2 className="text-lg font-semibold text-foreground">{t('analytics.avgDuration')}</h2>
                             </div>
                             <div className="space-y-3">
-                                {[{ type: 'Water', minutes: stats.avgWater }, { type: 'Air', minutes: stats.avgAir }].map(item => (
+                                {[{ type: t('analytics.water'), minutes: stats.avgWater }, { type: t('analytics.air'), minutes: stats.avgAir }].map(item => (
                                     <div key={item.type}>
                                         <div className="flex justify-between text-sm text-muted-foreground mb-1">
                                             <span>{item.type}</span>
