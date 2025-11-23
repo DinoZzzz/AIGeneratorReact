@@ -240,10 +240,10 @@ export const WaterMethodForm = () => {
                 type_id: 1
             };
 
-            if (!id || id === 'new') {
+            if (!id || id === 'new' || id === 'undefined') {
                 await reportService.create(dataToSave as ReportForm);
             } else {
-                await reportService.update(id!, dataToSave as ReportForm);
+                await reportService.update(id, dataToSave as ReportForm);
             }
 
             if (!shouldRedirect) {

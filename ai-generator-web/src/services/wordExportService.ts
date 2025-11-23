@@ -152,11 +152,14 @@ export const generateWordDocument = async (reports: ReportForm[], metaData: Expo
             centered: false,
             getImage: (tagValue: string) => {
                 // tagValue is what is in the data, e.g., f.file_path
+                // Return the image buffer - format is automatically preserved
                 return imageMap[tagValue] ? imageMap[tagValue] : null;
             },
-            getSize: () => {
-                // Return [width, height]
-                return [600, 400]; // Default size, maybe make it proportional if possible?
+            getSize: (img: ArrayBuffer, tagValue: string, tagName: string) => {
+                // Return [width, height] in pixels
+                // The image format (JPG, PNG) is preserved automatically from the ArrayBuffer
+                // This function only controls the display size in the Word document
+                return [600, 400]; // Width: 600px (~15.9cm), Height: 400px (~10.6cm)
             }
         });
 
@@ -392,7 +395,6 @@ export const generateWordDocument = async (reports: ReportForm[], metaData: Expo
                     .insert({
                         certifier_id: userId,
                         user_id: userId,
-                        certifier_name: metaData.certifierName || null,
                         construction_part: metaData.constructionPart || 'Unknown Part',
                         construction_id: constructionId,
                         customer_id: customerId,
@@ -402,7 +404,6 @@ export const generateWordDocument = async (reports: ReportForm[], metaData: Expo
                         water_deviation: metaData.waterDeviation || null,
                         air_remark: metaData.airRemark || null,
                         air_deviation: metaData.airDeviation || null,
-                        created_at: new Date().toISOString(),
                         is_finished: true,
                         certification_time: new Date().toISOString(),
                         examination_date: firstReport.examination_date || new Date().toISOString()
@@ -433,8 +434,22 @@ export const generateWordDocument = async (reports: ReportForm[], metaData: Expo
             }
         }
 
-    } catch (error) {
+    } catch (error: any) {
         console.error("Error generating document:", error);
+
+        // Enhanced error reporting for docxtemplater
+        if (error.properties && error.properties.errors) {
+            console.error("Detailed template errors:");
+            error.properties.errors.forEach((err: any) => {
+                console.error({
+                    message: err.message,
+                    part: err.part,
+                    offset: err.offset,
+                    context: err.context
+                });
+            });
+        }
+
         throw error;
     }
 };

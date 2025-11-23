@@ -2,6 +2,11 @@ import jsPDF from 'jspdf';
 import type { ReportForm, Profile } from '../types';
 import * as calc from './calculations/report';
 
+/**
+ * PDF Generator for Water and Air Method Reports
+ * Generates PDF reports with Croatian character support
+ */
+
 // Helper to load image
 const loadImage = (src: string): Promise<HTMLImageElement> => {
     return new Promise((resolve, reject) => {

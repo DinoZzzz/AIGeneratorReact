@@ -211,7 +211,7 @@ export const AirMethodForm = () => {
                 type_id: 2
             };
 
-            if (id === 'new' || id === 'undefined' || !id) {
+            if (!id || id === 'new' || id === 'undefined') {
                 await reportService.create(dataToSave as ReportForm);
             } else {
                 await reportService.update(id, dataToSave as ReportForm);

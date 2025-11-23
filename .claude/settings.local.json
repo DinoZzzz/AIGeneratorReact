@@ -4,7 +4,9 @@
       "Bash(npm install:*)",
       "Bash(npm uninstall:*)",
       "Bash(npm search:*)",
-      "Bash(node -e:*)"
+      "Bash(node -e:*)",
+      "Bash(node -c:*)",
+      "Bash(dir:*)"
     ],
     "deny": [],
     "ask": []

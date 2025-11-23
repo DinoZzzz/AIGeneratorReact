@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from './ui/Dialog';
 import { Button } from './ui/Button';
-import type { User, ReportForm } from '../types';
+import type { User, ReportForm, ReportFile } from '../types';
+import { FileUploader } from './FileUploader';
 
 interface ExportDialogProps {
     open: boolean;
@@ -11,6 +12,10 @@ interface ExportDialogProps {
     loading?: boolean;
     defaultValues?: Partial<ExportMetaData>;
     reports?: ReportForm[]; // Optional: if provided, allows selection inside dialog
+    constructionId: string;
+    uploadedFiles?: ReportFile[];
+    onFileUploaded?: (file: ReportFile) => void;
+    onFileDeleted?: (fileId: string) => void;
 }
 
 export interface ExportMetaData {
@@ -23,7 +28,7 @@ export interface ExportMetaData {
     certifierName: string;
 }
 
-export const ExportDialog = ({ open, onOpenChange, onConfirm, loading = false, defaultValues, reports }: ExportDialogProps) => {
+export const ExportDialog = ({ open, onOpenChange, onConfirm, loading = false, defaultValues, reports, constructionId, uploadedFiles = [], onFileUploaded, onFileDeleted }: ExportDialogProps) => {
     const [data, setData] = useState<ExportMetaData>({
         constructionPart: defaultValues?.constructionPart || '',
         drainage: defaultValues?.drainage || '',
@@ -229,6 +234,18 @@ export const ExportDialog = ({ open, onOpenChange, onConfirm, loading = false, d
                             onChange={(e) => setData({ ...data, certifierName: e.target.value })}
                             placeholder="Name of the person certifying..."
                             disabled={loading}
+                        />
+                    </div>
+
+                    {/* File Upload Section */}
+                    <div className="space-y-2 border-t border-border pt-4">
+                        <h3 className="font-semibold text-sm text-foreground">Prilozi ({uploadedFiles.length})</h3>
+                        <p className="text-xs text-muted-foreground">Dodajte fotografije ili PDF dokumente koji će biti priloženi izvještaju</p>
+                        <FileUploader
+                            constructionId={constructionId}
+                            onUploadComplete={onFileUploaded}
+                            onDelete={onFileDeleted}
+                            files={uploadedFiles}
                         />
                     </div>
 

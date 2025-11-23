@@ -4,7 +4,7 @@ import { reportService } from '../services/reportService';
 import { constructionService } from '../services/constructionService';
 import { customerService } from '../services/customerService';
 import { Plus, Pencil, Trash2, FileDown, ArrowLeft, Loader2, GripVertical, FileText } from 'lucide-react';
-import type { ReportForm, Construction, Customer } from '../types';
+import type { ReportForm, Construction, Customer, ReportFile } from '../types';
 import clsx from 'clsx';
 import { generatePDF, generateBulkPDF } from '../lib/pdfGenerator';
 import { generateWordDocument } from '../services/wordExportService';
@@ -13,6 +13,7 @@ import type { ExportMetaData } from '../components/ExportDialog';
 import { Breadcrumbs } from '../components/ui/Breadcrumbs';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
+import { supabase } from '../lib/supabase';
 
 export const ConstructionReports = () => {
     const { customerId, constructionId } = useParams();
@@ -29,6 +30,7 @@ export const ConstructionReports = () => {
     const [exportDialogOpen, setExportDialogOpen] = useState(false);
     const [isExporting, setIsExporting] = useState(false);
     const [actionMessage, setActionMessage] = useState<{ text: string; type: 'info' | 'error' } | null>(null);
+    const [uploadedFiles, setUploadedFiles] = useState<ReportFile[]>([]);
 
     // Check accreditations (1 = Water, 2 = Air)
     const hasWaterAccreditation = profile?.accreditations?.includes(1) ?? false;
@@ -38,6 +40,7 @@ export const ConstructionReports = () => {
     useEffect(() => {
         if (customerId && constructionId) {
             loadData();
+            loadFiles();
         }
     }, [customerId, constructionId]);
 
@@ -57,6 +60,29 @@ export const ConstructionReports = () => {
         } finally {
             setLoading(false);
         }
+    };
+
+    const loadFiles = async () => {
+        try {
+            const { data, error } = await supabase
+                .from('report_files')
+                .select('*')
+                .eq('construction_id', constructionId!)
+                .order('created_at', { ascending: false });
+
+            if (error) throw error;
+            setUploadedFiles(data || []);
+        } catch (error) {
+            console.error('Error loading files:', error);
+        }
+    };
+
+    const handleFileUploaded = (file: ReportFile) => {
+        setUploadedFiles([file, ...uploadedFiles]);
+    };
+
+    const handleFileDeleted = (fileId: string) => {
+        setUploadedFiles(uploadedFiles.filter(f => f.id !== fileId));
     };
 
     const handleDelete = async (id: string) => {
@@ -331,6 +357,10 @@ export const ConstructionReports = () => {
                     certifierName: profile?.name ? `${profile.name} ${profile.last_name}` : ''
                 }}
                 reports={selectedIds.size === 0 ? reports : undefined}
+                constructionId={constructionId!}
+                uploadedFiles={uploadedFiles}
+                onFileUploaded={handleFileUploaded}
+                onFileDeleted={handleFileDeleted}
             />
 
             <div className="bg-card shadow rounded-lg overflow-hidden border border-border">
