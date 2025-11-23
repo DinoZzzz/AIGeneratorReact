@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { X, CheckCircle2, XCircle, Info } from 'lucide-react';
+import { useSwipeable } from 'react-swipeable';
 import { cn } from '../../lib/utils';
 
 export type ToastType = 'success' | 'error' | 'info';
@@ -20,6 +21,12 @@ export const Toast: React.FC<ToastProps> = ({ id, type, message, onClose, durati
 
         return () => clearTimeout(timer);
     }, [id, duration, onClose]);
+
+    const handlers = useSwipeable({
+        onSwipedUp: () => onClose(id),
+        onSwipedRight: () => onClose(id),
+        trackMouse: true
+    });
 
     const config = {
         success: {
@@ -43,10 +50,11 @@ export const Toast: React.FC<ToastProps> = ({ id, type, message, onClose, durati
 
     return (
         <div
+            {...handlers}
             className={cn(
-                "max-w-md w-full shadow-lg rounded-lg pointer-events-auto border overflow-hidden",
+                "max-w-md w-full shadow-lg rounded-lg pointer-events-auto border overflow-hidden touch-pan-y",
                 "transform transition-all duration-300 ease-out",
-                "animate-in slide-in-from-right-full",
+                "animate-in slide-in-from-top-full sm:slide-in-from-right-full",
                 className
             )}
         >

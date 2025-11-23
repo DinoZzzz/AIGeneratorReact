@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { customerService } from '../services/customerService';
-import { Plus, Search, Pencil, Trash2, Building2, ChevronLeft, ChevronRight, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
+import { Plus, Search, Pencil, Trash2, Building2, ChevronLeft, ChevronRight, ArrowUpDown, ArrowUp, ArrowDown, MapPin, Home } from 'lucide-react';
 import type { Customer } from '../types';
 import { useLanguage } from '../context/LanguageContext';
 
@@ -125,7 +125,71 @@ export const Customers = () => {
                     </div>
                 </div>
 
-                <div className="overflow-x-auto">
+                {/* Mobile Card View */}
+                <div className="block md:hidden divide-y divide-border">
+                    {loading ? (
+                        <div className="p-4 text-center text-sm text-muted-foreground">
+                            {t('customers.loading')}
+                        </div>
+                    ) : customers.length === 0 ? (
+                        <div className="p-4 text-center text-sm text-muted-foreground">
+                            {t('customers.none')}
+                        </div>
+                    ) : (
+                        customers.map((customer) => (
+                            <div key={customer.id} className="p-4 space-y-3">
+                                <div className="flex justify-between items-start">
+                                    <div>
+                                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-muted text-muted-foreground mb-1">
+                                            {customer.work_order || '-'}
+                                        </span>
+                                        <h3 className="text-lg font-bold text-foreground">{customer.name}</h3>
+                                    </div>
+                                    <div className="flex space-x-2">
+                                        <Link
+                                            to={`/customers/${customer.id}`}
+                                            className="p-2 text-primary hover:bg-primary/10 rounded-full transition-colors"
+                                        >
+                                            <Pencil className="h-4 w-4" />
+                                        </Link>
+                                        <button
+                                            onClick={() => handleDelete(customer.id)}
+                                            className="p-2 text-destructive hover:bg-destructive/10 rounded-full transition-colors"
+                                        >
+                                            <Trash2 className="h-4 w-4" />
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-1 text-sm text-muted-foreground">
+                                    {customer.location && (
+                                        <div className="flex items-center">
+                                            <MapPin className="h-4 w-4 mr-2" />
+                                            {customer.location}
+                                        </div>
+                                    )}
+                                    {customer.address && (
+                                        <div className="flex items-center">
+                                            <Home className="h-4 w-4 mr-2" />
+                                            {customer.address}
+                                        </div>
+                                    )}
+                                </div>
+
+                                <Link
+                                    to={`/customers/${customer.id}/constructions`}
+                                    className="block w-full text-center py-2 px-4 border border-border rounded-md text-sm font-medium text-foreground hover:bg-accent transition-colors"
+                                >
+                                    <Building2 className="h-4 w-4 inline-block mr-2" />
+                                    {t('customers.viewConstructions')}
+                                </Link>
+                            </div>
+                        ))
+                    )}
+                </div>
+
+                {/* Desktop Table View */}
+                <div className="hidden md:block overflow-x-auto">
                     <table className="min-w-full divide-y divide-border">
                         <thead className="bg-muted/50">
                             <tr>
@@ -198,21 +262,21 @@ export const Customers = () => {
                 <div className="bg-card px-4 py-3 border-t border-border sm:px-6">
                     <div className="flex items-center justify-between">
                         <div className="flex-1 flex justify-between sm:hidden">
-                                    <button
-                                        onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                                        disabled={currentPage === 1}
-                                        className="relative inline-flex items-center px-4 py-2 border border-input text-sm font-medium rounded-md text-foreground bg-card hover:bg-accent disabled:opacity-50 transition-colors"
-                                    >
-                                        {t('customers.prev')}
-                                    </button>
-                                    <button
-                                        onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                                        disabled={currentPage === totalPages}
-                                        className="ml-3 relative inline-flex items-center px-4 py-2 border border-input text-sm font-medium rounded-md text-foreground bg-card hover:bg-accent disabled:opacity-50 transition-colors"
-                                    >
-                                        {t('customers.next')}
-                                    </button>
-                                </div>
+                            <button
+                                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                                disabled={currentPage === 1}
+                                className="relative inline-flex items-center px-4 py-2 border border-input text-sm font-medium rounded-md text-foreground bg-card hover:bg-accent disabled:opacity-50 transition-colors"
+                            >
+                                {t('customers.prev')}
+                            </button>
+                            <button
+                                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                                disabled={currentPage === totalPages}
+                                className="ml-3 relative inline-flex items-center px-4 py-2 border border-input text-sm font-medium rounded-md text-foreground bg-card hover:bg-accent disabled:opacity-50 transition-colors"
+                            >
+                                {t('customers.next')}
+                            </button>
+                        </div>
                         <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
                             <div>
                                 <p className="text-sm text-foreground">
@@ -244,11 +308,10 @@ export const Customers = () => {
                                             <button
                                                 key={pageNum}
                                                 onClick={() => setCurrentPage(pageNum)}
-                                                className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium transition-colors ${
-                                                    currentPage === pageNum
+                                                className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium transition-colors ${currentPage === pageNum
                                                         ? 'z-10 bg-primary/10 border-primary text-primary'
                                                         : 'bg-card border-input text-muted-foreground hover:bg-accent'
-                                                }`}
+                                                    }`}
                                             >
                                                 {pageNum}
                                             </button>

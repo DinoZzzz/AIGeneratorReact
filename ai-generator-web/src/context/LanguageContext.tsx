@@ -76,6 +76,8 @@ const translations: Record<Language, TranslationDictionary> = {
         'dashboard.thisWeek': 'Ovaj tjedan',
         'common.yes': 'Da',
         'common.no': 'Ne',
+        'common.edit': 'Uredi',
+        'common.delete': 'Obriši',
         'examiners.title': 'Ispitivači',
         'examiners.subtitle': 'Upravljajte ispitivačima i njihovim akreditacijama.',
         'examiners.add': 'Dodaj ispitivača',
@@ -326,7 +328,10 @@ Object.assign(translations.hr, {
     'reports.delete': 'Obriši',
     'reports.noData': 'Nema izvješća za ovo gradilište.',
     'reports.satisfies': 'Zadovoljava',
-    'reports.failed': 'Ne zadovoljava'
+    'reports.failed': 'Ne zadovoljava',
+    'reports.new': 'Novo',
+    'reports.generate': 'Generiraj',
+    'reports.export': 'Izvoz'
 });
 
 Object.assign(translations.en, {
@@ -567,6 +572,7 @@ Object.assign(translations.hr, {
     'reports.form.dionicaLabel': 'Dionica',
     'reports.form.dionicaPlaceholder': 'Unesite naziv dionice',
     'reports.form.dionicaRequired': 'Dionica je obavezna',
+    'reports.form.details': 'Detalji',
     'reports.form.schemeLabel': 'Shema',
     'reports.form.schemeA': 'Shema A â€“ Ispitivanje okna',
     'reports.form.schemeB': 'Shema B â€“ Ispitivanje okna i cijelovoda',
@@ -648,6 +654,7 @@ Object.assign(translations.en, {
     'reports.form.examProcedure': 'Examination Procedure',
     'reports.form.selectProcedure': 'Select procedure',
     'reports.form.selectMaterial': 'Select material',
+    'reports.form.details': 'Details',
     'reports.form.dionica': 'Section',
     'reports.form.examDate': 'Examination Date',
     'reports.form.temperature': 'Temperature (Â°C)',
@@ -880,7 +887,9 @@ Object.assign(translations.hr, {
     'common.back': 'Natrag'
 });
 Object.assign(translations.en, {
-    'common.back': 'Back'
+    'common.back': 'Back',
+    'common.edit': 'Edit',
+    'common.delete': 'Delete'
 });
 
 interface LanguageContextValue {

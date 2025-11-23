@@ -251,35 +251,34 @@ export const ConstructionReports = () => {
                 </div>
             )}
             <Breadcrumbs items={[
-                { label: t('customers.title'), path: '/customers' },
                 { label: customer.name, path: `/customers` },
                 { label: construction.name, path: `/customers/${customerId}/constructions` },
                 { label: t('reports.title') }
             ]} />
 
-            <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-4">
-                        <button
-                            onClick={() => navigate(`/customers/${customerId}/constructions`)}
-                            className="p-2 rounded-full hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
-                        >
-                            <ArrowLeft className="h-6 w-6" />
-                        </button>
-                        <div>
-                            <h1 className="text-2xl font-bold text-foreground">{t('reports.title')}</h1>
-                            <p className="text-sm text-muted-foreground">
-                                {t('constructions.for')} {construction.name} ({construction.work_order}) - {customer.name}
-                            </p>
-                        </div>
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="flex items-center space-x-4">
+                    <button
+                        onClick={() => navigate(`/customers/${customerId}/constructions`)}
+                        className="p-2 rounded-full hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                        <ArrowLeft className="h-6 w-6" />
+                    </button>
+                    <div>
+                        <h1 className="text-2xl font-bold text-foreground">{t('reports.title')}</h1>
+                        <p className="text-sm text-muted-foreground line-clamp-1 md:line-clamp-none">
+                            {t('constructions.for')} {construction.name} ({construction.work_order}) - {customer.name}
+                        </p>
                     </div>
-                <div className="flex space-x-3">
+                </div>
+                <div className="flex flex-wrap gap-2 md:space-x-3">
                     {selectedIds.size > 0 && (
                         <button
                             onClick={handleDeleteSelected}
-                            className="inline-flex items-center px-4 py-2 border border-destructive/40 rounded-md shadow-sm text-sm font-medium text-destructive bg-transparent hover:bg-destructive/10 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-destructive transition-colors"
+                            className="inline-flex items-center px-3 py-2 md:px-4 border border-destructive/40 rounded-md shadow-sm text-sm font-medium text-destructive bg-transparent hover:bg-destructive/10 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-destructive transition-colors"
                         >
-                            <Trash2 className="h-5 w-5 mr-2" />
-                            {t('reports.deleteSelected')} ({selectedIds.size})
+                            <Trash2 className="h-5 w-5 md:mr-2" />
+                            <span className="hidden md:inline">{t('reports.deleteSelected')} ({selectedIds.size})</span>
                         </button>
                     )}
                     <div className="relative inline-block text-left">
@@ -287,10 +286,11 @@ export const ConstructionReports = () => {
                             onClick={() => setIsNewReportOpen(!isNewReportOpen)}
                             disabled={!hasAnyAccreditation}
                             title={!hasAnyAccreditation ? "You don't have any accreditations" : ""}
-                            className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-primary-foreground bg-primary hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="inline-flex items-center px-3 py-2 md:px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-primary-foreground bg-primary hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                            <Plus className="h-5 w-5 mr-2" />
-                            {t('reports.newReport')}
+                            <Plus className="h-5 w-5 md:mr-2" />
+                            <span className="hidden md:inline">{t('reports.newReport')}</span>
+                            <span className="md:hidden">{t('reports.new')}</span>
                         </button>
                         {isNewReportOpen && (
                             <div className="absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-card border border-border shadow-border/40 focus:outline-none z-50">
@@ -332,17 +332,19 @@ export const ConstructionReports = () => {
                     )}
                     <button
                         onClick={() => setExportDialogOpen(true)}
-                        className="inline-flex items-center px-4 py-2 border border-input rounded-md shadow-sm text-sm font-medium text-foreground bg-card hover:bg-accent focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring transition-colors"
+                        className="inline-flex items-center px-3 py-2 md:px-4 border border-input rounded-md shadow-sm text-sm font-medium text-foreground bg-card hover:bg-accent focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring transition-colors"
                     >
-                        <FileText className="h-5 w-5 mr-2 text-muted-foreground" />
-                        {t('reports.generateReports')}
+                        <FileText className="h-5 w-5 md:mr-2 text-muted-foreground" />
+                        <span className="hidden md:inline">{t('reports.generateReports')}</span>
+                        <span className="md:hidden">{t('reports.generate')}</span>
                     </button>
                     <button
                         onClick={handleBulkExport}
-                        className="inline-flex items-center px-4 py-2 border border-input rounded-md shadow-sm text-sm font-medium text-foreground bg-card hover:bg-accent focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring transition-colors"
+                        className="inline-flex items-center px-3 py-2 md:px-4 border border-input rounded-md shadow-sm text-sm font-medium text-foreground bg-card hover:bg-accent focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring transition-colors"
                     >
-                        <FileDown className="h-5 w-5 mr-2 text-muted-foreground" />
-                        {selectedIds.size > 0 ? `${t('reports.exportSelected')} (${selectedIds.size})` : t('reports.exportAll')}
+                        <FileDown className="h-5 w-5 md:mr-2 text-muted-foreground" />
+                        <span className="hidden md:inline">{selectedIds.size > 0 ? `${t('reports.exportSelected')} (${selectedIds.size})` : t('reports.exportAll')}</span>
+                        <span className="md:hidden">{t('reports.export')}</span>
                     </button>
                 </div>
             </div>
@@ -364,73 +366,63 @@ export const ConstructionReports = () => {
             />
 
             <div className="bg-card shadow rounded-lg overflow-hidden border border-border">
-                <table className="min-w-full divide-y divide-border">
-                    <thead className="bg-muted/50">
-                        <tr>
-                            <th className="w-10 px-6 py-3">
-                                <input
-                                    type="checkbox"
-                                    className="rounded border-input text-primary focus:ring-ring"
-                                    checked={reports.length > 0 && selectedIds.size === reports.length}
-                                    onChange={toggleSelectAll}
-                                />
-                            </th>
-                            <th className="w-10 px-6 py-3"></th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">{t('reports.date')}</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">{t('reports.type')}</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">{t('reports.dionica')}</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">{t('reports.draft')}</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">{t('reports.status')}</th>
-                            <th className="px-6 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">{t('reports.actions')}</th>
-                        </tr>
-                    </thead>
-                    <tbody className="bg-card divide-y divide-border">
-                        {reports.map((report, index) => (
-                            <tr
+                {/* Mobile Card View */}
+                <div className="block md:hidden divide-y divide-border">
+                    {reports.length === 0 ? (
+                        <div className="p-8 text-center text-muted-foreground">
+                            <div className="flex flex-col items-center justify-center">
+                                <FileText className="h-12 w-12 text-muted-foreground/50 mb-4" />
+                                <p className="text-lg font-medium text-foreground">{t('reports.noData')}</p>
+                            </div>
+                        </div>
+                    ) : (
+                        reports.map((report, index) => (
+                            <div
                                 key={report.id}
-                                className="hover:bg-muted/50 cursor-move transition-colors"
-                                draggable
-                                onDragStart={() => handleDragStart(index)}
-                                onDragOver={handleDragOver}
-                                onDrop={() => handleDrop(index)}
+                                className={clsx(
+                                    "p-4 space-y-3 transition-colors",
+                                    report.id && selectedIds.has(report.id) ? "bg-primary/5" : ""
+                                )}
                             >
-                                <td className="px-6 py-4 whitespace-nowrap">
-                                    <input
-                                        type="checkbox"
-                                        className="rounded border-input text-primary focus:ring-ring"
-                                        checked={report.id ? selectedIds.has(report.id) : false}
-                                        onChange={() => report.id && toggleSelect(report.id)}
-                                    />
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-muted-foreground cursor-grab active:cursor-grabbing">
-                                    <GripVertical className="h-5 w-5" />
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">
-                                    {new Date(report.examination_date).toLocaleDateString()}
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
-                                    {report.type_id === 1 ? 'Water' : 'Air'}
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground font-medium">
-                                    {report.dionica || report.stock || '-'}
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
-                                    {report.draft?.name || '-'}
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap">
+                                <div className="flex justify-between items-start">
+                                    <div className="flex items-center space-x-3">
+                                        <div onClick={(e) => e.stopPropagation()}>
+                                            <input
+                                                type="checkbox"
+                                                className="rounded border-input text-primary focus:ring-ring h-5 w-5"
+                                                checked={report.id ? selectedIds.has(report.id) : false}
+                                                onChange={() => report.id && toggleSelect(report.id)}
+                                            />
+                                        </div>
+                                        <div>
+                                            <div className="font-medium text-foreground">
+                                                {report.type_id === 1 ? 'Water' : 'Air'} - {report.draft?.name || '-'}
+                                            </div>
+                                            <div className="text-xs text-muted-foreground">
+                                                {new Date(report.examination_date).toLocaleDateString()}
+                                            </div>
+                                        </div>
+                                    </div>
                                     <span className={clsx(
-                                        "px-2 inline-flex text-xs leading-5 font-semibold rounded-full",
+                                        "px-2.5 py-0.5 inline-flex text-xs font-medium rounded-full",
                                         report.satisfies
-                                            ? "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400"
-                                            : "bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-400"
+                                            ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
+                                            : "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400"
                                     )}>
                                         {report.satisfies ? t('reports.satisfies') : t('reports.failed')}
                                     </span>
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-3">
+                                </div>
+
+                                <div className="pl-8 space-y-1">
+                                    <div className="text-sm text-foreground font-medium">
+                                        {t('reports.dionica')}: {report.dionica || report.stock || '-'}
+                                    </div>
+                                </div>
+
+                                <div className="pl-8 flex justify-end space-x-2 pt-2">
                                     <button
                                         onClick={() => handleExportPDF(report)}
-                                        className="text-muted-foreground hover:text-foreground inline-flex items-center"
+                                        className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded-full transition-colors"
                                         title={t('reports.exportPdf')}
                                     >
                                         <FileDown className="h-4 w-4" />
@@ -440,30 +432,127 @@ export const ConstructionReports = () => {
                                             ? `/customers/${customerId}/constructions/${constructionId}/reports/${report.id}`
                                             : `/customers/${customerId}/constructions/${constructionId}/reports/air/${report.id}`
                                         }
-                                        className="text-primary hover:text-primary/80 inline-flex items-center"
+                                        className="p-2 text-primary hover:bg-primary/10 rounded-full transition-colors"
                                         title={t('reports.edit')}
                                     >
                                         <Pencil className="h-4 w-4" />
                                     </Link>
                                     <button
                                         onClick={() => report.id && handleDelete(report.id)}
-                                        className="text-destructive hover:text-destructive/80 inline-flex items-center"
+                                        className="p-2 text-destructive hover:bg-destructive/10 rounded-full transition-colors"
                                         title={t('reports.delete')}
                                     >
                                         <Trash2 className="h-4 w-4" />
                                     </button>
-                                </td>
-                            </tr>
-                        ))}
-                        {reports.length === 0 && (
+                                </div>
+                            </div>
+                        ))
+                    )}
+                </div>
+
+                {/* Desktop Table View */}
+                <div className="hidden md:block overflow-x-auto">
+                    <table className="min-w-full divide-y divide-border">
+                        <thead className="bg-muted/50">
                             <tr>
-                                <td colSpan={7} className="px-6 py-4 text-center text-sm text-muted-foreground">
-                                    {t('reports.noData')}
-                                </td>
+                                <th className="w-10 px-6 py-3">
+                                    <input
+                                        type="checkbox"
+                                        className="rounded border-input text-primary focus:ring-ring"
+                                        checked={reports.length > 0 && selectedIds.size === reports.length}
+                                        onChange={toggleSelectAll}
+                                    />
+                                </th>
+                                <th className="w-10 px-6 py-3"></th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">{t('reports.date')}</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">{t('reports.type')}</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">{t('reports.dionica')}</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">{t('reports.draft')}</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">{t('reports.status')}</th>
+                                <th className="px-6 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">{t('reports.actions')}</th>
                             </tr>
-                        )}
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody className="bg-card divide-y divide-border">
+                            {reports.map((report, index) => (
+                                <tr
+                                    key={report.id}
+                                    className="hover:bg-muted/50 cursor-move transition-colors"
+                                    draggable
+                                    onDragStart={() => handleDragStart(index)}
+                                    onDragOver={handleDragOver}
+                                    onDrop={() => handleDrop(index)}
+                                >
+                                    <td className="px-6 py-4 whitespace-nowrap">
+                                        <input
+                                            type="checkbox"
+                                            className="rounded border-input text-primary focus:ring-ring"
+                                            checked={report.id ? selectedIds.has(report.id) : false}
+                                            onChange={() => report.id && toggleSelect(report.id)}
+                                        />
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-muted-foreground cursor-grab active:cursor-grabbing">
+                                        <GripVertical className="h-5 w-5" />
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">
+                                        {new Date(report.examination_date).toLocaleDateString()}
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
+                                        {report.type_id === 1 ? 'Water' : 'Air'}
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground font-medium">
+                                        {report.dionica || report.stock || '-'}
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
+                                        {report.draft?.name || '-'}
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap">
+                                        <span className={clsx(
+                                            "px-2 inline-flex text-xs leading-5 font-semibold rounded-full",
+                                            report.satisfies
+                                                ? "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400"
+                                                : "bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-400"
+                                        )}>
+                                            {report.satisfies ? t('reports.satisfies') : t('reports.failed')}
+                                        </span>
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-3">
+                                        <button
+                                            onClick={() => handleExportPDF(report)}
+                                            className="text-muted-foreground hover:text-foreground inline-flex items-center"
+                                            title={t('reports.exportPdf')}
+                                        >
+                                            <FileDown className="h-4 w-4" />
+                                        </button>
+                                        <Link
+                                            to={report.type_id === 1
+                                                ? `/customers/${customerId}/constructions/${constructionId}/reports/${report.id}`
+                                                : `/customers/${customerId}/constructions/${constructionId}/reports/air/${report.id}`
+                                            }
+                                            className="text-primary hover:text-primary/80 inline-flex items-center"
+                                            title={t('reports.edit')}
+                                        >
+                                            <Pencil className="h-4 w-4" />
+                                        </Link>
+                                        <button
+                                            onClick={() => report.id && handleDelete(report.id)}
+                                            className="text-destructive hover:text-destructive/80 inline-flex items-center"
+                                            title={t('reports.delete')}
+                                        >
+                                            <Trash2 className="h-4 w-4" />
+                                        </button>
+                                    </td>
+                                </tr>
+                            ))}
+                            {reports.length === 0 && (
+                                <tr>
+                                    <td colSpan={7} className="px-6 py-4 text-center text-sm text-muted-foreground">
+                                        {t('reports.noData')}
+                                    </td>
+                                </tr>
+                            )}
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     );

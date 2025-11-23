@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
+import { useSwipeable } from 'react-swipeable';
 import {
     LayoutDashboard,
     Users,
@@ -14,7 +15,6 @@ import {
     HelpCircle,
     BarChart3
 } from 'lucide-react';
-import { useState } from 'react';
 import { cn } from '../lib/utils';
 
 interface LayoutProps {
@@ -45,21 +45,44 @@ export const Layout = ({ children }: LayoutProps) => {
         { name: t('nav.help'), href: '/help', icon: HelpCircle },
     ].filter(item => !item.adminOnly || isAdmin);
 
+    // Get current page title
+    const currentPage = navigation.find(item => item.href === location.pathname) || { name: 'AIGenerator' };
+
+    // Swipe handlers
+    const swipeHandlers = useSwipeable({
+        onSwipedLeft: () => setIsMobileMenuOpen(false),
+        trackMouse: true
+    });
+
+    const swipeOpenHandlers = useSwipeable({
+        onSwipedRight: () => setIsMobileMenuOpen(true),
+        trackMouse: true
+    });
+
     return (
         <div className="min-h-screen bg-background flex">
+            {/* Swipe Open Area (Left Edge) */}
+            <div
+                {...swipeOpenHandlers}
+                className="fixed inset-y-0 left-0 w-4 z-30 lg:hidden"
+            />
+
             {/* Mobile Menu Overlay */}
             {isMobileMenuOpen && (
                 <div
+                    {...swipeHandlers}
                     className="fixed inset-0 z-40 bg-background/80 backdrop-blur-sm lg:hidden"
                     onClick={() => setIsMobileMenuOpen(false)}
                 />
             )}
 
             {/* Sidebar */}
-            <div className={cn(
-                "fixed inset-y-0 left-0 z-50 w-64 bg-card border-r border-border shadow-sm transform transition-transform duration-200 ease-in-out lg:translate-x-0 lg:static lg:inset-0",
-                isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"
-            )}>
+            <div
+                {...swipeHandlers}
+                className={cn(
+                    "fixed inset-y-0 left-0 z-50 w-64 bg-card border-r border-border shadow-sm transform transition-transform duration-200 ease-in-out lg:translate-x-0 lg:static lg:inset-0",
+                    isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"
+                )}>
                 <div className="flex flex-col h-full">
                     {/* Logo */}
                     <div className="flex items-center justify-between h-16 px-6 border-b border-border">
@@ -87,6 +110,7 @@ export const Layout = ({ children }: LayoutProps) => {
                                             ? "bg-primary/10 text-primary"
                                             : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
                                     )}
+                                    onClick={() => setIsMobileMenuOpen(false)}
                                 >
                                     <Icon className={cn("mr-3 h-5 w-5", isActive ? "text-primary" : "text-muted-foreground")} />
                                     {item.name}
@@ -126,16 +150,18 @@ export const Layout = ({ children }: LayoutProps) => {
 
             {/* Main Content */}
             <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-                {/* Mobile Header */}
-                <div className="lg:hidden flex items-center justify-between h-16 px-4 bg-card border-b border-border">
+                {/* Mobile Header - Sticky & Dynamic Title */}
+                <div className="lg:hidden sticky top-0 z-30 flex items-center justify-between h-16 px-4 bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60 border-b border-border">
                     <button
                         onClick={() => setIsMobileMenuOpen(true)}
-                        className="text-muted-foreground focus:outline-none"
+                        className="text-muted-foreground focus:outline-none p-2 -ml-2"
                     >
                         <Menu className="h-6 w-6" />
                     </button>
-                    <span className="text-lg font-semibold text-foreground">AIGenerator</span>
-                    <div className="w-6" /> {/* Spacer for centering */}
+                    <span className="text-lg font-semibold text-foreground truncate max-w-[200px]">
+                        {currentPage.name}
+                    </span>
+                    <div className="w-10" /> {/* Spacer for centering or future action button */}
                 </div>
 
                 {/* Page Content */}

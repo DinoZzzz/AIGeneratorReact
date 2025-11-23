@@ -31,7 +31,7 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     return (
         <ToastContext.Provider value={{ addToast, success, error, info }}>
             {children}
-            <div className="fixed top-0 right-0 p-6 space-y-4 z-50 flex flex-col items-end pointer-events-none">
+            <div className="fixed top-0 inset-x-0 sm:right-0 sm:left-auto p-4 sm:p-6 space-y-4 z-[100] flex flex-col items-center sm:items-end pointer-events-none">
                 {toasts.map((toast) => (
                     <Toast
                         key={toast.id}

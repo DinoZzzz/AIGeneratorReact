@@ -330,14 +330,14 @@ export const HistoryDetails = () => {
 
             {/* Included Reports */}
             <div className="bg-card shadow rounded-lg overflow-hidden border border-border">
-                <div className="px-6 py-4 border-b border-border">
-                    <div className="flex items-center justify-between">
+                <div className="px-4 sm:px-6 py-4 border-b border-border">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                         <h2 className="text-lg font-medium text-foreground">Included Reports ({forms.length})</h2>
-                        <div className="flex items-center gap-2">
+                        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                             <button
                                 onClick={handleWordExport}
                                 disabled={isExporting || forms.length === 0}
-                                className="inline-flex items-center px-4 py-2 border border-input rounded-md shadow-sm text-sm font-medium text-foreground bg-card hover:bg-accent focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="inline-flex justify-center items-center px-4 py-2 border border-input rounded-md shadow-sm text-sm font-medium text-foreground bg-card hover:bg-accent focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 {isExporting ? (
                                     <>
@@ -354,7 +354,7 @@ export const HistoryDetails = () => {
                             <button
                                 onClick={handleBulkExport}
                                 disabled={isExporting || forms.length === 0}
-                                className="inline-flex items-center px-4 py-2 border border-input rounded-md shadow-sm text-sm font-medium text-foreground bg-card hover:bg-accent focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="inline-flex justify-center items-center px-4 py-2 border border-input rounded-md shadow-sm text-sm font-medium text-foreground bg-card hover:bg-accent focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 {isExporting ? (
                                     <>
@@ -371,7 +371,93 @@ export const HistoryDetails = () => {
                         </div>
                     </div>
                 </div>
-                <div className="overflow-x-auto">
+
+                {/* Mobile Card View */}
+                <div className="block md:hidden divide-y divide-border">
+                    <div className="p-4 bg-muted/30 flex items-center justify-between border-b border-border">
+                        <div className="flex items-center">
+                            <input
+                                type="checkbox"
+                                className="rounded border-input text-primary focus:ring-ring mr-3 h-5 w-5"
+                                checked={
+                                    forms.length > 0 &&
+                                    selectedIds.size === forms.filter(f => f.form_id || f.report_form?.id).length
+                                }
+                                onChange={toggleSelectAll}
+                            />
+                            <span className="text-sm font-medium text-foreground">Select All</span>
+                        </div>
+                    </div>
+                    {forms.map((item, index) => {
+                        const formId = item.form_id || item.report_form?.id;
+                        const isSelected = formId ? selectedIds.has(formId) : false;
+                        const displayOrdinal = item.ordinal && item.ordinal > 0 ? item.ordinal : index + 1;
+
+                        return (
+                            <div key={item.id} className="p-4 space-y-3 bg-card">
+                                <div className="flex items-start gap-3">
+                                    <div className="pt-1">
+                                        <input
+                                            type="checkbox"
+                                            className="rounded border-input text-primary focus:ring-ring h-5 w-5"
+                                            checked={isSelected}
+                                            onChange={() => formId && toggleSelect(formId)}
+                                        />
+                                    </div>
+                                    <div className="flex-1 space-y-2">
+                                        <div className="flex justify-between items-start">
+                                            <div>
+                                                <span className="text-xs font-medium text-muted-foreground">#{displayOrdinal}</span>
+                                                <div className="font-medium text-foreground">
+                                                    {item.type_id === 1 ? 'Water' : 'Air'} Report
+                                                </div>
+                                            </div>
+                                            <span className={`px-2 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full ${item.report_form?.satisfies
+                                                    ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400'
+                                                    : 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-400'
+                                                }`}>
+                                                {item.report_form?.satisfies ? 'Yes' : 'No'}
+                                            </span>
+                                        </div>
+
+                                        <div className="text-sm text-muted-foreground">
+                                            <span className="font-medium">Dionica:</span> {item.report_form?.dionica || item.report_form?.stock || '-'}
+                                        </div>
+
+                                        <div className="flex justify-end gap-2 pt-2">
+                                            <button
+                                                onClick={() => formId && navigate(item.type_id === 1
+                                                    ? `/customers/${exportData.customer_id}/constructions/${exportData.construction_id}/reports/${formId}`
+                                                    : `/customers/${exportData.customer_id}/constructions/${exportData.construction_id}/reports/air/${formId}`
+                                                )}
+                                                disabled={!formId}
+                                                className="flex-1 inline-flex justify-center items-center px-3 py-2 border border-border rounded-md text-sm font-medium text-foreground hover:bg-accent transition-colors disabled:opacity-50"
+                                            >
+                                                <Pencil className="h-4 w-4 mr-2" /> Edit
+                                            </button>
+                                            <button
+                                                onClick={() => formId && handleDownloadReport(formId)}
+                                                disabled={!formId || downloadingFormId === formId}
+                                                className="flex-1 inline-flex justify-center items-center px-3 py-2 border border-border rounded-md text-sm font-medium text-primary hover:bg-primary/10 transition-colors disabled:opacity-50"
+                                            >
+                                                {downloadingFormId === formId ? (
+                                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                                ) : (
+                                                    <>
+                                                        <Download className="h-4 w-4 mr-2" /> Download
+                                                    </>
+                                                )}
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+
+                {/* Desktop Table View */}
+                <div className="hidden md:block overflow-x-auto">
                     <table className="min-w-full divide-y divide-border">
                         <thead className="bg-muted/50">
                             <tr>
@@ -436,11 +522,10 @@ export const HistoryDetails = () => {
                                             {item.type_id === 1 ? 'Water' : 'Air'}
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm">
-                                            <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                                                item.report_form?.satisfies
+                                            <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${item.report_form?.satisfies
                                                     ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400'
                                                     : 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-400'
-                                            }`}>
+                                                }`}>
                                                 {item.report_form?.satisfies ? 'Yes' : 'No'}
                                             </span>
                                         </td>
@@ -452,18 +537,18 @@ export const HistoryDetails = () => {
                                                 onClick={() => formId && navigate(item.type_id === 1
                                                     ? `/customers/${exportData.customer_id}/constructions/${exportData.construction_id}/reports/${formId}`
                                                     : `/customers/${exportData.customer_id}/constructions/${exportData.construction_id}/reports/air/${formId}`
-                                            )}
-                                            disabled={!formId}
-                                            className="text-muted-foreground hover:text-foreground inline-flex items-center disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                                            title="Edit report"
-                                        >
-                                            <Pencil className="h-4 w-4 mr-1" /> Edit
-                                        </button>
-                                        <button
-                                            onClick={() => formId && handleDownloadReport(formId)}
-                                            disabled={!formId || downloadingFormId === formId}
-                                            className="text-primary hover:text-primary/80 inline-flex items-center disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                                        >
+                                                )}
+                                                disabled={!formId}
+                                                className="text-muted-foreground hover:text-foreground inline-flex items-center disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                                title="Edit report"
+                                            >
+                                                <Pencil className="h-4 w-4 mr-1" /> Edit
+                                            </button>
+                                            <button
+                                                onClick={() => formId && handleDownloadReport(formId)}
+                                                disabled={!formId || downloadingFormId === formId}
+                                                className="text-primary hover:text-primary/80 inline-flex items-center disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                            >
                                                 {downloadingFormId === formId ? (
                                                     <>
                                                         <Loader2 className="h-4 w-4 mr-1 animate-spin" /> Downloading...

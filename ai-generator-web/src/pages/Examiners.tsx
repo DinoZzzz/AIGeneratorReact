@@ -118,7 +118,86 @@ export const Examiners = () => {
             </div>
 
             <div className="bg-card shadow-sm rounded-xl border border-border overflow-hidden">
-                <div className="overflow-x-auto">
+                {/* Mobile Card View */}
+                <div className="block md:hidden divide-y divide-border">
+                    {loading ? (
+                        <div className="p-4 text-center text-muted-foreground">
+                            {t('examiners.loading')}
+                        </div>
+                    ) : filteredExaminers.length === 0 ? (
+                        <div className="p-8 text-center text-muted-foreground">
+                            <div className="flex flex-col items-center justify-center">
+                                <UserCheck className="h-12 w-12 text-muted-foreground/50 mb-4" />
+                                <p className="text-lg font-medium text-foreground">{t('examiners.noneFound')}</p>
+                                <p className="text-sm text-muted-foreground mt-1">
+                                    {t('examiners.noneDesc')}
+                                </p>
+                                {isAdmin && (
+                                    <Button onClick={openNew} variant="outline" className="mt-4">
+                                        <Plus className="h-4 w-4 mr-2" />
+                                        {t('examiners.add')}
+                                    </Button>
+                                )}
+                            </div>
+                        </div>
+                    ) : (
+                        filteredExaminers.map((examiner) => (
+                            <div key={examiner.id} className="p-4 space-y-3">
+                                <div className="flex justify-between items-start">
+                                    <div>
+                                        <div className="font-medium text-foreground">
+                                            {examiner.name} {examiner.last_name} {examiner.title}
+                                        </div>
+                                        <div className="text-sm text-muted-foreground">
+                                            @{examiner.username}
+                                        </div>
+                                    </div>
+                                    {examiner.role === 'admin' && (
+                                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
+                                            Admin
+                                        </span>
+                                    )}
+                                </div>
+
+                                <div className="text-sm text-muted-foreground space-y-1">
+                                    <div className="flex items-center gap-2">
+                                        <span className="font-medium">{t('examiners.email')}:</span>
+                                        <span className="truncate">{examiner.email}</span>
+                                    </div>
+                                    {examiner.accreditations && examiner.accreditations.length > 0 && (
+                                        <div>
+                                            <span className="font-medium block mb-1">{t('examiners.accreditations')}:</span>
+                                            <div className="text-xs bg-muted/50 p-2 rounded">
+                                                {getAccreditationNames(examiner.accreditations)}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {isAdmin && (
+                                    <div className="flex justify-end gap-2 pt-2">
+                                        <Button variant="outline" size="sm" onClick={() => openEdit(examiner)} className="flex-1">
+                                            <Pencil className="h-4 w-4 mr-2" />
+                                            {t('common.edit')}
+                                        </Button>
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => handleDelete(examiner.id)}
+                                            className="flex-1 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                        >
+                                            <Trash2 className="h-4 w-4 mr-2" />
+                                            {t('common.delete')}
+                                        </Button>
+                                    </div>
+                                )}
+                            </div>
+                        ))
+                    )}
+                </div>
+
+                {/* Desktop Table View */}
+                <div className="hidden md:block overflow-x-auto">
                     <table className="min-w-full divide-y divide-border">
                         <thead className="bg-muted/50">
                             <tr>

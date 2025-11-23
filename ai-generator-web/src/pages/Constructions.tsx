@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { constructionService } from '../services/constructionService';
 import { customerService } from '../services/customerService';
-import { Plus, Pencil, Trash2, ArrowLeft, Loader2, FileText } from 'lucide-react';
+import { Plus, Pencil, Trash2, ArrowLeft, Loader2, FileText, MapPin, HardHat } from 'lucide-react';
 import type { Construction, Customer } from '../types';
 import { Breadcrumbs } from '../components/ui/Breadcrumbs';
 import { useLanguage } from '../context/LanguageContext';
@@ -112,61 +112,118 @@ export const Constructions = () => {
                     />
                 </div>
 
-                <table className="min-w-full divide-y divide-border">
-                    <thead className="bg-muted/50">
-                        <tr>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">{t('constructions.workOrder')}</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">{t('constructions.name')}</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">{t('constructions.location')}</th>
-                            <th className="px-6 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">{t('constructions.actions')}</th>
-                        </tr>
-                    </thead>
-                    <tbody className="bg-card divide-y divide-border">
-                        {filteredConstructions.map((construction) => (
-                            <tr key={construction.id} className="hover:bg-muted/50 transition-colors">
-                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-foreground">
-                                    {construction.work_order}
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
-                                    {construction.name}
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
-                                    {construction.location}
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-3">
-                                    <Link
-                                        to={`/customers/${customerId}/constructions/${construction.id}/reports`}
-                                        className="text-green-600 hover:text-green-700 inline-flex items-center"
-                                        title={t('constructions.viewReports')}
-                                    >
-                                        <FileText className="h-4 w-4" />
-                                    </Link>
-                                    <Link
-                                        to={`/customers/${customerId}/constructions/${construction.id}`}
-                                        className="text-primary hover:text-primary/80 inline-flex items-center"
-                                        title={t('constructions.edit')}
-                                    >
-                                        <Pencil className="h-4 w-4" />
-                                    </Link>
-                                    <button
-                                        onClick={() => handleDelete(construction.id)}
-                                        className="text-destructive hover:text-destructive/80 inline-flex items-center"
-                                        title={t('constructions.delete')}
-                                    >
-                                        <Trash2 className="h-4 w-4" />
-                                    </button>
-                                </td>
-                            </tr>
-                        ))}
-                        {filteredConstructions.length === 0 && (
+                {/* Mobile Card View */}
+                <div className="block md:hidden divide-y divide-border">
+                    {filteredConstructions.length === 0 ? (
+                        <div className="p-4 text-center text-sm text-muted-foreground">
+                            {t('constructions.none')}
+                        </div>
+                    ) : (
+                        filteredConstructions.map((construction) => (
+                            <div key={construction.id} className="p-4 space-y-3">
+                                <div className="flex justify-between items-start">
+                                    <div>
+                                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-muted text-muted-foreground mb-1">
+                                            {construction.work_order || '-'}
+                                        </span>
+                                        <h3 className="text-lg font-bold text-foreground flex items-center">
+                                            <HardHat className="h-4 w-4 mr-2 text-primary" />
+                                            {construction.name}
+                                        </h3>
+                                    </div>
+                                    <div className="flex space-x-2">
+                                        <Link
+                                            to={`/customers/${customerId}/constructions/${construction.id}`}
+                                            className="p-2 text-primary hover:bg-primary/10 rounded-full transition-colors"
+                                        >
+                                            <Pencil className="h-4 w-4" />
+                                        </Link>
+                                        <button
+                                            onClick={() => handleDelete(construction.id)}
+                                            className="p-2 text-destructive hover:bg-destructive/10 rounded-full transition-colors"
+                                        >
+                                            <Trash2 className="h-4 w-4" />
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {construction.location && (
+                                    <div className="flex items-center text-sm text-muted-foreground">
+                                        <MapPin className="h-4 w-4 mr-2" />
+                                        {construction.location}
+                                    </div>
+                                )}
+
+                                <Link
+                                    to={`/customers/${customerId}/constructions/${construction.id}/reports`}
+                                    className="block w-full text-center py-2 px-4 border border-border rounded-md text-sm font-medium text-foreground hover:bg-accent transition-colors"
+                                >
+                                    <FileText className="h-4 w-4 inline-block mr-2 text-green-600" />
+                                    {t('constructions.viewReports')}
+                                </Link>
+                            </div>
+                        ))
+                    )}
+                </div>
+
+                {/* Desktop Table View */}
+                <div className="hidden md:block overflow-x-auto">
+                    <table className="min-w-full divide-y divide-border">
+                        <thead className="bg-muted/50">
                             <tr>
-                                <td colSpan={4} className="px-6 py-4 text-center text-sm text-muted-foreground">
-                                    {t('constructions.none')}
-                                </td>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">{t('constructions.workOrder')}</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">{t('constructions.name')}</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">{t('constructions.location')}</th>
+                                <th className="px-6 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">{t('constructions.actions')}</th>
                             </tr>
-                        )}
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody className="bg-card divide-y divide-border">
+                            {filteredConstructions.map((construction) => (
+                                <tr key={construction.id} className="hover:bg-muted/50 transition-colors">
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-foreground">
+                                        {construction.work_order}
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
+                                        {construction.name}
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
+                                        {construction.location}
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-3">
+                                        <Link
+                                            to={`/customers/${customerId}/constructions/${construction.id}/reports`}
+                                            className="text-green-600 hover:text-green-700 inline-flex items-center"
+                                            title={t('constructions.viewReports')}
+                                        >
+                                            <FileText className="h-4 w-4" />
+                                        </Link>
+                                        <Link
+                                            to={`/customers/${customerId}/constructions/${construction.id}`}
+                                            className="text-primary hover:text-primary/80 inline-flex items-center"
+                                            title={t('constructions.edit')}
+                                        >
+                                            <Pencil className="h-4 w-4" />
+                                        </Link>
+                                        <button
+                                            onClick={() => handleDelete(construction.id)}
+                                            className="text-destructive hover:text-destructive/80 inline-flex items-center"
+                                            title={t('constructions.delete')}
+                                        >
+                                            <Trash2 className="h-4 w-4" />
+                                        </button>
+                                    </td>
+                                </tr>
+                            ))}
+                            {filteredConstructions.length === 0 && (
+                                <tr>
+                                    <td colSpan={4} className="px-6 py-4 text-center text-sm text-muted-foreground">
+                                        {t('constructions.none')}
+                                    </td>
+                                </tr>
+                            )}
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     );

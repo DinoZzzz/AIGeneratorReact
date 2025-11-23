@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { reportService } from '../services/reportService';
 import type { ReportForm } from '../types';
-import { Loader2, Trash2, Edit, FileText, Download } from 'lucide-react';
+import { Loader2, Trash2, Edit, FileText, Download, CheckSquare, Square } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { cn } from '../lib/utils';
 import { Button } from '../components/ui/Button';
@@ -117,32 +117,33 @@ export const Reports = () => {
 
     return (
         <div className="space-y-8">
-            <div className="flex justify-between items-center">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
                     <h1 className="text-3xl font-bold tracking-tight text-foreground">Reports</h1>
                     <p className="text-muted-foreground mt-1">Manage and view all test reports.</p>
                 </div>
                 {selectedReports.size > 0 && (
-                    <div className="flex space-x-2">
+                    <div className="flex space-x-2 w-full sm:w-auto">
                         <Button
                             variant="outline"
                             onClick={handleDeleteSelected}
-                            className="text-destructive hover:text-destructive hover:bg-destructive/10 border-destructive/30"
+                            className="flex-1 sm:flex-none text-destructive hover:text-destructive hover:bg-destructive/10 border-destructive/30"
                         >
                             <Trash2 className="h-4 w-4 mr-2" />
-                            Delete Selected ({selectedReports.size})
+                            Delete ({selectedReports.size})
                         </Button>
                         <Button
                             variant="outline"
                             onClick={() => setExportDialogOpen(true)}
                             disabled={isExporting}
+                            className="flex-1 sm:flex-none"
                         >
                             {isExporting ? (
                                 <Loader2 className="h-4 w-4 animate-spin mr-2" />
                             ) : (
                                 <Download className="h-4 w-4 mr-2" />
                             )}
-                            Export Selected ({selectedReports.size})
+                            Export ({selectedReports.size})
                         </Button>
                     </div>
                 )}
@@ -155,7 +156,88 @@ export const Reports = () => {
             )}
 
             <div className="bg-card shadow-sm rounded-xl border border-border overflow-hidden">
-                <div className="overflow-x-auto">
+                {/* Mobile Card View */}
+                <div className="block md:hidden divide-y divide-border">
+                    {reports.length === 0 ? (
+                        <div className="p-8 text-center text-muted-foreground">
+                            <div className="flex flex-col items-center justify-center">
+                                <FileText className="h-12 w-12 text-muted-foreground/50 mb-4" />
+                                <p className="text-lg font-medium text-foreground">No reports found</p>
+                                <p className="text-sm text-muted-foreground mt-1">Reports are created from construction sites.</p>
+                            </div>
+                        </div>
+                    ) : (
+                        reports.map((report) => (
+                            <div
+                                key={report.id}
+                                className={cn(
+                                    "p-4 space-y-3 transition-colors",
+                                    selectedReports.has(report.id) ? "bg-primary/5" : ""
+                                )}
+                                onClick={() => toggleSelection(report.id)}
+                            >
+                                <div className="flex justify-between items-start">
+                                    <div className="flex items-center space-x-3">
+                                        <div onClick={(e) => e.stopPropagation()}>
+                                            <input
+                                                type="checkbox"
+                                                className="rounded border-gray-300 h-5 w-5"
+                                                checked={selectedReports.has(report.id)}
+                                                onChange={() => toggleSelection(report.id)}
+                                            />
+                                        </div>
+                                        <div>
+                                            <div className="font-medium text-foreground">
+                                                {report.type_id === 1 ? 'Water' : 'Air'} - {report.draft?.name}
+                                            </div>
+                                            <div className="text-xs text-muted-foreground">
+                                                {new Date(report.examination_date).toLocaleDateString()}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <span className={cn(
+                                        "px-2.5 py-0.5 inline-flex text-xs font-medium rounded-full",
+                                        report.satisfies
+                                            ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
+                                            : "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400"
+                                    )}>
+                                        {report.satisfies ? 'Satisfies' : 'Failed'}
+                                    </span>
+                                </div>
+
+                                <div className="pl-8 space-y-1">
+                                    <div className="text-sm text-foreground font-medium">
+                                        {report.construction?.name || '-'}
+                                    </div>
+                                    <div className="text-xs text-muted-foreground">
+                                        Work Order: {report.construction?.work_order || '-'}
+                                    </div>
+                                </div>
+
+                                <div className="pl-8 flex justify-end space-x-2 pt-2" onClick={(e) => e.stopPropagation()}>
+                                    <Button variant="ghost" size="sm" asChild>
+                                        <Link to={`/reports/${report.id}`}>
+                                            <Edit className="h-4 w-4 mr-2" />
+                                            Edit
+                                        </Link>
+                                    </Button>
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => handleDelete(report.id)}
+                                        className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                                    >
+                                        <Trash2 className="h-4 w-4 mr-2" />
+                                        Delete
+                                    </Button>
+                                </div>
+                            </div>
+                        ))
+                    )}
+                </div>
+
+                {/* Desktop Table View */}
+                <div className="hidden md:block overflow-x-auto">
                     <table className="min-w-full divide-y divide-border">
                         <thead className="bg-muted/50">
                             <tr>

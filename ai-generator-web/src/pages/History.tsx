@@ -2,7 +2,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { historyService } from '../services/historyService';
 import type { ReportExport } from '../types';
-import { Loader2, Search, Trash2, ExternalLink, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Loader2, Search, Trash2, ExternalLink, ChevronLeft, ChevronRight, User, Calendar, FileText } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 
 export const History = () => {
@@ -118,7 +118,81 @@ export const History = () => {
                     </div>
                 </div>
 
-                <div className="overflow-x-auto">
+                {/* Mobile Card View */}
+                <div className="block md:hidden divide-y divide-border">
+                    {loading ? (
+                        <div className="p-4 text-center text-muted-foreground">
+                            <Loader2 className="h-6 w-6 animate-spin inline-block mr-2" /> {t('history.loading')}
+                        </div>
+                    ) : exports.length === 0 ? (
+                        <div className="p-8 text-center text-muted-foreground">
+                            <div className="flex flex-col items-center justify-center">
+                                <Search className="h-12 w-12 text-muted-foreground/50 mb-4" />
+                                <p className="text-lg font-medium text-foreground">{t('history.noDataTitle')}</p>
+                                <p className="text-sm text-muted-foreground mt-1">
+                                    {t('history.noDataDesc')}
+                                </p>
+                            </div>
+                        </div>
+                    ) : (
+                        exports.map((item) => (
+                            <div key={item.id} className="p-4 space-y-3">
+                                <div className="flex justify-between items-start">
+                                    <div>
+                                        <h3 className="text-lg font-bold text-foreground">
+                                            <button
+                                                onClick={() => item.construction_id && item.customer_id && navigate(`/customers/${item.customer_id}/constructions/${item.construction_id}/reports`)}
+                                                className="hover:underline text-left"
+                                            >
+                                                {item.construction_part}
+                                            </button>
+                                        </h3>
+                                        <div className="text-xs text-muted-foreground mt-1 flex items-center">
+                                            <Calendar className="h-3 w-3 mr-1" />
+                                            {new Date(item.created_at).toLocaleDateString()}
+                                        </div>
+                                    </div>
+                                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
+                                        <FileText className="h-3 w-3 mr-1" />
+                                        {item.forms_count}
+                                    </span>
+                                </div>
+
+                                <div className="space-y-1 text-sm text-muted-foreground">
+                                    <div className="flex items-center">
+                                        <User className="h-4 w-4 mr-2" />
+                                        <span className="font-medium mr-1">{t('history.certifier')}:</span>
+                                        {item.certifier_name || formatName(item.certifier)}
+                                    </div>
+                                    <div className="flex items-center">
+                                        <User className="h-4 w-4 mr-2 opacity-0" /> {/* Spacer */}
+                                        <span className="font-medium mr-1">{t('history.createdBy')}:</span>
+                                        {formatName(item.user)}
+                                    </div>
+                                </div>
+
+                                <div className="flex justify-end space-x-2 pt-2">
+                                    <button
+                                        onClick={() => navigate(`/history/${item.id}`)}
+                                        className="flex-1 inline-flex justify-center items-center px-4 py-2 border border-border rounded-md text-sm font-medium text-foreground hover:bg-accent transition-colors"
+                                    >
+                                        <ExternalLink className="h-4 w-4 mr-2" />
+                                        {t('history.open')}
+                                    </button>
+                                    <button
+                                        onClick={() => handleDelete(item.id)}
+                                        className="inline-flex justify-center items-center px-4 py-2 border border-border rounded-md text-sm font-medium text-destructive hover:bg-destructive/10 transition-colors"
+                                    >
+                                        <Trash2 className="h-4 w-4" />
+                                    </button>
+                                </div>
+                            </div>
+                        ))
+                    )}
+                </div>
+
+                {/* Desktop Table View */}
+                <div className="hidden md:block overflow-x-auto">
                     <table className="min-w-full divide-y divide-border">
                         <thead className="bg-muted/50">
                             <tr>
