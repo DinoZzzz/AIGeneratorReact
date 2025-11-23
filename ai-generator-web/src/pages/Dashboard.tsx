@@ -74,7 +74,6 @@ export const Dashboard = () => {
                     title="Active Sites"
                     value={stats.constructions}
                     icon={HardHat}
-                    href="/constructions"
                     color="text-amber-600"
                     bgColor="bg-amber-100"
                 />
@@ -101,32 +100,46 @@ interface StatsCardProps {
     title: string;
     value: number;
     icon: React.ElementType;
-    href: string;
+    href?: string;
     color: string;
     bgColor: string;
 }
 
 const StatsCard = ({ title, value, icon: Icon, href, color, bgColor }: StatsCardProps) => {
-    return (
-        <Link to={href} className="group block bg-white dark:bg-slate-900 overflow-hidden shadow-sm rounded-xl border border-border hover:shadow-md transition-all duration-200">
-            <div className="p-6">
-                <div className="flex items-center">
-                    <div className={cn("flex-shrink-0 p-3 rounded-lg", bgColor)}>
-                        <Icon className={cn("h-6 w-6", color)} />
-                    </div>
-                    <div className="ml-5 w-0 flex-1">
-                        <dl>
-                            <dt className="text-sm font-medium text-muted-foreground truncate">{title}</dt>
-                            <dd>
-                                <div className="text-2xl font-bold text-foreground">{value}</div>
-                            </dd>
-                        </dl>
-                    </div>
+    const content = (
+        <div className="p-6">
+            <div className="flex items-center">
+                <div className={cn("flex-shrink-0 p-3 rounded-lg", bgColor)}>
+                    <Icon className={cn("h-6 w-6", color)} />
+                </div>
+                <div className="ml-5 w-0 flex-1">
+                    <dl>
+                        <dt className="text-sm font-medium text-muted-foreground truncate">{title}</dt>
+                        <dd>
+                            <div className="text-2xl font-bold text-foreground">{value}</div>
+                        </dd>
+                    </dl>
+                </div>
+                {href && (
                     <div className="ml-2 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
                         <ArrowUpRight className="h-5 w-5 text-muted-foreground" />
                     </div>
-                </div>
+                )}
             </div>
-        </Link>
+        </div>
+    );
+
+    if (href) {
+        return (
+            <Link to={href} className="group block bg-white dark:bg-slate-900 overflow-hidden shadow-sm rounded-xl border border-border hover:shadow-md transition-all duration-200">
+                {content}
+            </Link>
+        );
+    }
+
+    return (
+        <div className="block bg-white dark:bg-slate-900 overflow-hidden shadow-sm rounded-xl border border-border">
+            {content}
+        </div>
     );
 };

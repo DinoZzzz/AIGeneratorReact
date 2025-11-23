@@ -127,6 +127,9 @@ export const Examiners = () => {
                                     Username
                                 </th>
                                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                                    Email
+                                </th>
+                                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                                     Accreditations
                                 </th>
                                 {isAdmin && (
@@ -139,13 +142,13 @@ export const Examiners = () => {
                         <tbody className="bg-card divide-y divide-border">
                             {loading ? (
                                 <tr>
-                                    <td colSpan={4} className="px-6 py-12 text-center text-muted-foreground">
+                                    <td colSpan={5} className="px-6 py-12 text-center text-muted-foreground">
                                         Loading...
                                     </td>
                                 </tr>
                             ) : filteredExaminers.length === 0 ? (
                                 <tr>
-                                    <td colSpan={4} className="px-6 py-12 text-center text-muted-foreground">
+                                    <td colSpan={5} className="px-6 py-12 text-center text-muted-foreground">
                                         <div className="flex flex-col items-center justify-center">
                                             <UserCheck className="h-12 w-12 text-muted-foreground/50 mb-4" />
                                             <p className="text-lg font-medium text-foreground">No examiners found</p>
@@ -176,6 +179,9 @@ export const Examiners = () => {
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
                                             {examiner.username}
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
+                                            {examiner.email}
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
                                             {getAccreditationNames(examiner.accreditations)}

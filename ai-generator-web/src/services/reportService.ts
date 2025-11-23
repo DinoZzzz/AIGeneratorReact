@@ -43,9 +43,18 @@ export const reportService = {
     },
 
     async create(report: Partial<ReportForm>) {
+        // Get current user
+        const { data: { user } } = await supabase.auth.getUser();
+
+        // Add user_id to the report
+        const reportWithUser = {
+            ...report,
+            user_id: user?.id || null
+        };
+
         const { data, error } = await supabase
             .from('report_forms')
-            .insert(report)
+            .insert(reportWithUser)
             .select()
             .single();
 

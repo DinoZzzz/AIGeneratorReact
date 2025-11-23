@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { reportService } from '../services/reportService';
 import type { ReportForm } from '../types';
-import { Loader2, Plus, Trash2, Edit, FileText, Download } from 'lucide-react';
+import { Loader2, Trash2, Edit, FileText, Download } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { cn } from '../lib/utils';
 import { Button } from '../components/ui/Button';
@@ -11,19 +11,13 @@ import { generateWordDocument } from '../services/wordExportService';
 import { useAuth } from '../context/AuthContext';
 
 export const Reports = () => {
-    const { user, profile } = useAuth();
+    const { user } = useAuth();
     const [reports, setReports] = useState<ReportForm[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [selectedReports, setSelectedReports] = useState<Set<string>>(new Set());
     const [exportDialogOpen, setExportDialogOpen] = useState(false);
     const [isExporting, setIsExporting] = useState(false);
-    const [isNewReportOpen, setIsNewReportOpen] = useState(false);
-
-    // Check accreditations (1 = Water, 2 = Air)
-    const hasWaterAccreditation = profile?.accreditations?.includes(1) ?? false;
-    const hasAirAccreditation = profile?.accreditations?.includes(2) ?? false;
-    const hasAnyAccreditation = hasWaterAccreditation || hasAirAccreditation;
 
     useEffect(() => {
         loadReports();
@@ -128,80 +122,30 @@ export const Reports = () => {
                     <h1 className="text-3xl font-bold tracking-tight text-foreground">Reports</h1>
                     <p className="text-muted-foreground mt-1">Manage and view all test reports.</p>
                 </div>
-                <div className="flex space-x-2">
-                    {selectedReports.size > 0 && (
-                        <>
-                            <Button
-                                variant="outline"
-                                onClick={handleDeleteSelected}
-                                className="text-destructive hover:text-destructive hover:bg-destructive/10 border-destructive/30"
-                            >
-                                <Trash2 className="h-4 w-4 mr-2" />
-                                Delete Selected ({selectedReports.size})
-                            </Button>
-                            <Button
-                                variant="outline"
-                                onClick={() => setExportDialogOpen(true)}
-                                disabled={isExporting}
-                            >
-                                {isExporting ? (
-                                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                                ) : (
-                                    <Download className="h-4 w-4 mr-2" />
-                                )}
-                                Export Selected ({selectedReports.size})
-                            </Button>
-                        </>
-                    )}
-                    <div className="relative inline-block text-left">
+                {selectedReports.size > 0 && (
+                    <div className="flex space-x-2">
                         <Button
-                            onClick={() => setIsNewReportOpen(!isNewReportOpen)}
-                            disabled={!hasAnyAccreditation}
-                            title={!hasAnyAccreditation ? "You don't have any accreditations" : ""}
+                            variant="outline"
+                            onClick={handleDeleteSelected}
+                            className="text-destructive hover:text-destructive hover:bg-destructive/10 border-destructive/30"
                         >
-                            <Plus className="h-4 w-4 mr-2" />
-                            New Report
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Delete Selected ({selectedReports.size})
                         </Button>
-                        {isNewReportOpen && (
-                            <div className="absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-popover ring-1 ring-black ring-opacity-5 focus:outline-none z-50 border border-border">
-                                <div className="py-1" role="menu" aria-orientation="vertical">
-                                    {hasWaterAccreditation && (
-                                        <Link
-                                            to="/reports/new"
-                                            className="block px-4 py-2 text-sm text-popover-foreground hover:bg-accent hover:text-accent-foreground"
-                                            role="menuitem"
-                                            onClick={() => setIsNewReportOpen(false)}
-                                        >
-                                            Water Method
-                                        </Link>
-                                    )}
-                                    {hasAirAccreditation && (
-                                        <Link
-                                            to="/reports/new/air"
-                                            className="block px-4 py-2 text-sm text-popover-foreground hover:bg-accent hover:text-accent-foreground"
-                                            role="menuitem"
-                                            onClick={() => setIsNewReportOpen(false)}
-                                        >
-                                            Air Method
-                                        </Link>
-                                    )}
-                                    {!hasAnyAccreditation && (
-                                        <div className="px-4 py-2 text-sm text-muted-foreground">
-                                            No accreditations available
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-                        )}
+                        <Button
+                            variant="outline"
+                            onClick={() => setExportDialogOpen(true)}
+                            disabled={isExporting}
+                        >
+                            {isExporting ? (
+                                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                            ) : (
+                                <Download className="h-4 w-4 mr-2" />
+                            )}
+                            Export Selected ({selectedReports.size})
+                        </Button>
                     </div>
-                    {/* Overlay to close dropdown when clicking outside */}
-                    {isNewReportOpen && (
-                        <div
-                            className="fixed inset-0 z-40"
-                            onClick={() => setIsNewReportOpen(false)}
-                        />
-                    )}
-                </div>
+                )}
             </div>
 
             {error && (
@@ -247,10 +191,7 @@ export const Reports = () => {
                                         <div className="flex flex-col items-center justify-center">
                                             <FileText className="h-12 w-12 text-muted-foreground/50 mb-4" />
                                             <p className="text-lg font-medium text-foreground">No reports found</p>
-                                            <p className="text-sm text-muted-foreground mt-1">Get started by creating a new test report.</p>
-                                            <Button variant="outline" className="mt-4" asChild>
-                                                <Link to="/reports/new">Create Report</Link>
-                                            </Button>
+                                            <p className="text-sm text-muted-foreground mt-1">Reports are created from construction sites.</p>
                                         </div>
                                     </td>
                                 </tr>

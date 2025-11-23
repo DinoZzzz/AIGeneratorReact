@@ -1,20 +1,27 @@
 
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, Plus } from 'lucide-react';
+import { Search, Plus, ChevronDown, ChevronUp } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
+
+interface ActiveConstruction {
+    id: string;
+    work_order: string;
+    name: string;
+}
 
 interface CustomerTableItem {
     id: string;
     work_order: string;
     name: string;
-    active_constructions: string[]; // List of work_order + name strings
+    active_constructions: ActiveConstruction[];
 }
 
 export const DashboardCustomersTable = () => {
     const [customers, setCustomers] = useState<CustomerTableItem[]>([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
+    const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
 
     useEffect(() => {
         fetchCustomers();
@@ -36,7 +43,9 @@ export const DashboardCustomersTable = () => {
                 .select(`
                     id,
                     name,
+                    work_order,
                     constructions (
+                        id,
                         work_order,
                         name,
                         is_active
@@ -44,8 +53,8 @@ export const DashboardCustomersTable = () => {
                 `);
 
             if (search) {
-                // Adjusted search to only search name since work_order might not exist on customer
-                query = query.ilike('name', `%${search}%`);
+                // Search by both work_order and name
+                query = query.or(`name.ilike.%${search}%,work_order.ilike.%${search}%`);
             }
 
             query = query.range(0, 49);
@@ -58,14 +67,17 @@ export const DashboardCustomersTable = () => {
                 const formatted: CustomerTableItem[] = data.map((c: any) => {
                     const active = c.constructions
                         ?.filter((con: any) => con.is_active)
-                        .map((con: any) => `${con.work_order || ''}, ${con.name}`)
-                        .slice(0, 3); // Take top 3
+                        .map((con: any) => ({
+                            id: con.id,
+                            work_order: con.work_order || '',
+                            name: con.name
+                        })) || [];
 
                     return {
                         id: c.id,
-                        work_order: '-', // Default since column is missing or we aren't selecting it
+                        work_order: c.work_order || '-',
                         name: c.name,
-                        active_constructions: active || []
+                        active_constructions: active
                     };
                 });
                 setCustomers(formatted);
@@ -76,6 +88,16 @@ export const DashboardCustomersTable = () => {
         } finally {
             setLoading(false);
         }
+    };
+
+    const toggleRow = (customerId: string) => {
+        const newExpanded = new Set(expandedRows);
+        if (newExpanded.has(customerId)) {
+            newExpanded.delete(customerId);
+        } else {
+            newExpanded.add(customerId);
+        }
+        setExpandedRows(newExpanded);
     };
 
     return (
@@ -108,7 +130,7 @@ export const DashboardCustomersTable = () => {
                 <table className="w-full text-left text-sm">
                     <thead className="bg-gray-50 dark:bg-slate-800 border-b border-gray-200 dark:border-slate-700">
                         <tr>
-                            <th className="px-6 py-3 font-medium text-gray-500 dark:text-gray-400">Broj</th>
+                            <th className="px-6 py-3 font-medium text-gray-500 dark:text-gray-400">Work Order</th>
                             <th className="px-6 py-3 font-medium text-gray-500 dark:text-gray-400">Naručitelj</th>
                             <th className="px-6 py-3 font-medium text-gray-500 dark:text-gray-400">Aktivni Radni Nalozi</th>
                         </tr>
@@ -123,23 +145,69 @@ export const DashboardCustomersTable = () => {
                                 <td colSpan={3} className="px-6 py-8 text-center text-gray-500">No customers found</td>
                             </tr>
                         ) : (
-                            customers.map((customer) => (
-                                <tr key={customer.id} className="hover:bg-gray-50 dark:hover:bg-slate-800/50 transition-colors">
-                                    <td className="px-6 py-4 font-medium">{customer.work_order}</td>
-                                    <td className="px-6 py-4">{customer.name}</td>
-                                    <td className="px-6 py-4">
-                                        {customer.active_constructions.length > 0 ? (
-                                            <div className="space-y-1">
-                                                {customer.active_constructions.map((ac, i) => (
-                                                    <div key={i} className="truncate max-w-md text-gray-600 dark:text-gray-300">{ac}</div>
-                                                ))}
-                                            </div>
-                                        ) : (
-                                            <span className="text-gray-400 italic">None</span>
-                                        )}
-                                    </td>
-                                </tr>
-                            ))
+                            customers.map((customer) => {
+                                const isExpanded = expandedRows.has(customer.id);
+                                const hasMany = customer.active_constructions.length > 3;
+                                const displayedConstructions = isExpanded
+                                    ? customer.active_constructions
+                                    : customer.active_constructions.slice(0, 3);
+
+                                return (
+                                    <tr key={customer.id} className="hover:bg-gray-50 dark:hover:bg-slate-800/50 transition-colors">
+                                        <td className="px-6 py-4 font-medium">
+                                            <Link
+                                                to={`/customers/${customer.id}/constructions`}
+                                                className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 hover:underline"
+                                            >
+                                                {customer.work_order}
+                                            </Link>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <Link
+                                                to={`/customers/${customer.id}/constructions`}
+                                                className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 hover:underline"
+                                            >
+                                                {customer.name}
+                                            </Link>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            {customer.active_constructions.length > 0 ? (
+                                                <div className="space-y-1">
+                                                    {displayedConstructions.map((ac) => (
+                                                        <Link
+                                                            key={ac.id}
+                                                            to={`/constructions/${ac.id}/reports`}
+                                                            className="block truncate max-w-md text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 hover:underline text-sm"
+                                                        >
+                                                            {ac.work_order}, {ac.name}
+                                                        </Link>
+                                                    ))}
+                                                    {hasMany && (
+                                                        <button
+                                                            onClick={() => toggleRow(customer.id)}
+                                                            className="flex items-center gap-1 text-xs text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200 mt-1"
+                                                        >
+                                                            {isExpanded ? (
+                                                                <>
+                                                                    <ChevronUp className="h-3 w-3" />
+                                                                    Prikaži manje
+                                                                </>
+                                                            ) : (
+                                                                <>
+                                                                    <ChevronDown className="h-3 w-3" />
+                                                                    Prikaži još {customer.active_constructions.length - 3}
+                                                                </>
+                                                            )}
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            ) : (
+                                                <span className="text-gray-400 italic text-sm">None</span>
+                                            )}
+                                        </td>
+                                    </tr>
+                                );
+                            })
                         )}
                     </tbody>
                 </table>

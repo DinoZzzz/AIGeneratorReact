@@ -9,9 +9,16 @@ interface StatItem {
     [key: string]: string | number; // Add index signature for Recharts compatibility
 }
 
+interface ExaminerStat {
+    id: string;
+    name: string;
+    todayCount: number;
+    weekCount: number;
+}
+
 export const DashboardStats = () => {
     const [customerStats, setCustomerStats] = useState<StatItem[]>([]);
-    const [examinerStats, setExaminerStats] = useState<StatItem[]>([]);
+    const [examinerStats, setExaminerStats] = useState<ExaminerStat[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -20,11 +27,18 @@ export const DashboardStats = () => {
 
     const fetchStats = async () => {
         try {
+            // Get date ranges
+            const now = new Date();
+            const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            const weekAgo = new Date(today);
+            weekAgo.setDate(weekAgo.getDate() - 7);
+
             const { data: reports, error } = await supabase
                 .from('report_forms')
                 .select(`
                     id,
                     user_id,
+                    created_at,
                     construction:constructions (
                         id,
                         customer:customers (
@@ -57,17 +71,55 @@ export const DashboardStats = () => {
                 .slice(0, 3); // Top 3
 
             // 2. Process Examiner Stats
-            const examinerCounts: Record<string, number> = {};
+            // First, fetch all profiles
+            const { data: allProfiles } = await supabase
+                .from('profiles')
+                .select('id, name, last_name, email, role');
+
+            if (!allProfiles) return;
+
+            const examinerCounts: Record<string, { todayCount: number, weekCount: number }> = {};
+
+            // Initialize all users with 0 counts
+            allProfiles.forEach((profile) => {
+                examinerCounts[profile.id] = { todayCount: 0, weekCount: 0 };
+            });
+
+            // Count reports for each user
             reports.forEach((report: any) => {
-                if (report.user_id) {
-                    examinerCounts[report.user_id] = (examinerCounts[report.user_id] || 0) + 1;
+                if (report.user_id && examinerCounts[report.user_id]) {
+                    const reportDate = new Date(report.created_at);
+
+                    // Count reports created today
+                    if (reportDate >= today) {
+                        examinerCounts[report.user_id].todayCount++;
+                    }
+
+                    // Count reports created this week
+                    if (reportDate >= weekAgo) {
+                        examinerCounts[report.user_id].weekCount++;
+                    }
                 }
             });
 
+            const profileMap = new Map(allProfiles.map(p => [p.id, p]));
+
             const sortedExaminers = Object.entries(examinerCounts)
-                .map(([id, count]) => ({ id, name: 'Unknown Examiner', count }))
-                .sort((a, b) => b.count - a.count)
-                .slice(0, 3);
+                .map(([id, counts]) => {
+                    const profile = profileMap.get(id);
+                    const name = profile
+                        ? `${profile.name || ''} ${profile.last_name || ''}`.trim() || profile.email || 'Unknown'
+                        : 'Unknown Examiner';
+
+                    return {
+                        id,
+                        name,
+                        todayCount: counts.todayCount,
+                        weekCount: counts.weekCount
+                    };
+                })
+                .sort((a, b) => b.weekCount - a.weekCount)
+                .slice(0, 4); // Top 4 examiners
 
             setCustomerStats(sortedCustomers);
             setExaminerStats(sortedExaminers);
@@ -111,43 +163,30 @@ export const DashboardStats = () => {
                         </PieChart>
                     </ResponsiveContainer>
                 </div>
-
-                <div className="w-full mt-2 space-y-1">
-                    {customerStats.map((stat, index) => {
-                        const total = customerStats.reduce((acc, curr) => acc + curr.count, 0);
-                        const percent = total > 0 ? Math.round((stat.count / total) * 100) : 0;
-                        return (
-                            <div key={stat.id} className="flex items-center justify-between text-sm">
-                                <div className="flex items-center">
-                                    <div className="w-3 h-3 rounded-full mr-2" style={{ backgroundColor: COLORS[index % COLORS.length] }}></div>
-                                    <span>{stat.name} ({percent}%)</span>
-                                </div>
-                                <span className="font-semibold">{stat.count}</span>
-                            </div>
-                        );
-                    })}
-                </div>
-                <button className="mt-4 text-sm text-blue-600 dark:text-blue-400 hover:underline w-full text-right">
-                    Pregledaj sve
-                </button>
             </div>
 
             {/* Examiners List */}
             <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-lg p-4 shadow-sm">
                 <h3 className="text-lg font-bold mb-4">Ispitivači</h3>
                 <div className="space-y-4">
-                    {examinerStats.map((stat) => (
-                        <div key={stat.id} className="flex flex-col">
-                            <span className="font-semibold text-base">{stat.name}</span>
-                            <span className="text-xs text-gray-500 dark:text-gray-400">
-                                Kreirao {stat.count} izvještaj{stat.count === 1 ? '' : 'a'}
-                            </span>
-                        </div>
-                    ))}
+                    {examinerStats.length === 0 ? (
+                        <p className="text-sm text-gray-500 dark:text-gray-400">Nema podataka</p>
+                    ) : (
+                        examinerStats.map((stat) => (
+                            <div key={stat.id} className="flex flex-col space-y-1">
+                                <span className="font-semibold text-base">{stat.name}</span>
+                                <div className="flex gap-4 text-xs text-gray-600 dark:text-gray-400">
+                                    <span>
+                                        Danas: <span className="font-semibold text-emerald-600 dark:text-emerald-400">{stat.todayCount}</span>
+                                    </span>
+                                    <span>
+                                        Ovaj tjedan: <span className="font-semibold text-blue-600 dark:text-blue-400">{stat.weekCount}</span>
+                                    </span>
+                                </div>
+                            </div>
+                        ))
+                    )}
                 </div>
-                <button className="mt-auto pt-4 text-sm text-blue-600 dark:text-blue-400 hover:underline w-full text-right">
-                    Pregledaj sve
-                </button>
             </div>
         </div>
     );

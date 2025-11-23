@@ -33,21 +33,39 @@ export const examinerService = {
         return data as ReportType[];
     },
 
-    async saveExaminer(profile: Partial<Profile>): Promise<Profile> {
+    async saveExaminer(profile: Partial<Profile> & { password?: string }): Promise<Profile> {
         // If no ID, we're creating a new profile
-        // Note: This creates a profile without an auth user
-        // In production, you'd want to create the auth user first or use an invite system
-
         if (!profile.id) {
-            // Creating a new profile
+            // First, create the auth user
+            if (!profile.email || !profile.password) {
+                throw new Error('Email and password are required for new examiners');
+            }
+
+            const { data: authData, error: authError } = await supabase.auth.signUp({
+                email: profile.email,
+                password: profile.password,
+                options: {
+                    data: {
+                        name: profile.name,
+                        last_name: profile.last_name,
+                        username: profile.username
+                    }
+                }
+            });
+
+            if (authError) throw authError;
+            if (!authData.user) throw new Error('Failed to create user');
+
+            // Now create the profile with the auth user's ID
             const newProfile = {
+                id: authData.user.id,
                 name: profile.name,
                 last_name: profile.last_name,
                 username: profile.username,
                 title: profile.title,
                 accreditations: profile.accreditations || [],
                 role: profile.role || 'user',
-                email: profile.email || `${profile.username}@temp.local` // Temporary email
+                email: profile.email
             };
 
             const { data, error } = await supabase
