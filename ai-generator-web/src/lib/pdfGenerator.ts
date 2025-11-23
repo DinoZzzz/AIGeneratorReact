@@ -238,15 +238,22 @@ const renderReportPage = async (doc: jsPDF, report: Partial<ReportForm>, userPro
     let rightY = currentY;
 
     // Helper for rows
-    const drawRow = (key: string, value: string, x: number, y: number) => {
+    const drawLeftRow = (key: string, value: string, x: number, y: number) => {
         doc.setFont('helvetica', 'normal');
         renderCroatianText(doc, key + ':', x, y);
         doc.setFont('helvetica', 'bold');
-        renderCroatianText(doc, value, x + 40, y);
+        renderCroatianText(doc, value, x + 55, y);
     };
 
-    const addLeft = (k: string, v: string) => { drawRow(k, v, leftX, leftY); leftY += 5; };
-    const addRight = (k: string, v: string) => { drawRow(k, v, rightX, rightY); rightY += 5; };
+    const drawRightRow = (key: string, value: string, x: number, y: number) => {
+        doc.setFont('helvetica', 'normal');
+        renderCroatianText(doc, key + ':', x, y);
+        doc.setFont('helvetica', 'bold');
+        renderCroatianText(doc, value, x + 60, y);
+    };
+
+    const addLeft = (k: string, v: string) => { drawLeftRow(k, v, leftX, leftY); leftY += 5; };
+    const addRight = (k: string, v: string) => { drawRightRow(k, v, rightX, rightY); rightY += 5; };
 
     // --- Left Column Inputs ---
     addLeft('Dionica', report.dionica || '-');
