@@ -91,14 +91,14 @@ export const Examiners = () => {
     }
 
     return (
-        <div className="space-y-8">
-            <div className="flex justify-between items-center">
-                <div>
-                    <h1 className="text-3xl font-bold tracking-tight text-foreground">{t('examiners.title')}</h1>
-                    <p className="text-muted-foreground mt-1">{t('examiners.subtitle')}</p>
+        <div className="space-y-6 sm:space-y-8">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+                <div className="flex-1">
+                    <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">{t('examiners.title')}</h1>
+                    <p className="text-sm sm:text-base text-muted-foreground mt-1">{t('examiners.subtitle')}</p>
                 </div>
                 {isAdmin && (
-                    <Button onClick={openNew}>
+                    <Button onClick={openNew} className="w-full sm:w-auto">
                         <Plus className="h-4 w-4 mr-2" />
                         {t('examiners.add')}
                     </Button>
