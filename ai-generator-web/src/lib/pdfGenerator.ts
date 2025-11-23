@@ -1,5 +1,5 @@
 import jsPDF from 'jspdf';
-import type { ReportForm } from '../types';
+import type { ReportForm, Profile } from '../types';
 import * as calc from './calculations/report';
 
 // Helper to load image
@@ -39,6 +39,7 @@ const renderCroatianText = (doc: jsPDF, text: string, x: number, y: number, opti
 
     // For left-aligned text with special chars, render character by character
     const currentFontSize = doc.getFontSize();
+    const currentLineWidth = 0.1; // Save current line width
     let currentX = x;
 
     for (let i = 0; i < text.length; i++) {
@@ -52,18 +53,21 @@ const renderCroatianText = (doc: jsPDF, text: string, x: number, y: number, opti
             // Draw hacek (ˇ) for č, ć, š, ž
             if (special.hasHacek) {
                 const fontSize = doc.getFontSize();
-                const hacekY = y - fontSize * 0.65;
+                // Position the hacek directly above the character
+                const hacekBaseY = y - fontSize * 0.22;
                 const hacekX = currentX + charWidth / 2;
-                doc.setLineWidth(0.2);
-                // Draw a small v-shape
-                doc.line(hacekX - 0.5, hacekY, hacekX, hacekY + 0.6);
-                doc.line(hacekX, hacekY + 0.6, hacekX + 0.5, hacekY);
+                doc.setLineWidth(0.3);
+                // Draw a small v-shape pointing down (like ˇ)
+                doc.line(hacekX - 0.5, hacekBaseY - 0.5, hacekX, hacekBaseY);
+                doc.line(hacekX, hacekBaseY, hacekX + 0.5, hacekBaseY - 0.5);
+                doc.setLineWidth(currentLineWidth); // Restore line width
             }
 
             // Draw stroke for đ
             if (special.hasStroke) {
                 doc.setLineWidth(0.3);
                 doc.line(currentX + 0.3, y - currentFontSize * 0.3, currentX + charWidth - 0.3, y - currentFontSize * 0.3);
+                doc.setLineWidth(currentLineWidth); // Restore line width
             }
 
             currentX += charWidth;
@@ -74,25 +78,26 @@ const renderCroatianText = (doc: jsPDF, text: string, x: number, y: number, opti
     }
 };
 
-export const generatePDF = async (report: Partial<ReportForm>) => {
+export const generatePDF = async (report: Partial<ReportForm>, userProfile?: Profile) => {
     const doc = new jsPDF({
         putOnlyUsedFonts: true,
         compress: true
     });
-    await renderReportPage(doc, report);
+    await renderReportPage(doc, report, userProfile, 1, 1);
     doc.save(`report_${report.id || 'new'}.pdf`);
 };
 
-export const generateBulkPDF = async (reports: Partial<ReportForm>[], filename: string = 'reports_bundle.pdf') => {
+export const generateBulkPDF = async (reports: Partial<ReportForm>[], filename: string = 'reports_bundle.pdf', userProfile?: Profile) => {
     const doc = new jsPDF({
         putOnlyUsedFonts: true,
         compress: true
     });
+    const totalPages = reports.length;
     for (let i = 0; i < reports.length; i++) {
         if (i > 0) {
             doc.addPage();
         }
-        await renderReportPage(doc, reports[i]);
+        await renderReportPage(doc, reports[i], userProfile, i + 1, totalPages);
     }
     doc.save(filename);
 };
@@ -110,7 +115,7 @@ const getSchemeName = (id: number) => {
 };
 
 // Extracted rendering logic
-const renderReportPage = async (doc: jsPDF, report: Partial<ReportForm>) => {
+const renderReportPage = async (doc: jsPDF, report: Partial<ReportForm>, userProfile?: Profile, pageNum: number = 1, totalPages: number = 1) => {
     const pageWidth = doc.internal.pageSize.width;
     const pageHeight = doc.internal.pageSize.height;
 
@@ -178,7 +183,7 @@ const renderReportPage = async (doc: jsPDF, report: Partial<ReportForm>) => {
     // Meta Info (Far Right) - Separate column
     doc.setFontSize(8);
     doc.setFont('helvetica', 'bold');
-    doc.text('Stranica: 1', pageWidth - 15, 17, { align: 'right' });
+    doc.text(`Stranica: ${pageNum}/${totalPages}`, pageWidth - 15, 17, { align: 'right' });
     doc.setFont('helvetica', 'normal');
     doc.text('OB 21-2', pageWidth - 15, 22, { align: 'right' });
     doc.text('Izdanje: 2', pageWidth - 15, 27, { align: 'right' });
@@ -271,7 +276,8 @@ const renderReportPage = async (doc: jsPDF, report: Partial<ReportForm>) => {
 
     // Dimensions
     if (report.material_type_id === 1) { // Round
-        if (report.draft_id !== 2) { // Not Schema C (Pipe Only) - Schema C uses pane_diameter for main pipe
+        // Only show "Visina ro" for Water Method (type_id === 1)
+        if (report.type_id === 1 && report.draft_id !== 2) { // Not Schema C (Pipe Only) - Schema C uses pane_diameter for main pipe
             addLeft('Visina ro', `${(report.ro_height || 0).toFixed(2)} cm`);
         }
 
@@ -559,5 +565,6 @@ const renderReportPage = async (doc: jsPDF, report: Partial<ReportForm>) => {
 
     doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
-    doc.text('Izradio: Admin Admin', pageWidth / 2, pageHeight - 20, { align: 'center' }); // Placeholder for user name
+    const displayName = userProfile ? `${userProfile.name} ${userProfile.last_name}` : 'Nepoznat korisnik';
+    doc.text(`Izradio: ${displayName}`, pageWidth / 2, pageHeight - 20, { align: 'center' });
 };
