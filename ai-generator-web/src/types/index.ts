@@ -174,5 +174,6 @@ export interface ReportFile {
     file_name: string;
     description?: string;
     created_at: string;
-    type?: string; // e.g. 'image', 'pdf'
+    type?: string; // legacy
+    file_type?: 'image' | 'pdf';
 }

@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { constructionService } from '../services/constructionService';
 import { customerService } from '../services/customerService';
 import { Input } from '../components/ui/Input';
-import { Loader2, Save, ArrowLeft, FileText } from 'lucide-react';
+import { Loader2, Save, ArrowLeft } from 'lucide-react';
 import type { Construction, Customer } from '../types';
 import { useLanguage } from '../context/LanguageContext';
 

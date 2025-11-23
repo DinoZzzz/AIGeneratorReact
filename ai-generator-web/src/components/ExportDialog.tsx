@@ -13,7 +13,7 @@ interface ExportDialogProps {
     loading?: boolean;
     defaultValues?: Partial<ExportMetaData>;
     reports?: ReportForm[]; // Optional: if provided, allows selection inside dialog
-    constructionId: string;
+    constructionId?: string;
     uploadedFiles?: ReportFile[];
     onFileUploaded?: (file: ReportFile) => void;
     onFileDeleted?: (fileId: string) => void;
@@ -240,16 +240,18 @@ export const ExportDialog = ({ open, onOpenChange, onConfirm, loading = false, d
                     </div>
 
                     {/* File Upload Section */}
-                    <div className="space-y-2 border-t border-border pt-4">
-                        <h3 className="font-semibold text-sm text-foreground">{t("export.attachments")} ({uploadedFiles.length})</h3>
-                        <p className="text-xs text-muted-foreground">{t("export.attachmentsHelp")}</p>
-                        <FileUploader
-                            constructionId={constructionId}
-                            onUploadComplete={onFileUploaded}
-                            onDelete={onFileDeleted}
-                            files={uploadedFiles}
-                        />
-                    </div>
+                    {constructionId && (
+                        <div className="space-y-2 border-t border-border pt-4">
+                            <h3 className="font-semibold text-sm text-foreground">{t("export.attachments")} ({uploadedFiles.length})</h3>
+                            <p className="text-xs text-muted-foreground">{t("export.attachmentsHelp")}</p>
+                            <FileUploader
+                                constructionId={constructionId}
+                                onUploadComplete={onFileUploaded}
+                                onDelete={onFileDeleted}
+                                files={uploadedFiles}
+                            />
+                        </div>
+                    )}
 
                     <DialogFooter>
                         <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>{t('export.cancel')}</Button>

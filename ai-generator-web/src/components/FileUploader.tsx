@@ -186,7 +186,7 @@ export function FileUploader({ constructionId, onUploadComplete, onDelete, files
                 className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
               >
                 <div className="flex items-center space-x-3">
-                  {file.file_type === 'image' ? (
+                  {(file.file_type ?? file.type) === 'image' ? (
                     <ImageIcon className="h-5 w-5 text-blue-500" />
                   ) : (
                     <FileText className="h-5 w-5 text-red-500" />

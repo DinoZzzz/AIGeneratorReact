@@ -1,5 +1,5 @@
-import { useMemo, useEffect, useState } from 'react';
-import { ArrowLeft, BarChart2, PieChart, Activity, Loader2 } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { ArrowLeft, PieChart, Activity, Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useLanguage } from '../context/LanguageContext';
@@ -27,8 +27,6 @@ export const Analytics = () => {
             setError(null);
             try {
                 const now = new Date();
-                const start = new Date(now.getFullYear() - 1, now.getMonth() + 1, 1); // start of month, 12 months ago
-
                 // Report forms: pass/fail + durations by type
                 const { data: forms, error: formsError } = await supabase
                     .from('report_forms')
