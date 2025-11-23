@@ -1,7 +1,8 @@
 import PizZip from 'pizzip';
 import Docxtemplater from 'docxtemplater';
 import { saveAs } from 'file-saver';
-import type { ReportForm } from '../types';
+import ImageModule from 'docxtemplater-image-module-free';
+import type { ReportForm, ReportFile } from '../types';
 import type { ExportMetaData } from '../components/ExportDialog';
 import {
     calculatePressureLoss,
@@ -44,11 +45,13 @@ const formatDate = (dateStr: string) => {
 // Helper to format number
 const formatNum = (num: number, decimals = 2) => {
     if (num === undefined || num === null) return '-';
-    return num.toFixed(decimals);
+    return num.toFixed(decimals).replace('.', ',');
 };
 
 export const generateWordDocument = async (reports: ReportForm[], metaData: ExportMetaData, userId?: string) => {
     try {
+        if (reports.length === 0) throw new Error("No reports selected");
+
         // 1. Load the template from Supabase Storage
         const templateContent = await loadFile('method1610.docx');
 
@@ -61,33 +64,111 @@ export const generateWordDocument = async (reports: ReportForm[], metaData: Expo
             throw new Error("The uploaded template is not a valid Word (.docx) file. It is missing 'word/document.xml'. Please ensure you are uploading a standard Word document.");
         }
 
-        // 3. Create docxtemplater instance
-        const doc = new Docxtemplater(zip, {
-            paragraphLoop: true,
-            linebreaks: true,
-        });
+        // 3. Fetch and Prepare Images (Attachments)
+        // Only assume files are linked to the construction for now, or fetch all files for the construction.
+        // A better approach is to fetch files for the construction ID.
+        let constructionId = reports[0].construction_id;
 
-        // 4. Prepare data
-        if (reports.length === 0) throw new Error("No reports selected");
-
-        const firstReport = reports[0];
-
-        // Fetch Construction and Customer data if missing
-        let construction: any = (firstReport as any).construction;
+        // Also need to fetch construction if missing to get ID
+        let construction: any = (reports[0] as any).construction;
         let customer: any = construction?.customer;
 
-        if (!construction && firstReport.construction_id) {
+        if (!construction && reports[0].construction_id) {
             const { data: constr } = await supabase
                 .from('constructions')
                 .select('*, customer:customers(*)')
-                .eq('id', firstReport.construction_id)
+                .eq('id', reports[0].construction_id)
                 .single();
 
             if (constr) {
                 construction = constr;
                 customer = constr.customer;
+                constructionId = constr.id;
             }
         }
+
+        let attachments: any[] = [];
+        let contentTable = "";
+        const imageMap: Record<string, ArrayBuffer> = {};
+
+        if (constructionId) {
+            const { data: files } = await supabase
+                .from('report_files')
+                .select('*')
+                .eq('construction_id', constructionId);
+
+            if (files && files.length > 0) {
+                // Filter for images (simple check on extension or type if available)
+                // Assuming file_name ends with .jpg, .png, etc.
+                const imageFiles = files.filter((f: ReportFile) => /\.(jpg|jpeg|png)$/i.test(f.file_name));
+                const pdfFiles = files.filter((f: ReportFile) => /\.pdf$/i.test(f.file_name));
+
+                // Build Content Table string
+                // "7.1. Opis slike..."
+                // Group PDFs
+
+                // Logic from mapping: "It builds a formatted string list of all attachments"
+                // We will list images first then PDFs or mixed.
+
+                const allFiles = [...imageFiles, ...pdfFiles]; // or sort by creation
+
+                if (allFiles.length > 0) {
+                    // Start numbering from 7.1 if that's the convention, or just list them
+                    // Mapping says: "7.1. Opis slike..."
+                    // We will assume section 7 is Attachments.
+
+                    contentTable = allFiles.map((f, i) => `7.${i + 1}. ${f.description || f.file_name}`).join('\n');
+                }
+
+                // Download images for insertion
+                await Promise.all(imageFiles.map(async (f) => {
+                    try {
+                         const { data } = supabase.storage
+                            .from('report-files') // Assuming bucket name
+                            .getPublicUrl(f.file_path);
+
+                        if (data.publicUrl) {
+                             const res = await fetch(data.publicUrl);
+                             if (res.ok) {
+                                 const buf = await res.arrayBuffer();
+                                 imageMap[f.file_path] = buf;
+                                 attachments.push({
+                                     path: f.file_path,
+                                     name: f.file_name,
+                                     // This property will be used by the template loop if we use {#attachments}{%image}{/attachments}
+                                     image: f.file_path
+                                 });
+                             }
+                        }
+                    } catch (e) {
+                        console.error(`Failed to load image ${f.file_name}`, e);
+                    }
+                }));
+            }
+        }
+
+        // Configure Image Module
+        const imageModule = new ImageModule({
+            centered: false,
+            getImage: (tagValue: string) => {
+                // tagValue is what is in the data, e.g., f.file_path
+                return imageMap[tagValue] ? imageMap[tagValue] : null;
+            },
+            getSize: () => {
+                // Return [width, height]
+                return [600, 400]; // Default size, maybe make it proportional if possible?
+            }
+        });
+
+        // 4. Create docxtemplater instance with modules
+        const doc = new Docxtemplater(zip, {
+            paragraphLoop: true,
+            linebreaks: true,
+            modules: [imageModule]
+        });
+
+        // 5. Prepare data
+        const firstReport = reports[0];
 
         // Fetch Procedure data for all air reports if missing
         const airReportsNeedData = reports.filter(r => r.type_id === 2 && !(r as any).examination_procedure);
@@ -126,7 +207,6 @@ export const generateWordDocument = async (reports: ReportForm[], metaData: Expo
                 });
             }
         }
-
 
         // Group calculations for aggregation fields
         const pipeReports = reports.filter(r => r.draft_id !== 1 && r.draft_id !== 4); // Exclude only-shaft drafts
@@ -207,7 +287,28 @@ export const generateWordDocument = async (reports: ReportForm[], metaData: Expo
         const uniquePaneDiameters = Array.from(new Set(reports.map(r => `ø ${r.pane_diameter * 1000}`))).join(', ');
 
 
-        // 5. Set the data matching the Mustache tags in the docx template
+        // Build %WaterMethodCriteria%
+        const criteriaList: string[] = [];
+        if (reports.some(r => r.draft_id === 1)) criteriaList.push('reviziono okno = 0,40 l/m\u00B2');
+        if (reports.some(r => r.draft_id === 2)) criteriaList.push('cjevovod + reviziono okno = 0,20 l/m\u00B2'); // Using 0.20 as per request, though code uses 0.15 logic elsewhere, sticking to string logic
+        if (reports.some(r => r.draft_id === 3)) criteriaList.push('cjevovod = 0,15 l/m\u00B2');
+        const waterMethodCriteria = criteriaList.join(', ');
+
+        // Table naming logic
+        const hasAirTests = airReports.length > 0;
+        const hasWaterTests = waterReports.length > 0;
+        const airMethodTableName = hasAirTests ? "Tablica br.1" : "";
+        let waterMethodTableName = "";
+        if (hasWaterTests) {
+            waterMethodTableName = hasAirTests ? "Tablica br.2" : "Tablica br.1";
+        }
+
+        // Air Method Satisfies Logic
+        // "ne zadovoljava" if any Air test fails
+        const anyAirFailed = reports.filter(r => r.type_id === 2).some(r => !r.satisfies);
+        const airMethodSatisfies = anyAirFailed ? "ne zadovoljava" : "zadovoljava"; // Or empty? Mapping says: "ne zadovoljava" if any fail.
+
+        // 6. Set the data matching the Mustache tags in the docx template
         doc.render({
             creator: metaData.certifierName || "System",
             certifier: metaData.certifierName,
@@ -234,17 +335,22 @@ export const generateWordDocument = async (reports: ReportForm[], metaData: Expo
             waterNormDeviation: metaData.waterDeviation || "nema",
 
             // Conditional Blocks (docxtemplater uses Boolean)
-            hasAirTests: airReports.length > 0,
-            hasWaterTests: waterReports.length > 0,
+            hasAirTests: hasAirTests,
+            hasWaterTests: hasWaterTests,
             hasPaneInfo: uniquePaneDiameters.length > 0,
             hasTubeInfo: uniquePipeDiameters.length > 0,
 
             // Tables
             airTests: airReports,
             waterTests: waterReports,
+            airMethodTableName,
+            waterMethodTableName,
 
             // Result
             satisfies: satisfies ? "ZADOVOLJAVA" : "NE ZADOVOLJAVA",
+            airMethodSatisfies,
+            waterMethodCriteria,
+
             isUnsatisfied: !satisfies,
             unsatisfiedStocks: satisfies
                 ? "Sve dionice zadovoljavaju uvjete vodonepropusnosti."
@@ -255,18 +361,23 @@ export const generateWordDocument = async (reports: ReportForm[], metaData: Expo
             tubeDiameters: uniquePipeDiameters,
             paneMaterials: uniquePaneMaterials,
             paneDiameters: uniquePaneDiameters,
+
+            // Attachments
+            contentTable,
+            attachments: attachments, // Expected loop: {#attachments} {%image} {/attachments}
+            Attachments: attachments // Alias in case user uses {#Attachments}
         });
 
-        // 6. Output the document
+        // 7. Output the document
         const blob = doc.getZip().generate({
             type: "blob",
             mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
         });
 
-        // 7. Save file
+        // 8. Save file
         saveAs(blob, `${metaData.constructionPart || 'Report'}_${new Date().getTime()}.docx`);
 
-        // 8. Save to History (Database)
+        // 9. Save to History (Database)
         if (userId) {
             try {
                 // Determine common values
