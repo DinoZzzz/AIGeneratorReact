@@ -25,7 +25,7 @@ export const Customers = () => {
     // Debounce search input
     useEffect(() => {
         const timer = setTimeout(() => {
-            setDebouncedSearch(searchTerm);
+            setDebouncedSearch(searchTerm.trim());
             setCurrentPage(1); // Reset to page 1 on search
         }, 500);
         return () => clearTimeout(timer);
@@ -111,13 +111,13 @@ export const Customers = () => {
 
             <div className="bg-card shadow rounded-lg overflow-hidden border border-border">
                 <div className="p-4 border-b border-border">
-                    <div className="relative rounded-md shadow-sm max-w-md">
+                    <div className="relative rounded-md shadow-sm w-full sm:w-96">
                         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                             <Search className="h-5 w-5 text-muted-foreground" />
                         </div>
                         <input
                             type="text"
-                            className="focus:ring-2 focus:ring-ring focus:border-input block w-full pl-10 sm:text-sm border-input bg-background text-foreground placeholder-muted-foreground rounded-md"
+                            className="block w-full pl-10 pr-4 py-2 text-sm bg-background border border-input text-foreground placeholder:text-muted-foreground rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-colors"
                             placeholder={t('customers.search')}
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}

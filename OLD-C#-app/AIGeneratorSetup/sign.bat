@@ -1,1 +1,0 @@
-signtool sign /f "C:\Users\Zoli\Desktop\Digitando\Code Signing Certificate\Digitando Digital j.d.o.o.pfx" /p D5qrpFaVM95jV7A /tr "http://timestamp.comodoca.com" /td SHA256 "C:\Users\Zoli\Desktop\vs\AIGenerator\AIGeneratorSetup\Release\AIGeneratorSetup.msi"

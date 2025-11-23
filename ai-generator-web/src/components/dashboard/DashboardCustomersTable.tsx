@@ -178,7 +178,7 @@ export const DashboardCustomersTable = () => {
                                                     {displayedConstructions.map((ac) => (
                                                         <Link
                                                             key={ac.id}
-                                                            to={`/constructions/${ac.id}/reports`}
+                                                            to={`/customers/${customer.id}/constructions/${ac.id}/reports`}
                                                             className="block truncate max-w-md text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 hover:underline text-sm"
                                                         >
                                                             {ac.work_order}, {ac.name}

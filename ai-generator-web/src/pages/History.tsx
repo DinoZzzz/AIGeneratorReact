@@ -14,7 +14,7 @@ export const History = () => {
     const [debouncedSearch, setDebouncedSearch] = useState('');
     const [page, setPage] = useState(0);
     const [totalCount, setTotalCount] = useState<number | null>(0);
-    const pageSize = 50;
+    const pageSize = 15;
     const [sortColumn, setSortColumn] = useState<'created_at' | 'construction_part'>('created_at');
     const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
