@@ -53,12 +53,14 @@ export const Dashboard = () => {
     }
 
     return (
-        <div className="space-y-8 max-w-[1600px] mx-auto">
+        <div className="space-y-6 max-w-[1600px] mx-auto">
             {/* Welcome Header */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-border pb-6">
                 <div>
-                    <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-foreground">{t('dashboard.welcome')}, {getUserName()}</h1>
-                    <p className="text-lg text-muted-foreground mt-1">{t('dashboard.ready')}</p>
+                    <h1 className="text-3xl font-bold tracking-tight text-foreground">{t('dashboard.welcome')}, {getUserName()}</h1>
+                    <p className="text-muted-foreground mt-1">
+                        {new Date().toLocaleDateString('hr-HR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                    </p>
                 </div>
             </div>
 

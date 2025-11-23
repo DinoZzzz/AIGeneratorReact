@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Search, Plus, ChevronDown, ChevronUp } from 'lucide-react';
@@ -32,14 +31,6 @@ export const DashboardCustomersTable = () => {
     const fetchCustomers = async () => {
         setLoading(true);
         try {
-            // NOTE: We removed 'work_order' from customers selection because it might not exist in the DB schema
-            // even if it exists in the types. If it does exist, uncomment it.
-            // If it doesn't exist, we will default to '-' or use ID if needed.
-
-            // Attempt to select without work_order first to be safe,
-            // OR check if we can select it. The error 42703 strongly suggests it's missing.
-            // However, constructions usually have work_order.
-
             let query = supabase
                 .from('customers')
                 .select(`
@@ -55,7 +46,6 @@ export const DashboardCustomersTable = () => {
                 `);
 
             if (search) {
-                // Search by both work_order and name
                 query = query.or(`name.ilike.%${search}%,work_order.ilike.%${search}%`);
             }
 
@@ -103,24 +93,24 @@ export const DashboardCustomersTable = () => {
     };
 
     return (
-        <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-lg shadow-sm overflow-hidden">
-            <div className="p-4 border-b border-gray-200 dark:border-slate-700 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="bg-card border border-border rounded-lg shadow-sm overflow-hidden">
+            <div className="p-4 border-b border-border flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <h2 className="text-xl font-bold">{t('dashboard.customersTable')}</h2>
 
                 <div className="flex items-center gap-2 w-full sm:w-auto">
                     <div className="relative flex-1 sm:flex-initial">
-                        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
+                        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                         <input
                             type="text"
                             placeholder={t('dashboard.search')}
-                            className="pl-9 pr-4 py-2 bg-gray-100 dark:bg-slate-800 border-none rounded-md text-sm w-full sm:w-64 focus:ring-2 focus:ring-blue-500"
+                            className="pl-9 pr-4 py-2 bg-muted border-none rounded-md text-sm w-full sm:w-64 focus:ring-2 focus:ring-primary"
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
                         />
                     </div>
                     <Link
                         to="/customers/new"
-                        className="flex items-center justify-center bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
+                        className="flex items-center justify-center bg-primary hover:bg-primary/90 text-primary-foreground px-4 py-2 rounded-md text-sm font-medium transition-colors"
                     >
                         <Plus className="h-4 w-4 mr-2" />
                         {t('dashboard.addCustomer')}
@@ -130,21 +120,21 @@ export const DashboardCustomersTable = () => {
 
             <div className="overflow-x-auto">
                 <table className="w-full text-left text-sm">
-                    <thead className="bg-gray-50 dark:bg-slate-800 border-b border-gray-200 dark:border-slate-700">
+                    <thead className="bg-muted/50 border-b border-border">
                         <tr>
-                            <th className="px-6 py-3 font-medium text-gray-500 dark:text-gray-400">{t('dashboard.workOrder')}</th>
-                            <th className="px-6 py-3 font-medium text-gray-500 dark:text-gray-400">{t('dashboard.customer')}</th>
-                            <th className="px-6 py-3 font-medium text-gray-500 dark:text-gray-400">{t('dashboard.activeOrders')}</th>
+                            <th className="px-6 py-3 font-medium text-muted-foreground">{t('dashboard.workOrder')}</th>
+                            <th className="px-6 py-3 font-medium text-muted-foreground">{t('dashboard.customer')}</th>
+                            <th className="px-6 py-3 font-medium text-muted-foreground">{t('dashboard.activeOrders')}</th>
                         </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-200 dark:divide-slate-700">
+                    <tbody className="divide-y divide-border bg-card">
                         {loading ? (
                             <tr>
-                                <td colSpan={3} className="px-6 py-8 text-center text-gray-500">{t('dashboard.loading')}</td>
+                                <td colSpan={3} className="px-6 py-8 text-center text-muted-foreground">{t('dashboard.loading')}</td>
                             </tr>
                         ) : customers.length === 0 ? (
                             <tr>
-                                <td colSpan={3} className="px-6 py-8 text-center text-gray-500">{t('dashboard.noCustomers')}</td>
+                                <td colSpan={3} className="px-6 py-8 text-center text-muted-foreground">{t('dashboard.noCustomers')}</td>
                             </tr>
                         ) : (
                             customers.map((customer) => {
@@ -155,11 +145,11 @@ export const DashboardCustomersTable = () => {
                                     : customer.active_constructions.slice(0, 3);
 
                                 return (
-                                    <tr key={customer.id} className="hover:bg-gray-50 dark:hover:bg-slate-800/50 transition-colors">
+                                    <tr key={customer.id} className="hover:bg-muted/50 transition-colors">
                                         <td className="px-6 py-4 font-medium">
                                             <Link
                                                 to={`/customers/${customer.id}/constructions`}
-                                                className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 hover:underline"
+                                                className="text-primary hover:underline"
                                             >
                                                 {customer.work_order}
                                             </Link>
@@ -167,44 +157,44 @@ export const DashboardCustomersTable = () => {
                                         <td className="px-6 py-4">
                                             <Link
                                                 to={`/customers/${customer.id}/constructions`}
-                                                className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 hover:underline"
+                                                className="text-primary hover:underline"
                                             >
                                                 {customer.name}
                                             </Link>
                                         </td>
                                         <td className="px-6 py-4">
                                             {customer.active_constructions.length > 0 ? (
-                                                <div className="space-y-1">
+                                                <div className="flex flex-wrap gap-2">
                                                     {displayedConstructions.map((ac) => (
                                                         <Link
                                                             key={ac.id}
                                                             to={`/customers/${customer.id}/constructions/${ac.id}/reports`}
-                                                            className="block truncate max-w-md text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 hover:underline text-sm"
+                                                            className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
                                                         >
-                                                            {ac.work_order}, {ac.name}
+                                                            {ac.work_order}
                                                         </Link>
                                                     ))}
                                                     {hasMany && (
                                                         <button
                                                             onClick={() => toggleRow(customer.id)}
-                                                            className="flex items-center gap-1 text-xs text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200 mt-1"
+                                                            className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-muted text-muted-foreground hover:bg-muted/80 transition-colors"
                                                         >
                                                             {isExpanded ? (
                                                                 <>
-                                                                    <ChevronUp className="h-3 w-3" />
+                                                                    <ChevronUp className="h-3 w-3 mr-1" />
                                                                     {t('dashboard.showLess')}
                                                                 </>
                                                             ) : (
                                                                 <>
-                                                                    <ChevronDown className="h-3 w-3" />
-                                                                    {t('dashboard.showMore')} {customer.active_constructions.length - 3}
+                                                                    <ChevronDown className="h-3 w-3 mr-1" />
+                                                                    +{customer.active_constructions.length - 3}
                                                                 </>
                                                             )}
                                                         </button>
                                                     )}
                                                 </div>
                                             ) : (
-                                                <span className="text-gray-400 italic text-sm">{t('dashboard.none')}</span>
+                                                <span className="text-muted-foreground italic text-sm">{t('dashboard.none')}</span>
                                             )}
                                         </td>
                                     </tr>

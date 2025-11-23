@@ -133,6 +133,8 @@ export const DashboardStats = () => {
         }
     };
 
+
+
     const COLORS = ['#23b14d', '#f29f05', '#d3efdb'];
 
     if (loading) return <div>{t('dashboard.loading')}</div>;
@@ -140,7 +142,7 @@ export const DashboardStats = () => {
     return (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Customers Pie Chart */}
-            <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-lg p-4 shadow-sm flex flex-col items-center">
+            <div className="bg-card border border-border rounded-lg p-4 shadow-sm flex flex-col items-center">
                 <h3 className="text-lg font-bold mb-4 w-full text-left">{t('dashboard.topCustomers')}</h3>
 
                 {/* Chart Container with Fixed Min Height */}
@@ -168,7 +170,7 @@ export const DashboardStats = () => {
             </div>
 
             {/* Examiners List */}
-            <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-lg p-4 shadow-sm">
+            <div className="bg-card border border-border rounded-lg p-4 shadow-sm">
                 <h3 className="text-lg font-bold mb-4">{t('dashboard.examiners')}</h3>
                 <div className="space-y-4">
                     {examinerStats.length === 0 ? (
