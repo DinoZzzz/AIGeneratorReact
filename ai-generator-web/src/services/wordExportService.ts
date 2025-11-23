@@ -124,17 +124,26 @@ export const generateWordDocument = async (reports: ReportForm[], metaData: Expo
                 await Promise.all(imageFiles.map(async (f) => {
                     try {
                          const { data } = supabase.storage
-                            .from('report-files') // Assuming bucket name
+                            .from('report-files')
                             .getPublicUrl(f.file_path);
 
                         if (data.publicUrl) {
-                             const res = await fetch(data.publicUrl);
+                             // Fetch the image as binary data to preserve original format
+                             const res = await fetch(data.publicUrl, {
+                                 headers: {
+                                     'Accept': '*/*' // Accept any content type
+                                 }
+                             });
+
                              if (res.ok) {
+                                 // Get as ArrayBuffer to preserve exact binary data (JPG/PNG format preserved)
                                  const buf = await res.arrayBuffer();
                                  imageMap[f.file_path] = buf;
+
                                  attachments.push({
                                      path: f.file_path,
                                      name: f.file_name,
+                                     description: f.description || f.file_name,
                                      // This property will be used by the template loop if we use {#attachments}{%image}{/attachments}
                                      image: f.file_path
                                  });
@@ -152,14 +161,11 @@ export const generateWordDocument = async (reports: ReportForm[], metaData: Expo
             centered: false,
             getImage: (tagValue: string) => {
                 // tagValue is what is in the data, e.g., f.file_path
-                // Return the image buffer - format is automatically preserved
                 return imageMap[tagValue] ? imageMap[tagValue] : null;
             },
-            getSize: (img: ArrayBuffer, tagValue: string, tagName: string) => {
-                // Return [width, height] in pixels
-                // The image format (JPG, PNG) is preserved automatically from the ArrayBuffer
-                // This function only controls the display size in the Word document
-                return [600, 400]; // Width: 600px (~15.9cm), Height: 400px (~10.6cm)
+            getSize: () => {
+                // Return [width, height]
+                return [600, 400]; // Default size
             }
         });
 
