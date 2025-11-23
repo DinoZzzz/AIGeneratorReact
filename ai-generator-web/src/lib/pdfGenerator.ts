@@ -12,14 +12,82 @@ const loadImage = (src: string): Promise<HTMLImageElement> => {
     });
 };
 
+// Helper to render Croatian text with special characters
+const renderCroatianText = (doc: jsPDF, text: string, x: number, y: number, options?: any) => {
+    // For characters that need special handling: č, ć, š, ž, đ, Č, Ć, Š, Ž, Đ
+    const specialChars: Record<string, { base: string, hasHacek: boolean, hasStroke: boolean }> = {
+        'č': { base: 'c', hasHacek: true, hasStroke: false },
+        'ć': { base: 'c', hasHacek: true, hasStroke: false },
+        'š': { base: 's', hasHacek: true, hasStroke: false },
+        'ž': { base: 'z', hasHacek: true, hasStroke: false },
+        'đ': { base: 'd', hasHacek: false, hasStroke: true },
+        'Č': { base: 'C', hasHacek: true, hasStroke: false },
+        'Ć': { base: 'C', hasHacek: true, hasStroke: false },
+        'Š': { base: 'S', hasHacek: true, hasStroke: false },
+        'Ž': { base: 'Z', hasHacek: true, hasStroke: false },
+        'Đ': { base: 'D', hasHacek: false, hasStroke: true }
+    };
+
+    const hasSpecialChars = /[čćšžđČĆŠŽĐ]/.test(text);
+
+    if (!hasSpecialChars || options?.align === 'center' || options?.align === 'right') {
+        // For centered/right-aligned or text without special chars, use simple replacement
+        const cleanText = text.replace(/[čćšžđČĆŠŽĐ]/g, (match) => specialChars[match]?.base || match);
+        doc.text(cleanText, x, y, options);
+        return;
+    }
+
+    // For left-aligned text with special chars, render character by character
+    const currentFontSize = doc.getFontSize();
+    let currentX = x;
+
+    for (let i = 0; i < text.length; i++) {
+        const char = text[i];
+        const special = specialChars[char];
+
+        if (special) {
+            doc.text(special.base, currentX, y);
+            const charWidth = doc.getTextWidth(special.base);
+
+            // Draw hacek (ˇ) for č, ć, š, ž
+            if (special.hasHacek) {
+                const fontSize = doc.getFontSize();
+                const hacekY = y - fontSize * 0.65;
+                const hacekX = currentX + charWidth / 2;
+                doc.setLineWidth(0.2);
+                // Draw a small v-shape
+                doc.line(hacekX - 0.5, hacekY, hacekX, hacekY + 0.6);
+                doc.line(hacekX, hacekY + 0.6, hacekX + 0.5, hacekY);
+            }
+
+            // Draw stroke for đ
+            if (special.hasStroke) {
+                doc.setLineWidth(0.3);
+                doc.line(currentX + 0.3, y - currentFontSize * 0.3, currentX + charWidth - 0.3, y - currentFontSize * 0.3);
+            }
+
+            currentX += charWidth;
+        } else {
+            doc.text(char, currentX, y);
+            currentX += doc.getTextWidth(char);
+        }
+    }
+};
+
 export const generatePDF = async (report: Partial<ReportForm>) => {
-    const doc = new jsPDF();
+    const doc = new jsPDF({
+        putOnlyUsedFonts: true,
+        compress: true
+    });
     await renderReportPage(doc, report);
     doc.save(`report_${report.id || 'new'}.pdf`);
 };
 
 export const generateBulkPDF = async (reports: Partial<ReportForm>[], filename: string = 'reports_bundle.pdf') => {
-    const doc = new jsPDF();
+    const doc = new jsPDF({
+        putOnlyUsedFonts: true,
+        compress: true
+    });
     for (let i = 0; i < reports.length; i++) {
         if (i > 0) {
             doc.addPage();
@@ -62,37 +130,59 @@ const renderReportPage = async (doc: jsPDF, report: Partial<ReportForm>) => {
         doc.addImage(logoImg, 'PNG', 20, 15, 35, 35);
     }
 
-    // Company Info (Center)
-    doc.setFontSize(10);
+    // Company Info (Center) - centered between the two vertical lines (60 and 135)
+    const centerX = (60 + 135) / 2; // Center between the two lines
+    doc.setFontSize(8);
     doc.setFont('helvetica', 'normal');
-    doc.text('GRAĐEVINSKI LABORATORIJ', pageWidth / 2, 20, { align: 'center' });
+    // Using D with stroke as workaround for Đ since standard fonts don't support it
+    const fullText = 'GRAĐEVINSKI LABORATORIJ';
+    const textWidth = doc.getTextWidth(fullText.replace('Đ', 'D'));
+    const startX = centerX - (textWidth / 2);
+
+    doc.text('GRA', startX, 20);
+    const graWidth = doc.getTextWidth('GRA');
+    doc.text('D', startX + graWidth, 20);
+    const dWidth = doc.getTextWidth('D');
+    // Draw the stroke through D
+    doc.setLineWidth(0.3);
+    doc.line(startX + graWidth + 0.3, 19, startX + graWidth + dWidth - 0.3, 19);
+    doc.text('EVINSKI LABORATORIJ', startX + graWidth + dWidth, 20);
+
     doc.setFont('helvetica', 'bold');
-    doc.text('ANTE-INŽENJERSTVO d.o.o.', pageWidth / 2, 25, { align: 'center' });
+    doc.setFontSize(9);
+    doc.text('ANTE-INŽENJERSTVO d.o.o.', centerX, 26, { align: 'center' });
     doc.setFont('helvetica', 'normal');
-    doc.text('Petra Krešimira 19 ; 21 266 Zmijavci', pageWidth / 2, 30, { align: 'center' });
-    doc.text('www.ante-inzenjerstvo.hr', pageWidth / 2, 35, { align: 'center' });
+    doc.setFontSize(7);
+    doc.text('Petra Krešimira 19 ; 21 266 Zmijavci', centerX, 32, { align: 'center' });
+    doc.text('www.ante-inzenjerstvo.hr', centerX, 37, { align: 'center' });
 
     // Vertical Lines
     doc.setDrawColor(0);
-    doc.line(60, 15, 60, 45); // Left of center
-    doc.line(150, 15, 150, 45); // Right of center
+    doc.line(60, 15, 60, 50); // Left of center
+    doc.line(135, 15, 135, 50); // Right of center
 
-    // Title (Right)
-    doc.setFontSize(11);
+    // Title (Right) - Top section
+    doc.setFontSize(8);
     doc.setFont('helvetica', 'bold');
     const title = report.type_id === 1
-        ? 'ISPITIVANJE VODONEPROPUSNOSTI\nCJEVOVODA CIJEVI I\nKONTROLNA OKNA\nPREMA HRN EN\n1610:2015 - L'
-        : 'ISPITIVANJE VODONEPROPUSNOSTI\nCJEVOVODA METODA ZRAK\nPREMA HRN EN\n1610:2015 - L';
-    doc.text(title, 155, 20);
+        ? 'ISPITIVANJE\nVODONEPROPUSNOSTI\nCJEVOVODA CIJEVI I\nKONTROLNA OKNA\nPREMA HRN EN\n1610:2015 - L'
+        : 'ISPITIVANJE\nVODONEPROPUSNOSTI\nCJEVOVODA\nMETODA ZRAK\nPREMA HRN EN\n1610:2015 - L';
 
-    // Meta Info (Far Right)
-    doc.setFontSize(10);
+    const titleLines = title.split('\n');
+    let titleY = 17;
+    titleLines.forEach(line => {
+        doc.text(line, 138, titleY, { align: 'left' });
+        titleY += 3.5;
+    });
+
+    // Meta Info (Far Right) - Separate column
+    doc.setFontSize(8);
     doc.setFont('helvetica', 'bold');
-    doc.text('1', pageWidth - 20, 20, { align: 'right' }); // Page number placeholder
+    doc.text('Stranica: 1', pageWidth - 15, 17, { align: 'right' });
     doc.setFont('helvetica', 'normal');
-    doc.text('OB 21-2', pageWidth - 20, 25, { align: 'right' });
-    doc.text('Izdanje: 2', pageWidth - 20, 30, { align: 'right' });
-    doc.text(`Datum: ${new Date().toLocaleDateString('hr-HR')}`, pageWidth - 20, 35, { align: 'right' });
+    doc.text('OB 21-2', pageWidth - 15, 22, { align: 'right' });
+    doc.text('Izdanje: 2', pageWidth - 15, 27, { align: 'right' });
+    doc.text(`Datum: ${new Date().toLocaleDateString('hr-HR')}`, pageWidth - 15, 32, { align: 'right' });
 
     // --- Status Banner ---
     const satisfies = report.satisfies;
@@ -102,11 +192,11 @@ const renderReportPage = async (doc: jsPDF, report: Partial<ReportForm>) => {
     doc.setFontSize(16);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(statusColor);
-    doc.text(statusText, pageWidth / 2, 55, { align: 'center' });
+    doc.text(statusText, pageWidth / 2, 60, { align: 'center' });
     doc.setTextColor(0, 0, 0); // Reset
 
     // --- General Info ---
-    let currentY = 70;
+    let currentY = 75;
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
 
@@ -145,9 +235,9 @@ const renderReportPage = async (doc: jsPDF, report: Partial<ReportForm>) => {
     // Helper for rows
     const drawRow = (key: string, value: string, x: number, y: number) => {
         doc.setFont('helvetica', 'normal');
-        doc.text(key + ':', x, y);
+        renderCroatianText(doc, key + ':', x, y);
         doc.setFont('helvetica', 'bold');
-        doc.text(value, x + 40, y);
+        renderCroatianText(doc, value, x + 40, y);
     };
 
     const addLeft = (k: string, v: string) => { drawRow(k, v, leftX, leftY); leftY += 5; };
@@ -217,11 +307,9 @@ const renderReportPage = async (doc: jsPDF, report: Partial<ReportForm>) => {
 
     addLeft('Trajanje', report.examination_duration || '-');
 
-
-
     // --- Right Column Inputs (Pipe Info) ---
-    // Show pipe info for B(3), C(2), E(5)
-    if ([2, 3, 5].includes(report.draft_id || 0)) {
+    // Show pipe info for B(3), C(2), E(5) - only for Water Method
+    if (report.type_id === 1 && [2, 3, 5].includes(report.draft_id || 0)) {
         const pipeMats = ['PVC', 'PE', 'PEHD', 'GRP'];
         const pipeMatName = pipeMats[(report.pipe_material_id || 1) - 1] || 'PVC';
 
@@ -234,6 +322,25 @@ const renderReportPage = async (doc: jsPDF, report: Partial<ReportForm>) => {
         }
 
         addRight('Nagib', `${(report.pipeline_slope || 0).toFixed(2)} %`);
+    }
+
+    // For Air Method, show measurements in the right column
+    if (report.type_id === 2) {
+        const stabTime = report.stabilization_time || '00:00';
+        addRight('Vrijeme stabilizacije', stabTime.toString());
+
+        const examDuration = report.examination_duration || '00:00';
+        addRight('Trajanje', examDuration.toString());
+
+        // Format required test time (convert minutes to mm:ss)
+        const testTimeMins = report.required_test_time || 0;
+        const testMins = Math.floor(testTimeMins);
+        const testSecs = Math.round((testTimeMins - testMins) * 60);
+        addRight('Vrijeme ispitivanja', `${testMins}m ${testSecs.toString().padStart(2, '0')}s`);
+
+        addRight('Tlak na početku', `${(report.pressure_start || 0).toFixed(2)} mbar`);
+        addRight('Tlak na kraju', `${(report.pressure_end || 0).toFixed(2)} mbar`);
+        addRight('Pad tlaka', `${(report.pressure_loss || 0).toFixed(2)} mbar`);
     }
 
     // Sync Y for Results
@@ -313,51 +420,35 @@ const renderReportPage = async (doc: jsPDF, report: Partial<ReportForm>) => {
         addRight('ΔV', `${volLoss.toFixed(4)} l`);
         addRight('Izmjereni gubitak', `${result.toFixed(2)} l/m²`);
     } else if (report.type_id === 2) { // Air Method Results
-        // Right Column - Air specific measurements
-        const stabTime = report.stabilization_time || '00:00';
-        addRight('Vrijeme stabilizacije', stabTime.toString());
-
-        const examDuration = report.examination_duration || '00:00';
-        addRight('Trajanje', examDuration.toString());
-
-        // Format required test time (convert minutes to mm:ss)
-        const testTimeMins = report.required_test_time || 0;
-        const testMins = Math.floor(testTimeMins);
-        const testSecs = Math.round((testTimeMins - testMins) * 60);
-        addRight('Vrijeme ispitivanja', `${testMins}m ${testSecs.toString().padStart(2, '0')}s`);
-
-        addRight('Tlak na početku', `${(report.pressure_start || 0).toFixed(2)} mbar`);
-        addRight('Tlak na kraju', `${(report.pressure_end || 0).toFixed(2)} mbar`);
-        addRight('Pad tlaka', `${(report.pressure_loss || 0).toFixed(2)} mbar`);
-
+        // Air method measurements are now in the input section above
         // Sync Y for table
-        currentY = Math.max(leftY, rightY) + 10;
+        currentY = Math.max(leftY, rightY) + 5;
 
         // Draw EN 1610 Table
         const tableY = currentY;
         const tableWidth = 170;
         const tableX = (pageWidth - tableWidth) / 2;
 
-        doc.setFontSize(8);
+        doc.setFontSize(7);
         doc.setFont('helvetica', 'bold');
 
         // Main headers
-        doc.text('SUHE BETONSKE CIJEVI', tableX + 40, tableY, { align: 'center' });
-        doc.text('OSTALE CIJEVI', tableX + 130, tableY, { align: 'center' });
+        doc.text('SUHE BETONSKE CIJEVI', tableX + 33, tableY, { align: 'center' });
+        doc.text('OSTALE CIJEVI', tableX + 137, tableY, { align: 'center' });
 
         // Table data
-        doc.setFontSize(7);
+        doc.setFontSize(6);
         let y = tableY + 4;
 
         // Headers row 1 - Postupak ispitivanja
-        doc.text('Postupak ispitivanja', tableX + 20, y, { align: 'center' });
-        let x = tableX + 40;
+        doc.text('Postupak ispitivanja', tableX + 13, y, { align: 'center' });
+        let x = tableX + 26;
         ['LA', 'LB', 'LC', 'LD'].forEach(m => {
             doc.text(m, x + 6.5, y, { align: 'center' });
             x += 13;
         });
-        doc.text('Postupak ispitivanja', tableX + 90, y, { align: 'center' });
-        x = tableX + 130;
+        doc.text('Postupak ispitivanja', tableX + 97, y, { align: 'center' });
+        x = tableX + 110;
         ['LA', 'LB', 'LC', 'LD'].forEach(m => {
             doc.text(m, x + 6.5, y, { align: 'center' });
             x += 13;
@@ -365,14 +456,14 @@ const renderReportPage = async (doc: jsPDF, report: Partial<ReportForm>) => {
 
         // Headers row 2 - ispitni tlak
         y += 4;
-        doc.text('ispitni tlak', tableX + 20, y, { align: 'center' });
-        x = tableX + 40;
+        doc.text('ispitni tlak', tableX + 13, y, { align: 'center' });
+        x = tableX + 26;
         ['10', '50', '100', '200'].forEach(p => {
             doc.text(p, x + 6.5, y, { align: 'center' });
             x += 13;
         });
-        doc.text('ispitni tlak', tableX + 90, y, { align: 'center' });
-        x = tableX + 130;
+        doc.text('ispitni tlak', tableX + 97, y, { align: 'center' });
+        x = tableX + 110;
         ['10', '50', '100', '200'].forEach(p => {
             doc.text(p, x + 6.5, y, { align: 'center' });
             x += 13;
@@ -380,23 +471,21 @@ const renderReportPage = async (doc: jsPDF, report: Partial<ReportForm>) => {
 
         // Headers row 3 - dozvoljeni pad tlaka
         y += 4;
-        doc.text('dozvoljeni pad', tableX + 20, y, { align: 'center' });
-        doc.text('tlaka', tableX + 20, y + 3, { align: 'center' });
-        x = tableX + 40;
+        doc.text('dozvoljeni pad tlaka', tableX + 13, y + 1, { align: 'center' });
+        x = tableX + 26;
         ['2,5', '10', '15', '15'].forEach(d => {
-            doc.text(d, x + 6.5, y + 1.5, { align: 'center' });
+            doc.text(d, x + 6.5, y + 1, { align: 'center' });
             x += 13;
         });
-        doc.text('dozvoljeni pad', tableX + 90, y, { align: 'center' });
-        doc.text('tlaka', tableX + 90, y + 3, { align: 'center' });
-        x = tableX + 130;
+        doc.text('dozvoljeni pad tlaka', tableX + 97, y + 1, { align: 'center' });
+        x = tableX + 110;
         ['2,5', '10', '15', '15'].forEach(d => {
-            doc.text(d, x + 6.5, y + 1.5, { align: 'center' });
+            doc.text(d, x + 6.5, y + 1, { align: 'center' });
             x += 13;
         });
 
         // Data rows
-        y += 7;
+        y += 5;
         doc.setFont('helvetica', 'normal');
         const rows = [
             { d: '100', c: [5, 4, 3, 1.5], o: [5, 4, 3, 1.5] },
@@ -409,14 +498,14 @@ const renderReportPage = async (doc: jsPDF, report: Partial<ReportForm>) => {
         ];
 
         rows.forEach(row => {
-            doc.text(row.d, tableX + 20, y, { align: 'center' });
-            x = tableX + 40;
+            doc.text(row.d, tableX + 13, y, { align: 'center' });
+            x = tableX + 26;
             row.c.forEach((t: number) => {
                 doc.text(t.toString(), x + 6.5, y, { align: 'center' });
                 x += 13;
             });
-            doc.text(row.d, tableX + 90, y, { align: 'center' });
-            x = tableX + 130;
+            doc.text(row.d, tableX + 97, y, { align: 'center' });
+            x = tableX + 110;
             row.o.forEach((t: number) => {
                 doc.text(t.toString(), x + 6.5, y, { align: 'center' });
                 x += 13;
@@ -429,8 +518,8 @@ const renderReportPage = async (doc: jsPDF, report: Partial<ReportForm>) => {
         doc.setLineWidth(0.1);
         doc.rect(tableX, tableY - 2, tableWidth, y - tableY + 2);
 
-        // Vertical lines
-        const colWidths = [40, 13, 13, 13, 13, 40, 13, 13, 13, 13];
+        // Vertical lines - adjusted column widths
+        const colWidths = [26, 13, 13, 13, 13, 32, 13, 13, 13, 13];
         x = tableX;
         for (let i = 0; i < colWidths.length; i++) {
             x += colWidths[i];
@@ -442,17 +531,18 @@ const renderReportPage = async (doc: jsPDF, report: Partial<ReportForm>) => {
         // Horizontal lines
         doc.line(tableX, tableY + 2, tableX + tableWidth, tableY + 2);
         doc.line(tableX, tableY + 6, tableX + tableWidth, tableY + 6);
-        doc.line(tableX, tableY + 13, tableX + tableWidth, tableY + 13);
-        doc.line(tableX, tableY + 17, tableX + tableWidth, tableY + 17);
+        doc.line(tableX, tableY + 10, tableX + tableWidth, tableY + 10);
+        doc.line(tableX, tableY + 15, tableX + tableWidth, tableY + 15);
 
-        currentY = y + 5;
+        currentY = y + 3;
         leftY = currentY;
         rightY = currentY;
     }
 
     // --- Footer ---
-    currentY = Math.max(leftY, rightY) + 20;
+    currentY = Math.max(leftY, rightY) + 5;
 
+    doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
     doc.text('Napomena:', 20, currentY);
     if (report.remark) {
