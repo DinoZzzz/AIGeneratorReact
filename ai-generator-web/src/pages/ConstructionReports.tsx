@@ -79,7 +79,7 @@ export const ConstructionReports = () => {
     const handleExportPDF = (report: ReportForm) => {
         setActionMessage({ text: 'Generating PDF...', type: 'info' });
         try {
-            generatePDF(report);
+            generatePDF(report, profile || undefined);
             setActionMessage(null);
         } catch (error) {
             console.error('Failed to export PDF:', error);
@@ -96,7 +96,7 @@ export const ConstructionReports = () => {
 
         setActionMessage({ text: 'Generating PDF export...', type: 'info' });
         try {
-            generateBulkPDF(reportsToExport, `Reports_${construction?.work_order || 'bundle'}.pdf`);
+            generateBulkPDF(reportsToExport, `Reports_${construction?.work_order || 'bundle'}.pdf`, profile || undefined);
             setActionMessage(null);
         } catch (error) {
             console.error('Failed to export PDFs:', error);

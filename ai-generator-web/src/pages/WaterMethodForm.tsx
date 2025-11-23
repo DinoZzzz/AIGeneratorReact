@@ -12,6 +12,7 @@ import { generatePDF } from '../lib/pdfGenerator';
 import type { ReportForm, ReportDraft, MaterialType, Material } from '../types';
 import { cn } from '../lib/utils';
 import { useLanguage } from '../context/LanguageContext';
+import { useAuth } from '../context/AuthContext';
 
 // Initial empty state
 const initialState: Partial<ReportForm> = {
@@ -58,6 +59,7 @@ export const WaterMethodForm = () => {
     const { id, customerId, constructionId } = useParams();
     const navigate = useNavigate();
     const { t } = useLanguage();
+    const { profile } = useAuth();
     const [loading, setLoading] = useState(false);
     const [formData, setFormData] = useState<Partial<ReportForm>>(initialState);
     const [drafts, setDrafts] = useState<ReportDraft[]>([]);
@@ -323,7 +325,7 @@ export const WaterMethodForm = () => {
                 <div className="flex space-x-3">
                     {step === 2 && (
                         <>
-                            <Button variant="outline" onClick={() => generatePDF(formData)}>
+                            <Button variant="outline" onClick={() => generatePDF(formData, profile || undefined)}>
                                 <FileDown className="h-4 w-4 mr-2" />
                                 {t('reports.form.exportPdf')}
                             </Button>
@@ -706,11 +708,11 @@ export const WaterMethodForm = () => {
                                     </div>
 
                                     <div className="space-y-4">
-                                        <ResultRow label={t('reports.form.wettedShaftSurface')} value={`${calculated.wettedShaftSurface.toFixed(2)} m²`} />
+                                        <ResultRow label={t('reports.form.wettedShaftSurface')} value={`${calculated.wettedShaftSurface.toFixed(2)} mï¿½`} />
                                         {showPipeFields && (
-                                            <ResultRow label={t('reports.form.wettedPipeSurface')} value={`${calculated.wettedPipeSurface.toFixed(2)} m²`} />
+                                            <ResultRow label={t('reports.form.wettedPipeSurface')} value={`${calculated.wettedPipeSurface.toFixed(2)} mï¿½`} />
                                         )}
-                                        <ResultRow label={t('reports.form.totalWettedArea')} value={`${calculated.totalWettedArea.toFixed(2)} m²`} />
+                                        <ResultRow label={t('reports.form.totalWettedArea')} value={`${calculated.totalWettedArea.toFixed(2)} mï¿½`} />
                                         <ResultRow label={t('reports.form.allowedLossLiters')} value={`${calculated.allowedLossL.toFixed(2)} ${t('reports.form.volumeLossUnit')}`} />
                                         <ResultRow label={t('reports.form.allowedLossMm')} value={`${calculated.allowedLossMm.toFixed(2)} ${t('reports.form.waterLossUnitMm')}`} />
                                         {showPipeFields && formData.draft_id !== 5 && calculated.hydrostaticHeight > 0 && (

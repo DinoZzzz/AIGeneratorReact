@@ -8,10 +8,12 @@ import type { ExportMetaData } from '../components/ExportDialog';
 import { Loader2, ArrowLeft, Download, GripVertical, FileText, Pencil } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { generatePDF, generateBulkPDF } from '../lib/pdfGenerator';
+import { useAuth } from '../context/AuthContext';
 
 export const HistoryDetails = () => {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
+    const { profile } = useAuth();
     const [exportData, setExportData] = useState<ReportExport | null>(null);
     const [forms, setForms] = useState<ReportExportForm[]>([]);
     const [loading, setLoading] = useState(true);
@@ -59,7 +61,7 @@ export const HistoryDetails = () => {
             if (!reportData) throw new Error('Report not found');
 
             // Generate single PDF
-            generatePDF(reportData);
+            generatePDF(reportData, profile || undefined);
             setActionMessage(null);
         } catch (error) {
             console.error('Failed to download report:', error);
@@ -98,7 +100,7 @@ export const HistoryDetails = () => {
             if (orderedReports.length === 0) throw new Error('No reports found');
 
             // Generate bulk PDF
-            generateBulkPDF(orderedReports, `${exportData.construction_part}_Reports.pdf`);
+            generateBulkPDF(orderedReports, `${exportData.construction_part}_Reports.pdf`, profile || undefined);
             setActionMessage(null);
         } catch (error) {
             console.error('Failed to export reports:', error);
