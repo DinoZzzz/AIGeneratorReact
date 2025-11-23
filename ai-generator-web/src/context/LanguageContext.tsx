@@ -726,6 +726,47 @@ Object.assign(translations.en, {
     'reports.form.resultUnit': 'l/m^2'
 });
 
+// Clean HR overrides for report forms (fix mojibake)
+Object.assign(translations.hr, {
+    'reports.form.editTitle': 'Uredi izvještaj',
+    'reports.form.generalInfo': 'Opće informacije',
+    'reports.form.notesSection': 'Bilješke',
+    'reports.form.calculatedResults': 'Izračunati rezultati',
+    'reports.form.nextStep': 'Sljedeći korak',
+    'reports.form.saveReport': 'Spremi izvještaj',
+    'reports.form.saveSuccess': 'Izvještaj spremljen. Spreman za novi unos.',
+    'reports.form.loadError': 'Neuspjelo učitavanje izvještaja',
+    'reports.form.temperature': 'Temperatura (°C)',
+    'reports.form.paneWidthM': 'Širina okna (m)',
+    'reports.form.paneLengthM': 'Dužina okna (m)',
+    'reports.form.pipeLengthM': 'Dužina cijevi (m)',
+    'reports.form.startPressure': 'Početni tlak (mbar)',
+    'reports.form.endPressure': 'Završni tlak (mbar)',
+    'reports.form.startTime': 'Početak',
+    'reports.form.allowedLoss': 'Dopušteni gubitak',
+    'reports.form.schemeA': 'Shema A – Ispitivanje okna',
+    'reports.form.schemeB': 'Shema B – Ispitivanje okna i cijelovoda',
+    'reports.form.schemeC': 'Shema C – Ispitivanje cijelovoda',
+    'reports.form.schemeD': 'Shema D – Ispitivanje slivnika',
+    'reports.form.schemeE': 'Shema E – Ispitivanje slivnika i cijelovoda',
+    'reports.form.paneWidthCm': 'Širina okna (cm)',
+    'reports.form.paneLengthCm': 'Dužina okna (cm)',
+    'reports.form.gullyWidth': 'Širina slivnika (cm)',
+    'reports.form.gullyLength': 'Dužina slivnika (cm)',
+    'reports.form.channelWidth': 'Širina kanala (cm)',
+    'reports.form.channelLength': 'Dužina kanala (cm)',
+    'reports.form.pipeLengthMeters': 'Dužina cijevi (m)',
+    'reports.form.depositionalHeight': 'Visina taloženja (m)',
+    'reports.form.startWaterLevel': 'Početna razina vode (mm)',
+    'reports.form.endWaterLevel': 'Završna razina vode (mm)',
+    'reports.form.totalWettedArea': 'Ukupna mokra površina',
+    'reports.form.wettedShaftSurface': 'Mokra površina okna',
+    'reports.form.wettedPipeSurface': 'Mokra površina cijevi',
+    'reports.form.allowedLossLiters': 'Dopušteni gubitak (l)',
+    'reports.form.allowedLossMm': 'Dopušteni gubitak (mm)',
+    'reports.form.resultUnit': 'l/m²'
+});
+
 // Report method labels
 Object.assign(translations.hr, {
     'reports.waterMethod': 'Metoda vode',

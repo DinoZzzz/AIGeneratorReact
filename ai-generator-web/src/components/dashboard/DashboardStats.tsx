@@ -145,7 +145,7 @@ export const DashboardStats = () => {
 
                 {/* Chart Container with Fixed Min Height */}
                 <div className="w-full h-64 min-h-[256px] relative">
-                    <ResponsiveContainer width="100%" height="100%">
+                    <ResponsiveContainer width="100%" height="100%" minWidth={200} minHeight={200}>
                         <PieChart>
                             <Pie
                                 data={customerStats}
