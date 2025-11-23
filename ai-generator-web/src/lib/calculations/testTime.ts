@@ -4,34 +4,32 @@
  * Ported from AIGenerator/Common/TestTimeClass.cs
  */
 
+import { AIR_TEST_STANDARDS, type AirTestMethod } from './airTable';
+
 export const calculateRequiredTestTime = (
     procedureId: number, // 1=LA, 2=LB, 3=LC, 4=LD
     draftId: number, // 1 or 4 = Shaft only (halves the time)
-    diameterMm: number // Diameter in millimeters
+    diameterMm: number, // Diameter in millimeters
+    isConcrete: boolean = true // Default to concrete if not specified
 ): number => {
 
-    // Standard diameters list from C# TestTimeClass.cs
-    const diameters = [100, 200, 300, 400, 600, 800, 1000, 1100, 1200];
+    // Map procedureId to AirTestMethod
+    const methodMap: Record<number, AirTestMethod> = {
+        1: 'LA',
+        2: 'LB',
+        3: 'LC',
+        4: 'LD'
+    };
 
-    // Time lists corresponding to Procedure IDs
-    let times: number[] = [];
+    const method = methodMap[procedureId] || 'LA';
+    const materialKey = isConcrete ? 'CONCRETE' : 'OTHER';
+    const standard = AIR_TEST_STANDARDS[materialKey][method];
 
-    switch (procedureId) {
-        case 1: // LA (10 mbar)
-            times = [5, 5, 7, 10, 14, 19, 24, 27, 29];
-            break;
-        case 2: // LB (50 mbar)
-            times = [4, 4, 6, 7, 11, 15, 19, 21, 22];
-            break;
-        case 3: // LC (100 mbar)
-            times = [3, 3, 4, 5, 6, 11, 14, 15, 16];
-            break;
-        case 4: // LD (200 mbar)
-            times = [1.5, 1.5, 2, 2.5, 4, 5, 7, 7, 8];
-            break;
-        default:
-            return 0;
-    }
+    // Get diameters and times from the standard
+    // The standard.times is Record<number, number> (diameter -> time)
+    // We need sorted arrays for interpolation
+    const diameters = Object.keys(standard.times).map(Number).sort((a, b) => a - b);
+    const times = diameters.map(d => standard.times[d]);
 
     let calculatedTime = 0;
 

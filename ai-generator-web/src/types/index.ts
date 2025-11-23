@@ -101,7 +101,7 @@ export interface ReportForm {
     depositional_height: number;
 
     // Times
-    stabilization_time?: string;
+    stabilization_time?: number | string;
     saturation_time?: string;
     examination_date: string;
     examination_duration?: string; // Interval string from Postgres

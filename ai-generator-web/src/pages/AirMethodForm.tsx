@@ -9,9 +9,10 @@ import { Loader2, Save, ArrowLeft, FileDown, Plus, ArrowRight, ChevronLeft } fro
 import { Stepper } from '../components/ui/Stepper';
 import * as calc from '../lib/calculations/report';
 import { generatePDF } from '../lib/pdfGenerator';
-import type { ReportForm, ExaminationProcedure, ReportDraft, MaterialType } from '../types';
+import type { ReportForm, ExaminationProcedure, ReportDraft, MaterialType, Material } from '../types';
 import { cn } from '../lib/utils';
-import { calculateRequiredTestTime } from '../lib/calculations/testTime';
+import { formatTime } from '../lib/calculations/testTime';
+import { getAirTestRequirements, type AirTestMethod, type PipeMaterial } from '../lib/calculations/airTable';
 import { useLanguage } from '../context/LanguageContext';
 
 // Initial empty state
@@ -19,6 +20,9 @@ const initialState: Partial<ReportForm> = {
     type_id: 2, // Air
     draft_id: 1,
     material_type_id: 1, // Shaft
+    examination_procedure_id: 1, // LA
+    pipe_material_id: 0,
+    dionica: '',
     temperature: 0,
     pipe_length: 0,
     pipe_diameter: 0,
@@ -32,6 +36,7 @@ const initialState: Partial<ReportForm> = {
     examination_date: new Date().toISOString().split('T')[0],
     examination_start_time: '',
     examination_end_time: '',
+    stabilization_time: '',
 };
 
 interface CalculatedResults {
@@ -51,6 +56,7 @@ export const AirMethodForm = () => {
     const [procedures, setProcedures] = useState<ExaminationProcedure[]>([]);
     const [drafts, setDrafts] = useState<ReportDraft[]>([]);
     const [materialTypes, setMaterialTypes] = useState<MaterialType[]>([]);
+    const [materials, setMaterials] = useState<Material[]>([]);
     const [step, setStep] = useState<1 | 2>(1);
     const [calculated, setCalculated] = useState<CalculatedResults>({
         pressureLoss: 0,
@@ -61,16 +67,28 @@ export const AirMethodForm = () => {
     });
 
     const loadLookups = useCallback(async () => {
-        const [procRes, draftRes, matTypeRes] = await Promise.all([
+        const [procRes, draftRes, matTypeRes, materialsRes] = await Promise.all([
             supabase.from('examination_procedures').select('*').order('id'),
             supabase.from('report_drafts').select('*').order('id'),
-            supabase.from('material_types').select('*').order('id')
+            supabase.from('material_types').select('*').order('id'),
+            supabase.from('materials').select('*').order('id')
         ]);
 
         if (procRes.data) setProcedures(procRes.data);
         if (draftRes.data) setDrafts(draftRes.data);
         if (matTypeRes.data) setMaterialTypes(matTypeRes.data);
-    }, []);
+        if (materialsRes.data) {
+            setMaterials(materialsRes.data);
+            // Set default material to 'Ostale cijevi' if not set
+            if (!formData.pipe_material_id) {
+                const defaultMat = materialsRes.data.find(m => m.name.toLowerCase().includes('ostale cijevi'));
+                if (defaultMat) {
+                    setFormData(prev => ({ ...prev, pipe_material_id: defaultMat.id }));
+                }
+            }
+        }
+
+    }, [formData.pipe_material_id]);
 
     const loadReport = useCallback(async (reportId: string) => {
         try {
@@ -92,17 +110,24 @@ export const AirMethodForm = () => {
         }
     }, [id, loadLookups, loadReport]);
 
+    // Effect to enforce Round Shafts for Air Method
+    useEffect(() => {
+        if (formData.draft_id === 1 && formData.material_type_id !== 1) {
+            setFormData(prev => ({ ...prev, material_type_id: 1 }));
+        }
+    }, [formData.draft_id, formData.material_type_id]);
+
+
+
     useEffect(() => {
         const selectedProcedure = procedures.find(p => p.id === formData.examination_procedure_id);
-        const allowedLoss = selectedProcedure?.allowed_loss || 0.10;
-        const results = calc.calculateAirReport(formData as ReportForm, allowedLoss);
 
-        let diameter = 0;
-        // Diameter logic: Draft 1 (Shaft) uses PaneDiameter, others (Pipe) use PipeDiameter
+        let diameterMm = 0;
+        // Diameter logic: Draft 1 (Shaft) uses PaneDiameter (mm), others (Pipe) use PipeDiameter (m)
         if (formData.draft_id === 1) {
-            diameter = formData.pane_diameter || 0;
+            diameterMm = formData.pane_diameter || 0;
         } else {
-            diameter = formData.pipe_diameter || 0;
+            diameterMm = (formData.pipe_diameter || 0) * 1000;
         }
 
         let procedureId = 1;
@@ -115,20 +140,45 @@ export const AirMethodForm = () => {
             else if (p >= 50) procedureId = 2;
         }
 
-        const requiredTestTime = calculateRequiredTestTime(
-            procedureId,
-            formData.draft_id || 1,
-            diameter * 1000 // Convert meters to mm
-        );
+        const selectedMaterial = materials.find(m => m.id === formData.pipe_material_id);
+        const isConcrete = selectedMaterial
+            ? (selectedMaterial.name.toLowerCase().includes('beton') || selectedMaterial.name.toLowerCase().includes('concrete'))
+            : true; // Default to concrete if not selected
+
+        // Map ID to Method
+        const methodMap: Record<number, AirTestMethod> = {
+            1: 'LA',
+            2: 'LB',
+            3: 'LC',
+            4: 'LD'
+        };
+        const method = methodMap[procedureId] || 'LA';
+        const materialKey: PipeMaterial = isConcrete ? 'CONCRETE' : 'OTHER';
+
+        // Get requirements from table
+        const requirements = getAirTestRequirements(method, materialKey, diameterMm);
+
+        // Shaft logic: Halve the time if it's a shaft test (Draft 1)
+        // Note: The table doesn't explicitly say this, but it's carried over from previous logic.
+        // If the user wants strict table adherence for shafts too, we might need to remove this.
+        // For now, keeping it as it was in testTime.ts
+        let finalTime = requirements.requiredTime;
+        if (formData.draft_id === 1) {
+            finalTime = finalTime / 2;
+        }
+
+        const allowedLoss = requirements.allowedDrop; // Use table value!
+
+        const results = calc.calculateAirReport(formData as ReportForm, allowedLoss);
 
         setCalculated({
             pressureLoss: results.pressureLoss,
-            allowedLoss: results.allowedLoss,
+            allowedLoss: allowedLoss,
             satisfies: results.satisfies,
             testTime: '00:00',
-            requiredTestTime
+            requiredTestTime: finalTime
         });
-    }, [formData, procedures]);
+    }, [formData, procedures, materials]);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
         const { name, value, type } = e.target;
@@ -136,7 +186,7 @@ export const AirMethodForm = () => {
 
         if (type === 'number') {
             finalValue = parseFloat(value) || 0;
-        } else if (['draft_id', 'material_type_id', 'examination_procedure_id'].includes(name)) {
+        } else if (['draft_id', 'material_type_id', 'examination_procedure_id', 'pipe_material_id'].includes(name)) {
             finalValue = parseInt(value, 10) || 0;
         }
 
@@ -147,6 +197,11 @@ export const AirMethodForm = () => {
     };
 
     const saveReport = async (shouldRedirect: boolean) => {
+        if (!formData.dionica) {
+            alert(t('reports.form.dionicaRequired'));
+            return;
+        }
+
         try {
             setLoading(true);
             const dataToSave = {
@@ -172,10 +227,10 @@ export const AirMethodForm = () => {
                     examination_procedure_id: dataToSave.examination_procedure_id,
                     draft_id: dataToSave.draft_id,
                     material_type_id: dataToSave.material_type_id,
+                    dionica: '', // Reset dionica for new report
                 });
                 setStep(1);
                 navigate(`/customers/${customerId}/constructions/${constructionId}/reports/new/air`);
-                // We use a toast or alert here, ideally ToastContext
                 alert(t('reports.form.saveSuccess'));
             } else {
                 if (customerId && constructionId) {
@@ -283,6 +338,13 @@ export const AirMethodForm = () => {
                                         ))}
                                     </Select>
                                     <Input
+                                        label={t('reports.form.dionica')}
+                                        name="dionica"
+                                        value={formData.dionica || ''}
+                                        onChange={handleChange}
+                                        required
+                                    />
+                                    <Input
                                         label={t('reports.form.examDate')}
                                         type="date"
                                         name="examination_date"
@@ -319,11 +381,27 @@ export const AirMethodForm = () => {
                                         name="material_type_id"
                                         value={formData.material_type_id}
                                         onChange={handleChange}
+                                        disabled={formData.draft_id === 1} // Disable for Shaft Only
                                     >
                                         {materialTypes.length === 0 && <option value={1}>{t('reports.form.round')}</option>}
-                                        {materialTypes.map(m => (
-                                            <option key={m.id} value={m.id}>{m.name}</option>
-                                        ))}
+                                        {materialTypes
+                                            .filter(m => formData.draft_id === 1 ? m.id === 1 : true) // Only show Round for Shaft
+                                            .map(m => (
+                                                <option key={m.id} value={m.id}>{m.name}</option>
+                                            ))}
+                                    </Select>
+                                    <Select
+                                        label={t('reports.form.pipeMaterial')}
+                                        name="pipe_material_id"
+                                        value={formData.pipe_material_id}
+                                        onChange={handleChange}
+                                    >
+                                        <option value="">{t('reports.form.selectMaterial')}</option>
+                                        {materials
+                                            .filter(m => ['suhe betonske cijevi', 'ostale cijevi'].includes(m.name.toLowerCase()))
+                                            .map(m => (
+                                                <option key={m.id} value={m.id}>{m.name}</option>
+                                            ))}
                                     </Select>
                                 </div>
                             </div>
@@ -333,9 +411,8 @@ export const AirMethodForm = () => {
                                 <div className="space-y-4">
                                     {isShaftRound && (
                                         <Input
-                                            label={t('reports.form.paneDiameterM')}
+                                            label={t('reports.form.paneDiameterMm')}
                                             type="number"
-                                            step="0.01"
                                             name="pane_diameter"
                                             value={formData.pane_diameter}
                                             onChange={handleChange}
@@ -429,6 +506,14 @@ export const AirMethodForm = () => {
                                         value={formData.examination_end_time}
                                         onChange={handleChange}
                                     />
+                                    <Input
+                                        label={t('reports.form.stabilizationTime')}
+                                        type="text"
+                                        name="stabilization_time"
+                                        value={formData.stabilization_time}
+                                        onChange={handleChange}
+                                        placeholder="00:00"
+                                    />
                                 </div>
                             </div>
 
@@ -500,7 +585,7 @@ export const AirMethodForm = () => {
                                             <ResultRow label={t('reports.form.allowedLoss')} value={`${calculated.allowedLoss.toFixed(2)} mbar`} highlight />
                                         </div>
                                         <div className="pt-4 border-t border-border">
-                                            <ResultRow label={t('reports.form.requiredTime')} value={`${calculated.requiredTestTime.toFixed(0)} min`} />
+                                            <ResultRow label={t('reports.form.requiredTime')} value={`${formatTime(calculated.requiredTestTime)}`} />
                                         </div>
                                     </div>
                                 </div>
