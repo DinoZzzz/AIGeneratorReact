@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, Plus, ChevronDown, ChevronUp } from 'lucide-react';
+import { Search, Plus } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useLanguage } from '../../context/LanguageContext';
 
@@ -8,6 +8,8 @@ interface ActiveConstruction {
     id: string;
     work_order: string;
     name: string;
+    updated_at?: string;
+    created_at: string;
 }
 
 interface CustomerTableItem {
@@ -21,7 +23,6 @@ export const DashboardCustomersTable = () => {
     const [customers, setCustomers] = useState<CustomerTableItem[]>([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
-    const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
     const { t } = useLanguage();
 
     useEffect(() => {
@@ -41,7 +42,9 @@ export const DashboardCustomersTable = () => {
                         id,
                         work_order,
                         name,
-                        is_active
+                        is_active,
+                        updated_at,
+                        created_at
                     )
                 `);
 
@@ -62,8 +65,15 @@ export const DashboardCustomersTable = () => {
                         .map((con: any) => ({
                             id: con.id,
                             work_order: con.work_order || '',
-                            name: con.name
-                        })) || [];
+                            name: con.name,
+                            updated_at: con.updated_at,
+                            created_at: con.created_at
+                        }))
+                        .sort((a: any, b: any) => {
+                            const dateA = new Date(a.updated_at || a.created_at).getTime();
+                            const dateB = new Date(b.updated_at || b.created_at).getTime();
+                            return dateB - dateA;
+                        }) || [];
 
                     return {
                         id: c.id,
@@ -80,16 +90,6 @@ export const DashboardCustomersTable = () => {
         } finally {
             setLoading(false);
         }
-    };
-
-    const toggleRow = (customerId: string) => {
-        const newExpanded = new Set(expandedRows);
-        if (newExpanded.has(customerId)) {
-            newExpanded.delete(customerId);
-        } else {
-            newExpanded.add(customerId);
-        }
-        setExpandedRows(newExpanded);
     };
 
     return (
@@ -138,11 +138,8 @@ export const DashboardCustomersTable = () => {
                             </tr>
                         ) : (
                             customers.map((customer) => {
-                                const isExpanded = expandedRows.has(customer.id);
-                                const hasMany = customer.active_constructions.length > 3;
-                                const displayedConstructions = isExpanded
-                                    ? customer.active_constructions
-                                    : customer.active_constructions.slice(0, 3);
+                                const displayedConstructions = customer.active_constructions.slice(0, 5);
+                                const remainingCount = customer.active_constructions.length - 5;
 
                                 return (
                                     <tr key={customer.id} className="hover:bg-muted/50 transition-colors">
@@ -174,23 +171,13 @@ export const DashboardCustomersTable = () => {
                                                             {ac.work_order}
                                                         </Link>
                                                     ))}
-                                                    {hasMany && (
-                                                        <button
-                                                            onClick={() => toggleRow(customer.id)}
+                                                    {remainingCount > 0 && (
+                                                        <Link
+                                                            to={`/customers/${customer.id}/constructions`}
                                                             className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-muted text-muted-foreground hover:bg-muted/80 transition-colors"
                                                         >
-                                                            {isExpanded ? (
-                                                                <>
-                                                                    <ChevronUp className="h-3 w-3 mr-1" />
-                                                                    {t('dashboard.showLess')}
-                                                                </>
-                                                            ) : (
-                                                                <>
-                                                                    <ChevronDown className="h-3 w-3 mr-1" />
-                                                                    +{customer.active_constructions.length - 3}
-                                                                </>
-                                                            )}
-                                                        </button>
+                                                            +{remainingCount}
+                                                        </Link>
                                                     )}
                                                 </div>
                                             ) : (
