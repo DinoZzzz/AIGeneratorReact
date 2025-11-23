@@ -96,7 +96,7 @@ export const Layout = ({ children }: LayoutProps) => {
                     </nav>
 
                     {/* User Profile & Logout */}
-                    <div className="p-4 border-t border-border">
+                    <div className="mt-auto p-4 border-t border-border sticky bottom-0 bg-card">
                         <div className="flex items-center mb-4 px-4">
                             <div className="flex-shrink-0">
                                 <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
