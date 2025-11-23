@@ -27,7 +27,7 @@ export const customerService = {
             // Sanitize search input by removing commas to prevent Supabase OR syntax errors
             const sanitizedSearch = search.replace(/,/g, '');
             if (sanitizedSearch) {
-                query = query.or(`name.ilike.%${sanitizedSearch}%,location.ilike.%${sanitizedSearch}%,work_order.ilike.%${sanitizedSearch}%,contact_person.ilike.%${sanitizedSearch}%,email.ilike.%${sanitizedSearch}%`);
+                query = query.or(`name.ilike.%${sanitizedSearch}%,location.ilike.%${sanitizedSearch}%,work_order.ilike.%${sanitizedSearch}%`);
             }
         }
 

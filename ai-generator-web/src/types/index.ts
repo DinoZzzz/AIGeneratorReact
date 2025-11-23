@@ -30,9 +30,6 @@ export interface Customer {
     address?: string;
     postal_code?: string;
     oib?: string;
-    contact_person?: string;
-    email?: string;
-    phone?: string;
     created_at: string;
 }
 

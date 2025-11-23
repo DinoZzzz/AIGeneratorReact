@@ -4,7 +4,7 @@ import { customerService } from '../services/customerService';
 import { Plus, Search, Pencil, Trash2, Building2, ChevronLeft, ChevronRight, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import type { Customer } from '../types';
 
-type SortField = 'work_order' | 'name' | 'location' | 'address' | 'contact_person' | 'email' | 'phone';
+type SortField = 'work_order' | 'name' | 'location' | 'address';
 type SortOrder = 'asc' | 'desc';
 
 export const Customers = () => {
@@ -131,22 +131,19 @@ export const Customers = () => {
                                 <TableHeader field="name" label="Name" />
                                 <TableHeader field="location" label="Location" />
                                 <TableHeader field="address" label="Address" />
-                                <TableHeader field="contact_person" label="Contact Person" />
-                                <TableHeader field="email" label="Email" />
-                                <TableHeader field="phone" label="Phone" />
                                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
                             {loading ? (
                                 <tr>
-                                    <td colSpan={8} className="px-6 py-4 text-center text-sm text-gray-500">
+                                    <td colSpan={5} className="px-6 py-4 text-center text-sm text-gray-500">
                                         Loading...
                                     </td>
                                 </tr>
                             ) : customers.length === 0 ? (
                                 <tr>
-                                    <td colSpan={8} className="px-6 py-4 text-center text-sm text-gray-500">
+                                    <td colSpan={5} className="px-6 py-4 text-center text-sm text-gray-500">
                                         No customers found.
                                     </td>
                                 </tr>
@@ -164,15 +161,6 @@ export const Customers = () => {
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                             {customer.address}
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                            {customer.contact_person}
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                            {customer.email}
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                            {customer.phone}
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-3">
                                             <Link
