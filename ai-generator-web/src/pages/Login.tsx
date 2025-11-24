@@ -33,7 +33,7 @@ export const Login = () => {
     };
 
     return (
-        <div className="min-h-screen bg-background flex flex-col justify-center py-12 sm:px-6 lg:px-8 relative overflow-hidden">
+        <div className="min-h-screen bg-background flex flex-col justify-center py-6 sm:py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
             {/* Background decoration */}
             <div className="absolute inset-0 bg-grid-slate-200 [mask-image:linear-gradient(0deg,white,rgba(255,255,255,0.6))] -z-10" />
             <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-secondary/20 -z-10" />
@@ -44,7 +44,7 @@ export const Login = () => {
                         <Lock className="h-8 w-8 text-primary-foreground" />
                     </div>
                 </div>
-                <h2 className="mt-6 text-center text-3xl font-extrabold text-foreground tracking-tight">
+                <h2 className="mt-6 text-center text-2xl sm:text-3xl font-extrabold text-foreground tracking-tight">
                     Welcome back
                 </h2>
                 <p className="mt-2 text-center text-sm text-muted-foreground">
@@ -52,8 +52,8 @@ export const Login = () => {
                 </p>
             </div>
 
-            <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-                <div className="bg-card py-8 px-4 shadow-xl shadow-slate-200/50 sm:rounded-xl sm:px-10 border border-border/50 backdrop-blur-sm">
+            <div className="mt-6 sm:mt-8 sm:mx-auto sm:w-full sm:max-w-md">
+                <div className="bg-card py-8 px-6 sm:px-10 shadow-xl shadow-slate-200/50 sm:rounded-xl border border-border/50 backdrop-blur-sm">
                     <form className="space-y-6" onSubmit={handleLogin}>
                         {error && (
                             <div className="bg-destructive/10 border border-destructive/20 text-destructive px-4 py-3 rounded-md text-sm flex items-center">
