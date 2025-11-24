@@ -105,7 +105,7 @@ export const ExportDialog = ({ open, onOpenChange, onConfirm, loading = false, d
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
-                <DialogHeader>
+                <DialogHeader onClose={() => onOpenChange(false)}>
                     <DialogTitle className="text-foreground">{t('export.optionsTitle')}</DialogTitle>
                 </DialogHeader>
                 <form onSubmit={handleSubmit} className="space-y-4 py-4">

@@ -1,5 +1,6 @@
 import * as React from "react";
 import { cn } from "../../lib/utils";
+import { X } from "lucide-react";
 
 interface DialogProps {
     open: boolean;
@@ -32,9 +33,24 @@ export const DialogContent = ({ className, children, ...props }: React.HTMLAttri
     );
 };
 
-export const DialogHeader = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => {
+interface DialogHeaderProps extends React.HTMLAttributes<HTMLDivElement> {
+    onClose?: () => void;
+}
+
+export const DialogHeader = ({ className, onClose, children, ...props }: DialogHeaderProps) => {
     return (
-        <div className={cn("flex flex-col space-y-1.5 text-center sm:text-left", className)} {...props} />
+        <div className={cn("flex flex-col space-y-1.5 text-center sm:text-left relative", className)} {...props}>
+            {onClose && (
+                <button
+                    onClick={onClose}
+                    className="absolute -top-2 -right-2 sm:top-0 sm:right-0 p-1.5 rounded-full hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+                    aria-label="Close dialog"
+                >
+                    <X className="h-5 w-5" />
+                </button>
+            )}
+            {children}
+        </div>
     );
 };
 

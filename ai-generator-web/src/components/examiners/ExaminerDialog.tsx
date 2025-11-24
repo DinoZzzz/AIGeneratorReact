@@ -115,7 +115,7 @@ export const ExaminerDialog = ({ open, onOpenChange, examiner, onSave }: Examine
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="sm:max-w-[600px]">
-                <DialogHeader>
+                <DialogHeader onClose={() => onOpenChange(false)}>
                     <DialogTitle>{examiner ? t('examiners.dialog.edit') : t('examiners.dialog.new')}</DialogTitle>
                 </DialogHeader>
                 <form onSubmit={handleSubmit} className="space-y-4 py-4">
