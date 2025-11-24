@@ -38,7 +38,7 @@ const initialState: ThemeProviderState = {
   theme: 'system',
   setTheme: () => null,
   systemTheme: 'light',
-  primaryColor: primaryColors[0],
+  primaryColor: primaryColors[1], // Green as default
   setPrimaryColor: () => null,
 };
 
@@ -65,10 +65,10 @@ export function ThemeProvider({
       try {
         return JSON.parse(stored);
       } catch {
-        return primaryColors[0];
+        return primaryColors[1]; // Green as fallback
       }
     }
-    return primaryColors[0];
+    return primaryColors[1]; // Green as default
   });
 
   // Listen for system theme changes
