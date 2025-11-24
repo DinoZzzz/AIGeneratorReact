@@ -9,7 +9,7 @@ import { DashboardStats } from '../components/dashboard/DashboardStats';
 import { DashboardCustomersTable } from '../components/dashboard/DashboardCustomersTable';
 
 export const Dashboard = () => {
-    const { user } = useAuth();
+    const { user, profile } = useAuth();
     const { t } = useLanguage();
     const [stats, setStats] = useState({
         customers: 0,
@@ -45,7 +45,10 @@ export const Dashboard = () => {
 
     const getUserName = () => {
         if (!user) return 'Korisnik';
-        return user.user_metadata?.name || user.email?.split('@')[0] || 'Korisnik';
+        if (profile?.name) {
+            return profile.last_name ? `${profile.name} ${profile.last_name}` : profile.name;
+        }
+        return user.email?.split('@')[0] || 'Korisnik';
     };
 
     if (loading) {

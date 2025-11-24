@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { useLanguage } from '../context/LanguageContext';
 import { ChevronDown, ChevronUp, FileText, Upload, Settings, Database, HelpCircle } from 'lucide-react';
+import { SupportRequestForm } from '../components/help/SupportRequestForm';
+import { cn } from '../lib/utils';
 
 interface FAQItem {
     question: string;
@@ -13,8 +15,11 @@ interface FAQCategory {
     items: FAQItem[];
 }
 
+type TabType = 'faq' | 'support';
+
 export const Help = () => {
     const { t, language } = useLanguage();
+    const [activeTab, setActiveTab] = useState<TabType>('faq');
     const [openCategories, setOpenCategories] = useState<Set<number>>(new Set([0]));
     const [openQuestions, setOpenQuestions] = useState<Set<string>>(new Set());
 
@@ -290,78 +295,119 @@ export const Help = () => {
                 </p>
             </div>
 
-            <div className="space-y-4">
-                {faqCategories.map((category, categoryIndex) => (
-                    <div key={categoryIndex} className="bg-card border border-border rounded-lg shadow">
-                        {/* Category Header */}
-                        <button
-                            onClick={() => toggleCategory(categoryIndex)}
-                            className="w-full px-6 py-4 flex items-center justify-between hover:bg-muted/50 transition-colors rounded-t-lg"
-                        >
-                            <div className="flex items-center space-x-3">
-                                <div className="text-primary">
-                                    {category.icon}
-                                </div>
-                                <h2 className="text-lg font-semibold text-foreground">
-                                    {category.title}
-                                </h2>
-                            </div>
-                            {openCategories.has(categoryIndex) ? (
-                                <ChevronUp className="h-5 w-5 text-muted-foreground" />
-                            ) : (
-                                <ChevronDown className="h-5 w-5 text-muted-foreground" />
-                            )}
-                        </button>
-
-                        {/* Category Content */}
-                        {openCategories.has(categoryIndex) && (
-                            <div className="border-t border-border">
-                                {category.items.map((item, itemIndex) => {
-                                    const questionId = `${categoryIndex}-${itemIndex}`;
-                                    const isOpen = openQuestions.has(questionId);
-
-                                    return (
-                                        <div key={itemIndex} className="border-b border-border last:border-b-0">
-                                            <button
-                                                onClick={() => toggleQuestion(questionId)}
-                                                className="w-full px-6 py-4 text-left hover:bg-muted/30 transition-colors flex items-center justify-between"
-                                            >
-                                                <span className="font-medium text-foreground pr-4">
-                                                    {item.question}
-                                                </span>
-                                                {isOpen ? (
-                                                    <ChevronUp className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                                                ) : (
-                                                    <ChevronDown className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                                                )}
-                                            </button>
-                                            {isOpen && (
-                                                <div className="px-6 py-4 bg-muted/20">
-                                                    <div className="text-muted-foreground whitespace-pre-line">
-                                                        {item.answer}
-                                                    </div>
-                                                </div>
-                                            )}
-                                        </div>
-                                    );
-                                })}
-                            </div>
+            {/* Tabs */}
+            <div className="border-b border-border">
+                <div className="flex space-x-8">
+                    <button
+                        onClick={() => setActiveTab('faq')}
+                        className={cn(
+                            "py-3 px-1 border-b-2 font-medium text-sm transition-colors",
+                            activeTab === 'faq'
+                                ? "border-primary text-primary"
+                                : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
                         )}
-                    </div>
-                ))}
+                    >
+                        {t('help.tabs.faq')}
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('support')}
+                        className={cn(
+                            "py-3 px-1 border-b-2 font-medium text-sm transition-colors",
+                            activeTab === 'support'
+                                ? "border-primary text-primary"
+                                : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
+                        )}
+                    >
+                        {t('help.tabs.support')}
+                    </button>
+                </div>
             </div>
 
-            {/* Contact Support */}
-            <div className="bg-primary/10 border border-primary/20 rounded-lg p-6">
-                <h3 className="text-lg font-semibold text-foreground mb-2">
-                    {language === 'hr' ? 'Trebate dodatnu pomoć?' : 'Need Additional Help?'}
-                </h3>
-                <p className="text-muted-foreground">
-                    {language === 'hr'
-                        ? 'Ako niste pronašli odgovor na svoje pitanje, kontaktirajte administratora sustava ili tehnčku podršku.'
-                        : 'If you haven\'t found the answer to your question, contact the system administrator or technical support.'}
-                </p>
-            </div>
+            {/* Tab Content */}
+            {activeTab === 'faq' ? (
+                <>
+                    <div className="space-y-4">
+                        {faqCategories.map((category, categoryIndex) => (
+                            <div key={categoryIndex} className="bg-card border border-border rounded-lg shadow">
+                                {/* Category Header */}
+                                <button
+                                    onClick={() => toggleCategory(categoryIndex)}
+                                    className="w-full px-6 py-4 flex items-center justify-between hover:bg-muted/50 transition-colors rounded-t-lg"
+                                >
+                                    <div className="flex items-center space-x-3">
+                                        <div className="text-primary">
+                                            {category.icon}
+                                        </div>
+                                        <h2 className="text-lg font-semibold text-foreground">
+                                            {category.title}
+                                        </h2>
+                                    </div>
+                                    {openCategories.has(categoryIndex) ? (
+                                        <ChevronUp className="h-5 w-5 text-muted-foreground" />
+                                    ) : (
+                                        <ChevronDown className="h-5 w-5 text-muted-foreground" />
+                                    )}
+                                </button>
+
+                                {/* Category Content */}
+                                {openCategories.has(categoryIndex) && (
+                                    <div className="border-t border-border">
+                                        {category.items.map((item, itemIndex) => {
+                                            const questionId = `${categoryIndex}-${itemIndex}`;
+                                            const isOpen = openQuestions.has(questionId);
+
+                                            return (
+                                                <div key={itemIndex} className="border-b border-border last:border-b-0">
+                                                    <button
+                                                        onClick={() => toggleQuestion(questionId)}
+                                                        className="w-full px-6 py-4 text-left hover:bg-muted/30 transition-colors flex items-center justify-between"
+                                                    >
+                                                        <span className="font-medium text-foreground pr-4">
+                                                            {item.question}
+                                                        </span>
+                                                        {isOpen ? (
+                                                            <ChevronUp className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                                                        ) : (
+                                                            <ChevronDown className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                                                        )}
+                                                    </button>
+                                                    {isOpen && (
+                                                        <div className="px-6 py-4 bg-muted/20">
+                                                            <div className="text-muted-foreground whitespace-pre-line">
+                                                                {item.answer}
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+
+                    {/* Contact Support */}
+                    <div className="bg-primary/10 border border-primary/20 rounded-lg p-6">
+                        <h3 className="text-lg font-semibold text-foreground mb-2">
+                            {language === 'hr' ? 'Trebate dodatnu pomoć?' : 'Need Additional Help?'}
+                        </h3>
+                        <p className="text-muted-foreground mb-4">
+                            {language === 'hr'
+                                ? 'Ako niste pronašli odgovor na svoje pitanje, pošaljite nam zahtjev za podršku.'
+                                : 'If you haven\'t found the answer to your question, send us a support request.'}
+                        </p>
+                        <button
+                            onClick={() => setActiveTab('support')}
+                            className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
+                        >
+                            {t('help.tabs.support')}
+                        </button>
+                    </div>
+                </>
+            ) : (
+                <SupportRequestForm />
+            )}
         </div>
     );
 };
