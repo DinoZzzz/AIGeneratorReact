@@ -501,7 +501,12 @@ Object.assign(translations.hr, {
     'analytics.water': 'Voda',
     'analytics.air': 'Zrak',
     'analytics.loading': 'Učitavanje analitike...',
-    'analytics.error': 'Neuspjelo učitavanje analitike. Pokušajte ponovo.'
+    'analytics.error': 'Neuspjelo učitavanje analitike. Pokušajte ponovo.',
+    'analytics.totalReports': 'Ukupno izvještaja',
+    'analytics.activeCustomers': 'Ukupno kupaca',
+    'analytics.constructionSites': 'Ukupno gradilišta',
+    'analytics.recentActivity': 'Aktivni izvještaji',
+    'analytics.thisWeek': 'Zadnjih 7 dana'
 });
 
 Object.assign(translations.en, {
@@ -515,7 +520,12 @@ Object.assign(translations.en, {
     'analytics.water': 'Water',
     'analytics.air': 'Air',
     'analytics.loading': 'Loading analytics...',
-    'analytics.error': 'Failed to load analytics. Please try again.'
+    'analytics.error': 'Failed to load analytics. Please try again.',
+    'analytics.totalReports': 'Total Reports',
+    'analytics.activeCustomers': 'Total Customers',
+    'analytics.constructionSites': 'Construction Sites',
+    'analytics.recentActivity': 'Recent Activity',
+    'analytics.thisWeek': 'Last 7 days'
 });
 
 // Report form translations

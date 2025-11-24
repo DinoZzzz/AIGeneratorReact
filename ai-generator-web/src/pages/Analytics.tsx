@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ArrowLeft, PieChart, Activity, Loader2 } from 'lucide-react';
+import { ArrowLeft, PieChart, Activity, Loader2, FileText, Users, Building2, TrendingUp } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useLanguage } from '../context/LanguageContext';
@@ -14,11 +14,19 @@ export const Analytics = () => {
         fail: number;
         avgWater: number;
         avgAir: number;
+        totalReports: number;
+        totalCustomers: number;
+        totalConstructions: number;
+        recentReports: number;
     }>({
         pass: 0,
         fail: 0,
         avgWater: 0,
-        avgAir: 0
+        avgAir: 0,
+        totalReports: 0,
+        totalCustomers: 0,
+        totalConstructions: 0,
+        recentReports: 0
     });
 
     useEffect(() => {
@@ -29,12 +37,18 @@ export const Analytics = () => {
                 // Report forms: pass/fail + durations by type
                 const { data: forms, error: formsError } = await supabase
                     .from('report_forms')
-                    .select('satisfies, type_id, examination_duration');
+                    .select('satisfies, type_id, examination_duration, created_at');
                 if (formsError) throw formsError;
 
                 let pass = 0, fail = 0;
                 let waterDuration = 0, waterCount = 0;
                 let airDuration = 0, airCount = 0;
+                const totalReports = forms?.length || 0;
+
+                // Calculate date 7 days ago
+                const sevenDaysAgo = new Date();
+                sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+                let recentReports = 0;
 
                 const parseDurationMinutes = (val?: string | null) => {
                     if (!val) return 0;
@@ -56,13 +70,34 @@ export const Analytics = () => {
                         airDuration += minutes;
                         airCount += 1;
                     }
+
+                    // Count recent reports
+                    if (f.created_at && new Date(f.created_at) >= sevenDaysAgo) {
+                        recentReports += 1;
+                    }
                 });
+
+                // Fetch customers count
+                const { count: customersCount, error: customersError } = await supabase
+                    .from('customers')
+                    .select('*', { count: 'exact', head: true });
+                if (customersError) throw customersError;
+
+                // Fetch construction sites count
+                const { count: constructionsCount, error: constructionsError } = await supabase
+                    .from('constructions')
+                    .select('*', { count: 'exact', head: true });
+                if (constructionsError) throw constructionsError;
 
                 setStats({
                     pass,
                     fail,
                     avgWater: waterCount ? +(waterDuration / waterCount).toFixed(1) : 0,
-                    avgAir: airCount ? +(airDuration / airCount).toFixed(1) : 0
+                    avgAir: airCount ? +(airDuration / airCount).toFixed(1) : 0,
+                    totalReports,
+                    totalCustomers: customersCount || 0,
+                    totalConstructions: constructionsCount || 0,
+                    recentReports
                 });
             } catch (err: unknown) {
                 console.error('Failed to load analytics', err);
@@ -105,6 +140,59 @@ export const Analytics = () => {
                 </div>
             ) : (
                 <>
+                    {/* Top stat cards */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                        <div className="bg-card border border-border rounded-xl shadow p-6">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <p className="text-sm text-muted-foreground">{t('analytics.totalReports')}</p>
+                                    <p className="text-3xl font-bold text-foreground mt-2">{stats.totalReports}</p>
+                                </div>
+                                <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
+                                    <FileText className="h-6 w-6 text-primary" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="bg-card border border-border rounded-xl shadow p-6">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <p className="text-sm text-muted-foreground">{t('analytics.activeCustomers')}</p>
+                                    <p className="text-3xl font-bold text-foreground mt-2">{stats.totalCustomers}</p>
+                                </div>
+                                <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
+                                    <Users className="h-6 w-6 text-primary" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="bg-card border border-border rounded-xl shadow p-6">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <p className="text-sm text-muted-foreground">{t('analytics.constructionSites')}</p>
+                                    <p className="text-3xl font-bold text-foreground mt-2">{stats.totalConstructions}</p>
+                                </div>
+                                <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
+                                    <Building2 className="h-6 w-6 text-primary" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="bg-card border border-border rounded-xl shadow p-6">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <p className="text-sm text-muted-foreground">{t('analytics.recentActivity')}</p>
+                                    <p className="text-3xl font-bold text-foreground mt-2">{stats.recentReports}</p>
+                                    <p className="text-xs text-muted-foreground mt-1">{t('analytics.thisWeek')}</p>
+                                </div>
+                                <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
+                                    <TrendingUp className="h-6 w-6 text-primary" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Charts section */}
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                         <div className="bg-card border border-border rounded-xl shadow p-6 space-y-4">
                             <div className="flex items-center gap-2">
@@ -151,9 +239,7 @@ export const Analytics = () => {
                                 <span className="text-muted-foreground">{stats.fail}</span>
                             </div>
                         </div>
-                    </div>
 
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                         <div className="bg-card border border-border rounded-xl shadow p-6">
                             <div className="flex items-center gap-2 mb-4">
                                 <Activity className="h-5 w-5 text-primary" />
