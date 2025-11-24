@@ -171,20 +171,20 @@ export const ExaminerDialog = ({ open, onOpenChange, examiner, onSave }: Examine
                                 required={!examiner}
                             />
                         </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="password">
-                                {t('examiners.dialog.password')} {!examiner && <span className="text-destructive">*</span>}
-                                {examiner && <span className="text-xs text-muted-foreground ml-1">{t('examiners.dialog.passwordHint')}</span>}
-                            </Label>
-                            <Input
-                                id="password"
-                                type="password"
-                                value={formData.password}
-                                onChange={e => setFormData({ ...formData, password: e.target.value })}
-                                required={!examiner}
-                                placeholder={examiner ? t('examiners.dialog.passwordPlaceholder') : ""}
-                            />
-                        </div>
+                        {!examiner && (
+                            <div className="space-y-2">
+                                <Label htmlFor="password">
+                                    {t('examiners.dialog.password')} <span className="text-destructive">*</span>
+                                </Label>
+                                <Input
+                                    id="password"
+                                    type="password"
+                                    value={formData.password}
+                                    onChange={e => setFormData({ ...formData, password: e.target.value })}
+                                    required
+                                />
+                            </div>
+                        )}
                     </div>
 
                     <div className="flex items-center space-x-2">
