@@ -90,6 +90,23 @@ export const generateWordDocument = async (reports: ReportForm[], metaData: Expo
         let attachments: any[] = [];
         let contentTable = "";
         const imageMap: Record<string, ArrayBuffer> = {};
+        const imageDimensions: Record<string, { width: number, height: number }> = {};
+
+        // Helper to get image dimensions
+        const getImageDimensions = (url: string): Promise<{ width: number, height: number }> => {
+            return new Promise((resolve) => {
+                const img = new Image();
+                img.onload = () => {
+                    resolve({ width: img.naturalWidth, height: img.naturalHeight });
+                };
+                img.onerror = (e) => {
+                    // Don't fail the whole export if one image fails to load dimensions
+                    console.error("Failed to load image dimensions", e);
+                    resolve({ width: 600, height: 400 }); // Fallback
+                };
+                img.src = url;
+            });
+        };
 
         if (constructionId) {
             const { data: files } = await supabase
@@ -123,31 +140,36 @@ export const generateWordDocument = async (reports: ReportForm[], metaData: Expo
                 // Download images for insertion
                 await Promise.all(imageFiles.map(async (f) => {
                     try {
-                         const { data } = supabase.storage
+                        const { data } = supabase.storage
                             .from('report-files')
                             .getPublicUrl(f.file_path);
 
                         if (data.publicUrl) {
-                             // Fetch the image as binary data to preserve original format
-                             const res = await fetch(data.publicUrl, {
-                                 headers: {
-                                     'Accept': '*/*' // Accept any content type
-                                 }
-                             });
+                            // Fetch the image as binary data to preserve original format
+                            // Also fetch dimensions
+                            const [res, dimensions] = await Promise.all([
+                                fetch(data.publicUrl, {
+                                    headers: {
+                                        'Accept': '*/*' // Accept any content type
+                                    }
+                                }),
+                                getImageDimensions(data.publicUrl)
+                            ]);
 
-                             if (res.ok) {
-                                 // Get as ArrayBuffer to preserve exact binary data (JPG/PNG format preserved)
-                                 const buf = await res.arrayBuffer();
-                                 imageMap[f.file_path] = buf;
+                            if (res.ok) {
+                                // Get as ArrayBuffer to preserve exact binary data (JPG/PNG format preserved)
+                                const buf = await res.arrayBuffer();
+                                imageMap[f.file_path] = buf;
+                                imageDimensions[f.file_path] = dimensions;
 
-                                 attachments.push({
-                                     path: f.file_path,
-                                     name: f.file_name,
-                                     description: f.description || f.file_name,
-                                     // This property will be used by the template loop if we use {#attachments}{%image}{/attachments}
-                                     image: f.file_path
-                                 });
-                             }
+                                attachments.push({
+                                    path: f.file_path,
+                                    name: f.file_name,
+                                    description: f.description || f.file_name,
+                                    // This property will be used by the template loop if we use {#attachments}{%image}{/attachments}
+                                    image: f.file_path
+                                });
+                            }
                         }
                     } catch (e) {
                         console.error(`Failed to load image ${f.file_name}`, e);
@@ -163,8 +185,17 @@ export const generateWordDocument = async (reports: ReportForm[], metaData: Expo
                 // tagValue is what is in the data, e.g., f.file_path
                 return imageMap[tagValue] ? imageMap[tagValue] : null;
             },
-            getSize: () => {
+            getSize: (_img: any, tagValue: string) => {
                 // Return [width, height]
+                const dims = imageDimensions[tagValue];
+                if (dims) {
+                    const maxWidth = 600;
+                    if (dims.width > maxWidth) {
+                        const ratio = maxWidth / dims.width;
+                        return [maxWidth, dims.height * ratio];
+                    }
+                    return [dims.width, dims.height];
+                }
                 return [600, 400]; // Default size
             }
         });
