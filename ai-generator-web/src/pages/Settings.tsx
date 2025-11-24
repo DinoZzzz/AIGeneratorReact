@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useTheme } from '../context/ThemeContext';
+import { useTheme, primaryColors } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
@@ -8,7 +8,7 @@ import { Loader2, Plus, Trash2, Edit, Lock } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
 
 export const Settings = () => {
-    const { theme, setTheme } = useTheme();
+    const { theme, setTheme, primaryColor, setPrimaryColor } = useTheme();
     const { language, setLanguage, t } = useLanguage();
     const { user } = useAuth();
     const [materials, setMaterials] = useState<Material[]>([]);
@@ -145,8 +145,8 @@ export const Settings = () => {
                 ? t('materials.newShaft')
                 : t('materials.newPipe')
             : typeId === 1
-            ? t('materials.editShaft')
-            : t('materials.editPipe');
+                ? t('materials.editShaft')
+                : t('materials.editPipe');
         const emptyTitle = typeId === 1 ? t('materials.noneShaftTitle') : t('materials.nonePipeTitle');
 
         return (
@@ -269,21 +269,19 @@ export const Settings = () => {
                 <div className="flex gap-3">
                     <button
                         onClick={() => setLanguage('hr')}
-                        className={`px-4 py-2 rounded-md border text-sm font-medium transition-colors ${
-                            language === 'hr'
-                                ? 'border-primary bg-primary/10 text-primary'
-                                : 'border-border bg-background text-foreground hover:border-primary/50'
-                        }`}
+                        className={`px-4 py-2 rounded-md border text-sm font-medium transition-colors ${language === 'hr'
+                            ? 'border-primary bg-primary/10 text-primary'
+                            : 'border-border bg-background text-foreground hover:border-primary/50'
+                            }`}
                     >
                         {t('language.croatian')}
                     </button>
                     <button
                         onClick={() => setLanguage('en')}
-                        className={`px-4 py-2 rounded-md border text-sm font-medium transition-colors ${
-                            language === 'en'
-                                ? 'border-primary bg-primary/10 text-primary'
-                                : 'border-border bg-background text-foreground hover:border-primary/50'
-                        }`}
+                        className={`px-4 py-2 rounded-md border text-sm font-medium transition-colors ${language === 'en'
+                            ? 'border-primary bg-primary/10 text-primary'
+                            : 'border-border bg-background text-foreground hover:border-primary/50'
+                            }`}
                     >
                         {t('language.english')}
                     </button>
@@ -300,11 +298,10 @@ export const Settings = () => {
                         <div className="grid grid-cols-3 gap-3">
                             <button
                                 onClick={() => setTheme('light')}
-                                className={`p-4 rounded-lg border-2 transition-all ${
-                                    theme === 'light'
-                                        ? 'border-primary bg-primary/10'
-                                        : 'border-border bg-background hover:border-primary/50'
-                                }`}
+                                className={`p-4 rounded-lg border-2 transition-all ${theme === 'light'
+                                    ? 'border-primary bg-primary/10'
+                                    : 'border-border bg-background hover:border-primary/50'
+                                    }`}
                             >
                                 <div className="flex flex-col items-center gap-2">
                                     <div className="w-8 h-8 rounded-full bg-white border-2 border-gray-300 flex items-center justify-center">
@@ -315,11 +312,10 @@ export const Settings = () => {
                             </button>
                             <button
                                 onClick={() => setTheme('dark')}
-                                className={`p-4 rounded-lg border-2 transition-all ${
-                                    theme === 'dark'
-                                        ? 'border-primary bg-primary/10'
-                                        : 'border-border bg-background hover:border-primary/50'
-                                }`}
+                                className={`p-4 rounded-lg border-2 transition-all ${theme === 'dark'
+                                    ? 'border-primary bg-primary/10'
+                                    : 'border-border bg-background hover:border-primary/50'
+                                    }`}
                             >
                                 <div className="flex flex-col items-center gap-2">
                                     <div className="w-8 h-8 rounded-full bg-slate-900 border-2 border-slate-700 flex items-center justify-center">
@@ -330,17 +326,42 @@ export const Settings = () => {
                             </button>
                             <button
                                 onClick={() => setTheme('system')}
-                                className={`p-4 rounded-lg border-2 transition-all ${
-                                    theme === 'system'
-                                        ? 'border-primary bg-primary/10'
-                                        : 'border-border bg-background hover:border-primary/50'
-                                }`}
+                                className={`p-4 rounded-lg border-2 transition-all ${theme === 'system'
+                                    ? 'border-primary bg-primary/10'
+                                    : 'border-border bg-background hover:border-primary/50'
+                                    }`}
                             >
                                 <div className="flex flex-col items-center gap-2">
                                     <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-white to-slate-900 border-2 border-gray-400"></div>
                                     <span className="text-sm font-medium text-foreground">{t('settings.system')}</span>
                                 </div>
                             </button>
+                        </div>
+                    </div>
+
+                    <div className="pt-4 border-t border-border">
+                        <p className="font-medium text-foreground mb-3">{t('settings.primaryColor')}</p>
+                        <p className="text-sm text-muted-foreground mb-4">{t('settings.primaryColorDesc')}</p>
+                        <div className="grid grid-cols-4 sm:grid-cols-8 gap-3">
+                            {primaryColors.map((color) => (
+                                <button
+                                    key={color.name}
+                                    onClick={() => setPrimaryColor(color)}
+                                    className={`group relative flex flex-col items-center gap-2 p-2 rounded-lg border-2 transition-all ${primaryColor.name === color.name
+                                            ? 'border-primary bg-primary/10'
+                                            : 'border-transparent hover:bg-muted'
+                                        }`}
+                                    title={color.name}
+                                >
+                                    <div
+                                        className={`w-8 h-8 rounded-full ${color.class} shadow-sm ring-offset-background transition-transform group-hover:scale-110 ${primaryColor.name === color.name ? 'ring-2 ring-primary ring-offset-2' : ''
+                                            }`}
+                                    />
+                                    <span className="text-xs font-medium text-muted-foreground group-hover:text-foreground">
+                                        {color.name}
+                                    </span>
+                                </button>
+                            ))}
                         </div>
                     </div>
                 </div>

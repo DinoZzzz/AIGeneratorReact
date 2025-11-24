@@ -473,7 +473,9 @@ Object.assign(translations.hr, {
     'settings.themeDesc': 'Odaberite način prikaza',
     'settings.light': 'Svijetla',
     'settings.dark': 'Tamna',
-    'settings.system': 'Sustav'
+    'settings.system': 'Sustav',
+    'settings.primaryColor': 'Primarna boja',
+    'settings.primaryColorDesc': 'Odaberite primarnu boju aplikacije'
 });
 
 Object.assign(translations.en, {
@@ -482,7 +484,9 @@ Object.assign(translations.en, {
     'settings.themeDesc': 'Choose your display mode',
     'settings.light': 'Light',
     'settings.dark': 'Dark',
-    'settings.system': 'System'
+    'settings.system': 'System',
+    'settings.primaryColor': 'Primary Color',
+    'settings.primaryColorDesc': 'Choose the app\'s primary color'
 });
 
 // Analytics translations
