@@ -13,7 +13,8 @@ import {
     History,
     UserCheck,
     HelpCircle,
-    BarChart3
+    BarChart3,
+    Calendar
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 
@@ -38,6 +39,7 @@ export const Layout = ({ children }: LayoutProps) => {
     const navigation = [
         { name: t('nav.platform'), href: '/', icon: LayoutDashboard },
         { name: t('nav.history'), href: '/history', icon: History },
+        { name: t('nav.calendar'), href: '/calendar', icon: Calendar },
         { name: t('nav.examiners'), href: '/examiners', icon: UserCheck, adminOnly: true },
         { name: t('nav.customers'), href: '/customers', icon: Users },
         { name: t('nav.settings'), href: '/settings', icon: Settings },

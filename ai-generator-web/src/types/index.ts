@@ -180,3 +180,22 @@ export interface ReportFile {
     type?: string; // legacy
     file_type?: 'image' | 'pdf';
 }
+
+export interface Appointment {
+    id: string;
+    title: string;
+    description?: string;
+    start_time: string;
+    end_time: string;
+    // examiner_id is deprecated, use assignees
+    customer_id?: string;
+    construction_id?: string;
+    status: 'pending' | 'confirmed' | 'completed' | 'cancelled';
+    created_by: string;
+    created_at: string;
+
+    // Joined fields
+    assignees?: Profile[]; // Replaces examiner
+    customer?: Customer;
+    construction?: Construction;
+}

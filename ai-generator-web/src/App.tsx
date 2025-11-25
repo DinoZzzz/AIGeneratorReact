@@ -10,6 +10,7 @@ import { ToastProvider } from './context/ToastContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { LanguageProvider } from './context/LanguageContext';
 import { queryClient } from './lib/queryClient';
+import { Calendar } from './pages/Calendar';
 
 // Lazy load all page components
 const Login = lazy(() => import('./pages/Login').then(m => ({ default: m.Login })));
@@ -83,7 +84,7 @@ function App() {
                                     <Route path="/analytics" element={<Analytics />} />
                                     <Route path="/help" element={<Help />} />
                                     <Route path="/profile" element={<Profile />} />
-
+                                    <Route path="/calendar" element={<Calendar />} />
                                     <Route path="/reports" element={<Reports />} />
                                     <Route path="/reports/new" element={<WaterMethodForm />} />
                                     <Route path="/reports/new/air" element={<AirMethodForm />} />
