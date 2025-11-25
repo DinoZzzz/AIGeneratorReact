@@ -77,7 +77,8 @@ export const examinerService = {
                 title: profile.title,
                 accreditations: profile.accreditations || [],
                 role: profile.role || 'user',
-                email: profile.email
+                email: profile.email,
+                gender: profile.gender
             };
 
             const { data, error } = await supabase
@@ -101,7 +102,8 @@ export const examinerService = {
             username: profile.username,
             title: profile.title,
             accreditations: profile.accreditations,
-            role: profile.role
+            role: profile.role,
+            gender: profile.gender
         };
 
         // If password is provided, update it using Edge Function

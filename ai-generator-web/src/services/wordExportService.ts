@@ -100,6 +100,20 @@ export const generateWordDocument = async (reports: ReportForm[], metaData: Expo
             }
         }
 
+        // Fetch user profile for gender determination
+        let userProfile: any = null;
+        if (userId) {
+            const { data: profile } = await supabase
+                .from('profiles')
+                .select('*')
+                .eq('id', userId)
+                .single();
+
+            if (profile) {
+                userProfile = profile;
+            }
+        }
+
         let attachments: any[] = [];
         let contentTable = "";
         const imageMap: Record<string, ArrayBuffer> = {};
@@ -454,7 +468,11 @@ export const generateWordDocument = async (reports: ReportForm[], metaData: Expo
             // Attachments
             contentTable,
             attachments: attachments, // Expected loop: {#attachments} {%image} {/attachments}
-            Attachments: attachments // Alias in case user uses {#Attachments}
+            Attachments: attachments, // Alias in case user uses {#Attachments}
+
+            // Gender specific labels
+            izradioLabel: userProfile?.gender === 'F' ? 'izradila' : 'izradio',
+            pregledaoLabel: userProfile?.gender === 'F' ? 'Pregledala i odobrila' : 'Pregledao i odobrio'
         });
 
         // 7. Output the document
