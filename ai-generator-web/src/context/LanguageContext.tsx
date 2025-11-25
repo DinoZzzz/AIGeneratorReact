@@ -558,7 +558,13 @@ Object.assign(translations.hr, {
     'settings.dark': 'Tamna',
     'settings.system': 'Sustav',
     'settings.primaryColor': 'Primarna boja',
-    'settings.primaryColorDesc': 'Odaberite primarnu boju aplikacije'
+    'settings.primaryColorDesc': 'Odaberite primarnu boju aplikacije',
+    'settings.cacheManagement': 'Upravljanje predmemorijom',
+    'settings.cacheDescription': 'Obriši predmemoriju za rješavanje problema ili oslobađanje prostora',
+    'settings.clearCache': 'Obriši predmemoriju',
+    'settings.clearing': 'Brisanje...',
+    'settings.cacheCleared': 'Predmemorija uspješno obrisana',
+    'settings.cacheWarning': 'Ovo će obrisati sve spremljene podatke osim vaše prijave. Stranica će se ponovno učitati.'
 });
 
 Object.assign(translations.en, {
@@ -569,7 +575,13 @@ Object.assign(translations.en, {
     'settings.dark': 'Dark',
     'settings.system': 'System',
     'settings.primaryColor': 'Primary Color',
-    'settings.primaryColorDesc': 'Choose the app\'s primary color'
+    'settings.primaryColorDesc': 'Choose the app\'s primary color',
+    'settings.cacheManagement': 'Cache Management',
+    'settings.cacheDescription': 'Clear cache to fix issues or free up space',
+    'settings.clearCache': 'Clear Cache',
+    'settings.clearing': 'Clearing...',
+    'settings.cacheCleared': 'Cache cleared successfully',
+    'settings.cacheWarning': 'This will clear all cached data except your login. The page will reload.'
 });
 
 // Analytics translations

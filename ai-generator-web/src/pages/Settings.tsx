@@ -4,9 +4,10 @@ import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
 import type { Material } from '../types';
-import { Loader2, Plus, Trash2, Edit, Lock } from 'lucide-react';
+import { Loader2, Plus, Trash2, Edit, Lock, RefreshCw } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
 import { ConfirmDeleteMaterialDialog } from '../components/ConfirmDeleteMaterialDialog';
+import { useQueryClient } from '@tanstack/react-query';
 
 export const Settings = () => {
     const { theme, setTheme, primaryColor, setPrimaryColor } = useTheme();
@@ -21,6 +22,8 @@ export const Settings = () => {
     const { addToast } = useToast();
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
     const [materialToDelete, setMaterialToDelete] = useState<Material | null>(null);
+    const queryClient = useQueryClient();
+    const [isClearing, setIsClearing] = useState(false);
 
     // Separate materials by type (1 = Shaft, 2 = Pipe)
     const shaftMaterials = materials.filter(m => m.material_type_id === 1);
@@ -272,6 +275,45 @@ export const Settings = () => {
         );
     };
 
+    const handleClearCache = async () => {
+        setIsClearing(true);
+        try {
+            // Clear React Query cache
+            queryClient.clear();
+
+            // Clear localStorage (except auth tokens)
+            const keysToPreserve = ['supabase.auth.token'];
+            const storage: { [key: string]: string } = {};
+
+            keysToPreserve.forEach(key => {
+                const value = localStorage.getItem(key);
+                if (value) storage[key] = value;
+            });
+
+            localStorage.clear();
+
+            // Restore preserved keys
+            Object.entries(storage).forEach(([key, value]) => {
+                localStorage.setItem(key, value);
+            });
+
+            // Clear sessionStorage
+            sessionStorage.clear();
+
+            addToast(t('settings.cacheCleared'), 'success');
+
+            // Reload the page to reset all state
+            setTimeout(() => {
+                window.location.reload();
+            }, 500);
+        } catch (error) {
+            console.error('Error clearing cache:', error);
+            addToast('Failed to clear cache', 'error');
+        } finally {
+            setIsClearing(false);
+        }
+    };
+
     return (
         <div className="max-w-4xl mx-auto space-y-8">
             <h1 className="text-2xl font-bold text-foreground">{t('nav.settings')}</h1>
@@ -300,6 +342,23 @@ export const Settings = () => {
                         {t('language.english')}
                     </button>
                 </div>
+            </section>
+
+            {/* Cache Management Section */}
+            <section className="bg-card rounded-lg border border-border p-6">
+                <h2 className="text-xl font-semibold mb-2 text-foreground">{t('settings.cacheManagement')}</h2>
+                <p className="text-sm text-muted-foreground mb-4">{t('settings.cacheDescription')}</p>
+                <button
+                    onClick={handleClearCache}
+                    disabled={isClearing}
+                    className="inline-flex items-center px-4 py-2 text-sm font-medium text-destructive bg-destructive/10 border border-destructive/20 rounded-md hover:bg-destructive/20 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                    <RefreshCw className={`h-4 w-4 mr-2 ${isClearing ? 'animate-spin' : ''}`} />
+                    {isClearing ? t('settings.clearing') : t('settings.clearCache')}
+                </button>
+                <p className="text-xs text-muted-foreground mt-3">
+                    {t('settings.cacheWarning')}
+                </p>
             </section>
 
             {/* Appearance Section */}
@@ -362,8 +421,8 @@ export const Settings = () => {
                                     key={color.name}
                                     onClick={() => setPrimaryColor(color)}
                                     className={`group relative flex flex-col items-center gap-2 p-2 rounded-lg border-2 transition-all ${primaryColor.name === color.name
-                                            ? 'border-primary bg-primary/10'
-                                            : 'border-transparent hover:bg-muted'
+                                        ? 'border-primary bg-primary/10'
+                                        : 'border-transparent hover:bg-muted'
                                         }`}
                                     title={color.name}
                                 >
