@@ -137,8 +137,8 @@ export const ConstructionReports = () => {
         if (reports.length === 0) return;
 
         const reportsToExport = selectedIds.size > 0
-            ? reports.filter(r => r.id && selectedIds.has(r.id))
-            : reports;
+            ? reports.filter(r => r.id && selectedIds.has(r.id) && !r.section_name)
+            : reports.filter(r => !r.section_name);
 
         setActionMessage({ text: 'Generating PDF export...', type: 'info' });
         try {
@@ -157,12 +157,12 @@ export const ConstructionReports = () => {
             let reportsToExport: ReportForm[] = [];
 
             if (dialogSelectedReports && dialogSelectedReports.length > 0) {
-                reportsToExport = dialogSelectedReports;
+                reportsToExport = dialogSelectedReports.filter(r => !r.section_name);
             } else if (selectedIds.size > 0) {
-                reportsToExport = reports.filter(r => r.id && selectedIds.has(r.id));
+                reportsToExport = reports.filter(r => r.id && selectedIds.has(r.id) && !r.section_name);
             } else {
                 // Fallback: if no selection in dialog (shouldn't happen due to validation) and no pre-selection
-                reportsToExport = reports;
+                reportsToExport = reports.filter(r => !r.section_name);
             }
 
             await generateWordDocument(reportsToExport, metaData, user?.id);
@@ -1026,11 +1026,20 @@ export const ConstructionReports = () => {
                                             <input
                                                 type="checkbox"
                                                 className="rounded border-input text-primary focus:ring-ring"
-                                                checked={filteredWaterReports.length > 0 && filteredWaterReports.every(r => r.id && selectedIds.has(r.id))}
+                                                checked={
+                                                    filteredWaterReports.length > 0 &&
+                                                    filteredWaterReports
+                                                        .filter(r => !r.section_name)
+                                                        .every(r => r.id && selectedIds.has(r.id))
+                                                }
                                                 onChange={() => {
-                                                    const allSelected = filteredWaterReports.every(r => r.id && selectedIds.has(r.id));
+                                                    const allSelected = filteredWaterReports
+                                                        .filter(r => !r.section_name)
+                                                        .every(r => r.id && selectedIds.has(r.id));
+
                                                     const newSelected = new Set(selectedIds);
                                                     filteredWaterReports.forEach(r => {
+                                                        if (r.section_name) return; // Skip sections
                                                         if (r.id) {
                                                             if (allSelected) newSelected.delete(r.id);
                                                             else newSelected.add(r.id);

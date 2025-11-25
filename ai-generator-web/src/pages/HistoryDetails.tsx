@@ -185,6 +185,7 @@ export const HistoryDetails = () => {
 
     const toggleSelectAll = () => {
         const allIds = forms
+            .filter(f => !f.report_form?.section_name)
             .map(f => f.form_id || f.report_form?.id)
             .filter((id): id is string => !!id);
 
@@ -364,13 +365,8 @@ export const HistoryDetails = () => {
                         return (
                             <div key={item.id} className="p-4 space-y-3 bg-card">
                                 <div className="flex items-start gap-3">
-                                    <div className="pt-1">
-                                        <input
-                                            type="checkbox"
-                                            className="rounded border-input text-primary focus:ring-ring h-5 w-5"
-                                            checked={isSelected}
-                                            onChange={() => formId && toggleSelect(formId)}
-                                        />
+                                    <div className="pt-1 w-5">
+                                        {/* No checkbox for sections */}
                                     </div>
                                     <div className="flex-1 space-y-2">
                                         <div className="flex justify-between items-start">
@@ -436,19 +432,24 @@ export const HistoryDetails = () => {
                                             className="rounded border-input text-primary focus:ring-ring"
                                             checked={
                                                 reportList.length > 0 &&
-                                                reportList.every(f => {
-                                                    const fid = f.form_id || f.report_form?.id;
-                                                    return fid && selectedIds.has(fid);
-                                                })
+                                                reportList
+                                                    .filter(f => !f.report_form?.section_name)
+                                                    .every(f => {
+                                                        const fid = f.form_id || f.report_form?.id;
+                                                        return fid && selectedIds.has(fid);
+                                                    })
                                             }
                                             onChange={() => {
-                                                const allSelected = reportList.every(f => {
-                                                    const fid = f.form_id || f.report_form?.id;
-                                                    return fid && selectedIds.has(fid);
-                                                });
+                                                const allSelected = reportList
+                                                    .filter(f => !f.report_form?.section_name)
+                                                    .every(f => {
+                                                        const fid = f.form_id || f.report_form?.id;
+                                                        return fid && selectedIds.has(fid);
+                                                    });
 
                                                 const newSelected = new Set(selectedIds);
                                                 reportList.forEach(f => {
+                                                    if (f.report_form?.section_name) return; // Skip sections
                                                     const fid = f.form_id || f.report_form?.id;
                                                     if (fid) {
                                                         if (allSelected) {
@@ -494,12 +495,7 @@ export const HistoryDetails = () => {
                                                     {({ attributes, listeners }) => (
                                                         <>
                                                             <td className="px-6 py-4 whitespace-nowrap">
-                                                                <input
-                                                                    type="checkbox"
-                                                                    className="rounded border-input text-primary focus:ring-ring"
-                                                                    checked={isSelected}
-                                                                    onChange={() => formId && toggleSelect(formId)}
-                                                                />
+                                                                {/* No checkbox for sections */}
                                                             </td>
                                                             <td className="px-6 py-4 whitespace-nowrap text-muted-foreground cursor-grab active:cursor-grabbing" {...attributes} {...listeners}>
                                                                 <GripVertical className="h-4 w-4" />
