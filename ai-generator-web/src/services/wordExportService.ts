@@ -467,6 +467,7 @@ export const generateWordDocument = async (reports: ReportForm[], metaData: Expo
 
             // Attachments
             contentTable,
+            hasAttachments: attachments.length > 0,
             attachments: attachments, // Expected loop: {#attachments} {%image} {/attachments}
             Attachments: attachments, // Alias in case user uses {#Attachments}
 
