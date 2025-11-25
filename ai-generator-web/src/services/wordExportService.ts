@@ -204,7 +204,8 @@ export const generateWordDocument = async (reports: ReportForm[], metaData: Expo
         const doc = new Docxtemplater(zip, {
             paragraphLoop: true,
             linebreaks: true,
-            modules: [imageModule]
+            modules: [imageModule],
+            nullGetter: () => ""
         });
 
         // 5. Prepare data
@@ -273,12 +274,12 @@ export const generateWordDocument = async (reports: ReportForm[], metaData: Expo
 
                 return {
                     ordinal: index + 1,
-                    stock: r.stock || '-',
+                    stock: (r as any).dionica || r.stock || '-',
                     pipeLength: (r.draft_id === 4 || r.pipe_length === 0) ? '-' : formatNum(r.pipe_length, 2),
                     procedureInfo: procText,
                     allowedLoss: allowedLoss,
                     pressureLoss: formatNum(calculatePressureLoss(r.pressure_start, r.pressure_end), 2),
-                    constVal: "0.23"
+                    uncertainty: "0.23"
                 };
             });
 
@@ -313,7 +314,7 @@ export const generateWordDocument = async (reports: ReportForm[], metaData: Expo
 
                 return {
                     ordinal: index + 1,
-                    stock: r.stock || '-',
+                    stock: (r as any).dionica || r.stock || '-',
                     allowedLoss: formatNum(allowedLossL, 2),
                     waterVolumeLoss: formatNum(volLoss, 2),
                     result: formatNum(calculateResult(volLoss, totalWetted), 2)
@@ -330,8 +331,10 @@ export const generateWordDocument = async (reports: ReportForm[], metaData: Expo
         // Build %WaterMethodCriteria%
         const criteriaList: string[] = [];
         if (reports.some(r => r.draft_id === 1)) criteriaList.push('reviziono okno = 0,40 l/m\u00B2');
-        if (reports.some(r => r.draft_id === 2)) criteriaList.push('cjevovod + reviziono okno = 0,20 l/m\u00B2'); // Using 0.20 as per request, though code uses 0.15 logic elsewhere, sticking to string logic
-        if (reports.some(r => r.draft_id === 3)) criteriaList.push('cjevovod = 0,15 l/m\u00B2');
+        if (reports.some(r => r.draft_id === 2)) criteriaList.push('cjevovod = 0,15 l/m\u00B2');
+        if (reports.some(r => r.draft_id === 3)) criteriaList.push('cjevovod + reviziono okno = 0,20 l/m\u00B2');
+        if (reports.some(r => r.draft_id === 4)) criteriaList.push('slivnik = 0,40 l/m\u00B2');
+        if (reports.some(r => r.draft_id === 5)) criteriaList.push('cjevovod + slivnik = 0,20 l/m\u00B2');
         const waterMethodCriteria = criteriaList.join(', ');
 
         // Table naming logic
