@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import type { DragEvent } from 'react';
+
 import { useParams, useNavigate } from 'react-router-dom';
 import { historyService } from '../services/historyService';
 import type { ReportExport, ReportExportForm, ReportForm } from '../types';
