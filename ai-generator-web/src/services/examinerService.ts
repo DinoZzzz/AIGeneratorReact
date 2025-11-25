@@ -104,29 +104,22 @@ export const examinerService = {
             role: profile.role
         };
 
-        // If password is provided, update it
+        // If password is provided, update it using Edge Function
         if (profile.password && profile.password.trim() !== '') {
-            // Save the current session to restore it after password update
-            const { data: { session: currentSession } } = await supabase.auth.getSession();
-
-            // Update the user's password using the auth admin API
-            const { error: passwordError } = await supabase.auth.updateUser({
-                password: profile.password
+            // Use Edge Function to reset password (works for any user)
+            const { data, error: passwordError } = await supabase.functions.invoke('admin-reset-password', {
+                body: {
+                    userId: profile.id,
+                    password: profile.password
+                }
             });
 
-            if (passwordError) {
-                // If direct update fails (likely because we're not that user), 
-                // we need to use a different approach or Edge Function
+            if (passwordError || !data?.success) {
                 console.error('Password update error:', passwordError);
-                throw new Error('Unable to update password. Admin features may require Edge Function setup.');
-            }
-
-            // Restore the original session if we changed it
-            if (currentSession) {
-                await supabase.auth.setSession({
-                    access_token: currentSession.access_token,
-                    refresh_token: currentSession.refresh_token
-                });
+                throw new Error(
+                    passwordError?.message ||
+                    'Unable to update password. Make sure the Edge Function is deployed.'
+                );
             }
         }
 
