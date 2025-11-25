@@ -1,11 +1,18 @@
 export class AppError extends Error {
+  public code: string;
+  public statusCode?: number;
+  public context?: Record<string, any>;
+
   constructor(
     message: string,
-    public code: string,
-    public statusCode?: number,
-    public context?: Record<string, any>
+    code: string,
+    statusCode?: number,
+    context?: Record<string, any>
   ) {
     super(message);
+    this.code = code;
+    this.statusCode = statusCode;
+    this.context = context;
     this.name = 'AppError';
     Object.setPrototypeOf(this, AppError.prototype);
   }
@@ -55,7 +62,6 @@ export const errorHandler = {
     options: ErrorHandlerOptions = {}
   ): AppError {
     const {
-      showToast = false,
       logToConsole = true,
       sendToService = false,
     } = options;

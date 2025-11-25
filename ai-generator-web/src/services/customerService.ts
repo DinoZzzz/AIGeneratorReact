@@ -1,6 +1,6 @@
 import { supabase } from '../lib/supabase';
 import type { Customer } from '../types';
-import { AppError, NotFoundError, withErrorHandling } from '../lib/errorHandler';
+import { AppError, NotFoundError } from '../lib/errorHandler';
 
 export const customerService = {
     async getAll() {

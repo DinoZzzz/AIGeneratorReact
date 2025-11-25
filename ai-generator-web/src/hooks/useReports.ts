@@ -77,7 +77,7 @@ export const useUpdateReport = () => {
 
       return { previousReport };
     },
-    onError: (err, { id }, context) => {
+    onError: (_err, { id }, context) => {
       // Rollback on error
       if (context?.previousReport) {
         queryClient.setQueryData(reportKeys.detail(id), context.previousReport);

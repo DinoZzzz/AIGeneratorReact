@@ -68,7 +68,7 @@ export const useUpdateConstruction = () => {
 
       return { previousConstruction };
     },
-    onError: (err, { id }, context) => {
+    onError: (_err, { id }, context) => {
       // Rollback on error
       if (context?.previousConstruction) {
         queryClient.setQueryData(constructionKeys.detail(id), context.previousConstruction);

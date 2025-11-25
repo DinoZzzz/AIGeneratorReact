@@ -6,7 +6,7 @@ import { useCustomers, useDeleteCustomer } from '../hooks/useCustomers';
 import { TableSkeleton } from '../components/skeletons';
 import { errorHandler } from '../lib/errorHandler';
 import { useToast } from '../context/ToastContext';
-import { supabase } from '../lib/supabase';
+
 
 type SortField = 'work_order' | 'name' | 'location' | 'address' | 'created_at';
 type SortOrder = 'asc' | 'desc';

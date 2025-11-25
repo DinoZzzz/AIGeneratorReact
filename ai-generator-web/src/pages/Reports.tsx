@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import type { ReportForm } from '../types';
+
 import { Loader2, Trash2, Edit, FileText, Download } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { cn } from '../lib/utils';
