@@ -124,28 +124,37 @@ export const ExportDialog = ({ open, onOpenChange, onConfirm, loading = false, d
                                 </button>
                             </div>
                             <div className="max-h-40 overflow-y-auto space-y-2 border-t border-border pt-2">
-                                {reports.map((report) => (
-                                    <div key={report.id} className="flex items-center space-x-2">
-                                        <input
-                                            type="checkbox"
-                                            id={`report-${report.id}`}
-                                            checked={report.id ? selectedReportIds.has(report.id) : false}
-                                            onChange={() => report.id && toggleReport(report.id)}
-                                            className="rounded border-input text-primary focus:ring-ring"
-                                        />
-                                        <label htmlFor={`report-${report.id}`} className="text-sm text-foreground flex-1 truncate cursor-pointer">
-                                            <span className="font-medium text-foreground">{report.type_id === 1 ? t('reports.waterMethod') : t('reports.airMethod')}</span>
-                                            <span className="mx-1 text-muted-foreground">-</span>
-                                            {(report.dionica || report.stock) && (
-                                                <>
-                                                    <span className="font-medium text-foreground">{report.dionica || report.stock}</span>
-                                                    <span className="mx-1 text-muted-foreground">-</span>
-                                                </>
-                                            )}
-                                            <span className="text-muted-foreground">{new Date(report.examination_date).toLocaleDateString()}</span>
-                                        </label>
-                                    </div>
-                                ))}
+                                {reports.map((report) => {
+                                    const isSection = !report.type_id && report.section_name;
+                                    return (
+                                        <div key={report.id} className={`flex items-center space-x-2 ${isSection ? 'bg-muted/50 py-1 -mx-2 px-2' : ''}`}>
+                                            <input
+                                                type="checkbox"
+                                                id={`report-${report.id}`}
+                                                checked={report.id ? selectedReportIds.has(report.id) : false}
+                                                onChange={() => report.id && toggleReport(report.id)}
+                                                className="rounded border-input text-primary focus:ring-ring"
+                                            />
+                                            <label htmlFor={`report-${report.id}`} className={`text-sm text-foreground flex-1 truncate cursor-pointer ${isSection ? 'font-bold' : ''}`}>
+                                                {isSection ? (
+                                                    <span>{report.section_name}</span>
+                                                ) : (
+                                                    <>
+                                                        <span className="font-medium text-foreground">{report.type_id === 1 ? t('reports.waterMethod') : t('reports.airMethod')}</span>
+                                                        <span className="mx-1 text-muted-foreground">-</span>
+                                                        {(report.dionica || report.stock) && (
+                                                            <>
+                                                                <span className="font-medium text-foreground">{report.dionica || report.stock}</span>
+                                                                <span className="mx-1 text-muted-foreground">-</span>
+                                                            </>
+                                                        )}
+                                                        <span className="text-muted-foreground">{new Date(report.examination_date).toLocaleDateString()}</span>
+                                                    </>
+                                                )}
+                                            </label>
+                                        </div>
+                                    );
+                                })}
                             </div>
                             <div className="text-xs text-muted-foreground text-right">
                                 {selectedReportIds.size} {t('export.selected')}

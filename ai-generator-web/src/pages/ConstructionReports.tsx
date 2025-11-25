@@ -1,9 +1,9 @@
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { reportService } from '../services/reportService';
 import { constructionService } from '../services/constructionService';
 import { customerService } from '../services/customerService';
-import { Plus, Pencil, Trash2, FileDown, ArrowLeft, Loader2, GripVertical, FileText } from 'lucide-react';
+import { Loader2, Plus, FileText, Trash2, ArrowLeft, FileDown, Pencil, Type, GripVertical } from 'lucide-react';
 import type { ReportForm, Construction, Customer, ReportFile } from '../types';
 import clsx from 'clsx';
 import { generatePDF, generateBulkPDF } from '../lib/pdfGenerator';
@@ -245,6 +245,38 @@ export const ConstructionReports = () => {
         }
     };
 
+    const handleAddSection = async () => {
+        const name = window.prompt(t('reports.enterSectionName'));
+        if (!name) return;
+
+        try {
+            const maxOrdinal = reports.length > 0 ? Math.max(...reports.map(r => r.ordinal)) : 0;
+            const newSection = await reportService.create({
+                construction_id: constructionId,
+                section_name: name,
+                ordinal: maxOrdinal + 1,
+                // type_id is null for sections
+            });
+            setReports([...reports, newSection]);
+        } catch (error) {
+            console.error('Failed to create section:', error);
+            alert('Failed to create section');
+        }
+    };
+
+    const handleUpdateSectionName = async (id: string, currentName: string) => {
+        const newName = window.prompt(t('reports.enterSectionName'), currentName);
+        if (!newName || newName === currentName) return;
+
+        try {
+            await reportService.update(id, { section_name: newName });
+            setReports(reports.map(r => r.id === id ? { ...r, section_name: newName } : r));
+        } catch (error) {
+            console.error('Failed to update section name:', error);
+            alert('Failed to update section name');
+        }
+    };
+
     if (loading) {
         return (
             <div className="flex justify-center items-center h-64">
@@ -268,17 +300,27 @@ export const ConstructionReports = () => {
 
         // Filter by type
         if (typeFilter !== 'all' && report.type_id !== parseInt(typeFilter)) {
+            // Allow sections to pass through type filter if we want them visible always?
+            // Or maybe filter them out? Usually sections are structural, so maybe keep them?
+            // For now, let's hide sections if filtering by specific type, UNLESS we want to see structure.
+            // But wait, sections have no type_id. So they will be filtered out here.
+            // Let's allow sections if they exist.
+            if (!report.type_id && report.section_name) return true;
             return false;
         }
 
         // Filter by status
         if (statusFilter !== 'all') {
+            // Sections don't have status, so maybe hide them? Or show?
+            if (!report.type_id && report.section_name) return true;
             if (statusFilter === 'satisfies' && !report.satisfies) return false;
             if (statusFilter === 'failed' && report.satisfies) return false;
         }
 
         // Filter by date
         if (dateFilter) {
+            // Sections might not have date.
+            if (!report.type_id && report.section_name) return true;
             const reportDate = new Date(report.examination_date).toISOString().split('T')[0];
             if (reportDate !== dateFilter) return false;
         }
@@ -292,8 +334,6 @@ export const ConstructionReports = () => {
     const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
     const endIndex = startIndex + ITEMS_PER_PAGE;
     const paginatedReports = filteredReports.slice(startIndex, endIndex);
-
-
 
     return (
         <div className="space-y-6">
@@ -343,6 +383,13 @@ export const ConstructionReports = () => {
                             <Plus className="h-5 w-5 md:mr-2" />
                             <span className="hidden md:inline">{t('reports.newReport')}</span>
                             <span className="md:hidden">{t('reports.new')}</span>
+                        </button>
+                        <button
+                            onClick={handleAddSection}
+                            className="ml-2 inline-flex items-center px-3 py-2 md:px-4 border border-input rounded-md shadow-sm text-sm font-medium text-foreground bg-card hover:bg-accent focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring transition-colors"
+                        >
+                            <Type className="h-5 w-5 md:mr-2" />
+                            <span className="hidden md:inline">{t('reports.addSection')}</span>
                         </button>
                         {isNewReportOpen && (
                             <div className="absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-card border border-border shadow-border/40 focus:outline-none z-50">
@@ -493,77 +540,106 @@ export const ConstructionReports = () => {
                             </div>
                         </div>
                     ) : (
-                        paginatedReports.map((report) => (
-                            <div
-                                key={report.id}
-                                className={clsx(
-                                    "p-4 space-y-3 transition-colors",
-                                    report.id && selectedIds.has(report.id) ? "bg-primary/5" : ""
-                                )}
-                            >
-                                <div className="flex justify-between items-start">
-                                    <div className="flex items-center space-x-3">
-                                        <div onClick={(e) => e.stopPropagation()}>
-                                            <input
-                                                type="checkbox"
-                                                className="rounded border-input text-primary focus:ring-ring h-5 w-5"
-                                                checked={report.id ? selectedIds.has(report.id) : false}
-                                                onChange={() => report.id && toggleSelect(report.id)}
-                                            />
-                                        </div>
-                                        <div>
-                                            <div className="font-medium text-foreground">
-                                                {report.type_id === 1 ? 'Water' : 'Air'} - {report.draft?.name || '-'}
-                                            </div>
-                                            <div className="text-xs text-muted-foreground">
-                                                {new Date(report.examination_date).toLocaleDateString()}
-                                            </div>
+                        paginatedReports.map((report) => {
+                            const isSection = !report.type_id && report.section_name;
+
+                            if (isSection) {
+                                return (
+                                    <div
+                                        key={report.id}
+                                        className="p-4 bg-muted/30 border-l-4 border-primary flex justify-between items-center"
+                                    >
+                                        <div className="font-bold text-foreground">{report.section_name}</div>
+                                        <div className="flex space-x-2">
+                                            <button
+                                                onClick={() => report.section_name && handleUpdateSectionName(report.id, report.section_name)}
+                                                className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded-full transition-colors"
+                                            >
+                                                <Pencil className="h-4 w-4" />
+                                            </button>
+                                            <button
+                                                onClick={() => report.id && handleDelete(report.id)}
+                                                className="p-2 text-destructive hover:bg-destructive/10 rounded-full transition-colors"
+                                            >
+                                                <Trash2 className="h-4 w-4" />
+                                            </button>
                                         </div>
                                     </div>
-                                    <span className={clsx(
-                                        "px-2.5 py-0.5 inline-flex text-xs font-medium rounded-full",
-                                        report.satisfies
-                                            ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
-                                            : "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400"
-                                    )}>
-                                        {report.satisfies ? t('reports.satisfies') : t('reports.failed')}
-                                    </span>
-                                </div>
+                                );
+                            }
 
-                                <div className="pl-8 space-y-1">
-                                    <div className="text-sm text-foreground font-medium">
-                                        {t('reports.dionica')}: {report.dionica || report.stock || '-'}
+                            return (
+                                <div
+                                    key={report.id}
+                                    className={clsx(
+                                        "p-4 space-y-3 transition-colors",
+                                        report.id && selectedIds.has(report.id) ? "bg-primary/5" : ""
+                                    )}
+                                >
+                                    <div className="flex justify-between items-start">
+                                        <div className="flex items-center space-x-3">
+                                            <div onClick={(e) => e.stopPropagation()}>
+                                                <input
+                                                    type="checkbox"
+                                                    className="rounded border-input text-primary focus:ring-ring h-5 w-5"
+                                                    checked={report.id ? selectedIds.has(report.id) : false}
+                                                    onChange={() => report.id && toggleSelect(report.id)}
+                                                />
+                                            </div>
+                                            <div>
+                                                <div className="font-medium text-foreground">
+                                                    {report.type_id === 1 ? 'Water' : 'Air'} - {report.draft?.name || '-'}
+                                                </div>
+                                                <div className="text-xs text-muted-foreground">
+                                                    {new Date(report.examination_date).toLocaleDateString()}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <span className={clsx(
+                                            "px-2.5 py-0.5 inline-flex text-xs font-medium rounded-full",
+                                            report.satisfies
+                                                ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
+                                                : "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400"
+                                        )}>
+                                            {report.satisfies ? t('reports.satisfies') : t('reports.failed')}
+                                        </span>
+                                    </div>
+
+                                    <div className="pl-8 space-y-1">
+                                        <div className="text-sm text-foreground font-medium">
+                                            {t('reports.dionica')}: {report.dionica || report.stock || '-'}
+                                        </div>
+                                    </div>
+
+                                    <div className="pl-8 flex justify-end space-x-2 pt-2">
+                                        <button
+                                            onClick={() => handleExportPDF(report)}
+                                            className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded-full transition-colors"
+                                            title={t('reports.exportPdf')}
+                                        >
+                                            <FileDown className="h-4 w-4" />
+                                        </button>
+                                        <Link
+                                            to={report.type_id === 1
+                                                ? `/customers/${customerId}/constructions/${constructionId}/reports/${report.id}`
+                                                : `/customers/${customerId}/constructions/${constructionId}/reports/air/${report.id}`
+                                            }
+                                            className="p-2 text-primary hover:bg-primary/10 rounded-full transition-colors"
+                                            title={t('reports.edit')}
+                                        >
+                                            <Pencil className="h-4 w-4" />
+                                        </Link>
+                                        <button
+                                            onClick={() => report.id && handleDelete(report.id)}
+                                            className="p-2 text-destructive hover:bg-destructive/10 rounded-full transition-colors"
+                                            title={t('reports.delete')}
+                                        >
+                                            <Trash2 className="h-4 w-4" />
+                                        </button>
                                     </div>
                                 </div>
-
-                                <div className="pl-8 flex justify-end space-x-2 pt-2">
-                                    <button
-                                        onClick={() => handleExportPDF(report)}
-                                        className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded-full transition-colors"
-                                        title={t('reports.exportPdf')}
-                                    >
-                                        <FileDown className="h-4 w-4" />
-                                    </button>
-                                    <Link
-                                        to={report.type_id === 1
-                                            ? `/customers/${customerId}/constructions/${constructionId}/reports/${report.id}`
-                                            : `/customers/${customerId}/constructions/${constructionId}/reports/air/${report.id}`
-                                        }
-                                        className="p-2 text-primary hover:bg-primary/10 rounded-full transition-colors"
-                                        title={t('reports.edit')}
-                                    >
-                                        <Pencil className="h-4 w-4" />
-                                    </Link>
-                                    <button
-                                        onClick={() => report.id && handleDelete(report.id)}
-                                        className="p-2 text-destructive hover:bg-destructive/10 rounded-full transition-colors"
-                                        title={t('reports.delete')}
-                                    >
-                                        <Trash2 className="h-4 w-4" />
-                                    </button>
-                                </div>
-                            </div>
-                        ))
+                            );
+                        })
                     )}
                 </div>
 
@@ -590,79 +666,120 @@ export const ConstructionReports = () => {
                             </tr>
                         </thead>
                         <tbody className="bg-card divide-y divide-border">
-                            {paginatedReports.map((report, index) => (
-                                <tr
-                                    key={report.id}
-                                    className="hover:bg-muted/50 cursor-move transition-colors"
-                                    draggable
-                                    onDragStart={() => handleDragStart(index)}
-                                    onDragOver={handleDragOver}
-                                    onDrop={() => handleDrop(index)}
-                                >
-                                    <td className="px-6 py-4 whitespace-nowrap">
-                                        <input
-                                            type="checkbox"
-                                            className="rounded border-input text-primary focus:ring-ring"
-                                            checked={report.id ? selectedIds.has(report.id) : false}
-                                            onChange={() => report.id && toggleSelect(report.id)}
-                                        />
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-muted-foreground cursor-grab active:cursor-grabbing">
-                                        <GripVertical className="h-5 w-5" />
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">
-                                        {new Date(report.examination_date).toLocaleDateString()}
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
-                                        {report.type_id === 1 ? 'Water' : 'Air'}
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground font-medium">
-                                        {report.dionica || report.stock || '-'}
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
-                                        {report.draft?.name || '-'}
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap">
-                                        <span className={clsx(
-                                            "px-2 inline-flex text-xs leading-5 font-semibold rounded-full",
-                                            report.satisfies
-                                                ? "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400"
-                                                : "bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-400"
-                                        )}>
-                                            {report.satisfies ? t('reports.satisfies') : t('reports.failed')}
-                                        </span>
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-3">
-                                        <button
-                                            onClick={() => handleExportPDF(report)}
-                                            className="text-muted-foreground hover:text-foreground inline-flex items-center"
-                                            title={t('reports.exportPdf')}
+                            {paginatedReports.map((report, index) => {
+                                const isSection = !report.type_id && report.section_name;
+
+                                if (isSection) {
+                                    return (
+                                        <tr
+                                            key={report.id}
+                                            className="bg-muted/30 hover:bg-muted/50 cursor-move transition-colors"
+                                            draggable
+                                            onDragStart={() => handleDragStart(index)}
+                                            onDragOver={handleDragOver}
+                                            onDrop={() => handleDrop(index)}
                                         >
-                                            <FileDown className="h-4 w-4" />
-                                        </button>
-                                        <Link
-                                            to={report.type_id === 1
-                                                ? `/customers/${customerId}/constructions/${constructionId}/reports/${report.id}`
-                                                : `/customers/${customerId}/constructions/${constructionId}/reports/air/${report.id}`
-                                            }
-                                            className="text-primary hover:text-primary/80 inline-flex items-center"
-                                            title={t('reports.edit')}
-                                        >
-                                            <Pencil className="h-4 w-4" />
-                                        </Link>
-                                        <button
-                                            onClick={() => report.id && handleDelete(report.id)}
-                                            className="text-destructive hover:text-destructive/80 inline-flex items-center"
-                                            title={t('reports.delete')}
-                                        >
-                                            <Trash2 className="h-4 w-4" />
-                                        </button>
-                                    </td>
-                                </tr>
-                            ))}
+                                            <td className="w-10 px-6 py-4">
+                                                <GripVertical className="h-5 w-5 text-muted-foreground/50" />
+                                            </td>
+                                            <td colSpan={6} className="px-6 py-4">
+                                                <div className="flex items-center justify-center font-bold text-foreground">
+                                                    <Type className="h-4 w-4 mr-2 text-muted-foreground" />
+                                                    {report.section_name}
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-3">
+                                                <button
+                                                    onClick={() => report.section_name && handleUpdateSectionName(report.id, report.section_name)}
+                                                    className="text-muted-foreground hover:text-foreground inline-flex items-center"
+                                                >
+                                                    <Pencil className="h-4 w-4" />
+                                                </button>
+                                                <button
+                                                    onClick={() => report.id && handleDelete(report.id)}
+                                                    className="text-destructive hover:text-destructive/80 inline-flex items-center"
+                                                >
+                                                    <Trash2 className="h-4 w-4" />
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    );
+                                }
+
+                                return (
+                                    <tr
+                                        key={report.id}
+                                        className="hover:bg-muted/50 cursor-move transition-colors"
+                                        draggable
+                                        onDragStart={() => handleDragStart(index)}
+                                        onDragOver={handleDragOver}
+                                        onDrop={() => handleDrop(index)}
+                                    >
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            <input
+                                                type="checkbox"
+                                                className="rounded border-input text-primary focus:ring-ring"
+                                                checked={report.id ? selectedIds.has(report.id) : false}
+                                                onChange={() => report.id && toggleSelect(report.id)}
+                                            />
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-muted-foreground cursor-grab active:cursor-grabbing">
+                                            <GripVertical className="h-5 w-5" />
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">
+                                            {new Date(report.examination_date).toLocaleDateString()}
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
+                                            {report.type_id === 1 ? 'Water' : 'Air'}
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground font-medium">
+                                            {report.dionica || report.stock || '-'}
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
+                                            {report.draft?.name || '-'}
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            <span className={clsx(
+                                                "px-2 inline-flex text-xs leading-5 font-semibold rounded-full",
+                                                report.satisfies
+                                                    ? "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400"
+                                                    : "bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-400"
+                                            )}>
+                                                {report.satisfies ? t('reports.satisfies') : t('reports.failed')}
+                                            </span>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-3">
+                                            <button
+                                                onClick={() => handleExportPDF(report)}
+                                                className="text-muted-foreground hover:text-foreground inline-flex items-center"
+                                                title={t('reports.exportPdf')}
+                                            >
+                                                <FileDown className="h-4 w-4" />
+                                            </button>
+                                            <Link
+                                                to={report.type_id === 1
+                                                    ? `/customers/${customerId}/constructions/${constructionId}/reports/${report.id}`
+                                                    : `/customers/${customerId}/constructions/${constructionId}/reports/air/${report.id}`
+                                                }
+                                                className="text-primary hover:text-primary/80 inline-flex items-center"
+                                                title={t('reports.edit')}
+                                            >
+                                                <Pencil className="h-4 w-4" />
+                                            </Link>
+                                            <button
+                                                onClick={() => report.id && handleDelete(report.id)}
+                                                className="text-destructive hover:text-destructive/80 inline-flex items-center"
+                                                title={t('reports.delete')}
+                                            >
+                                                <Trash2 className="h-4 w-4" />
+                                            </button>
+                                        </td>
+                                    </tr>
+                                );
+                            })}
                             {paginatedReports.length === 0 && (
                                 <tr>
-                                    <td colSpan={7} className="px-6 py-4 text-center text-sm text-muted-foreground">
+                                    <td colSpan={8} className="px-6 py-4 text-center text-sm text-muted-foreground">
                                         {t('reports.noData')}
                                     </td>
                                 </tr>

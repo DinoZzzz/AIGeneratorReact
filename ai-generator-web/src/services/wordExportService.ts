@@ -264,62 +264,93 @@ export const generateWordDocument = async (reports: ReportForm[], metaData: Expo
         const satisfies = reports.every(r => r.satisfies);
 
         // Prepare Air Method Table Data
-        const airReports = reports
-            .filter(r => r.type_id === 2) // Air
-            .sort((a, b) => a.ordinal - b.ordinal)
-            .map((r, index) => {
-                const proc = (r as any).examination_procedure;
-                const procText = proc ? `${proc.name} - ${formatNum(proc.pressure, 2)}` : '-';
-                const allowedLoss = proc ? formatNum(proc.allowed_loss, 2) : '-';
+        // Prepare Air Method Table Data
+        // Filter for Air reports OR sections
+        // We want to include sections that are relevant to Air reports.
+        // Since we don't know which section belongs to which type until we see the content,
+        // we can just include ALL sections in the sorted list, and then filter out empty sections if needed?
+        // Or simpler: Just take all items, filter for (Air OR Section).
+        const sortedAirItems = reports
+            .filter(r => r.type_id === 2 || (!r.type_id && r.section_name))
+            .sort((a, b) => a.ordinal - b.ordinal);
 
-                return {
-                    ordinal: index + 1,
-                    stock: (r as any).dionica || r.stock || '-',
-                    pipeLength: (r.draft_id === 4 || r.pipe_length === 0) ? '-' : formatNum(r.pipe_length, 2),
-                    procedureInfo: procText,
-                    allowedLoss: allowedLoss,
-                    pressureLoss: formatNum(calculatePressureLoss(r.pressure_start, r.pressure_end), 2),
-                    uncertainty: "0.23"
-                };
+        const airReports: any[] = [];
+        let airOrdinal = 1;
+
+        sortedAirItems.forEach((r) => {
+            if ((r as any).section_name && !r.type_id) {
+                airReports.push({ isSection: true, isReport: false, sectionName: (r as any).section_name });
+                return;
+            }
+
+            // It's an Air report
+            const proc = (r as any).examination_procedure;
+            const procText = proc ? `${proc.name} - ${formatNum(proc.pressure, 2)}` : '-';
+            const allowedLoss = proc ? formatNum(proc.allowed_loss, 2) : '-';
+
+            airReports.push({
+                isSection: false,
+                isReport: true,
+                ordinal: airOrdinal++,
+                stock: (r as any).dionica || r.stock || '-',
+                pipeLength: (r.draft_id === 4 || r.pipe_length === 0) ? '-' : formatNum(r.pipe_length, 2),
+                procedureInfo: procText,
+                allowedLoss: allowedLoss,
+                pressureLoss: formatNum(calculatePressureLoss(r.pressure_start, r.pressure_end), 2),
+                uncertainty: "0.23"
             });
+        });
 
         // Prepare Water Method Table Data
-        const waterReports = reports
-            .filter(r => r.type_id === 1) // Water
-            .sort((a, b) => a.ordinal - b.ordinal)
-            .map((r, index) => {
-                // Ensure meter conversion for calculations
-                const rMeters = {
-                    ...r,
-                    pane_diameter: r.pane_diameter / 1000,
-                    pane_width: r.pane_width / 100,
-                    pane_length: r.pane_length / 100,
-                    pipe_diameter: r.pipe_diameter / 1000,
-                    water_height: r.water_height / 100
-                };
+        // Prepare Water Method Table Data
+        const sortedWaterItems = reports
+            .filter(r => r.type_id === 1 || (!r.type_id && r.section_name))
+            .sort((a, b) => a.ordinal - b.ordinal);
 
-                const waterLoss = Math.abs(r.water_height_end - r.water_height_start);
-                const volLoss = calculateWaterVolumeLoss(waterLoss, r.material_type_id || 1, rMeters.pane_diameter, rMeters.pane_width, rMeters.pane_length);
+        const waterReports: any[] = [];
+        let waterOrdinal = 1;
 
-                const wettedShaft = calculateWettedShaftSurface(r.draft_id, r.material_type_id || 1, rMeters.water_height, rMeters.pane_diameter, rMeters.pane_width, rMeters.pane_length);
-                const wettedPipe = calculateWettedPipeSurface(r.draft_id, rMeters.pipe_diameter, r.pipe_length);
-                const totalWetted = calculateTotalWettedArea(wettedPipe, wettedShaft);
+        sortedWaterItems.forEach((r) => {
+            if ((r as any).section_name && !r.type_id) {
+                waterReports.push({ isSection: true, isReport: false, sectionName: (r as any).section_name });
+                return;
+            }
 
-                // For report display: Allowed Loss in Liters
-                let criteria = 0.401; // Default
-                if (r.draft_id === 2) criteria = 0.15;
-                else if (r.draft_id === 3 || r.draft_id === 5) criteria = 0.201;
+            // It's a Water report
+            // Ensure meter conversion for calculations
+            const rMeters = {
+                ...r,
+                pane_diameter: r.pane_diameter / 1000,
+                pane_width: r.pane_width / 100,
+                pane_length: r.pane_length / 100,
+                pipe_diameter: r.pipe_diameter / 1000,
+                water_height: r.water_height / 100
+            };
 
-                const allowedLossL = calculateAllowedLossL(criteria, totalWetted);
+            const waterLoss = Math.abs(r.water_height_end - r.water_height_start);
+            const volLoss = calculateWaterVolumeLoss(waterLoss, r.material_type_id || 1, rMeters.pane_diameter, rMeters.pane_width, rMeters.pane_length);
 
-                return {
-                    ordinal: index + 1,
-                    stock: (r as any).dionica || r.stock || '-',
-                    allowedLoss: formatNum(allowedLossL, 2),
-                    waterVolumeLoss: formatNum(volLoss, 2),
-                    result: formatNum(calculateResult(volLoss, totalWetted), 2)
-                };
+            const wettedShaft = calculateWettedShaftSurface(r.draft_id, r.material_type_id || 1, rMeters.water_height, rMeters.pane_diameter, rMeters.pane_width, rMeters.pane_length);
+            const wettedPipe = calculateWettedPipeSurface(r.draft_id, rMeters.pipe_diameter, r.pipe_length);
+            const totalWetted = calculateTotalWettedArea(wettedPipe, wettedShaft);
+
+            // For report display: Allowed Loss in Liters
+            let criteria = 0.401; // Default
+            if (r.draft_id === 2) criteria = 0.15;
+            else if (r.draft_id === 3 || r.draft_id === 5) criteria = 0.201;
+
+            const allowedLossL = calculateAllowedLossL(criteria, totalWetted);
+
+            waterReports.push({
+                isSection: false,
+                isReport: true,
+                ordinal: waterOrdinal++,
+                stock: (r as any).dionica || r.stock || '-',
+                allowedLoss: formatNum(allowedLossL, 2),
+                waterVolumeLoss: formatNum(volLoss, 2),
+                result: formatNum(calculateResult(volLoss, totalWetted), 2)
             });
+        });
 
         const uniquePipeMaterials = Array.from(new Set(pipeReports.map(r => (r as any).pipe_material?.name || r.pipe_material_id))).filter(Boolean).join(', ');
         const uniquePaneMaterials = Array.from(new Set(reports.map(r => (r as any).pane_material?.name || r.pane_material_id))).filter(Boolean).join(', ');
@@ -386,6 +417,8 @@ export const generateWordDocument = async (reports: ReportForm[], metaData: Expo
             // Tables
             airTests: airReports,
             waterTests: waterReports,
+            airReports: airReports,
+            waterReports: waterReports,
             airMethodTableName,
             waterMethodTableName,
 

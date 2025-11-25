@@ -74,6 +74,7 @@ export interface ReportForm {
     type_id: number; // 1 = Water, 2 = Air
     draft_id: number;
     dionica?: string;
+    section_name?: string;
     stock?: string;
     examination_procedure_id?: number;
     customer_id?: string;
