@@ -6,7 +6,8 @@
       "Bash(npm search:*)",
       "Bash(node -e:*)",
       "Bash(node -c:*)",
-      "Bash(dir:*)"
+      "Bash(dir:*)",
+      "Bash(tree:*)"
     ],
     "deny": [],
     "ask": []
