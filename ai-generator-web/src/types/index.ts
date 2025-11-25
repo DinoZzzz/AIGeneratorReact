@@ -62,6 +62,7 @@ export interface Profile {
     last_name: string;
     username: string;
     title?: string;
+    gender?: 'M' | 'F';
     role: 'user' | 'admin';
     accreditations: number[]; // List of ReportType IDs
     is_admin?: boolean; // Helper property for UI
