@@ -69,21 +69,34 @@ export const generateWordDocument = async (reports: ReportForm[], metaData: Expo
         // A better approach is to fetch files for the construction ID.
         let constructionId = reports[0].construction_id;
 
-        // Also need to fetch construction if missing to get ID
-        let construction: any = (reports[0] as any).construction;
-        let customer: any = construction?.customer;
+        // Also need to fetch construction - always fetch fresh data
+        // (embedded construction in reports is partial and missing fields we need)
+        let construction: any = null;
+        let customer: any = null;
 
-        if (!construction && reports[0].construction_id) {
+        if (reports[0].construction_id) {
             const { data: constr } = await supabase
                 .from('constructions')
-                .select('*, customer:customers(*)')
+                .select('*')
                 .eq('id', reports[0].construction_id)
                 .single();
 
             if (constr) {
                 construction = constr;
-                customer = constr.customer;
                 constructionId = constr.id;
+
+                // Fetch customer separately
+                if (constr.customer_id) {
+                    const { data: cust } = await supabase
+                        .from('customers')
+                        .select('*')
+                        .eq('id', constr.customer_id)
+                        .single();
+
+                    if (cust) {
+                        customer = cust;
+                    }
+                }
             }
         }
 

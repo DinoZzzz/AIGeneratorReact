@@ -111,56 +111,109 @@ export const ExportDialog = ({ open, onOpenChange, onConfirm, loading = false, d
                 <form onSubmit={handleSubmit} className="space-y-4 py-4">
 
                     {/* Report Selection Section */}
-                    {reports && reports.length > 0 && (
-                        <div className="border border-border rounded-md p-4 bg-muted/30 space-y-3">
-                            <div className="flex items-center justify-between">
-                                <h3 className="font-semibold text-sm text-foreground">{t('export.selectReports')}</h3>
-                                <button
-                                    type="button"
-                                    onClick={toggleSelectAll}
-                                    className="text-xs text-primary hover:text-primary/80"
-                                >
-                                    {selectedReportIds.size === reports.length ? t('export.deselectAll') : t('export.selectAll')}
-                                </button>
-                            </div>
-                            <div className="max-h-40 overflow-y-auto space-y-2 border-t border-border pt-2">
-                                {reports.map((report) => {
-                                    const isSection = !report.type_id && report.section_name;
-                                    return (
-                                        <div key={report.id} className={`flex items-center space-x-2 ${isSection ? 'bg-muted/50 py-1 -mx-2 px-2' : ''}`}>
-                                            <input
-                                                type="checkbox"
-                                                id={`report-${report.id}`}
-                                                checked={report.id ? selectedReportIds.has(report.id) : false}
-                                                onChange={() => report.id && toggleReport(report.id)}
-                                                className="rounded border-input text-primary focus:ring-ring"
-                                            />
-                                            <label htmlFor={`report-${report.id}`} className={`text-sm text-foreground flex-1 truncate cursor-pointer ${isSection ? 'font-bold' : ''}`}>
-                                                {isSection ? (
-                                                    <span>{report.section_name}</span>
-                                                ) : (
-                                                    <>
-                                                        <span className="font-medium text-foreground">{report.type_id === 1 ? t('reports.waterMethod') : t('reports.airMethod')}</span>
-                                                        <span className="mx-1 text-muted-foreground">-</span>
-                                                        {(report.dionica || report.stock) && (
-                                                            <>
-                                                                <span className="font-medium text-foreground">{report.dionica || report.stock}</span>
-                                                                <span className="mx-1 text-muted-foreground">-</span>
-                                                            </>
-                                                        )}
-                                                        <span className="text-muted-foreground">{new Date(report.examination_date).toLocaleDateString()}</span>
-                                                    </>
-                                                )}
-                                            </label>
+                    {reports && reports.length > 0 && (() => {
+                        const waterReports = reports.filter(r => r.type_id === 1);
+                        const airReports = reports.filter(r => r.type_id === 2);
+
+                        return (
+                            <div className="space-y-4">
+                                <div className="flex items-center justify-between">
+                                    <h3 className="font-semibold text-sm text-foreground">{t('export.selectReports')}</h3>
+                                    <button
+                                        type="button"
+                                        onClick={toggleSelectAll}
+                                        className="text-xs text-primary hover:text-primary/80"
+                                    >
+                                        {selectedReportIds.size === reports.length ? t('export.deselectAll') : t('export.selectAll')}
+                                    </button>
+                                </div>
+
+                                {/* Water Reports Container */}
+                                {waterReports.length > 0 && (
+                                    <div className="border-2 border-blue-200 dark:border-blue-800 rounded-lg p-3 bg-blue-50/50 dark:bg-blue-950/20">
+                                        <h4 className="font-bold text-sm text-blue-700 dark:text-blue-300 uppercase tracking-wider mb-3 flex items-center gap-2">
+                                            💧 {t('reports.water')} Reports
+                                        </h4>
+                                        <div className="max-h-60 overflow-y-auto space-y-2">
+                                            {waterReports.map((report) => {
+                                                const isSection = report.section_name && !report.draft_id;
+                                                return (
+                                                    <div key={report.id} className={`flex items-center space-x-2 ${isSection ? 'bg-blue-100 dark:bg-blue-900/40 py-2 px-2 rounded border-l-4 border-blue-600' : 'bg-white dark:bg-slate-900 py-1.5 px-2 rounded'}`}>
+                                                        <input
+                                                            type="checkbox"
+                                                            id={`report-${report.id}`}
+                                                            checked={report.id ? selectedReportIds.has(report.id) : false}
+                                                            onChange={() => report.id && toggleReport(report.id)}
+                                                            className="rounded border-input text-primary focus:ring-ring"
+                                                        />
+                                                        <label htmlFor={`report-${report.id}`} className={`text-sm text-foreground flex-1 truncate cursor-pointer ${isSection ? 'font-bold' : ''}`}>
+                                                            {isSection ? (
+                                                                <span className="text-blue-800 dark:text-blue-200">📋 {report.section_name}</span>
+                                                            ) : (
+                                                                <>
+                                                                    {(report.dionica || report.stock) && (
+                                                                        <>
+                                                                            <span className="font-medium text-foreground">{report.dionica || report.stock}</span>
+                                                                            <span className="mx-1 text-muted-foreground">-</span>
+                                                                        </>
+                                                                    )}
+                                                                    <span className="text-muted-foreground">{new Date(report.examination_date).toLocaleDateString()}</span>
+                                                                </>
+                                                            )}
+                                                        </label>
+                                                    </div>
+                                                );
+                                            })}
                                         </div>
-                                    );
-                                })}
+                                    </div>
+                                )}
+
+                                {/* Air Reports Container */}
+                                {airReports.length > 0 && (
+                                    <div className="border-2 border-purple-200 dark:border-purple-800 rounded-lg p-3 bg-purple-50/50 dark:bg-purple-950/20">
+                                        <h4 className="font-bold text-sm text-purple-700 dark:text-purple-300 uppercase tracking-wider mb-3 flex items-center gap-2">
+                                            💨 {t('reports.air')} Reports
+                                        </h4>
+                                        <div className="max-h-60 overflow-y-auto space-y-2">
+                                            {airReports.map((report) => {
+                                                const isSection = report.section_name && !report.draft_id;
+                                                return (
+                                                    <div key={report.id} className={`flex items-center space-x-2 ${isSection ? 'bg-purple-100 dark:bg-purple-900/40 py-2 px-2 rounded border-l-4 border-purple-600' : 'bg-white dark:bg-slate-900 py-1.5 px-2 rounded'}`}>
+                                                        <input
+                                                            type="checkbox"
+                                                            id={`report-${report.id}`}
+                                                            checked={report.id ? selectedReportIds.has(report.id) : false}
+                                                            onChange={() => report.id && toggleReport(report.id)}
+                                                            className="rounded border-input text-primary focus:ring-ring"
+                                                        />
+                                                        <label htmlFor={`report-${report.id}`} className={`text-sm text-foreground flex-1 truncate cursor-pointer ${isSection ? 'font-bold' : ''}`}>
+                                                            {isSection ? (
+                                                                <span className="text-purple-800 dark:text-purple-200">📋 {report.section_name}</span>
+                                                            ) : (
+                                                                <>
+                                                                    {(report.dionica || report.stock) && (
+                                                                        <>
+                                                                            <span className="font-medium text-foreground">{report.dionica || report.stock}</span>
+                                                                            <span className="mx-1 text-muted-foreground">-</span>
+                                                                        </>
+                                                                    )}
+                                                                    <span className="text-muted-foreground">{new Date(report.examination_date).toLocaleDateString()}</span>
+                                                                </>
+                                                            )}
+                                                        </label>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                )}
+
+                                <div className="text-xs text-muted-foreground text-right pt-2 border-t border-border">
+                                    {selectedReportIds.size} {t('export.selected')}
+                                </div>
                             </div>
-                            <div className="text-xs text-muted-foreground text-right">
-                                {selectedReportIds.size} {t('export.selected')}
-                            </div>
-                        </div>
-                    )}
+                        );
+                    })()}
 
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
