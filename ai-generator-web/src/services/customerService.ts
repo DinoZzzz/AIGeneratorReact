@@ -6,7 +6,7 @@ export const customerService = {
     async getAll() {
         const { data, error } = await supabase
             .from('customers')
-            .select('id, name, location, work_order, address')
+            .select('id, name, location, work_order, address, created_at')
             .order('name');
 
         if (error) throw new AppError(error.message, 'SUPABASE_ERROR', 500);
@@ -22,7 +22,7 @@ export const customerService = {
     ) {
         let query = supabase
             .from('customers')
-            .select('id, name, location, work_order, address', { count: 'exact' });
+            .select('id, name, location, work_order, address, created_at', { count: 'exact' });
 
         if (search) {
             // Sanitize search input by removing commas to prevent Supabase OR syntax errors

@@ -6,8 +6,9 @@ import { useCustomers, useDeleteCustomer } from '../hooks/useCustomers';
 import { TableSkeleton } from '../components/skeletons';
 import { errorHandler } from '../lib/errorHandler';
 import { useToast } from '../context/ToastContext';
+import { supabase } from '../lib/supabase';
 
-type SortField = 'work_order' | 'name' | 'location' | 'address';
+type SortField = 'work_order' | 'name' | 'location' | 'address' | 'created_at';
 type SortOrder = 'asc' | 'desc';
 
 export const Customers = () => {
@@ -19,8 +20,8 @@ export const Customers = () => {
     // Pagination & Sorting state
     const [currentPage, setCurrentPage] = useState(1);
     const [pageSize] = useState(15);
-    const [sortBy, setSortBy] = useState<SortField>('name');
-    const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
+    const [sortBy, setSortBy] = useState<SortField>('created_at');
+    const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
 
     // React Query hooks
     const { data, isLoading: loading, error } = useCustomers(
@@ -172,6 +173,11 @@ export const Customers = () => {
                                             {customer.address}
                                         </div>
                                     )}
+                                    <div className="flex items-center text-xs pt-1">
+                                        <span className="text-muted-foreground">
+                                            {new Date(customer.created_at).toLocaleDateString('hr-HR')}
+                                        </span>
+                                    </div>
                                 </div>
 
                                 <Link
@@ -195,6 +201,7 @@ export const Customers = () => {
                                 <TableHeader field="name" label={t('customers.name')} />
                                 <TableHeader field="location" label={t('customers.location')} />
                                 <TableHeader field="address" label={t('customers.address')} />
+                                <TableHeader field="created_at" label={t('customers.dateAdded')} />
                                 <th className="px-6 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">{t('customers.actions')}</th>
                             </tr>
                         </thead>
@@ -225,6 +232,9 @@ export const Customers = () => {
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
                                             {customer.address}
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
+                                            {new Date(customer.created_at).toLocaleDateString('hr-HR')}
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-3">
                                             <Link

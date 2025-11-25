@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { customerService } from '../services/customerService';
+import { useCreateCustomer, useUpdateCustomer } from '../hooks/useCustomers';
 import { Input } from '../components/ui/Input';
 import { Loader2, Save, ArrowLeft } from 'lucide-react';
 import type { Customer } from '../types';
@@ -95,6 +96,9 @@ export const CustomerForm = () => {
         return isValid;
     };
 
+    const createMutation = useCreateCustomer();
+    const updateMutation = useUpdateCustomer();
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
@@ -102,9 +106,9 @@ export const CustomerForm = () => {
         try {
             if (await validate()) {
                 if (id && id !== 'new') {
-                    await customerService.update(id, formData);
+                    await updateMutation.mutateAsync({ id, customer: formData });
                 } else {
-                    await customerService.create(formData);
+                    await createMutation.mutateAsync(formData);
                 }
                 navigate('/customers');
             }

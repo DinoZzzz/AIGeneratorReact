@@ -168,6 +168,11 @@ export const Constructions = () => {
                                         {construction.location}
                                     </div>
                                 )}
+                                <div className="flex items-center text-xs pt-1">
+                                    <span className="text-muted-foreground">
+                                        {new Date(construction.created_at).toLocaleDateString('hr-HR')}
+                                    </span>
+                                </div>
 
                                 <Link
                                     to={`/customers/${customerId}/constructions/${construction.id}/reports`}
@@ -189,6 +194,7 @@ export const Constructions = () => {
                                 <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">{t('constructions.workOrder')}</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">{t('constructions.name')}</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">{t('constructions.location')}</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">{t('constructions.dateAdded')}</th>
                                 <th className="px-6 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">{t('constructions.actions')}</th>
                             </tr>
                         </thead>
@@ -203,6 +209,9 @@ export const Constructions = () => {
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
                                         {construction.location}
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
+                                        {new Date(construction.created_at).toLocaleDateString('hr-HR')}
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-3">
                                         <Link
