@@ -14,7 +14,10 @@ export const Constructions = () => {
     const [customer, setCustomer] = useState<Customer | null>(null);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
+    const [currentPage, setCurrentPage] = useState(1);
     const { t } = useLanguage();
+
+    const ITEMS_PER_PAGE = 15;
 
     useEffect(() => {
         if (customerId) {
@@ -58,6 +61,18 @@ export const Constructions = () => {
         c.work_order?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         c.location?.toLowerCase().includes(searchTerm.toLowerCase())
     );
+
+    // Pagination
+    const totalCount = filteredConstructions.length;
+    const totalPages = Math.ceil(totalCount / ITEMS_PER_PAGE);
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    const endIndex = startIndex + ITEMS_PER_PAGE;
+    const paginatedConstructions = filteredConstructions.slice(startIndex, endIndex);
+
+    // Reset to page 1 when search changes
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [searchTerm]);
 
     if (loading) {
         return (
@@ -114,12 +129,12 @@ export const Constructions = () => {
 
                 {/* Mobile Card View */}
                 <div className="block md:hidden divide-y divide-border">
-                    {filteredConstructions.length === 0 ? (
+                    {paginatedConstructions.length === 0 ? (
                         <div className="p-4 text-center text-sm text-muted-foreground">
                             {t('constructions.none')}
                         </div>
                     ) : (
-                        filteredConstructions.map((construction) => (
+                        paginatedConstructions.map((construction) => (
                             <div key={construction.id} className="p-4 space-y-3">
                                 <div className="flex justify-between items-start">
                                     <div>
@@ -178,7 +193,7 @@ export const Constructions = () => {
                             </tr>
                         </thead>
                         <tbody className="bg-card divide-y divide-border">
-                            {filteredConstructions.map((construction) => (
+                            {paginatedConstructions.map((construction) => (
                                 <tr key={construction.id} className="hover:bg-muted/50 transition-colors">
                                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-foreground">
                                         {construction.work_order}
@@ -214,7 +229,7 @@ export const Constructions = () => {
                                     </td>
                                 </tr>
                             ))}
-                            {filteredConstructions.length === 0 && (
+                            {paginatedConstructions.length === 0 && (
                                 <tr>
                                     <td colSpan={4} className="px-6 py-4 text-center text-sm text-muted-foreground">
                                         {t('constructions.none')}
@@ -224,6 +239,34 @@ export const Constructions = () => {
                         </tbody>
                     </table>
                 </div>
+
+                {/* Pagination Controls */}
+                {!loading && totalCount > 0 && totalPages > 1 && (
+                    <div className="px-4 py-3 flex items-center justify-between border-t border-border">
+                        <div className="text-sm text-muted-foreground">
+                            {t('customers.showing')} {startIndex + 1} {t('customers.to')} {Math.min(endIndex, totalCount)} {t('customers.of')} {totalCount} {t('customers.results')}
+                        </div>
+                        <div className="flex gap-2">
+                            <button
+                                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                                disabled={currentPage === 1}
+                                className="px-3 py-1 text-sm border border-border rounded-md hover:bg-accent disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                            >
+                                {t('customers.prev')}
+                            </button>
+                            <span className="px-3 py-1 text-sm">
+                                {t('history.page')} {currentPage} {t('history.of')} {totalPages}
+                            </span>
+                            <button
+                                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                                disabled={currentPage === totalPages}
+                                className="px-3 py-1 text-sm border border-border rounded-md hover:bg-accent disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                            >
+                                {t('customers.next')}
+                            </button>
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     );

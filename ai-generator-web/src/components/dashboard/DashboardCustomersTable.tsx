@@ -23,16 +23,27 @@ export const DashboardCustomersTable = () => {
     const [customers, setCustomers] = useState<CustomerTableItem[]>([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalCount, setTotalCount] = useState(0);
     const { t } = useLanguage();
+
+    const ITEMS_PER_PAGE = 8;
 
     useEffect(() => {
         fetchCustomers();
-    }, [search]);
+    }, [search, currentPage]);
 
     const fetchCustomers = async () => {
         setLoading(true);
         try {
-            let query = supabase
+            const start = (currentPage - 1) * ITEMS_PER_PAGE;
+            const end = start + ITEMS_PER_PAGE - 1;
+
+            let countQuery = supabase
+                .from('customers')
+                .select('*', { count: 'exact', head: true });
+
+            let dataQuery = supabase
                 .from('customers')
                 .select(`
                     id,
@@ -49,14 +60,21 @@ export const DashboardCustomersTable = () => {
                 `);
 
             if (search) {
-                query = query.or(`name.ilike.%${search}%,work_order.ilike.%${search}%`);
+                const searchFilter = `name.ilike.%${search}%,work_order.ilike.%${search}%`;
+                countQuery = countQuery.or(searchFilter);
+                dataQuery = dataQuery.or(searchFilter);
             }
 
-            query = query.range(0, 49);
+            dataQuery = dataQuery.range(start, end);
 
-            const { data, error } = await query;
+            const [{ count }, { data, error }] = await Promise.all([
+                countQuery,
+                dataQuery
+            ]);
 
             if (error) throw error;
+
+            setTotalCount(count || 0);
 
             if (data) {
                 const formatted: CustomerTableItem[] = data.map((c: any) => {
@@ -91,6 +109,15 @@ export const DashboardCustomersTable = () => {
             setLoading(false);
         }
     };
+
+    // Reset to page 1 when search changes
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [search]);
+
+    const totalPages = Math.ceil(totalCount / ITEMS_PER_PAGE);
+    const startItem = (currentPage - 1) * ITEMS_PER_PAGE + 1;
+    const endItem = Math.min(currentPage * ITEMS_PER_PAGE, totalCount);
 
     return (
         <div className="bg-card border border-border rounded-lg shadow-sm overflow-hidden">
@@ -252,6 +279,34 @@ export const DashboardCustomersTable = () => {
                     </tbody>
                 </table>
             </div>
+
+            {/* Pagination Controls */}
+            {!loading && customers.length > 0 && totalPages > 1 && (
+                <div className="px-4 py-3 flex items-center justify-between border-t border-border">
+                    <div className="text-sm text-muted-foreground">
+                        {t('customers.showing')} {startItem} {t('customers.to')} {endItem} {t('customers.of')} {totalCount} {t('customers.results')}
+                    </div>
+                    <div className="flex gap-2">
+                        <button
+                            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                            disabled={currentPage === 1}
+                            className="px-3 py-1 text-sm border border-border rounded-md hover:bg-accent disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        >
+                            {t('customers.prev')}
+                        </button>
+                        <span className="px-3 py-1 text-sm">
+                            {t('history.page')} {currentPage} {t('history.of')} {totalPages}
+                        </span>
+                        <button
+                            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                            disabled={currentPage === totalPages}
+                            className="px-3 py-1 text-sm border border-border rounded-md hover:bg-accent disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        >
+                            {t('customers.next')}
+                        </button>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

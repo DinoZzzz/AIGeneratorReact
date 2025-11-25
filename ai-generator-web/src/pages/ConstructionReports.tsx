@@ -32,6 +32,15 @@ export const ConstructionReports = () => {
     const [actionMessage, setActionMessage] = useState<{ text: string; type: 'info' | 'error' } | null>(null);
     const [uploadedFiles, setUploadedFiles] = useState<ReportFile[]>([]);
 
+    // Pagination, Search & Filters
+    const [currentPage, setCurrentPage] = useState(1);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [typeFilter, setTypeFilter] = useState<'all' | '1' | '2'>('all'); // 1=Water, 2=Air
+    const [statusFilter, setStatusFilter] = useState<'all' | 'satisfies' | 'failed'>('all');
+    const [dateFilter, setDateFilter] = useState('');
+
+    const ITEMS_PER_PAGE = 15;
+
     // Check accreditations (1 = Water, 2 = Air)
     const hasWaterAccreditation = profile?.accreditations?.includes(1) ?? false;
     const hasAirAccreditation = profile?.accreditations?.includes(2) ?? false;
@@ -43,6 +52,11 @@ export const ConstructionReports = () => {
             loadFiles();
         }
     }, [customerId, constructionId]);
+
+    // Reset to page 1 when filters change
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [searchTerm, typeFilter, statusFilter, dateFilter]);
 
     const loadData = async () => {
         try {
@@ -243,6 +257,44 @@ export const ConstructionReports = () => {
         return <div>{t('reports.noData')}</div>;
     }
 
+    // Pagination
+    // Apply filters and search
+    const filteredReports = reports.filter(report => {
+        // Search by dionica/stock
+        if (searchTerm && !report.dionica?.toLowerCase().includes(searchTerm.toLowerCase()) &&
+            !report.stock?.toLowerCase().includes(searchTerm.toLowerCase())) {
+            return false;
+        }
+
+        // Filter by type
+        if (typeFilter !== 'all' && report.type_id !== parseInt(typeFilter)) {
+            return false;
+        }
+
+        // Filter by status
+        if (statusFilter !== 'all') {
+            if (statusFilter === 'satisfies' && !report.satisfies) return false;
+            if (statusFilter === 'failed' && report.satisfies) return false;
+        }
+
+        // Filter by date
+        if (dateFilter) {
+            const reportDate = new Date(report.examination_date).toISOString().split('T')[0];
+            if (reportDate !== dateFilter) return false;
+        }
+
+        return true;
+    });
+
+    // Pagination
+    const totalCount = filteredReports.length;
+    const totalPages = Math.ceil(totalCount / ITEMS_PER_PAGE);
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    const endIndex = startIndex + ITEMS_PER_PAGE;
+    const paginatedReports = filteredReports.slice(startIndex, endIndex);
+
+
+
     return (
         <div className="space-y-6">
             {actionMessage && (
@@ -366,9 +418,74 @@ export const ConstructionReports = () => {
             />
 
             <div className="bg-card shadow rounded-lg overflow-hidden border border-border">
+                <div className="p-4 border-b border-border grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    {/* Search */}
+                    <div>
+                        <label htmlFor="search" className="block text-sm font-medium text-muted-foreground mb-1">
+                            {t('reports.dionica')}
+                        </label>
+                        <input
+                            type="text"
+                            id="search"
+                            className="w-full px-3 py-2 border border-input rounded-md bg-background text-foreground text-sm focus:ring-2 focus:ring-ring focus:border-ring"
+                            placeholder={t('reports.searchDionica')}
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                        />
+                    </div>
+
+                    {/* Type Filter */}
+                    <div>
+                        <label htmlFor="type" className="block text-sm font-medium text-muted-foreground mb-1">
+                            {t('reports.type')}
+                        </label>
+                        <select
+                            id="type"
+                            className="w-full px-3 py-2 border border-input rounded-md bg-background text-foreground text-sm focus:ring-2 focus:ring-ring focus:border-ring"
+                            value={typeFilter}
+                            onChange={(e) => setTypeFilter(e.target.value as any)}
+                        >
+                            <option value="all">{t('common.all')}</option>
+                            <option value="1">{t('reports.water')}</option>
+                            <option value="2">{t('reports.air')}</option>
+                        </select>
+                    </div>
+
+                    {/* Status Filter */}
+                    <div>
+                        <label htmlFor="status" className="block text-sm font-medium text-muted-foreground mb-1">
+                            {t('reports.status')}
+                        </label>
+                        <select
+                            id="status"
+                            className="w-full px-3 py-2 border border-input rounded-md bg-background text-foreground text-sm focus:ring-2 focus:ring-ring focus:border-ring"
+                            value={statusFilter}
+                            onChange={(e) => setStatusFilter(e.target.value as any)}
+                        >
+                            <option value="all">{t('common.all')}</option>
+                            <option value="satisfies">{t('reports.satisfies')}</option>
+                            <option value="failed">{t('reports.failed')}</option>
+                        </select>
+                    </div>
+
+                    {/* Date Filter */}
+                    <div>
+                        <label htmlFor="date" className="block text-sm font-medium text-muted-foreground mb-1">
+                            {t('reports.date')}
+                        </label>
+                        <input
+                            type="date"
+                            id="date"
+                            className="w-full px-3 py-2 border border-input rounded-md bg-background text-foreground text-sm focus:ring-2 focus:ring-ring focus:border-ring"
+                            value={dateFilter}
+                            onChange={(e) => setDateFilter(e.target.value)}
+                        />
+                    </div>
+                </div>
+
                 {/* Mobile Card View */}
                 <div className="block md:hidden divide-y divide-border">
-                    {reports.length === 0 ? (
+                    {paginatedReports.length === 0 ? (
                         <div className="p-8 text-center text-muted-foreground">
                             <div className="flex flex-col items-center justify-center">
                                 <FileText className="h-12 w-12 text-muted-foreground/50 mb-4" />
@@ -376,7 +493,7 @@ export const ConstructionReports = () => {
                             </div>
                         </div>
                     ) : (
-                        reports.map((report) => (
+                        paginatedReports.map((report) => (
                             <div
                                 key={report.id}
                                 className={clsx(
@@ -473,7 +590,7 @@ export const ConstructionReports = () => {
                             </tr>
                         </thead>
                         <tbody className="bg-card divide-y divide-border">
-                            {reports.map((report, index) => (
+                            {paginatedReports.map((report, index) => (
                                 <tr
                                     key={report.id}
                                     className="hover:bg-muted/50 cursor-move transition-colors"
@@ -543,7 +660,7 @@ export const ConstructionReports = () => {
                                     </td>
                                 </tr>
                             ))}
-                            {reports.length === 0 && (
+                            {paginatedReports.length === 0 && (
                                 <tr>
                                     <td colSpan={7} className="px-6 py-4 text-center text-sm text-muted-foreground">
                                         {t('reports.noData')}
@@ -553,6 +670,34 @@ export const ConstructionReports = () => {
                         </tbody>
                     </table>
                 </div>
+
+                {/* Pagination Controls */}
+                {!loading && totalCount > 0 && totalPages > 1 && (
+                    <div className="px-4 py-3 flex items-center justify-between border-t border-border">
+                        <div className="text-sm text-muted-foreground">
+                            {t('customers.showing')} {startIndex + 1} {t('customers.to')} {Math.min(endIndex, totalCount)} {t('customers.of')} {totalCount} {t('customers.results')}
+                        </div>
+                        <div className="flex gap-2">
+                            <button
+                                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                                disabled={currentPage === 1}
+                                className="px-3 py-1 text-sm border border-border rounded-md hover:bg-accent disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                            >
+                                {t('customers.prev')}
+                            </button>
+                            <span className="px-3 py-1 text-sm">
+                                {t('history.page')} {currentPage} {t('history.of')} {totalPages}
+                            </span>
+                            <button
+                                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                                disabled={currentPage === totalPages}
+                                className="px-3 py-1 text-sm border border-border rounded-md hover:bg-accent disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                            >
+                                {t('customers.next')}
+                            </button>
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     );

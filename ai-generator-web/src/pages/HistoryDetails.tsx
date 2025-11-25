@@ -9,12 +9,14 @@ import { Loader2, ArrowLeft, Download, GripVertical, FileText, Pencil } from 'lu
 import { supabase } from '../lib/supabase';
 import { generatePDF, generateBulkPDF } from '../lib/pdfGenerator';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 import type { ReportFile } from '../types';
 
 export const HistoryDetails = () => {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
     const { profile } = useAuth();
+    const { t } = useLanguage();
     const [exportData, setExportData] = useState<ReportExport | null>(null);
     const [forms, setForms] = useState<ReportExportForm[]>([]);
     const [loading, setLoading] = useState(true);
@@ -62,7 +64,7 @@ export const HistoryDetails = () => {
     const handleDownloadReport = async (formId: string) => {
         if (!exportData) return;
 
-        setActionMessage({ text: 'Downloading report...', type: 'info' });
+        setActionMessage({ text: t('exportDetails.downloading'), type: 'info' });
         setDownloadingFormId(formId);
         try {
             // Fetch the full report data for this specific form
@@ -80,7 +82,7 @@ export const HistoryDetails = () => {
             setActionMessage(null);
         } catch (error) {
             console.error('Failed to download report:', error);
-            setActionMessage({ text: 'Failed to download report. Please try again.', type: 'error' });
+            setActionMessage({ text: t('exportDetails.downloadFailed'), type: 'error' });
         } finally {
             setDownloadingFormId(null);
         }
@@ -90,7 +92,7 @@ export const HistoryDetails = () => {
         if (forms.length === 0 || !exportData) return;
 
         setIsExporting(true);
-        setActionMessage({ text: 'Generating PDF export...', type: 'info' });
+        setActionMessage({ text: t('exportDetails.generatingPdf'), type: 'info' });
         try {
             // Get the form IDs to export
             const formIdsToExport = selectedIds.size > 0
@@ -119,7 +121,7 @@ export const HistoryDetails = () => {
             setActionMessage(null);
         } catch (error) {
             console.error('Failed to export reports:', error);
-            setActionMessage({ text: 'Failed to export reports. Please try again.', type: 'error' });
+            setActionMessage({ text: t('exportDetails.exportFailed'), type: 'error' });
         } finally {
             setIsExporting(false);
         }
@@ -129,7 +131,7 @@ export const HistoryDetails = () => {
         if (forms.length === 0 || !exportData) return;
 
         setIsExporting(true);
-        setActionMessage({ text: 'Generating Word document...', type: 'info' });
+        setActionMessage({ text: t('exportDetails.generatingWord'), type: 'info' });
         try {
             const formIdsToExport = selectedIds.size > 0
                 ? Array.from(selectedIds)
@@ -168,7 +170,7 @@ export const HistoryDetails = () => {
             setActionMessage(null);
         } catch (error) {
             console.error('Failed to export Word document:', error);
-            setActionMessage({ text: 'Failed to export Word document. Please try again.', type: 'error' });
+            setActionMessage({ text: t('exportDetails.wordFailed'), type: 'error' });
         } finally {
             setIsExporting(false);
         }
@@ -270,7 +272,7 @@ export const HistoryDetails = () => {
                         <ArrowLeft className="h-6 w-6" />
                     </button>
                     <h1 className="text-2xl font-bold text-foreground">
-                        Export Details:{' '}
+                        {t('exportDetails.title')}:{' '}
                         <button
                             onClick={() => exportData.construction_id && navigate(`/customers/${exportData.customer_id}/constructions/${exportData.construction_id}/reports`)}
                             className="text-primary hover:text-primary/80 underline-offset-4 hover:underline"
@@ -290,30 +292,30 @@ export const HistoryDetails = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Metadata Card */}
                 <div className="bg-card shadow rounded-lg p-6 space-y-4 border border-border">
-                    <h2 className="text-lg font-medium text-foreground border-b border-border pb-2">Information</h2>
+                    <h2 className="text-lg font-medium text-foreground border-b border-border pb-2">{t('exportDetails.info')}</h2>
                     <div className="grid grid-cols-2 gap-4 text-sm">
                         <div>
-                            <p className="text-muted-foreground">Certifier</p>
+                            <p className="text-muted-foreground">{t('exportDetails.certifier')}</p>
                             <p className="font-medium text-foreground">
                                 {exportData.certifier_name || formatName(exportData.certifier) || '-'}
                             </p>
                         </div>
                         <div>
-                            <p className="text-muted-foreground">Created By</p>
+                            <p className="text-muted-foreground">{t('exportDetails.createdBy')}</p>
                             <p className="font-medium text-foreground">
                                 {exportData.certifier_name || formatName(exportData.user) || '-'}
                             </p>
                         </div>
                         <div>
-                            <p className="text-muted-foreground">Examination Date</p>
+                            <p className="text-muted-foreground">{t('exportDetails.examinationDate')}</p>
                             <p className="font-medium text-foreground">{new Date(exportData.examination_date).toLocaleDateString()}</p>
                         </div>
                         <div>
-                            <p className="text-muted-foreground">Creation Time</p>
+                            <p className="text-muted-foreground">{t('exportDetails.creationTime')}</p>
                             <p className="font-medium text-foreground">{new Date(exportData.created_at).toLocaleString()}</p>
                         </div>
                         <div className="col-span-2">
-                            <p className="text-muted-foreground">Drainage</p>
+                            <p className="text-muted-foreground">{t('exportDetails.drainage')}</p>
                             <p className="font-medium text-foreground">{exportData.drainage || '-'}</p>
                         </div>
                     </div>
@@ -321,22 +323,22 @@ export const HistoryDetails = () => {
 
                 {/* Remarks Card */}
                 <div className="bg-card shadow rounded-lg p-6 space-y-4 border border-border">
-                    <h2 className="text-lg font-medium text-foreground border-b border-border pb-2">Remarks & Deviations</h2>
+                    <h2 className="text-lg font-medium text-foreground border-b border-border pb-2">{t('exportDetails.remarks')}</h2>
                     <div className="space-y-3 text-sm">
                         <div>
-                            <p className="text-muted-foreground">Water Remark</p>
+                            <p className="text-muted-foreground">{t('exportDetails.waterRemark')}</p>
                             <p className="font-medium text-foreground">{waterRemark}</p>
                         </div>
                         <div>
-                            <p className="text-muted-foreground">Water Deviation</p>
+                            <p className="text-muted-foreground">{t('exportDetails.waterDeviation')}</p>
                             <p className="font-medium text-foreground">{waterDeviation}</p>
                         </div>
                         <div>
-                            <p className="text-muted-foreground">Air Remark</p>
+                            <p className="text-muted-foreground">{t('exportDetails.airRemark')}</p>
                             <p className="font-medium text-foreground">{airRemark}</p>
                         </div>
                         <div>
-                            <p className="text-muted-foreground">Air Deviation</p>
+                            <p className="text-muted-foreground">{t('exportDetails.airDeviation')}</p>
                             <p className="font-medium text-foreground">{airDeviation}</p>
                         </div>
                     </div>
@@ -347,7 +349,7 @@ export const HistoryDetails = () => {
             {reportFiles.length > 0 && (
                 <div className="bg-card shadow rounded-lg overflow-hidden border border-border">
                     <div className="px-6 py-4 border-b border-border">
-                        <h2 className="text-lg font-medium text-foreground">Attachments ({reportFiles.length})</h2>
+                        <h2 className="text-lg font-medium text-foreground">{t('exportDetails.attachments')} ({reportFiles.length})</h2>
                     </div>
                     <div className="p-6">
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -404,7 +406,7 @@ export const HistoryDetails = () => {
                                                 className="inline-flex items-center gap-1 text-xs text-primary hover:text-primary/80 mt-2"
                                             >
                                                 <Download className="h-3 w-3" />
-                                                Download
+                                                {t('exportDetails.download')}
                                             </a>
                                         </div>
                                     </div>
@@ -419,7 +421,7 @@ export const HistoryDetails = () => {
             <div className="bg-card shadow rounded-lg overflow-hidden border border-border">
                 <div className="px-4 sm:px-6 py-4 border-b border-border">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                        <h2 className="text-lg font-medium text-foreground">Included Reports ({forms.length})</h2>
+                        <h2 className="text-lg font-medium text-foreground">{t('exportDetails.includedReports')} ({forms.length})</h2>
                         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                             <button
                                 onClick={handleWordExport}
@@ -429,12 +431,12 @@ export const HistoryDetails = () => {
                                 {isExporting ? (
                                     <>
                                         <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                        Exporting...
+                                        {t('exportDetails.exporting')}
                                     </>
                                 ) : (
                                     <>
                                         <FileText className="h-4 w-4 mr-2" />
-                                        {selectedIds.size > 0 ? `Export Word (${selectedIds.size})` : 'Export Word'}
+                                        {selectedIds.size > 0 ? `${t('exportDetails.exportWord')} (${selectedIds.size})` : t('exportDetails.exportWord')}
                                     </>
                                 )}
                             </button>
@@ -446,12 +448,12 @@ export const HistoryDetails = () => {
                                 {isExporting ? (
                                     <>
                                         <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                        Exporting...
+                                        {t('exportDetails.exporting')}
                                     </>
                                 ) : (
                                     <>
                                         <Download className="h-4 w-4 mr-2" />
-                                        {selectedIds.size > 0 ? `Export PDF (${selectedIds.size})` : 'Export All PDF'}
+                                        {selectedIds.size > 0 ? `${t('exportDetails.exportPdf')} (${selectedIds.size})` : t('exportDetails.exportAllPdf')}
                                     </>
                                 )}
                             </button>
@@ -472,7 +474,7 @@ export const HistoryDetails = () => {
                                 }
                                 onChange={toggleSelectAll}
                             />
-                            <span className="text-sm font-medium text-foreground">Select All</span>
+                            <span className="text-sm font-medium text-foreground">{t('exportDetails.selectAll')}</span>
                         </div>
                     </div>
                     {forms.map((item, index) => {
@@ -496,19 +498,19 @@ export const HistoryDetails = () => {
                                             <div>
                                                 <span className="text-xs font-medium text-muted-foreground">#{displayOrdinal}</span>
                                                 <div className="font-medium text-foreground">
-                                                    {item.type_id === 1 ? 'Water' : 'Air'} Report
+                                                    {item.type_id === 1 ? t('exportDetails.water') : t('exportDetails.air')} {t('exportDetails.report')}
                                                 </div>
                                             </div>
                                             <span className={`px-2 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full ${item.report_form?.satisfies
                                                 ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400'
                                                 : 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-400'
                                                 }`}>
-                                                {item.report_form?.satisfies ? 'Yes' : 'No'}
+                                                {item.report_form?.satisfies ? t('common.yes') : t('common.no')}
                                             </span>
                                         </div>
 
                                         <div className="text-sm text-muted-foreground">
-                                            <span className="font-medium">Dionica:</span> {item.report_form?.dionica || item.report_form?.stock || '-'}
+                                            <span className="font-medium">{t('exportDetails.dionica')}:</span> {item.report_form?.dionica || item.report_form?.stock || '-'}
                                         </div>
 
                                         <div className="flex justify-end gap-2 pt-2">
@@ -520,7 +522,7 @@ export const HistoryDetails = () => {
                                                 disabled={!formId}
                                                 className="flex-1 inline-flex justify-center items-center px-3 py-2 border border-border rounded-md text-sm font-medium text-foreground hover:bg-accent transition-colors disabled:opacity-50"
                                             >
-                                                <Pencil className="h-4 w-4 mr-2" /> Edit
+                                                <Pencil className="h-4 w-4 mr-2" /> {t('exportDetails.edit')}
                                             </button>
                                             <button
                                                 onClick={() => formId && handleDownloadReport(formId)}
@@ -531,7 +533,7 @@ export const HistoryDetails = () => {
                                                     <Loader2 className="h-4 w-4 animate-spin" />
                                                 ) : (
                                                     <>
-                                                        <Download className="h-4 w-4 mr-2" /> Download
+                                                        <Download className="h-4 w-4 mr-2" /> {t('exportDetails.download')}
                                                     </>
                                                 )}
                                             </button>
@@ -561,19 +563,19 @@ export const HistoryDetails = () => {
                                 </th>
                                 <th className="w-10 px-6 py-3"></th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                                    Ordinal
+                                    {t('exportDetails.ordinal')}
                                 </th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                                    Type
+                                    {t('exportDetails.type')}
                                 </th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                                    Satisfies
+                                    {t('exportDetails.satisfies')}
                                 </th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                                    Dionica
+                                    {t('exportDetails.dionica')}
                                 </th>
                                 <th className="px-6 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                                    Action
+                                    {t('exportDetails.action')}
                                 </th>
                             </tr>
                         </thead>
@@ -606,14 +608,14 @@ export const HistoryDetails = () => {
                                             #{displayOrdinal}
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">
-                                            {item.type_id === 1 ? 'Water' : 'Air'}
+                                            {item.type_id === 1 ? t('exportDetails.water') : t('exportDetails.air')}
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm">
                                             <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${item.report_form?.satisfies
                                                 ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400'
                                                 : 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-400'
                                                 }`}>
-                                                {item.report_form?.satisfies ? 'Yes' : 'No'}
+                                                {item.report_form?.satisfies ? t('common.yes') : t('common.no')}
                                             </span>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
@@ -629,7 +631,7 @@ export const HistoryDetails = () => {
                                                 className="text-muted-foreground hover:text-foreground inline-flex items-center disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                                                 title="Edit report"
                                             >
-                                                <Pencil className="h-4 w-4 mr-1" /> Edit
+                                                <Pencil className="h-4 w-4 mr-1" /> {t('exportDetails.edit')}
                                             </button>
                                             <button
                                                 onClick={() => formId && handleDownloadReport(formId)}
@@ -638,11 +640,11 @@ export const HistoryDetails = () => {
                                             >
                                                 {downloadingFormId === formId ? (
                                                     <>
-                                                        <Loader2 className="h-4 w-4 mr-1 animate-spin" /> Downloading...
+                                                        <Loader2 className="h-4 w-4 mr-1 animate-spin" /> {t('exportDetails.downloading')}
                                                     </>
                                                 ) : (
                                                     <>
-                                                        <Download className="h-4 w-4 mr-1" /> Download
+                                                        <Download className="h-4 w-4 mr-1" /> {t('exportDetails.download')}
                                                     </>
                                                 )}
                                             </button>

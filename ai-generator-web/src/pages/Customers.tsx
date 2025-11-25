@@ -18,7 +18,7 @@ export const Customers = () => {
 
     // Pagination & Sorting state
     const [currentPage, setCurrentPage] = useState(1);
-    const [pageSize] = useState(10);
+    const [pageSize] = useState(15);
     const [sortBy, setSortBy] = useState<SortField>('name');
     const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
 
@@ -307,8 +307,8 @@ export const Customers = () => {
                                                 key={pageNum}
                                                 onClick={() => setCurrentPage(pageNum)}
                                                 className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium transition-colors ${currentPage === pageNum
-                                                        ? 'z-10 bg-primary/10 border-primary text-primary'
-                                                        : 'bg-card border-input text-muted-foreground hover:bg-accent'
+                                                    ? 'z-10 bg-primary/10 border-primary text-primary'
+                                                    : 'bg-card border-input text-muted-foreground hover:bg-accent'
                                                     }`}
                                             >
                                                 {pageNum}

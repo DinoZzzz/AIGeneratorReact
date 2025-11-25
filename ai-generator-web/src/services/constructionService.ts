@@ -6,7 +6,7 @@ export const constructionService = {
     async getByCustomerId(customerId: string) {
         const { data, error } = await supabase
             .from('constructions')
-            .select('id, name, work_order, address, customer_id, created_at, updated_at')
+            .select('id, name, work_order, location, customer_id, is_active, created_at, updated_at')
             .eq('customer_id', customerId)
             .order('created_at', { ascending: false });
 
