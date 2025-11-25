@@ -11,6 +11,7 @@ interface AuthContextType {
     profile: Profile | null;
     loading: boolean;
     signOut: () => Promise<void>;
+    refreshProfile: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -19,6 +20,7 @@ const AuthContext = createContext<AuthContextType>({
     profile: null,
     loading: true,
     signOut: async () => { },
+    refreshProfile: async () => { },
 });
 
 // eslint-disable-next-line react-refresh/only-export-components
@@ -85,6 +87,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         profile,
         loading,
         signOut,
+        refreshProfile: async () => {
+            if (user) {
+                await loadProfile(user.id);
+            }
+        }
     };
 
     return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

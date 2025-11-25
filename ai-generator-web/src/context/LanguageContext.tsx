@@ -609,7 +609,15 @@ Object.assign(translations.hr, {
     'analytics.activeCustomers': 'Ukupno kupaca',
     'analytics.constructionSites': 'Ukupno gradilišta',
     'analytics.recentActivity': 'Aktivni izvještaji',
-    'analytics.thisWeek': 'Zadnjih 7 dana'
+    'analytics.thisWeek': 'Zadnjih 7 dana',
+    'profile.title': 'Moj Profil',
+    'profile.subtitle': 'Upravljajte svojim osobnim podacima i postavkama.',
+    'profile.changePhoto': 'Kliknite za promjenu fotografije',
+    'profile.avatarUploaded': 'Profilna slika uspješno ažurirana',
+    'profile.avatarUploadFailed': 'Neuspjelo učitavanje slike',
+    'profile.saved': 'Profil uspješno spremljen',
+    'profile.saveFailed': 'Spremanje profila nije uspjelo',
+    'profile.emailReadOnly': 'Email adresu nije moguće mijenjati. Kontaktirajte administratora za promjenu.'
 });
 
 Object.assign(translations.en, {
@@ -628,7 +636,15 @@ Object.assign(translations.en, {
     'analytics.activeCustomers': 'Total Customers',
     'analytics.constructionSites': 'Construction Sites',
     'analytics.recentActivity': 'Recent Activity',
-    'analytics.thisWeek': 'Last 7 days'
+    'analytics.thisWeek': 'Last 7 days',
+    'profile.title': 'My Profile',
+    'profile.subtitle': 'Manage your personal information and settings.',
+    'profile.changePhoto': 'Click to change photo',
+    'profile.avatarUploaded': 'Profile picture updated successfully',
+    'profile.avatarUploadFailed': 'Failed to upload picture',
+    'profile.saved': 'Profile saved successfully',
+    'profile.saveFailed': 'Failed to save profile',
+    'profile.emailReadOnly': 'Email address cannot be changed. Contact administrator for changes.'
 });
 
 // Report form translations

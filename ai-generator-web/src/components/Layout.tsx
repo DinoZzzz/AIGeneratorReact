@@ -121,22 +121,26 @@ export const Layout = ({ children }: LayoutProps) => {
 
                     {/* User Profile & Logout */}
                     <div className="mt-auto p-4 border-t border-border sticky bottom-0 bg-card">
-                        <div className="flex items-center mb-4 px-4">
+                        <Link to="/profile" className="flex items-center mb-4 px-4 hover:bg-accent rounded-lg py-2 transition-colors group">
                             <div className="flex-shrink-0">
-                                <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
-                                    <span className="text-primary font-medium text-sm">
-                                        {profile?.name?.charAt(0).toUpperCase() || user?.email?.charAt(0).toUpperCase()}
-                                    </span>
+                                <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden">
+                                    {profile?.avatar_url ? (
+                                        <img src={profile.avatar_url} alt="Profile" className="h-full w-full object-cover" />
+                                    ) : (
+                                        <span className="text-primary font-medium text-sm">
+                                            {profile?.name?.charAt(0).toUpperCase() || user?.email?.charAt(0).toUpperCase()}
+                                        </span>
+                                    )}
                                 </div>
                             </div>
                             <div className="ml-3">
-                                <p className="text-sm font-medium text-foreground truncate max-w-[140px]">
+                                <p className="text-sm font-medium text-foreground truncate max-w-[140px] group-hover:text-primary transition-colors">
                                     {profile?.name && profile?.last_name
                                         ? `${profile.name} ${profile.last_name}`
                                         : user?.email}
                                 </p>
                             </div>
-                        </div>
+                        </Link>
                         <button
                             onClick={handleSignOut}
                             className="w-full flex items-center px-4 py-2 text-sm font-medium text-destructive rounded-lg hover:bg-destructive/10 transition-colors"

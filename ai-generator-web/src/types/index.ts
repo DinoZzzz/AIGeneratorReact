@@ -64,6 +64,7 @@ export interface Profile {
     title?: string;
     gender?: 'M' | 'F';
     role: 'user' | 'admin';
+    avatar_url?: string;
     accreditations: number[]; // List of ReportType IDs
     is_admin?: boolean; // Helper property for UI
 }
