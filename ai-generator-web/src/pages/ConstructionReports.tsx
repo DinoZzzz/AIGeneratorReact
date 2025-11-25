@@ -18,6 +18,7 @@ import { DndContext, closestCenter, PointerSensor, TouchSensor, useSensor, useSe
 import type { DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy, arrayMove, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { InputDialog } from '../components/InputDialog';
 
 export const ConstructionReports = () => {
     const { customerId, constructionId } = useParams();
@@ -36,6 +37,15 @@ export const ConstructionReports = () => {
     const [isExporting, setIsExporting] = useState(false);
     const [actionMessage, setActionMessage] = useState<{ text: string; type: 'info' | 'error' } | null>(null);
     const [uploadedFiles, setUploadedFiles] = useState<ReportFile[]>([]);
+
+    // Section name dialog state
+    const [sectionDialogOpen, setSectionDialogOpen] = useState(false);
+    const [sectionDialogConfig, setSectionDialogConfig] = useState<{
+        mode: 'create' | 'edit';
+        typeId?: 1 | 2;
+        existingId?: string;
+        initialValue?: string;
+    }>({ mode: 'create' });
 
     // Search & Filters
     const [searchTerm, setSearchTerm] = useState('');
@@ -271,15 +281,19 @@ export const ConstructionReports = () => {
         }
     };
 
-    const handleAddSection = async (typeId: 1 | 2) => {
-        const name = window.prompt(t('reports.enterSectionName'));
-        if (!name) return;
+    const handleAddSection = (typeId: 1 | 2) => {
+        setSectionDialogConfig({ mode: 'create', typeId });
+        setSectionDialogOpen(true);
+    };
+
+    const handleCreateSection = async (name: string) => {
+        const typeId = sectionDialogConfig.typeId;
+        if (!typeId) return;
 
         try {
             const maxOrdinal = reports.length > 0 ? Math.max(...reports.map(r => r.ordinal)) : 0;
 
             // Create section - just a placeholder entry with section_name set
-            // Most fields can be null/undefined for sections since they're just headers
             const newSection = await reportService.create({
                 construction_id: constructionId,
                 section_name: name,
@@ -293,16 +307,29 @@ export const ConstructionReports = () => {
         }
     };
 
-    const handleUpdateSectionName = async (id: string, currentName: string) => {
-        const newName = window.prompt(t('reports.enterSectionName'), currentName);
-        if (!newName || newName === currentName) return;
+    const handleUpdateSectionName = (id: string, currentName: string) => {
+        setSectionDialogConfig({ mode: 'edit', existingId: id, initialValue: currentName });
+        setSectionDialogOpen(true);
+    };
+
+    const handleEditSection = async (newName: string) => {
+        const { existingId, initialValue } = sectionDialogConfig;
+        if (!existingId || newName === initialValue) return;
 
         try {
-            await reportService.update(id, { section_name: newName });
-            setReports(reports.map(r => r.id === id ? { ...r, section_name: newName } : r));
+            await reportService.update(existingId, { section_name: newName });
+            setReports(reports.map(r => r.id === existingId ? { ...r, section_name: newName } : r));
         } catch (error) {
             console.error('Failed to update section name:', error);
             alert('Failed to update section name');
+        }
+    };
+
+    const handleSectionDialogConfirm = (value: string) => {
+        if (sectionDialogConfig.mode === 'create') {
+            handleCreateSection(value);
+        } else {
+            handleEditSection(value);
         }
     };
 
@@ -1136,6 +1163,16 @@ export const ConstructionReports = () => {
                     </DndContext>
                 </div>
             )}
+
+            {/* Section Name Input Dialog */}
+            <InputDialog
+                isOpen={sectionDialogOpen}
+                onClose={() => setSectionDialogOpen(false)}
+                onConfirm={handleSectionDialogConfirm}
+                title={t('reports.enterSectionName')}
+                placeholder={t('reports.enterSectionName')}
+                initialValue={sectionDialogConfig.initialValue || ''}
+            />
         </div>
     );
 };
