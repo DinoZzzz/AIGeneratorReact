@@ -453,7 +453,7 @@ export const ConstructionReports = () => {
                             <span className="md:hidden">{t('reports.new')}</span>
                         </button>
                         {isNewReportOpen && (
-                            <div className="absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-card border border-border shadow-border/40 focus:outline-none z-50">
+                            <div className="absolute left-0 md:right-0 md:left-auto mt-2 w-48 rounded-md shadow-lg bg-card border border-border shadow-border/40 focus:outline-none z-50">
                                 <div className="py-1" role="menu" aria-orientation="vertical">
                                     {hasWaterAccreditation && (
                                         <Link
@@ -501,7 +501,7 @@ export const ConstructionReports = () => {
                             <span className="hidden md:inline">{t('reports.addSection')}</span>
                         </button>
                         {isAddSectionOpen && (
-                            <div className="absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-card border border-border shadow-border/40 focus:outline-none z-50">
+                            <div className="absolute left-0 md:right-0 md:left-auto mt-2 w-48 rounded-md shadow-lg bg-card border border-border shadow-border/40 focus:outline-none z-50">
                                 <div className="py-1" role="menu" aria-orientation="vertical">
                                     {hasWaterAccreditation && (
                                         <button
