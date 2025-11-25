@@ -170,26 +170,47 @@ export const DashboardStats = () => {
             </div>
 
             {/* Examiners List */}
-            <div className="bg-card border border-border rounded-lg p-4 shadow-sm">
-                <h3 className="text-lg font-bold mb-4">{t('dashboard.examiners')}</h3>
-                <div className="space-y-4">
-                    {examinerStats.length === 0 ? (
-                        <p className="text-sm text-gray-500 dark:text-gray-400">{t('dashboard.noCustomers')}</p>
-                    ) : (
-                        examinerStats.map((stat) => (
-                            <div key={stat.id} className="flex flex-col space-y-1">
-                                <span className="font-semibold text-base">{stat.name}</span>
-                                <div className="flex gap-4 text-xs text-gray-600 dark:text-gray-400">
-                                    <span>
-                                        {t('dashboard.today')}: <span className="font-semibold text-emerald-600 dark:text-emerald-400">{stat.todayCount}</span>
-                                    </span>
-                                    <span>
-                                        {t('dashboard.thisWeek')}: <span className="font-semibold text-blue-600 dark:text-blue-400">{stat.weekCount}</span>
-                                    </span>
-                                </div>
-                            </div>
-                        ))
-                    )}
+            <div className="bg-card border border-border rounded-lg shadow-sm overflow-hidden">
+                <div className="p-4 border-b border-border">
+                    <h3 className="text-lg font-bold">{t('dashboard.examiners')}</h3>
+                </div>
+                <div className="overflow-x-auto">
+                    <table className="w-full text-sm text-left">
+                        <thead className="text-xs text-muted-foreground uppercase bg-muted/50">
+                            <tr>
+                                <th className="px-4 py-3 font-medium">{t('examiners.fullName')}</th>
+                                <th className="px-4 py-3 font-medium text-center">{t('dashboard.today')}</th>
+                                <th className="px-4 py-3 font-medium text-center">{t('dashboard.thisWeek')}</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-border">
+                            {examinerStats.length === 0 ? (
+                                <tr>
+                                    <td colSpan={3} className="px-4 py-8 text-center text-muted-foreground">
+                                        {t('examiners.noneFound')}
+                                    </td>
+                                </tr>
+                            ) : (
+                                examinerStats.map((stat) => (
+                                    <tr key={stat.id} className="hover:bg-muted/50 transition-colors">
+                                        <td className="px-4 py-3 font-medium text-foreground">
+                                            {stat.name}
+                                        </td>
+                                        <td className="px-4 py-3 text-center">
+                                            <span className={`inline-flex items-center justify-center px-2.5 py-0.5 rounded-full text-xs font-medium ${stat.todayCount > 0 ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'text-muted-foreground bg-muted'}`}>
+                                                {stat.todayCount}
+                                            </span>
+                                        </td>
+                                        <td className="px-4 py-3 text-center">
+                                            <span className={`inline-flex items-center justify-center px-2.5 py-0.5 rounded-full text-xs font-medium ${stat.weekCount > 0 ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' : 'text-muted-foreground bg-muted'}`}>
+                                                {stat.weekCount}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                ))
+                            )}
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
