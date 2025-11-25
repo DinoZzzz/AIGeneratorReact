@@ -1,14 +1,15 @@
 import { supabase } from '../lib/supabase';
 import type { Customer } from '../types';
+import { AppError, NotFoundError, withErrorHandling } from '../lib/errorHandler';
 
 export const customerService = {
     async getAll() {
         const { data, error } = await supabase
             .from('customers')
-            .select('*')
+            .select('id, name, location, work_order, address')
             .order('name');
 
-        if (error) throw error;
+        if (error) throw new AppError(error.message, 'SUPABASE_ERROR', 500);
         return data;
     },
 
@@ -21,7 +22,7 @@ export const customerService = {
     ) {
         let query = supabase
             .from('customers')
-            .select('*', { count: 'exact' });
+            .select('id, name, location, work_order, address', { count: 'exact' });
 
         if (search) {
             // Sanitize search input by removing commas to prevent Supabase OR syntax errors
@@ -42,7 +43,7 @@ export const customerService = {
 
         const { data, error, count } = await query.range(start, end);
 
-        if (error) throw error;
+        if (error) throw new AppError(error.message, 'SUPABASE_ERROR', 500);
         return { data, count };
     },
 
@@ -53,7 +54,12 @@ export const customerService = {
             .eq('id', id)
             .single();
 
-        if (error) throw error;
+        if (error) {
+            if (error.code === 'PGRST116') {
+                throw new NotFoundError('Customer');
+            }
+            throw new AppError(error.message, 'SUPABASE_ERROR', 500);
+        }
         return data;
     },
 
@@ -64,7 +70,7 @@ export const customerService = {
             .select()
             .single();
 
-        if (error) throw error;
+        if (error) throw new AppError(error.message, 'SUPABASE_ERROR', 500);
         return data;
     },
 
@@ -76,7 +82,7 @@ export const customerService = {
             .select()
             .single();
 
-        if (error) throw error;
+        if (error) throw new AppError(error.message, 'SUPABASE_ERROR', 500);
         return data;
     },
 
@@ -86,7 +92,7 @@ export const customerService = {
             .delete()
             .eq('id', id);
 
-        if (error) throw error;
+        if (error) throw new AppError(error.message, 'SUPABASE_ERROR', 500);
     },
 
     async checkWorkOrderExists(workOrder: string, excludeId?: string) {
@@ -100,7 +106,7 @@ export const customerService = {
         }
 
         const { data, error } = await query;
-        if (error) throw error;
+        if (error) throw new AppError(error.message, 'SUPABASE_ERROR', 500);
         return data.length > 0;
     },
 
@@ -115,7 +121,7 @@ export const customerService = {
         }
 
         const { data, error } = await query;
-        if (error) throw error;
+        if (error) throw new AppError(error.message, 'SUPABASE_ERROR', 500);
         return data.length > 0;
     }
 };

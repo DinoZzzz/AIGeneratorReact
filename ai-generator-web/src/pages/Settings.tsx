@@ -6,6 +6,7 @@ import { supabase } from '../lib/supabase';
 import type { Material } from '../types';
 import { Loader2, Plus, Trash2, Edit, Lock } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
+import { ConfirmDeleteMaterialDialog } from '../components/ConfirmDeleteMaterialDialog';
 
 export const Settings = () => {
     const { theme, setTheme, primaryColor, setPrimaryColor } = useTheme();
@@ -18,6 +19,8 @@ export const Settings = () => {
     const [isEditing, setIsEditing] = useState<Material | null>(null);
     const [formData, setFormData] = useState({ name: '', material_type_id: 1 });
     const { addToast } = useToast();
+    const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+    const [materialToDelete, setMaterialToDelete] = useState<Material | null>(null);
 
     // Separate materials by type (1 = Shaft, 2 = Pipe)
     const shaftMaterials = materials.filter(m => m.material_type_id === 1);
@@ -103,35 +106,46 @@ export const Settings = () => {
         }
     };
 
-    const handleDelete = async (id: number) => {
-        if (!confirm(t('materials.deleteConfirm'))) return;
+    const handleDeleteClick = (material: Material) => {
+        setMaterialToDelete(material);
+        setDeleteDialogOpen(true);
+    };
+
+    const handleDeleteConfirm = async () => {
+        if (!materialToDelete) return;
 
         try {
             // Check usage in report_forms
             const { data: usageData, error: usageError } = await supabase
                 .from('report_forms')
                 .select('id')
-                .or(`pane_material_id.eq.${id},pipe_material_id.eq.${id}`)
+                .or(`pane_material_id.eq.${materialToDelete.id},pipe_material_id.eq.${materialToDelete.id}`)
                 .limit(1);
 
             if (usageError) throw usageError;
 
             if (usageData && usageData.length > 0) {
                 addToast(t('materials.inUseError'), 'error');
+                setDeleteDialogOpen(false);
+                setMaterialToDelete(null);
                 return;
             }
 
             const { error } = await supabase
                 .from('materials')
                 .delete()
-                .eq('id', id);
+                .eq('id', materialToDelete.id);
 
             if (error) throw error;
 
             addToast(t('materials.removed'), 'success');
             fetchMaterials();
+            setDeleteDialogOpen(false);
+            setMaterialToDelete(null);
         } catch (error: any) {
             addToast(error.message, 'error');
+            setDeleteDialogOpen(false);
+            setMaterialToDelete(null);
         }
     };
 
@@ -241,7 +255,7 @@ export const Settings = () => {
                                                 <Edit className="h-4 w-4" />
                                             </button>
                                             <button
-                                                onClick={() => handleDelete(material.id)}
+                                                onClick={() => handleDeleteClick(material)}
                                                 className="p-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-md transition-colors"
                                                 title={t('materials.remove')}
                                             >
@@ -372,6 +386,15 @@ export const Settings = () => {
 
             {/* Pipe Materials Section */}
             {renderMaterialSection(pipeMaterials, 2)}
+
+            {/* Delete Confirmation Dialog */}
+            <ConfirmDeleteMaterialDialog
+                open={deleteDialogOpen}
+                onOpenChange={setDeleteDialogOpen}
+                onConfirm={handleDeleteConfirm}
+                materialName={materialToDelete?.name || ''}
+                materialType={materialToDelete?.material_type_id === 1 ? 'shaft' : 'pipe'}
+            />
         </div>
     );
 };

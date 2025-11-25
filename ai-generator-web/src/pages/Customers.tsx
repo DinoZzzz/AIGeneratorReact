@@ -1,26 +1,39 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { customerService } from '../services/customerService';
 import { Plus, Search, Pencil, Trash2, Building2, ChevronLeft, ChevronRight, ArrowUpDown, ArrowUp, ArrowDown, MapPin, Home } from 'lucide-react';
-import type { Customer } from '../types';
 import { useLanguage } from '../context/LanguageContext';
+import { useCustomers, useDeleteCustomer } from '../hooks/useCustomers';
+import { TableSkeleton } from '../components/skeletons';
+import { errorHandler } from '../lib/errorHandler';
+import { useToast } from '../context/ToastContext';
 
 type SortField = 'work_order' | 'name' | 'location' | 'address';
 type SortOrder = 'asc' | 'desc';
 
 export const Customers = () => {
-    const [customers, setCustomers] = useState<Customer[]>([]);
-    const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [debouncedSearch, setDebouncedSearch] = useState('');
     const { t } = useLanguage();
+    const { success, error: showError } = useToast();
 
     // Pagination & Sorting state
     const [currentPage, setCurrentPage] = useState(1);
     const [pageSize] = useState(10);
-    const [totalCount, setTotalCount] = useState(0);
     const [sortBy, setSortBy] = useState<SortField>('name');
     const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
+
+    // React Query hooks
+    const { data, isLoading: loading, error } = useCustomers(
+        currentPage,
+        pageSize,
+        sortBy,
+        sortOrder,
+        debouncedSearch
+    );
+    const deleteMutation = useDeleteCustomer();
+
+    const customers = data?.data || [];
+    const totalCount = data?.count || 0;
 
     // Debounce search input
     useEffect(() => {
@@ -31,37 +44,22 @@ export const Customers = () => {
         return () => clearTimeout(timer);
     }, [searchTerm]);
 
+    // Handle errors
     useEffect(() => {
-        loadCustomers();
-    }, [currentPage, pageSize, sortBy, sortOrder, debouncedSearch]);
-
-    const loadCustomers = async () => {
-        setLoading(true);
-        try {
-            const { data, count } = await customerService.getCustomers(
-                currentPage,
-                pageSize,
-                sortBy,
-                sortOrder,
-                debouncedSearch
-            );
-            setCustomers(data || []);
-            setTotalCount(count || 0);
-        } catch (error) {
-            console.error('Failed to load customers', error);
-        } finally {
-            setLoading(false);
+        if (error) {
+            const appError = errorHandler.handle(error, 'Customers', { logToConsole: true });
+            showError(errorHandler.getUserMessage(appError));
         }
-    };
+    }, [error, showError]);
 
     const handleDelete = async (id: string) => {
         if (window.confirm(t('customers.deleteConfirm'))) {
             try {
-                await customerService.delete(id);
-                // Reload to update list and counts
-                loadCustomers();
-            } catch (error) {
-                console.error('Failed to delete customer', error);
+                await deleteMutation.mutateAsync(id);
+                success(t('customers.deleteSuccess') || 'Customer deleted successfully');
+            } catch (err) {
+                const appError = errorHandler.handle(err, 'CustomerDelete');
+                showError(errorHandler.getUserMessage(appError));
             }
         }
     };
@@ -128,8 +126,8 @@ export const Customers = () => {
                 {/* Mobile Card View */}
                 <div className="block md:hidden divide-y divide-border">
                     {loading ? (
-                        <div className="p-4 text-center text-sm text-muted-foreground">
-                            {t('customers.loading')}
+                        <div className="p-4">
+                            <TableSkeleton rows={3} />
                         </div>
                     ) : customers.length === 0 ? (
                         <div className="p-4 text-center text-sm text-muted-foreground">
@@ -203,8 +201,8 @@ export const Customers = () => {
                         <tbody className="bg-card divide-y divide-border">
                             {loading ? (
                                 <tr>
-                                    <td colSpan={5} className="px-6 py-4 text-center text-sm text-muted-foreground">
-                                        {t('customers.loading')}
+                                    <td colSpan={5} className="p-4">
+                                        <TableSkeleton rows={pageSize} />
                                     </td>
                                 </tr>
                             ) : customers.length === 0 ? (

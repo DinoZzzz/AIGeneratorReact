@@ -1,5 +1,6 @@
 import { supabase } from '../lib/supabase';
 import type { ReportForm } from '../types';
+import { AppError, NotFoundError } from '../lib/errorHandler';
 
 export const reportService = {
     async getAll() {
@@ -12,7 +13,7 @@ export const reportService = {
       `)
             .order('created_at', { ascending: false });
 
-        if (error) throw error;
+        if (error) throw new AppError(error.message, 'SUPABASE_ERROR', 500);
         return data as ReportForm[];
     },
 
@@ -27,7 +28,7 @@ export const reportService = {
             .eq('construction_id', constructionId)
             .order('ordinal', { ascending: true });
 
-        if (error) throw error;
+        if (error) throw new AppError(error.message, 'SUPABASE_ERROR', 500);
         return data as ReportForm[];
     },
 
@@ -38,7 +39,12 @@ export const reportService = {
             .eq('id', id)
             .single();
 
-        if (error) throw error;
+        if (error) {
+            if (error.code === 'PGRST116') {
+                throw new NotFoundError('Report');
+            }
+            throw new AppError(error.message, 'SUPABASE_ERROR', 500);
+        }
         return data as ReportForm;
     },
 
@@ -58,7 +64,7 @@ export const reportService = {
             .select()
             .single();
 
-        if (error) throw error;
+        if (error) throw new AppError(error.message, 'SUPABASE_ERROR', 500);
         return data as ReportForm;
     },
 
@@ -70,7 +76,7 @@ export const reportService = {
             .select()
             .single();
 
-        if (error) throw error;
+        if (error) throw new AppError(error.message, 'SUPABASE_ERROR', 500);
         return data as ReportForm;
     },
 
@@ -80,20 +86,24 @@ export const reportService = {
             .delete()
             .eq('id', id);
 
-        if (error) throw error;
+        if (error) throw new AppError(error.message, 'SUPABASE_ERROR', 500);
     },
 
     async updateOrder(reports: ReportForm[]) {
         // Ideally we would use a stored procedure or a single upsert,
         // but for now we'll just loop through and update the ordinal.
         // This is not atomic but sufficient for this scale.
-        const updates = reports.map((report, index) =>
-            supabase
-                .from('report_forms')
-                .update({ ordinal: index })
-                .eq('id', report.id)
-        );
+        try {
+            const updates = reports.map((report, index) =>
+                supabase
+                    .from('report_forms')
+                    .update({ ordinal: index })
+                    .eq('id', report.id)
+            );
 
-        await Promise.all(updates);
+            await Promise.all(updates);
+        } catch (error: any) {
+            throw new AppError(error.message || 'Failed to update report order', 'SUPABASE_ERROR', 500);
+        }
     }
 };

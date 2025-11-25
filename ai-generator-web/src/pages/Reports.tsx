@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { reportService } from '../services/reportService';
 import type { ReportForm } from '../types';
 import { Loader2, Trash2, Edit, FileText, Download } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -9,41 +8,42 @@ import { ExportDialog } from '../components/ExportDialog';
 import type { ExportMetaData } from '../components/ExportDialog';
 import { generateWordDocument } from '../services/wordExportService';
 import { useAuth } from '../context/AuthContext';
+import { useReports, useDeleteReport } from '../hooks/useReports';
+import { TableSkeleton } from '../components/skeletons';
+import { errorHandler } from '../lib/errorHandler';
+import { useToast } from '../context/ToastContext';
 
 export const Reports = () => {
     const { user } = useAuth();
-    const [reports, setReports] = useState<ReportForm[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
+    const { success, error: showError } = useToast();
     const [selectedReports, setSelectedReports] = useState<Set<string>>(new Set());
     const [exportDialogOpen, setExportDialogOpen] = useState(false);
     const [isExporting, setIsExporting] = useState(false);
 
-    useEffect(() => {
-        loadReports();
-    }, []);
+    // React Query hooks
+    const { data: reports = [], isLoading: loading, error } = useReports();
+    const deleteMutation = useDeleteReport();
 
-    const loadReports = async () => {
-        try {
-            const data = await reportService.getAll();
-            setReports(data);
-        } catch (err: unknown) {
-            setError((err as Error).message);
-        } finally {
-            setLoading(false);
+    // Handle query errors
+    useEffect(() => {
+        if (error) {
+            const appError = errorHandler.handle(error, 'Reports', { logToConsole: true });
+            showError(errorHandler.getUserMessage(appError));
         }
-    };
+    }, [error, showError]);
 
     const handleDelete = async (id: string) => {
         if (!window.confirm('Are you sure you want to delete this report?')) return;
         try {
-            await reportService.delete(id);
-            setReports(reports.filter(r => r.id !== id));
+            await deleteMutation.mutateAsync(id);
+            // Remove from selection if it was selected
             const newSelected = new Set(selectedReports);
             newSelected.delete(id);
             setSelectedReports(newSelected);
-        } catch (err: unknown) {
-            alert('Failed to delete report: ' + (err as Error).message);
+            success('Report deleted successfully');
+        } catch (err) {
+            const appError = errorHandler.handle(err, 'ReportDelete');
+            showError(errorHandler.getUserMessage(appError));
         }
     };
 
@@ -70,9 +70,10 @@ export const Reports = () => {
         try {
             const selectedData = reports.filter(r => selectedReports.has(r.id));
             await generateWordDocument(selectedData, metaData, user?.id);
+            success('Report exported successfully');
         } catch (error) {
-            console.error(error);
-            alert('Failed to generate report');
+            const appError = errorHandler.handle(error, 'ReportExport');
+            showError(errorHandler.getUserMessage(appError));
         } finally {
             setIsExporting(false);
         }
@@ -94,23 +95,30 @@ export const Reports = () => {
         try {
             // Delete all selected reports
             await Promise.all(
-                Array.from(selectedReports).map(id => reportService.delete(id))
+                Array.from(selectedReports).map(id => deleteMutation.mutateAsync(id))
             );
 
-            // Update the UI
-            setReports(reports.filter(r => !selectedReports.has(r.id)));
+            // Clear selection
             setSelectedReports(new Set());
-
-            alert(`Successfully deleted ${count} report${count > 1 ? 's' : ''}`);
-        } catch (err: unknown) {
-            alert('Failed to delete reports: ' + (err as Error).message);
+            success(`Successfully deleted ${count} report${count > 1 ? 's' : ''}`);
+        } catch (err) {
+            const appError = errorHandler.handle(err, 'ReportBulkDelete');
+            showError(errorHandler.getUserMessage(appError));
         }
     };
 
     if (loading) {
         return (
-            <div className="flex justify-center items-center h-64">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <div className="space-y-8">
+                <div className="flex justify-between items-center">
+                    <div>
+                        <h1 className="text-3xl font-bold tracking-tight text-foreground">Reports</h1>
+                        <p className="text-muted-foreground mt-1">Manage and view all test reports.</p>
+                    </div>
+                </div>
+                <div className="bg-card shadow-sm rounded-xl border border-border overflow-hidden p-4">
+                    <TableSkeleton rows={8} />
+                </div>
             </div>
         );
     }
@@ -148,12 +156,6 @@ export const Reports = () => {
                     </div>
                 )}
             </div>
-
-            {error && (
-                <div className="bg-destructive/10 border border-destructive/20 text-destructive px-4 py-3 rounded-md text-sm">
-                    {error}
-                </div>
-            )}
 
             <div className="bg-card shadow-sm rounded-xl border border-border overflow-hidden">
                 {/* Mobile Card View */}

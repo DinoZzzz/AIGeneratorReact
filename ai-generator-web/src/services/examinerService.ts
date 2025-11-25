@@ -41,6 +41,9 @@ export const examinerService = {
                 throw new Error('Email and password are required for new examiners');
             }
 
+            // Save the current session to restore it after creating the new user
+            const { data: { session: currentSession } } = await supabase.auth.getSession();
+
             const { data: authData, error: authError } = await supabase.auth.signUp({
                 email: profile.email,
                 password: profile.password,
@@ -56,7 +59,16 @@ export const examinerService = {
             if (authError) throw authError;
             if (!authData.user) throw new Error('Failed to create user');
 
-            // Now create the profile with the auth user's ID
+            // Restore the original session to prevent auto-login as the new user
+            if (currentSession) {
+                await supabase.auth.setSession({
+                    access_token: currentSession.access_token,
+                    refresh_token: currentSession.refresh_token
+                });
+            }
+
+            // Now create/update the profile with the auth user's ID
+            // Use upsert to handle the case where a trigger might have already created the profile
             const newProfile = {
                 id: authData.user.id,
                 name: profile.name,
@@ -70,7 +82,7 @@ export const examinerService = {
 
             const { data, error } = await supabase
                 .from('profiles')
-                .insert(newProfile)
+                .upsert(newProfile)
                 .select()
                 .single();
 
@@ -91,6 +103,32 @@ export const examinerService = {
             accreditations: profile.accreditations,
             role: profile.role
         };
+
+        // If password is provided, update it
+        if (profile.password && profile.password.trim() !== '') {
+            // Save the current session to restore it after password update
+            const { data: { session: currentSession } } = await supabase.auth.getSession();
+
+            // Update the user's password using the auth admin API
+            const { error: passwordError } = await supabase.auth.updateUser({
+                password: profile.password
+            });
+
+            if (passwordError) {
+                // If direct update fails (likely because we're not that user), 
+                // we need to use a different approach or Edge Function
+                console.error('Password update error:', passwordError);
+                throw new Error('Unable to update password. Admin features may require Edge Function setup.');
+            }
+
+            // Restore the original session if we changed it
+            if (currentSession) {
+                await supabase.auth.setSession({
+                    access_token: currentSession.access_token,
+                    refresh_token: currentSession.refresh_token
+                });
+            }
+        }
 
         const { data, error } = await supabase
             .from('profiles')

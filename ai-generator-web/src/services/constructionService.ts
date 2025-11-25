@@ -1,15 +1,16 @@
 import { supabase } from '../lib/supabase';
 import type { Construction } from '../types';
+import { AppError, NotFoundError } from '../lib/errorHandler';
 
 export const constructionService = {
     async getByCustomerId(customerId: string) {
         const { data, error } = await supabase
             .from('constructions')
-            .select('*')
+            .select('id, name, work_order, address, customer_id, created_at, updated_at')
             .eq('customer_id', customerId)
             .order('created_at', { ascending: false });
 
-        if (error) throw error;
+        if (error) throw new AppError(error.message, 'SUPABASE_ERROR', 500);
         return data as Construction[];
     },
 
@@ -20,7 +21,12 @@ export const constructionService = {
             .eq('id', id)
             .single();
 
-        if (error) throw error;
+        if (error) {
+            if (error.code === 'PGRST116') {
+                throw new NotFoundError('Construction');
+            }
+            throw new AppError(error.message, 'SUPABASE_ERROR', 500);
+        }
         return data as Construction;
     },
 
@@ -31,7 +37,7 @@ export const constructionService = {
             .select()
             .single();
 
-        if (error) throw error;
+        if (error) throw new AppError(error.message, 'SUPABASE_ERROR', 500);
         return data as Construction;
     },
 
@@ -43,7 +49,7 @@ export const constructionService = {
             .select()
             .single();
 
-        if (error) throw error;
+        if (error) throw new AppError(error.message, 'SUPABASE_ERROR', 500);
         return data as Construction;
     },
 
@@ -53,7 +59,7 @@ export const constructionService = {
             .delete()
             .eq('id', id);
 
-        if (error) throw error;
+        if (error) throw new AppError(error.message, 'SUPABASE_ERROR', 500);
     },
 
     async checkWorkOrderExists(workOrder: string, customerId: string, excludeId?: string) {
@@ -68,7 +74,7 @@ export const constructionService = {
         }
 
         const { data, error } = await query;
-        if (error) throw error;
+        if (error) throw new AppError(error.message, 'SUPABASE_ERROR', 500);
         return data.length > 0;
     }
 };

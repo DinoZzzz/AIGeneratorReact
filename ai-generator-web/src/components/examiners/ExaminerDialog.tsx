@@ -72,22 +72,28 @@ export const ExaminerDialog = ({ open, onOpenChange, examiner, onSave }: Examine
         e.preventDefault();
 
         if (!formData.name || !formData.last_name || !formData.username) {
-            alert('Please fill in all required fields');
+            alert(t('examiners.dialog.fillRequired'));
             return;
         }
 
         if (!examiner && !formData.email) {
-            alert('Email is required for new examiners');
+            alert(t('examiners.dialog.emailRequired'));
             return;
         }
 
         if (!examiner && !formData.password) {
-            alert('Password is required for new examiners');
+            alert(t('examiners.dialog.passwordRequired'));
+            return;
+        }
+
+        // Validate password length for new users or when changing password
+        if (formData.password && formData.password.trim().length > 0 && formData.password.length < 6) {
+            alert(t('examiners.dialog.passwordTooShort'));
             return;
         }
 
         if (formData.accreditations?.length === 0) {
-            alert('Please select at least one accreditation');
+            alert(t('examiners.dialog.accreditationRequired'));
             return;
         }
 
@@ -97,7 +103,7 @@ export const ExaminerDialog = ({ open, onOpenChange, examiner, onSave }: Examine
             onOpenChange(false);
         } catch (error) {
             console.error(error);
-            alert('Failed to save examiner');
+            alert(t('examiners.dialog.saveFailed'));
         } finally {
             setLoading(false);
         }
@@ -169,22 +175,27 @@ export const ExaminerDialog = ({ open, onOpenChange, examiner, onSave }: Examine
                                 value={formData.email}
                                 onChange={e => setFormData({ ...formData, email: e.target.value })}
                                 required={!examiner}
+                                disabled={!!examiner}
                             />
                         </div>
-                        {!examiner && (
-                            <div className="space-y-2">
-                                <Label htmlFor="password">
-                                    {t('examiners.dialog.password')} <span className="text-destructive">*</span>
-                                </Label>
-                                <Input
-                                    id="password"
-                                    type="password"
-                                    value={formData.password}
-                                    onChange={e => setFormData({ ...formData, password: e.target.value })}
-                                    required
-                                />
-                            </div>
-                        )}
+                        <div className="space-y-2">
+                            <Label htmlFor="password">
+                                {t('examiners.dialog.password')} {!examiner && <span className="text-destructive">*</span>}
+                            </Label>
+                            <Input
+                                id="password"
+                                type="password"
+                                value={formData.password}
+                                onChange={e => setFormData({ ...formData, password: e.target.value })}
+                                required={!examiner}
+                                placeholder={examiner ? t('examiners.dialog.passwordPlaceholder') : ''}
+                            />
+                            {examiner && (
+                                <p className="text-xs text-muted-foreground">
+                                    {t('examiners.dialog.passwordHint')}
+                                </p>
+                            )}
+                        </div>
                     </div>
 
                     <div className="flex items-center space-x-2">

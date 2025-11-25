@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react';
+import { memo } from 'react';
 import { Link } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { Users, HardHat, FileText, ArrowUpRight } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { cn } from '../lib/utils';
@@ -8,40 +9,35 @@ import { useLanguage } from '../context/LanguageContext';
 import { DashboardStats } from '../components/dashboard/DashboardStats';
 import { DashboardCustomersTable } from '../components/dashboard/DashboardCustomersTable';
 
-export const Dashboard = () => {
-    const { user, profile } = useAuth();
-    const { t } = useLanguage();
-    const [stats, setStats] = useState({
-        customers: 0,
-        constructions: 0,
-        reports: 0
-    });
-    const [loading, setLoading] = useState(true);
+// Dashboard stats query
+const useDashboardStats = () => {
+    return useQuery({
+        queryKey: ['dashboard', 'stats'],
+        queryFn: async () => {
+            const [
+                { count: customersCount },
+                { count: constructionsCount },
+                { count: reportsCount }
+            ] = await Promise.all([
+                supabase.from('customers').select('*', { count: 'exact', head: true }),
+                supabase.from('constructions').select('*', { count: 'exact', head: true }),
+                supabase.from('report_forms').select('*', { count: 'exact', head: true })
+            ]);
 
-    useEffect(() => {
-        loadDashboardData();
-    }, []);
-
-    const loadDashboardData = async () => {
-        try {
-            // Fetch counts
-            const { count: customersCount } = await supabase.from('customers').select('*', { count: 'exact', head: true });
-            const { count: constructionsCount } = await supabase.from('constructions').select('*', { count: 'exact', head: true });
-            const { count: reportsCount } = await supabase.from('report_forms').select('*', { count: 'exact', head: true });
-
-            setStats({
+            return {
                 customers: customersCount || 0,
                 constructions: constructionsCount || 0,
                 reports: reportsCount || 0
-            });
+            };
+        },
+        staleTime: 5 * 60 * 1000, // 5 minutes
+    });
+};
 
-
-        } catch (error) {
-            console.error('Error loading dashboard data:', error);
-        } finally {
-            setLoading(false);
-        }
-    };
+export const Dashboard = () => {
+    const { user, profile } = useAuth();
+    const { t } = useLanguage();
+    const { data: stats = { customers: 0, constructions: 0, reports: 0 }, isLoading: loading } = useDashboardStats();
 
     const getUserName = () => {
         if (!user) return 'Korisnik';
@@ -112,7 +108,7 @@ interface StatsCardProps {
     bgColor: string;
 }
 
-const StatsCard = ({ title, value, icon: Icon, href, color, bgColor }: StatsCardProps) => {
+const StatsCard = memo(({ title, value, icon: Icon, href, color, bgColor }: StatsCardProps) => {
     const content = (
         <div className="p-6">
             <div className="flex items-center">
@@ -149,4 +145,6 @@ const StatsCard = ({ title, value, icon: Icon, href, color, bgColor }: StatsCard
             {content}
         </div>
     );
-};
+});
+
+StatsCard.displayName = 'StatsCard';

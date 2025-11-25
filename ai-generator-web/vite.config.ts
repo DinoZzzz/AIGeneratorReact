@@ -1,11 +1,18 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
+import { visualizer } from 'rollup-plugin-visualizer'
 
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [
     react(),
+    visualizer({
+      open: false,
+      gzipSize: true,
+      brotliSize: true,
+      filename: 'dist/stats.html',
+    }) as any, // Plugin type compatibility
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['icon-192x192.png', 'icon-512x512.png', 'apple-touch-icon.png'],
@@ -64,5 +71,23 @@ export default defineConfig({
   },
   optimizeDeps: {
     include: ['docxtemplater-image-module-free']
-  }
+  },
+  build: {
+    target: 'es2020',
+    cssCodeSplit: true,
+    sourcemap: false,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'react-vendor': ['react', 'react-dom', 'react-router-dom'],
+          'ui-vendor': ['lucide-react', '@radix-ui/react-checkbox', '@radix-ui/react-label', '@radix-ui/react-slot'],
+          'query-vendor': ['@tanstack/react-query'],
+          'supabase': ['@supabase/supabase-js'],
+          'pdf-export': ['jspdf', 'jspdf-autotable'],
+          'word-export': ['docxtemplater', 'docxtemplater-image-module-free', 'pizzip'],
+          'charts': ['recharts'],
+        },
+      },
+    },
+  },
 })

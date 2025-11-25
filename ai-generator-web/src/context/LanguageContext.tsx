@@ -109,6 +109,12 @@ const translations: Record<Language, TranslationDictionary> = {
         'examiners.dialog.cancel': 'Odustani',
         'examiners.dialog.save': 'Spremi',
         'examiners.dialog.saving': 'Spremanje...',
+        'examiners.dialog.fillRequired': 'Molimo ispunite sva obavezna polja',
+        'examiners.dialog.emailRequired': 'Email je obavezan za nove ispitivače',
+        'examiners.dialog.passwordRequired': 'Lozinka je obavezna za nove ispitivače',
+        'examiners.dialog.passwordTooShort': 'Lozinka mora imati najmanje 6 znakova',
+        'examiners.dialog.accreditationRequired': 'Molimo odaberite barem jednu akreditaciju',
+        'examiners.dialog.saveFailed': 'Spremanje ispitivača nije uspjelo',
         'customers.title': 'Kupci',
         'customers.new': 'Novi kupac',
         'customers.search': 'Pretraži kupce...',
@@ -231,6 +237,12 @@ const translations: Record<Language, TranslationDictionary> = {
         'examiners.dialog.cancel': 'Cancel',
         'examiners.dialog.save': 'Save',
         'examiners.dialog.saving': 'Saving...',
+        'examiners.dialog.fillRequired': 'Please fill in all required fields',
+        'examiners.dialog.emailRequired': 'Email is required for new examiners',
+        'examiners.dialog.passwordRequired': 'Password is required for new examiners',
+        'examiners.dialog.passwordTooShort': 'Password must be at least 6 characters long',
+        'examiners.dialog.accreditationRequired': 'Please select at least one accreditation',
+        'examiners.dialog.saveFailed': 'Failed to save examiner',
         'customers.title': 'Customers',
         'customers.new': 'New Customer',
         'customers.search': 'Search customers...',
@@ -438,7 +450,15 @@ Object.assign(translations.hr, {
     'materials.removed': 'Materijal uklonjen.',
     'materials.deleteConfirm': 'Jeste li sigurni da želite ukloniti ovaj materijal?',
     'materials.restricted': 'Upravljanje materijalima je ograničeno na administratore.',
-    'materials.inUseError': 'Materijal se koristi u izvještajima pa ga nije moguće ukloniti.'
+    'materials.inUseError': 'Materijal se koristi u izvještajima pa ga nije moguće ukloniti.',
+    'materials.deleteDialogTitle': 'Potvrdi brisanje',
+    'materials.deleteDialogMessage': 'Jeste li sigurni da želite obrisati ovaj materijal?',
+    'materials.materialType': 'Vrsta materijala',
+    'materials.materialName': 'Naziv materijala',
+    'materials.deleteWarning': 'Ova radnja se ne može poništiti.',
+    'materials.confirmDelete': 'Obriši materijal',
+    'materials.shaftSingular': 'Materijal za okna',
+    'materials.pipeSingular': 'Materijal za cijevi'
 });
 
 Object.assign(translations.en, {
@@ -463,7 +483,15 @@ Object.assign(translations.en, {
     'materials.removed': 'Material removed successfully.',
     'materials.deleteConfirm': 'Are you sure you want to remove this material?',
     'materials.restricted': 'Material management is restricted to administrators.',
-    'materials.inUseError': 'Material is used in reports and cannot be removed.'
+    'materials.inUseError': 'Material is used in reports and cannot be removed.',
+    'materials.deleteDialogTitle': 'Confirm Deletion',
+    'materials.deleteDialogMessage': 'Are you sure you want to delete this material?',
+    'materials.materialType': 'Material type',
+    'materials.materialName': 'Material name',
+    'materials.deleteWarning': 'This action cannot be undone.',
+    'materials.confirmDelete': 'Delete Material',
+    'materials.shaftSingular': 'Shaft material',
+    'materials.pipeSingular': 'Pipe material'
 });
 
 // Settings appearance translations
