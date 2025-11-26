@@ -12,8 +12,10 @@ import { useReports, useDeleteReport } from '../hooks/useReports';
 import { TableSkeleton } from '../components/skeletons';
 import { errorHandler } from '../lib/errorHandler';
 import { useToast } from '../context/ToastContext';
+import { useLanguage } from '../context/LanguageContext';
 
 export const Reports = () => {
+    const { t } = useLanguage();
     const { user } = useAuth();
     const { success, error: showError } = useToast();
     const [selectedReports, setSelectedReports] = useState<Set<string>>(new Set());
@@ -33,14 +35,14 @@ export const Reports = () => {
     }, [error, showError]);
 
     const handleDelete = async (id: string) => {
-        if (!window.confirm('Are you sure you want to delete this report?')) return;
+        if (!window.confirm(t('reports.deleteConfirm'))) return;
         try {
             await deleteMutation.mutateAsync(id);
             // Remove from selection if it was selected
             const newSelected = new Set(selectedReports);
             newSelected.delete(id);
             setSelectedReports(newSelected);
-            success('Report deleted successfully');
+            success(t('reports.deleteSuccess'));
         } catch (err) {
             const appError = errorHandler.handle(err, 'ReportDelete');
             showError(errorHandler.getUserMessage(appError));
@@ -70,7 +72,7 @@ export const Reports = () => {
         try {
             const selectedData = reports.filter(r => selectedReports.has(r.id));
             await generateWordDocument(selectedData, metaData, user?.id);
-            success('Report exported successfully');
+            success(t('reports.exportSuccess'));
         } catch (error) {
             const appError = errorHandler.handle(error, 'ReportExport');
             showError(errorHandler.getUserMessage(appError));
@@ -83,12 +85,15 @@ export const Reports = () => {
         const count = selectedReports.size;
 
         // First confirmation
-        if (!window.confirm(`Are you sure you want to delete ${count} selected report${count > 1 ? 's' : ''}?`)) {
+        const plural = count > 1 ? 's' : '';
+        const confirmMsg = t('reports.deleteSelectedConfirm').replace('{count}', count.toString()).replace('{plural}', plural);
+        if (!window.confirm(confirmMsg)) {
             return;
         }
 
         // Second confirmation
-        if (!window.confirm(`This action cannot be undone. Delete ${count} report${count > 1 ? 's' : ''} permanently?`)) {
+        const finalMsg = t('reports.deleteSelectedFinal').replace('{count}', count.toString()).replace('{plural}', plural);
+        if (!window.confirm(finalMsg)) {
             return;
         }
 
@@ -100,7 +105,9 @@ export const Reports = () => {
 
             // Clear selection
             setSelectedReports(new Set());
-            success(`Successfully deleted ${count} report${count > 1 ? 's' : ''}`);
+            const plural = count > 1 ? 's' : '';
+            const successMsg = t('reports.deleteSelectedSuccess').replace('{count}', count.toString()).replace('{plural}', plural);
+            success(successMsg);
         } catch (err) {
             const appError = errorHandler.handle(err, 'ReportBulkDelete');
             showError(errorHandler.getUserMessage(appError));
@@ -112,8 +119,8 @@ export const Reports = () => {
             <div className="space-y-8">
                 <div className="flex justify-between items-center">
                     <div>
-                        <h1 className="text-3xl font-bold tracking-tight text-foreground">Reports</h1>
-                        <p className="text-muted-foreground mt-1">Manage and view all test reports.</p>
+                        <h1 className="text-3xl font-bold tracking-tight text-foreground">{t('reports.title')}</h1>
+                        <p className="text-muted-foreground mt-1">{t('reports.manageViewReports')}</p>
                     </div>
                 </div>
                 <div className="bg-card shadow-sm rounded-xl border border-border overflow-hidden p-4">
@@ -127,8 +134,8 @@ export const Reports = () => {
         <div className="space-y-8">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight text-foreground">Reports</h1>
-                    <p className="text-muted-foreground mt-1">Manage and view all test reports.</p>
+                    <h1 className="text-3xl font-bold tracking-tight text-foreground">{t('reports.title')}</h1>
+                    <p className="text-muted-foreground mt-1">{t('reports.manageViewReports')}</p>
                 </div>
                 {selectedReports.size > 0 && (
                     <div className="flex space-x-2 w-full sm:w-auto">
@@ -138,7 +145,7 @@ export const Reports = () => {
                             className="flex-1 sm:flex-none text-destructive hover:text-destructive hover:bg-destructive/10 border-destructive/30"
                         >
                             <Trash2 className="h-4 w-4 mr-2" />
-                            Delete ({selectedReports.size})
+                            {t('reports.delete')} ({selectedReports.size})
                         </Button>
                         <Button
                             variant="outline"
@@ -151,7 +158,7 @@ export const Reports = () => {
                             ) : (
                                 <Download className="h-4 w-4 mr-2" />
                             )}
-                            Export ({selectedReports.size})
+                            {t('reports.export')} ({selectedReports.size})
                         </Button>
                     </div>
                 )}
@@ -164,8 +171,8 @@ export const Reports = () => {
                         <div className="p-8 text-center text-muted-foreground">
                             <div className="flex flex-col items-center justify-center">
                                 <FileText className="h-12 w-12 text-muted-foreground/50 mb-4" />
-                                <p className="text-lg font-medium text-foreground">No reports found</p>
-                                <p className="text-sm text-muted-foreground mt-1">Reports are created from construction sites.</p>
+                                <p className="text-lg font-medium text-foreground">{t('reports.noReports')}</p>
+                                <p className="text-sm text-muted-foreground mt-1">{t('reports.reportsFromConstructions')}</p>
                             </div>
                         </div>
                     ) : (
@@ -190,7 +197,7 @@ export const Reports = () => {
                                         </div>
                                         <div>
                                             <div className="font-medium text-foreground">
-                                                {report.type_id === 1 ? 'Water' : 'Air'} - {report.draft?.name}
+                                                {report.type_id === 1 ? t('reports.water') : t('reports.air')} - {report.draft?.name}
                                             </div>
                                             <div className="text-xs text-muted-foreground">
                                                 {new Date(report.examination_date).toLocaleDateString()}
@@ -220,7 +227,7 @@ export const Reports = () => {
                                     <Button variant="ghost" size="sm" asChild>
                                         <Link to={`/reports/${report.id}`}>
                                             <Edit className="h-4 w-4 mr-2" />
-                                            Edit
+                                            {t('reports.edit')}
                                         </Link>
                                     </Button>
                                     <Button
@@ -230,7 +237,7 @@ export const Reports = () => {
                                         className="text-destructive hover:text-destructive hover:bg-destructive/10"
                                     >
                                         <Trash2 className="h-4 w-4 mr-2" />
-                                        Delete
+                                        {t('reports.delete')}
                                     </Button>
                                 </div>
                             </div>
@@ -252,19 +259,19 @@ export const Reports = () => {
                                     />
                                 </th>
                                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                                    Date
+                                    {t('reports.date')}
                                 </th>
                                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                                     Construction
                                 </th>
                                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                                    Type
+                                    {t('reports.type')}
                                 </th>
                                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                                    Status
+                                    {t('reports.status')}
                                 </th>
                                 <th scope="col" className="relative px-6 py-3">
-                                    <span className="sr-only">Actions</span>
+                                    <span className="sr-only">{t('reports.actions')}</span>
                                 </th>
                             </tr>
                         </thead>
@@ -274,8 +281,8 @@ export const Reports = () => {
                                     <td colSpan={6} className="px-6 py-12 text-center text-muted-foreground">
                                         <div className="flex flex-col items-center justify-center">
                                             <FileText className="h-12 w-12 text-muted-foreground/50 mb-4" />
-                                            <p className="text-lg font-medium text-foreground">No reports found</p>
-                                            <p className="text-sm text-muted-foreground mt-1">Reports are created from construction sites.</p>
+                                            <p className="text-lg font-medium text-foreground">{t('reports.noReports')}</p>
+                                            <p className="text-sm text-muted-foreground mt-1">{t('reports.reportsFromConstructions')}</p>
                                         </div>
                                     </td>
                                 </tr>
@@ -300,7 +307,7 @@ export const Reports = () => {
                                             </div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
-                                            {report.type_id === 1 ? 'Water' : 'Air'} - {report.draft?.name}
+                                            {report.type_id === 1 ? t('reports.water') : t('reports.air')} - {report.draft?.name}
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <span className={cn(
@@ -309,7 +316,7 @@ export const Reports = () => {
                                                     ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
                                                     : "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400"
                                             )}>
-                                                {report.satisfies ? 'Satisfies' : 'Failed'}
+                                                {report.satisfies ? t('reports.satisfies') : t('reports.failed')}
                                             </span>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">

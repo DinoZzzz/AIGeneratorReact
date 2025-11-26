@@ -184,6 +184,15 @@ const translations: Record<Language, TranslationDictionary> = {
         'reports.draft': 'Nacrt',
         'reports.actions': 'Akcije',
         'common.all': 'Sve',
+        'reports.manageViewReports': 'Upravljanje i pregled svih izvještaja.',
+        'reports.deleteConfirm': 'Jeste li sigurni da želite obrisati ovaj izvještaj?',
+        'reports.deleteSelectedConfirm': 'Jeste li sigurni da želite obrisati {count} odabran{plural}?',
+        'reports.deleteSelectedFinal': 'Ova radnja se ne može poništiti. Obrisati {count} izvještaj{plural} trajno?',
+        'reports.deleteSuccess': 'Izvještaj uspješno obrisan',
+        'reports.deleteSelectedSuccess': 'Uspješno obrisan{plural} {count} izvještaj{plural}',
+        'reports.exportSuccess': 'Izvještaj uspješno izvezen',
+        'reports.noReports': 'Nema pronađenih izvještaja',
+        'reports.reportsFromConstructions': 'Izvještaji se kreiraju iz gradilišta.',
     },
     en: {
         'nav.platform': 'Platform',
@@ -362,6 +371,15 @@ const translations: Record<Language, TranslationDictionary> = {
         'reports.draft': 'Draft',
         'reports.actions': 'Actions',
         'common.all': 'All',
+        'reports.manageViewReports': 'Manage and view all test reports.',
+        'reports.deleteConfirm': 'Are you sure you want to delete this report?',
+        'reports.deleteSelectedConfirm': 'Are you sure you want to delete {count} selected report{plural}?',
+        'reports.deleteSelectedFinal': 'This action cannot be undone. Delete {count} report{plural} permanently?',
+        'reports.deleteSuccess': 'Report deleted successfully',
+        'reports.deleteSelectedSuccess': 'Successfully deleted {count} report{plural}',
+        'reports.exportSuccess': 'Report exported successfully',
+        'reports.noReports': 'No reports found',
+        'reports.reportsFromConstructions': 'Reports are created from construction sites.',
     }
 };
 
