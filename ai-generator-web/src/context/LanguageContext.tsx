@@ -564,6 +564,17 @@ Object.assign(translations.en, {
     'constructions.archivedBadge': 'ARCHIVED'
 });
 
+// Export dialog translations
+Object.assign(translations.hr, {
+    'export.includePdfs': 'Dodaj PDF-ove izvještaja na kraj dokumenta',
+    'export.includePdfsHelp': 'Označeni izvještaji će biti generirani kao PDF i dodani na kraj Word dokumenta'
+});
+
+Object.assign(translations.en, {
+    'export.includePdfs': 'Include PDFs of reports at the end of document',
+    'export.includePdfsHelp': 'Selected reports will be generated as PDFs and appended to the Word document'
+});
+
 // Settings / Materials translations
 Object.assign(translations.hr, {
     'materials.shaftTitle': 'Materijali za okna',

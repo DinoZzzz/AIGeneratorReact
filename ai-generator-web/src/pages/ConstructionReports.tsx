@@ -157,9 +157,11 @@ export const ConstructionReports = () => {
             let reportsToExport: ReportForm[] = [];
 
             if (dialogSelectedReports && dialogSelectedReports.length > 0) {
-                reportsToExport = dialogSelectedReports.filter(r => !r.section_name);
+                // Include both reports and sections
+                reportsToExport = dialogSelectedReports;
             } else if (selectedIds.size > 0) {
-                reportsToExport = reports.filter(r => r.id && selectedIds.has(r.id) && !r.section_name);
+                // Include both reports and sections
+                reportsToExport = reports.filter(r => r.id && selectedIds.has(r.id));
             } else {
                 // Fallback: if no selection in dialog (shouldn't happen due to validation) and no pre-selection
                 reportsToExport = reports.filter(r => !r.section_name);
@@ -294,12 +296,16 @@ export const ConstructionReports = () => {
             const maxOrdinal = reports.length > 0 ? Math.max(...reports.map(r => r.ordinal)) : 0;
 
             // Create section - just a placeholder entry with section_name set
-            const newSection = await reportService.create({
+            // NOTE: type_id should NOT be set for sections - they are identified by having section_name and no type_id
+            // We use material_type_id to indicate which type of section this is: 1 = Water, 2 = Air
+            const sectionPayload = {
                 construction_id: constructionId,
                 section_name: name,
                 ordinal: maxOrdinal + 1,
-                type_id: typeId,
-            });
+                material_type_id: typeId, // 1 = Water section, 2 = Air section
+                // Do NOT set type_id for sections
+            };
+            const newSection = await reportService.create(sectionPayload);
             setReports([...reports, newSection]);
         } catch (error) {
             console.error('Failed to create section:', error);
@@ -348,8 +354,9 @@ export const ConstructionReports = () => {
     const isArchived = construction.is_archived;
 
     // Split reports by type
-    const airReports = reports.filter(report => report.type_id === 2);
-    const waterReports = reports.filter(report => report.type_id === 1);
+    // Include sections based on their material_type_id (1 = Water, 2 = Air)
+    const airReports = reports.filter(report => report.type_id === 2 || (!report.type_id && report.section_name && report.material_type_id === 2));
+    const waterReports = reports.filter(report => report.type_id === 1 || (!report.type_id && report.section_name && report.material_type_id === 1));
 
     // Apply filters and search for Air reports
     const filteredAirReports = airReports.filter(report => {

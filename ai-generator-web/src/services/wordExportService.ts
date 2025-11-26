@@ -14,6 +14,8 @@ import {
     calculateWettedPipeSurface
 } from '../lib/calculations/report';
 import { supabase } from '../lib/supabase';
+import { generateBulkPDFAsBlob } from '../lib/pdfGenerator';
+import { convertPdfToImages, dataUrlToArrayBuffer } from '../lib/pdfToImage';
 
 // Function to load file from Supabase Storage
 const loadFile = async (path: string): Promise<ArrayBuffer> => {
@@ -205,6 +207,50 @@ export const generateWordDocument = async (reports: ReportForm[], metaData: Expo
             }
         }
 
+        // 3b. Generate PDF reports if requested
+        let pdfReportImages: { path: string, description: string, image: string }[] = [];
+        if (metaData.includePdfs) {
+            try {
+                // Generate PDF for all reports
+                const pdfBlob = await generateBulkPDFAsBlob(reports, userProfile);
+
+                // Convert PDF pages to images
+                const pdfImages = await convertPdfToImages(pdfBlob);
+
+                // Add each PDF page as an image
+                pdfImages.forEach((imageDataUrl, index) => {
+                    const pdfPagePath = `pdf_page_${index}`;
+                    const imageBuffer = dataUrlToArrayBuffer(imageDataUrl);
+                    imageMap[pdfPagePath] = imageBuffer;
+
+                    // Estimate dimensions based on A4 aspect ratio (210/297 ≈ 0.707)
+                    imageDimensions[pdfPagePath] = { width: 600, height: 849 }; // Maintain A4 aspect ratio
+
+                    pdfReportImages.push({
+                        path: pdfPagePath,
+                        description: `Izvještaj stranica ${index + 1}`,
+                        image: pdfPagePath
+                    });
+                });
+
+                // Add PDF pages to content table
+                if (pdfReportImages.length > 0) {
+                    const pdfContentTable = pdfReportImages.map((img, i) =>
+                        `8.${i + 1}. ${img.description}`
+                    ).join('\n');
+
+                    if (contentTable) {
+                        contentTable += '\n' + pdfContentTable;
+                    } else {
+                        contentTable = pdfContentTable;
+                    }
+                }
+            } catch (error) {
+                console.error('Failed to generate PDF reports:', error);
+                // Continue without PDFs if generation fails
+            }
+        }
+
         // Configure Image Module
         const imageModule = new ImageModule({
             centered: false,
@@ -294,11 +340,9 @@ export const generateWordDocument = async (reports: ReportForm[], metaData: Expo
         // Prepare Air Method Table Data
         // Filter for Air reports OR sections
         // We want to include sections that are relevant to Air reports.
-        // Since we don't know which section belongs to which type until we see the content,
-        // we can just include ALL sections in the sorted list, and then filter out empty sections if needed?
-        // Or simpler: Just take all items, filter for (Air OR Section).
+        // Filter for Air reports and Air sections (material_type_id === 2)
         const sortedAirItems = reports
-            .filter(r => r.type_id === 2 || (!r.type_id && r.section_name))
+            .filter(r => r.type_id === 2 || (!r.type_id && r.section_name && r.material_type_id === 2))
             .sort((a, b) => a.ordinal - b.ordinal);
 
         const airReports: any[] = [];
@@ -306,7 +350,18 @@ export const generateWordDocument = async (reports: ReportForm[], metaData: Expo
 
         sortedAirItems.forEach((r) => {
             if ((r as any).section_name && !r.type_id) {
-                airReports.push({ isSection: true, isReport: false, sectionName: (r as any).section_name });
+                airReports.push({
+                    isSection: true,
+                    isReport: false,
+                    sectionName: (r as any).section_name,
+                    ordinal: '',
+                    stock: '',
+                    pipeLength: '',
+                    procedureInfo: '',
+                    allowedLoss: '',
+                    pressureLoss: '',
+                    uncertainty: ''
+                });
                 return;
             }
 
@@ -329,9 +384,9 @@ export const generateWordDocument = async (reports: ReportForm[], metaData: Expo
         });
 
         // Prepare Water Method Table Data
-        // Prepare Water Method Table Data
+        // Filter for Water reports and Water sections (material_type_id === 1)
         const sortedWaterItems = reports
-            .filter(r => r.type_id === 1 || (!r.type_id && r.section_name))
+            .filter(r => r.type_id === 1 || (!r.type_id && r.section_name && r.material_type_id === 1))
             .sort((a, b) => a.ordinal - b.ordinal);
 
         const waterReports: any[] = [];
@@ -339,7 +394,16 @@ export const generateWordDocument = async (reports: ReportForm[], metaData: Expo
 
         sortedWaterItems.forEach((r) => {
             if ((r as any).section_name && !r.type_id) {
-                waterReports.push({ isSection: true, isReport: false, sectionName: (r as any).section_name });
+                waterReports.push({
+                    isSection: true,
+                    isReport: false,
+                    sectionName: (r as any).section_name,
+                    ordinal: '',
+                    stock: '',
+                    allowedLoss: '',
+                    waterVolumeLoss: '',
+                    result: ''
+                });
                 return;
             }
 
@@ -467,9 +531,9 @@ export const generateWordDocument = async (reports: ReportForm[], metaData: Expo
 
             // Attachments
             contentTable,
-            hasAttachments: attachments.length > 0,
-            attachments: attachments, // Expected loop: {#attachments} {%image} {/attachments}
-            Attachments: attachments, // Alias in case user uses {#Attachments}
+            hasAttachments: attachments.length > 0 || pdfReportImages.length > 0,
+            attachments: [...attachments, ...pdfReportImages], // Expected loop: {#attachments} {%image} {/attachments}
+            Attachments: [...attachments, ...pdfReportImages], // Alias in case user uses {#Attachments}
 
             // Gender specific labels
             izradioLabel: userProfile?.gender === 'F' ? 'izradila' : 'izradio',

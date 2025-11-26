@@ -107,6 +107,21 @@ export const generateBulkPDF = async (reports: Partial<ReportForm>[], filename: 
     doc.save(filename);
 };
 
+export const generateBulkPDFAsBlob = async (reports: Partial<ReportForm>[], userProfile?: Profile): Promise<Blob> => {
+    const doc = new jsPDF({
+        putOnlyUsedFonts: true,
+        compress: true
+    });
+    const totalPages = reports.length;
+    for (let i = 0; i < reports.length; i++) {
+        if (i > 0) {
+            doc.addPage();
+        }
+        await renderReportPage(doc, reports[i], userProfile, i + 1, totalPages);
+    }
+    return doc.output('blob');
+};
+
 // Helper to get scheme name
 const getSchemeName = (id: number) => {
     const names = {
