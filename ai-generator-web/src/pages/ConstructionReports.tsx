@@ -3,7 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { reportService } from '../services/reportService';
 import { constructionService } from '../services/constructionService';
 import { customerService } from '../services/customerService';
-import { Loader2, Plus, FileText, Trash2, ArrowLeft, FileDown, Pencil, Type, GripVertical } from 'lucide-react';
+import { Loader2, Plus, FileText, Trash2, ArrowLeft, FileDown, Pencil, Type, GripVertical, Archive } from 'lucide-react';
 import type { ReportForm, Construction, Customer, ReportFile } from '../types';
 import clsx from 'clsx';
 import { generatePDF, generateBulkPDF } from '../lib/pdfGenerator';
@@ -345,6 +345,8 @@ export const ConstructionReports = () => {
         return <div>{t('reports.noData')}</div>;
     }
 
+    const isArchived = construction.is_archived;
+
     // Split reports by type
     const airReports = reports.filter(report => report.type_id === 2);
     const waterReports = reports.filter(report => report.type_id === 1);
@@ -410,6 +412,18 @@ export const ConstructionReports = () => {
                     {actionMessage.text}
                 </div>
             )}
+
+            {/* Archived Warning Banner */}
+            {isArchived && (
+                <div className="px-4 py-3 rounded-md border border-amber-300 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-700 flex items-center gap-3">
+                    <Archive className="h-5 w-5 text-amber-600 dark:text-amber-400 flex-shrink-0" />
+                    <div>
+                        <p className="font-medium text-amber-800 dark:text-amber-300">{t('constructions.archivedBadge')}</p>
+                        <p className="text-sm text-amber-700 dark:text-amber-400">{t('constructions.archiveConfirmMessage')}</p>
+                    </div>
+                </div>
+            )}
+
             <Breadcrumbs items={[
                 { label: customer.name, path: `/customers` },
                 { label: construction.name, path: `/customers/${customerId}/constructions` },
@@ -444,8 +458,8 @@ export const ConstructionReports = () => {
                     <div className="relative inline-block text-left">
                         <button
                             onClick={() => setIsNewReportOpen(!isNewReportOpen)}
-                            disabled={!hasAnyAccreditation}
-                            title={!hasAnyAccreditation ? "You don't have any accreditations" : ""}
+                            disabled={!hasAnyAccreditation || isArchived}
+                            title={isArchived ? t('constructions.archived') : (!hasAnyAccreditation ? "You don't have any accreditations" : "")}
                             className="inline-flex items-center px-3 py-2 md:px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-primary-foreground bg-primary hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             <Plus className="h-5 w-5 md:mr-2" />
@@ -493,8 +507,8 @@ export const ConstructionReports = () => {
                     <div className="relative inline-block text-left">
                         <button
                             onClick={() => setIsAddSectionOpen(!isAddSectionOpen)}
-                            disabled={!hasAnyAccreditation}
-                            title={!hasAnyAccreditation ? "You don't have any accreditations" : ""}
+                            disabled={!hasAnyAccreditation || isArchived}
+                            title={isArchived ? t('constructions.archived') : (!hasAnyAccreditation ? "You don't have any accreditations" : "")}
                             className="inline-flex items-center px-3 py-2 md:px-4 border border-input rounded-md shadow-sm text-sm font-medium text-foreground bg-card hover:bg-accent focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             <Type className="h-5 w-5 md:mr-2" />

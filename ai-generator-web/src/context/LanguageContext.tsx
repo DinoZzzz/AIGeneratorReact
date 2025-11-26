@@ -525,7 +525,20 @@ Object.assign(translations.hr, {
     'constructions.editTitle': 'Uredi gradilište',
     'constructions.placeholderWork': 'npr. 2023-001-A',
     'constructions.placeholderName': 'Naziv gradilišta',
-    'constructions.placeholderLocation': 'Lokacija gradilišta'
+    'constructions.placeholderLocation': 'Lokacija gradilišta',
+    'constructions.archive': 'Arhiviraj',
+    'constructions.unarchive': 'Vrati iz arhive',
+    'constructions.archived': 'Arhivirano',
+    'constructions.archiveConfirmTitle': 'Potvrda arhiviranja',
+    'constructions.archiveConfirmMessage': 'Jeste li sigurni da želite arhivirati ovo gradilište? Za arhivirana gradilišta neće biti moguće kreirati nove izvještaje.',
+    'constructions.unarchiveConfirmTitle': 'Vraćanje iz arhive',
+    'constructions.unarchiveConfirmMessage': 'Jeste li sigurni da želite vratiti ovo gradilište iz arhive?',
+    'constructions.archiveSuccess': 'Gradilište uspješno arhivirano',
+    'constructions.unarchiveSuccess': 'Gradilište uspješno vraćeno iz arhive',
+    'constructions.filterAll': 'Sve',
+    'constructions.filterActive': 'Aktivna',
+    'constructions.filterArchived': 'Arhivirana',
+    'constructions.archivedBadge': 'ARHIVIRANO'
 });
 
 Object.assign(translations.en, {
@@ -535,7 +548,20 @@ Object.assign(translations.en, {
     'constructions.editTitle': 'Edit Construction',
     'constructions.placeholderWork': 'e.g., 2023-001-A',
     'constructions.placeholderName': 'Construction Site Name',
-    'constructions.placeholderLocation': 'Site Location'
+    'constructions.placeholderLocation': 'Site Location',
+    'constructions.archive': 'Archive',
+    'constructions.unarchive': 'Unarchive',
+    'constructions.archived': 'Archived',
+    'constructions.archiveConfirmTitle': 'Confirm Archive',
+    'constructions.archiveConfirmMessage': 'Are you sure you want to archive this construction site? You will not be able to create new reports for archived sites.',
+    'constructions.unarchiveConfirmTitle': 'Confirm Unarchive',
+    'constructions.unarchiveConfirmMessage': 'Are you sure you want to unarchive this construction site?',
+    'constructions.archiveSuccess': 'Construction site archived successfully',
+    'constructions.unarchiveSuccess': 'Construction site unarchived successfully',
+    'constructions.filterAll': 'All',
+    'constructions.filterActive': 'Active',
+    'constructions.filterArchived': 'Archived',
+    'constructions.archivedBadge': 'ARCHIVED'
 });
 
 // Settings / Materials translations

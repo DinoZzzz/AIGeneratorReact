@@ -2,10 +2,14 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { constructionService } from '../services/constructionService';
 import { customerService } from '../services/customerService';
-import { Plus, Pencil, Trash2, ArrowLeft, Loader2, FileText, MapPin, HardHat } from 'lucide-react';
+import { Plus, Pencil, Trash2, ArrowLeft, Loader2, FileText, MapPin, HardHat, Archive, ArchiveRestore } from 'lucide-react';
 import type { Construction, Customer } from '../types';
 import { Breadcrumbs } from '../components/ui/Breadcrumbs';
 import { useLanguage } from '../context/LanguageContext';
+import { useAuth } from '../context/AuthContext';
+import { ConfirmArchiveDialog } from '../components/constructions/ConfirmArchiveDialog';
+
+type FilterType = 'all' | 'active' | 'archived';
 
 export const Constructions = () => {
     const { customerId } = useParams();
@@ -16,6 +20,19 @@ export const Constructions = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     const { t } = useLanguage();
+    const { profile } = useAuth();
+
+    // Archive state
+    const [filter, setFilter] = useState<FilterType>(() => {
+        // Admins see all by default, regular users see only active
+        return profile?.role === 'admin' ? 'all' : 'active';
+    });
+    const [archiveDialogOpen, setArchiveDialogOpen] = useState(false);
+    const [selectedConstruction, setSelectedConstruction] = useState<Construction | null>(null);
+    const [isArchiving, setIsArchiving] = useState(true);
+    const [archiveLoading, setArchiveLoading] = useState(false);
+
+    const isAdmin = profile?.role === 'admin';
 
     const ITEMS_PER_PAGE = 15;
 
@@ -28,9 +45,11 @@ export const Constructions = () => {
     const loadData = async (id: string) => {
         setLoading(true);
         try {
+            // Admins can see all (including archived), regular users only active
+            const includeArchived = isAdmin;
             const [customerData, constructionsData] = await Promise.all([
                 customerService.getById(id),
-                constructionService.getByCustomerId(id)
+                constructionService.getByCustomerId(id, includeArchived)
             ]);
             setCustomer(customerData);
             setConstructions(constructionsData);
@@ -39,6 +58,34 @@ export const Constructions = () => {
             alert('Failed to load data');
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleArchiveClick = (construction: Construction) => {
+        setSelectedConstruction(construction);
+        setIsArchiving(!construction.is_archived);
+        setArchiveDialogOpen(true);
+    };
+
+    const handleArchiveConfirm = async () => {
+        if (!selectedConstruction) return;
+
+        setArchiveLoading(true);
+        try {
+            if (isArchiving) {
+                await constructionService.archive(selectedConstruction.id);
+            } else {
+                await constructionService.unarchive(selectedConstruction.id);
+            }
+            setArchiveDialogOpen(false);
+            if (customerId) {
+                loadData(customerId);
+            }
+        } catch (error) {
+            console.error('Failed to archive/unarchive construction', error);
+            alert('Failed to archive/unarchive construction');
+        } finally {
+            setArchiveLoading(false);
         }
     };
 
@@ -56,11 +103,18 @@ export const Constructions = () => {
         }
     };
 
-    const filteredConstructions = constructions.filter(c =>
-        c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        c.work_order?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        c.location?.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    // First filter by archived status, then by search term
+    const filteredConstructions = constructions
+        .filter(c => {
+            if (filter === 'active') return !c.is_archived;
+            if (filter === 'archived') return c.is_archived;
+            return true; // 'all'
+        })
+        .filter(c =>
+            c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            c.work_order?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            c.location?.toLowerCase().includes(searchTerm.toLowerCase())
+        );
 
     // Pagination
     const totalCount = filteredConstructions.length;
@@ -69,10 +123,10 @@ export const Constructions = () => {
     const endIndex = startIndex + ITEMS_PER_PAGE;
     const paginatedConstructions = filteredConstructions.slice(startIndex, endIndex);
 
-    // Reset to page 1 when search changes
+    // Reset to page 1 when search or filter changes
     useEffect(() => {
         setCurrentPage(1);
-    }, [searchTerm]);
+    }, [searchTerm, filter]);
 
     if (loading) {
         return (
@@ -118,13 +172,49 @@ export const Constructions = () => {
 
             <div className="bg-card shadow rounded-lg overflow-hidden border border-border">
                 <div className="p-4 border-b border-border">
-                    <input
-                        type="text"
-                        placeholder={t('constructions.search')}
-                        className="w-full px-4 py-2 border border-input rounded-md bg-background text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-ring focus:border-ring"
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                    />
+                    <div className="flex flex-col sm:flex-row gap-3">
+                        <input
+                            type="text"
+                            placeholder={t('constructions.search')}
+                            className="flex-1 px-4 py-2 border border-input rounded-md bg-background text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-ring focus:border-ring"
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                        />
+                        {isAdmin && (
+                            <div className="inline-flex rounded-lg border border-input p-1 bg-muted/30">
+                                <button
+                                    onClick={() => setFilter('all')}
+                                    className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+                                        filter === 'all'
+                                            ? 'bg-background text-foreground shadow-sm'
+                                            : 'text-muted-foreground hover:text-foreground'
+                                    }`}
+                                >
+                                    {t('constructions.filterAll')}
+                                </button>
+                                <button
+                                    onClick={() => setFilter('active')}
+                                    className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+                                        filter === 'active'
+                                            ? 'bg-background text-foreground shadow-sm'
+                                            : 'text-muted-foreground hover:text-foreground'
+                                    }`}
+                                >
+                                    {t('constructions.filterActive')}
+                                </button>
+                                <button
+                                    onClick={() => setFilter('archived')}
+                                    className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+                                        filter === 'archived'
+                                            ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-300 shadow-sm'
+                                            : 'text-muted-foreground hover:text-foreground'
+                                    }`}
+                                >
+                                    {t('constructions.filterArchived')}
+                                </button>
+                            </div>
+                        )}
+                    </div>
                 </div>
 
                 {/* Mobile Card View */}
@@ -135,18 +225,35 @@ export const Constructions = () => {
                         </div>
                     ) : (
                         paginatedConstructions.map((construction) => (
-                            <div key={construction.id} className="p-4 space-y-3">
+                            <div key={construction.id} className={`p-4 space-y-3 ${construction.is_archived ? 'bg-amber-50/50 dark:bg-amber-900/10' : ''}`}>
                                 <div className="flex justify-between items-start">
                                     <div>
-                                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-muted text-muted-foreground mb-1">
-                                            {construction.work_order || '-'}
-                                        </span>
+                                        <div className="flex items-center gap-2 mb-1">
+                                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-muted text-muted-foreground">
+                                                {construction.work_order || '-'}
+                                            </span>
+                                            {construction.is_archived && (
+                                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-300">
+                                                    <Archive className="h-3 w-3 mr-1" />
+                                                    {t('constructions.archivedBadge')}
+                                                </span>
+                                            )}
+                                        </div>
                                         <h3 className="text-lg font-bold text-foreground flex items-center">
                                             <HardHat className="h-4 w-4 mr-2 text-primary" />
                                             {construction.name}
                                         </h3>
                                     </div>
                                     <div className="flex space-x-2">
+                                        {isAdmin && (
+                                            <button
+                                                onClick={() => handleArchiveClick(construction)}
+                                                className={`p-2 rounded-full transition-colors ${construction.is_archived ? 'text-green-600 hover:bg-green-100 dark:hover:bg-green-900/30' : 'text-amber-600 hover:bg-amber-100 dark:hover:bg-amber-900/30'}`}
+                                                title={construction.is_archived ? t('constructions.unarchive') : t('constructions.archive')}
+                                            >
+                                                {construction.is_archived ? <ArchiveRestore className="h-4 w-4" /> : <Archive className="h-4 w-4" />}
+                                            </button>
+                                        )}
                                         <Link
                                             to={`/customers/${customerId}/constructions/${construction.id}`}
                                             className="p-2 text-primary hover:bg-primary/10 rounded-full transition-colors"
@@ -174,13 +281,21 @@ export const Constructions = () => {
                                     </span>
                                 </div>
 
-                                <Link
-                                    to={`/customers/${customerId}/constructions/${construction.id}/reports`}
-                                    className="block w-full text-center py-2 px-4 border border-border rounded-md text-sm font-medium text-foreground hover:bg-accent transition-colors"
-                                >
-                                    <FileText className="h-4 w-4 inline-block mr-2 text-green-600" />
-                                    {t('constructions.viewReports')}
-                                </Link>
+                                {!construction.is_archived && (
+                                    <Link
+                                        to={`/customers/${customerId}/constructions/${construction.id}/reports`}
+                                        className="block w-full text-center py-2 px-4 border border-border rounded-md text-sm font-medium text-foreground hover:bg-accent transition-colors"
+                                    >
+                                        <FileText className="h-4 w-4 inline-block mr-2 text-green-600" />
+                                        {t('constructions.viewReports')}
+                                    </Link>
+                                )}
+                                {construction.is_archived && (
+                                    <div className="block w-full text-center py-2 px-4 border border-border rounded-md text-sm font-medium text-muted-foreground bg-muted/50 cursor-not-allowed">
+                                        <FileText className="h-4 w-4 inline-block mr-2 opacity-50" />
+                                        {t('constructions.viewReports')}
+                                    </div>
+                                )}
                             </div>
                         ))
                     )}
@@ -200,9 +315,17 @@ export const Constructions = () => {
                         </thead>
                         <tbody className="bg-card divide-y divide-border">
                             {paginatedConstructions.map((construction) => (
-                                <tr key={construction.id} className="hover:bg-muted/50 transition-colors">
+                                <tr key={construction.id} className={`hover:bg-muted/50 transition-colors ${construction.is_archived ? 'bg-amber-50/50 dark:bg-amber-900/10' : ''}`}>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-foreground">
-                                        {construction.work_order}
+                                        <div className="flex items-center gap-2">
+                                            {construction.work_order}
+                                            {construction.is_archived && (
+                                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-300">
+                                                    <Archive className="h-3 w-3 mr-1" />
+                                                    {t('constructions.archivedBadge')}
+                                                </span>
+                                            )}
+                                        </div>
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
                                         {construction.name}
@@ -214,13 +337,28 @@ export const Constructions = () => {
                                         {new Date(construction.created_at).toLocaleDateString('hr-HR')}
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-3">
-                                        <Link
-                                            to={`/customers/${customerId}/constructions/${construction.id}/reports`}
-                                            className="text-green-600 hover:text-green-700 inline-flex items-center"
-                                            title={t('constructions.viewReports')}
-                                        >
-                                            <FileText className="h-4 w-4" />
-                                        </Link>
+                                        {!construction.is_archived ? (
+                                            <Link
+                                                to={`/customers/${customerId}/constructions/${construction.id}/reports`}
+                                                className="text-green-600 hover:text-green-700 inline-flex items-center"
+                                                title={t('constructions.viewReports')}
+                                            >
+                                                <FileText className="h-4 w-4" />
+                                            </Link>
+                                        ) : (
+                                            <span className="text-muted-foreground/50 inline-flex items-center cursor-not-allowed" title={t('constructions.archived')}>
+                                                <FileText className="h-4 w-4" />
+                                            </span>
+                                        )}
+                                        {isAdmin && (
+                                            <button
+                                                onClick={() => handleArchiveClick(construction)}
+                                                className={`inline-flex items-center ${construction.is_archived ? 'text-green-600 hover:text-green-700' : 'text-amber-600 hover:text-amber-700'}`}
+                                                title={construction.is_archived ? t('constructions.unarchive') : t('constructions.archive')}
+                                            >
+                                                {construction.is_archived ? <ArchiveRestore className="h-4 w-4" /> : <Archive className="h-4 w-4" />}
+                                            </button>
+                                        )}
                                         <Link
                                             to={`/customers/${customerId}/constructions/${construction.id}`}
                                             className="text-primary hover:text-primary/80 inline-flex items-center"
@@ -240,7 +378,7 @@ export const Constructions = () => {
                             ))}
                             {paginatedConstructions.length === 0 && (
                                 <tr>
-                                    <td colSpan={4} className="px-6 py-4 text-center text-sm text-muted-foreground">
+                                    <td colSpan={5} className="px-6 py-4 text-center text-sm text-muted-foreground">
                                         {t('constructions.none')}
                                     </td>
                                 </tr>
@@ -277,6 +415,16 @@ export const Constructions = () => {
                     </div>
                 )}
             </div>
+
+            {/* Archive Confirmation Dialog */}
+            <ConfirmArchiveDialog
+                open={archiveDialogOpen}
+                onOpenChange={setArchiveDialogOpen}
+                onConfirm={handleArchiveConfirm}
+                construction={selectedConstruction}
+                isArchiving={isArchiving}
+                loading={archiveLoading}
+            />
         </div>
     );
 };

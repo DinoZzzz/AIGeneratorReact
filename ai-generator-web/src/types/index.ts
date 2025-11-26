@@ -40,6 +40,7 @@ export interface Construction {
     name: string;
     location?: string;
     is_active: boolean;
+    is_archived: boolean;
     created_at: string;
     customer?: Customer; // Joined
 }
