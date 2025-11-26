@@ -105,12 +105,12 @@ export const Examiners = () => {
                 )}
             </div>
 
-            <div className="flex items-center space-x-2">
-                <div className="relative flex-1 max-w-sm">
-                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <div className="bg-card/50 backdrop-blur-sm p-4 rounded-xl border border-border/50 shadow-sm">
+                <div className="relative max-w-md">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
                     <Input
                         placeholder={t('examiners.search')}
-                        className="pl-9"
+                        className="pl-10 h-11 bg-background/50 backdrop-blur-sm border-input/50 focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all"
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
                     />

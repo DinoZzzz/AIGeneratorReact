@@ -7,7 +7,8 @@ export const historyService = {
         pageSize: number = 50,
         search: string = '',
         sortBy: 'created_at' | 'construction_part' = 'created_at',
-        sortOrder: 'asc' | 'desc' = 'desc'
+        sortOrder: 'asc' | 'desc' = 'desc',
+        userId?: string
     ) {
         let query = supabase
             .from('report_exports')
@@ -20,6 +21,10 @@ export const historyService = {
 
         if (search) {
             query = query.ilike('construction_part', `%${search}%`);
+        }
+
+        if (userId) {
+            query = query.eq('user_id', userId);
         }
 
         query = query.order(sortBy, { ascending: sortOrder === 'asc' })
