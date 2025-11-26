@@ -10,6 +10,7 @@ import { customerService } from '../../services/customerService';
 import { constructionService } from '../../services/constructionService';
 import type { Appointment, Profile, Customer, Construction } from '../../types';
 import { Loader2 } from 'lucide-react';
+import { ConfirmDeleteAppointmentDialog } from './ConfirmDeleteAppointmentDialog';
 
 interface AppointmentDialogProps {
     open: boolean;
@@ -34,6 +35,7 @@ export const AppointmentDialog = ({
     const [examiners, setExaminers] = useState<Profile[]>([]);
     const [customers, setCustomers] = useState<Customer[]>([]);
     const [constructions, setConstructions] = useState<Construction[]>([]);
+    const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
     const [formData, setFormData] = useState<Partial<Appointment> & { assignee_ids: string[] }>({
         title: '',
@@ -123,9 +125,12 @@ export const AppointmentDialog = ({
         }
     };
 
-    const handleDelete = async () => {
+    const handleDeleteClick = () => {
+        setDeleteDialogOpen(true);
+    };
+
+    const handleDeleteConfirm = async () => {
         if (!appointment?.id || !onDelete) return;
-        if (!window.confirm(t('common.deleteConfirm'))) return;
 
         setLoading(true);
         try {
@@ -150,134 +155,143 @@ export const AppointmentDialog = ({
     };
 
     return (
-        <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-[500px] max-w-[95vw] max-h-[90vh] overflow-y-auto">
-                <DialogHeader onClose={() => onOpenChange(false)}>
-                    <DialogTitle>
-                        {appointment?.id ? t('calendar.editEvent') : t('calendar.newEvent')}
-                    </DialogTitle>
-                </DialogHeader>
+        <>
+            <Dialog open={open} onOpenChange={onOpenChange}>
+                <DialogContent className="sm:max-w-[500px] max-w-[95vw] max-h-[90vh] overflow-y-auto">
+                    <DialogHeader onClose={() => onOpenChange(false)}>
+                        <DialogTitle>
+                            {appointment?.id ? t('calendar.editEvent') : t('calendar.newEvent')}
+                        </DialogTitle>
+                    </DialogHeader>
 
-                <form onSubmit={handleSubmit} className="space-y-4">
-                    <div className="space-y-2">
-                        <Label htmlFor="title">{t('calendar.eventTitle')}</Label>
-                        <Input
-                            id="title"
-                            value={formData.title}
-                            onChange={e => setFormData({ ...formData, title: e.target.value })}
-                            required
-                        />
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <form onSubmit={handleSubmit} className="space-y-4">
                         <div className="space-y-2">
-                            <Label htmlFor="start">{t('calendar.start')}</Label>
+                            <Label htmlFor="title">{t('calendar.eventTitle')}</Label>
                             <Input
-                                id="start"
-                                type="datetime-local"
-                                value={formData.start_time}
-                                onChange={e => setFormData({ ...formData, start_time: e.target.value })}
+                                id="title"
+                                value={formData.title}
+                                onChange={e => setFormData({ ...formData, title: e.target.value })}
                                 required
                             />
                         </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="end">{t('calendar.end')}</Label>
-                            <Input
-                                id="end"
-                                type="datetime-local"
-                                value={formData.end_time}
-                                onChange={e => setFormData({ ...formData, end_time: e.target.value })}
-                                required
-                            />
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="start">{t('calendar.start')}</Label>
+                                <Input
+                                    id="start"
+                                    type="datetime-local"
+                                    value={formData.start_time}
+                                    onChange={e => setFormData({ ...formData, start_time: e.target.value })}
+                                    required
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="end">{t('calendar.end')}</Label>
+                                <Input
+                                    id="end"
+                                    type="datetime-local"
+                                    value={formData.end_time}
+                                    onChange={e => setFormData({ ...formData, end_time: e.target.value })}
+                                    required
+                                />
+                            </div>
                         </div>
-                    </div>
 
-                    <div className="space-y-2">
-                        <Label>{t('calendar.examiners')}</Label>
-                        <div className="border rounded-md p-2 max-h-40 overflow-y-auto space-y-2">
-                            {examiners.map(ex => (
-                                <div key={ex.id} className="flex items-center space-x-2">
-                                    <input
-                                        type="checkbox"
-                                        id={`examiner-${ex.id}`}
-                                        checked={formData.assignee_ids?.includes(ex.id)}
-                                        onChange={() => toggleAssignee(ex.id)}
-                                        disabled={!isAdmin && ex.id !== profile?.id} // Non-admins can only assign themselves? Or maybe just view? Let's allow assigning themselves.
-                                        className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
-                                    />
-                                    <label htmlFor={`examiner-${ex.id}`} className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                                        {ex.name} {ex.last_name}
-                                    </label>
-                                </div>
-                            ))}
-                        </div>
-                        {!isAdmin && <p className="text-xs text-muted-foreground">{t('calendar.adminOnlyAssign')}</p>}
-                    </div>
-
-                    <div className="space-y-2">
-                        <Label htmlFor="customer">{t('calendar.customer')} {t('common.optional')}</Label>
-                        <select
-                            id="customer"
-                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                            value={formData.customer_id || ''}
-                            onChange={e => setFormData({ ...formData, customer_id: e.target.value, construction_id: '' })}
-                        >
-                            <option value="">{t('common.select')}</option>
-                            {customers.map(c => (
-                                <option key={c.id} value={c.id}>{c.name}</option>
-                            ))}
-                        </select>
-                    </div>
-
-                    {formData.customer_id && (
                         <div className="space-y-2">
-                            <Label htmlFor="construction">{t('calendar.construction')} {t('common.optional')}</Label>
+                            <Label>{t('calendar.examiners')}</Label>
+                            <div className="border rounded-md p-2 max-h-40 overflow-y-auto space-y-2">
+                                {examiners.map(ex => (
+                                    <div key={ex.id} className="flex items-center space-x-2">
+                                        <input
+                                            type="checkbox"
+                                            id={`examiner-${ex.id}`}
+                                            checked={formData.assignee_ids?.includes(ex.id)}
+                                            onChange={() => toggleAssignee(ex.id)}
+                                            disabled={!isAdmin && ex.id !== profile?.id} // Non-admins can only assign themselves? Or maybe just view? Let's allow assigning themselves.
+                                            className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                                        />
+                                        <label htmlFor={`examiner-${ex.id}`} className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                                            {ex.name} {ex.last_name}
+                                        </label>
+                                    </div>
+                                ))}
+                            </div>
+                            {!isAdmin && <p className="text-xs text-muted-foreground">{t('calendar.adminOnlyAssign')}</p>}
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label htmlFor="customer">{t('calendar.customer')} {t('common.optional')}</Label>
                             <select
-                                id="construction"
+                                id="customer"
                                 className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                                value={formData.construction_id || ''}
-                                onChange={e => setFormData({ ...formData, construction_id: e.target.value })}
+                                value={formData.customer_id || ''}
+                                onChange={e => setFormData({ ...formData, customer_id: e.target.value, construction_id: '' })}
                             >
                                 <option value="">{t('common.select')}</option>
-                                {constructions.map(c => (
-                                    <option key={c.id} value={c.id}>{c.name} ({c.work_order})</option>
+                                {customers.map(c => (
+                                    <option key={c.id} value={c.id}>{c.name}</option>
                                 ))}
                             </select>
                         </div>
-                    )}
 
-                    <div className="space-y-2">
-                        <Label htmlFor="description">{t('calendar.description')} {t('common.optional')}</Label>
-                        <textarea
-                            id="description"
-                            className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                            value={formData.description || ''}
-                            onChange={e => setFormData({ ...formData, description: e.target.value })}
-                        />
-                    </div>
-
-                    <DialogFooter className="flex-col sm:flex-row gap-2 sm:gap-0">
-                        {appointment?.id && onDelete && (
-                            <Button
-                                type="button"
-                                variant="destructive"
-                                onClick={handleDelete}
-                                disabled={loading}
-                                className="w-full sm:w-auto sm:mr-auto"
-                            >
-                                {t('common.delete')}
-                            </Button>
+                        {formData.customer_id && (
+                            <div className="space-y-2">
+                                <Label htmlFor="construction">{t('calendar.construction')} {t('common.optional')}</Label>
+                                <select
+                                    id="construction"
+                                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                    value={formData.construction_id || ''}
+                                    onChange={e => setFormData({ ...formData, construction_id: e.target.value })}
+                                >
+                                    <option value="">{t('common.select')}</option>
+                                    {constructions.map(c => (
+                                        <option key={c.id} value={c.id}>{c.name} ({c.work_order})</option>
+                                    ))}
+                                </select>
+                            </div>
                         )}
-                        <Button type="button" variant="outline" onClick={() => onOpenChange(false)} className="w-full sm:w-auto">
-                            {t('common.cancel')}
-                        </Button>
-                        <Button type="submit" disabled={loading} className="w-full sm:w-auto">
-                            {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                            {t('common.save')}
-                        </Button>
-                    </DialogFooter>
-                </form>
-            </DialogContent>
-        </Dialog>
+
+                        <div className="space-y-2">
+                            <Label htmlFor="description">{t('calendar.description')} {t('common.optional')}</Label>
+                            <textarea
+                                id="description"
+                                className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                value={formData.description || ''}
+                                onChange={e => setFormData({ ...formData, description: e.target.value })}
+                            />
+                        </div>
+
+                        <DialogFooter className="flex-col sm:flex-row gap-2 sm:gap-0">
+                            {appointment?.id && onDelete && (
+                                <Button
+                                    type="button"
+                                    variant="destructive"
+                                    onClick={handleDeleteClick}
+                                    disabled={loading}
+                                    className="w-full sm:w-auto sm:mr-auto"
+                                >
+                                    {t('common.delete')}
+                                </Button>
+                            )}
+                            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} className="w-full sm:w-auto">
+                                {t('common.cancel')}
+                            </Button>
+                            <Button type="submit" disabled={loading} className="w-full sm:w-auto">
+                                {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                {t('common.save')}
+                            </Button>
+                        </DialogFooter>
+                    </form>
+                </DialogContent>
+            </Dialog>
+
+            <ConfirmDeleteAppointmentDialog
+                open={deleteDialogOpen}
+                onOpenChange={setDeleteDialogOpen}
+                onConfirm={handleDeleteConfirm}
+                appointment={appointment}
+            />
+        </>
     );
 };

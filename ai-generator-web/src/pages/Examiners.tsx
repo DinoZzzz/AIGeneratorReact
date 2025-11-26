@@ -3,6 +3,7 @@ import { Plus, Search, Pencil, Trash2, UserCheck, Lock } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { ExaminerDialog } from '../components/examiners/ExaminerDialog';
+import { ConfirmDeleteExaminerDialog } from '../components/examiners/ConfirmDeleteExaminerDialog';
 import { examinerService } from '../services/examinerService';
 import type { Profile, ReportType } from '../types';
 import { useAuth } from '../context/AuthContext';
@@ -17,6 +18,8 @@ export const Examiners = () => {
     const [search, setSearch] = useState('');
     const [dialogOpen, setDialogOpen] = useState(false);
     const [selectedExaminer, setSelectedExaminer] = useState<Profile | null>(null);
+    const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+    const [examinerToDelete, setExaminerToDelete] = useState<Profile | null>(null);
 
     const isAdmin = profile?.role === 'admin';
 
@@ -44,10 +47,16 @@ export const Examiners = () => {
         await loadData();
     };
 
-    const handleDelete = async (id: string) => {
-        if (window.confirm(t('examiners.removeConfirm'))) {
-            await examinerService.deleteExaminer(id);
+    const handleDeleteClick = (examiner: Profile) => {
+        setExaminerToDelete(examiner);
+        setDeleteDialogOpen(true);
+    };
+
+    const handleDeleteConfirm = async () => {
+        if (examinerToDelete) {
+            await examinerService.deleteExaminer(examinerToDelete.id);
             await loadData();
+            setExaminerToDelete(null);
         }
     };
 
@@ -188,7 +197,7 @@ export const Examiners = () => {
                                         <Button
                                             variant="outline"
                                             size="sm"
-                                            onClick={() => handleDelete(examiner.id)}
+                                            onClick={() => handleDeleteClick(examiner)}
                                             className="flex-1 text-destructive hover:text-destructive hover:bg-destructive/10"
                                         >
                                             <Trash2 className="h-4 w-4 mr-2" />
@@ -286,7 +295,7 @@ export const Examiners = () => {
                                                     <Button
                                                         variant="ghost"
                                                         size="icon"
-                                                        onClick={() => handleDelete(examiner.id)}
+                                                        onClick={() => handleDeleteClick(examiner)}
                                                         className="text-destructive hover:text-destructive hover:bg-destructive/10"
                                                     >
                                                         <Trash2 className="h-4 w-4" />
@@ -307,6 +316,13 @@ export const Examiners = () => {
                 onOpenChange={setDialogOpen}
                 examiner={selectedExaminer}
                 onSave={handleSave}
+            />
+
+            <ConfirmDeleteExaminerDialog
+                open={deleteDialogOpen}
+                onOpenChange={setDeleteDialogOpen}
+                onConfirm={handleDeleteConfirm}
+                examiner={examinerToDelete}
             />
         </div>
     );
