@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, Search, Pencil, Trash2, Building2, ChevronLeft, ChevronRight, ArrowUpDown, ArrowUp, ArrowDown, MapPin, Home } from 'lucide-react';
+import { Plus, Search, Pencil, Trash2, Building2, ChevronLeft, ChevronRight, ArrowUpDown, ArrowUp, ArrowDown, MapPin, Home, Activity } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { useCustomers, useDeleteCustomer } from '../hooks/useCustomers';
 import { TableSkeleton } from '../components/skeletons';
@@ -8,7 +8,7 @@ import { errorHandler } from '../lib/errorHandler';
 import { useToast } from '../context/ToastContext';
 
 
-type SortField = 'work_order' | 'name' | 'location' | 'address' | 'created_at';
+type SortField = 'work_order' | 'name' | 'location' | 'address' | 'created_at' | 'last_activity';
 type SortOrder = 'asc' | 'desc';
 
 export const Customers = () => {
@@ -110,17 +110,38 @@ export const Customers = () => {
 
             <div className="bg-card shadow rounded-lg overflow-hidden border border-border">
                 <div className="p-4 border-b border-border">
-                    <div className="relative rounded-md shadow-sm w-full sm:w-96">
-                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                            <Search className="h-5 w-5 text-muted-foreground" />
+                    <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
+                        <div className="relative rounded-md shadow-sm w-full sm:w-96">
+                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <Search className="h-5 w-5 text-muted-foreground" />
+                            </div>
+                            <input
+                                type="text"
+                                className="block w-full pl-10 pr-4 py-2 text-sm bg-background border border-input text-foreground placeholder:text-muted-foreground rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-colors"
+                                placeholder={t('customers.search')}
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                            />
                         </div>
-                        <input
-                            type="text"
-                            className="block w-full pl-10 pr-4 py-2 text-sm bg-background border border-input text-foreground placeholder:text-muted-foreground rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-colors"
-                            placeholder={t('customers.search')}
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                        />
+                        <button
+                            onClick={() => {
+                                if (sortBy === 'last_activity') {
+                                    setSortBy('created_at');
+                                    setSortOrder('desc');
+                                } else {
+                                    setSortBy('last_activity');
+                                    setSortOrder('desc');
+                                }
+                            }}
+                            className={`inline-flex items-center px-4 py-2 border rounded-md text-sm font-medium transition-colors ${
+                                sortBy === 'last_activity'
+                                    ? 'bg-primary text-primary-foreground border-primary hover:bg-primary/90'
+                                    : 'bg-card text-foreground border-input hover:bg-accent'
+                            }`}
+                        >
+                            <Activity className="h-4 w-4 mr-2" />
+                            {t('customers.sortByActivity')}
+                        </button>
                     </div>
                 </div>
 

@@ -20,6 +20,11 @@ export const customerService = {
         sortOrder: 'asc' | 'desc' = 'asc',
         search: string = ''
     ) {
+        // If sorting by activity, use special query with joins
+        if (sortBy === 'last_activity') {
+            return this.getCustomersWithActivity(page, pageSize, sortOrder, search);
+        }
+
         let query = supabase
             .from('customers')
             .select('id, name, location, work_order, address, created_at', { count: 'exact' });
@@ -45,6 +50,86 @@ export const customerService = {
 
         if (error) throw new AppError(error.message, 'SUPABASE_ERROR', 500);
         return { data, count };
+    },
+
+    async getCustomersWithActivity(
+        page: number = 1,
+        pageSize: number = 10,
+        sortOrder: 'asc' | 'desc' = 'desc',
+        search: string = ''
+    ) {
+        // First, get all customers with search filter
+        let customerQuery = supabase
+            .from('customers')
+            .select('id, name, location, work_order, address, created_at, updated_at');
+
+        if (search) {
+            const sanitizedSearch = search.replace(/,/g, '');
+            if (sanitizedSearch) {
+                customerQuery = customerQuery.or(
+                    `name.ilike.%${sanitizedSearch}%,location.ilike.%${sanitizedSearch}%,work_order.ilike.%${sanitizedSearch}%,address.ilike.%${sanitizedSearch}%`
+                );
+            }
+        }
+
+        const { data: customers, error: customersError } = await customerQuery;
+        if (customersError) throw new AppError(customersError.message, 'SUPABASE_ERROR', 500);
+        if (!customers || customers.length === 0) return { data: [], count: 0 };
+
+        const customerIds = customers.map(c => c.id);
+
+        // Get all related activities in parallel
+        const [
+            { data: constructions },
+            { data: reports },
+            { data: exports },
+            { data: appointments }
+        ] = await Promise.all([
+            supabase.from('constructions').select('customer_id, updated_at').in('customer_id', customerIds),
+            supabase.from('report_forms').select('customer_id, updated_at').in('customer_id', customerIds),
+            supabase.from('report_exports').select('customer_id, updated_at').in('customer_id', customerIds),
+            supabase.from('appointments').select('customer_id, created_at').in('customer_id', customerIds)
+        ]);
+
+        // Calculate last activity for each customer
+        const customersWithActivity = customers.map(customer => {
+            const dates = [
+                customer.updated_at,
+                ...(constructions?.filter(c => c.customer_id === customer.id).map(c => c.updated_at) || []),
+                ...(reports?.filter(r => r.customer_id === customer.id).map(r => r.updated_at) || []),
+                ...(exports?.filter(e => e.customer_id === customer.id).map(e => e.updated_at) || []),
+                ...(appointments?.filter(a => a.customer_id === customer.id).map(a => a.created_at) || [])
+            ].filter(Boolean);
+
+            const lastActivityDate = dates.length > 0
+                ? new Date(Math.max(...dates.map(d => new Date(d as string).getTime())))
+                : new Date(customer.created_at);
+
+            return {
+                id: customer.id,
+                name: customer.name,
+                location: customer.location,
+                work_order: customer.work_order,
+                address: customer.address,
+                created_at: customer.created_at,
+                last_activity_date: lastActivityDate.toISOString()
+            };
+        });
+
+        // Sort by activity
+        customersWithActivity.sort((a, b) => {
+            const dateA = new Date(a.last_activity_date).getTime();
+            const dateB = new Date(b.last_activity_date).getTime();
+            return sortOrder === 'asc' ? dateA - dateB : dateB - dateA;
+        });
+
+        // Apply pagination
+        const totalCount = customersWithActivity.length;
+        const start = (page - 1) * pageSize;
+        const end = start + pageSize;
+        const paginatedData = customersWithActivity.slice(start, end);
+
+        return { data: paginatedData, count: totalCount };
     },
 
     async getById(id: string) {
