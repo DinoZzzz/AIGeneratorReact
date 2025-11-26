@@ -282,13 +282,16 @@ export const Settings = () => {
             queryClient.clear();
 
             // Clear localStorage (except auth tokens)
-            const keysToPreserve = ['supabase.auth.token'];
             const storage: { [key: string]: string } = {};
 
-            keysToPreserve.forEach(key => {
-                const value = localStorage.getItem(key);
-                if (value) storage[key] = value;
-            });
+            // Preserve Supabase auth tokens (format: sb-<project-ref>-auth-token)
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key && (key.startsWith('sb-') && key.endsWith('-auth-token'))) {
+                    const value = localStorage.getItem(key);
+                    if (value) storage[key] = value;
+                }
+            }
 
             localStorage.clear();
 
