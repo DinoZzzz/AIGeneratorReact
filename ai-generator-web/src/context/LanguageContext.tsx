@@ -14,6 +14,7 @@ const translations: Record<Language, TranslationDictionary> = {
         'nav.analytics': 'Analitika',
         'nav.help': 'Pomoć',
         'nav.signOut': 'Odjava',
+        'nav.chat': 'Chat',
         'settings.language': 'Jezik',
         'settings.languageDescription': 'Odaberite jezik sučelja',
         'language.croatian': 'Hrvatski',
@@ -193,6 +194,16 @@ const translations: Record<Language, TranslationDictionary> = {
         'reports.exportSuccess': 'Izvještaj uspješno izvezen',
         'reports.noReports': 'Nema pronađenih izvještaja',
         'reports.reportsFromConstructions': 'Izvještaji se kreiraju iz gradilišta.',
+        'chat.title': 'Timski chat',
+        'chat.subtitle': 'Komunicirajte s timom u stvarnom vremenu',
+        'chat.inputPlaceholder': 'Unesite poruku...',
+        'chat.send': 'Pošalji',
+        'chat.edit': 'Uredi',
+        'chat.delete': 'Obriši',
+        'chat.edited': 'uređeno',
+        'chat.deleteConfirm': 'Jeste li sigurni da želite obrisati ovu poruku?',
+        'chat.noMessages': 'Nema poruka',
+        'chat.startConversation': 'Započnite razgovor s timom'
     },
     en: {
         'nav.platform': 'Platform',
@@ -203,6 +214,7 @@ const translations: Record<Language, TranslationDictionary> = {
         'nav.analytics': 'Analytics',
         'nav.help': 'Help',
         'nav.signOut': 'Sign Out',
+        'nav.chat': 'Chat',
         'settings.language': 'Language',
         'settings.languageDescription': 'Choose the interface language',
         'language.croatian': 'Croatian',
@@ -380,6 +392,16 @@ const translations: Record<Language, TranslationDictionary> = {
         'reports.exportSuccess': 'Report exported successfully',
         'reports.noReports': 'No reports found',
         'reports.reportsFromConstructions': 'Reports are created from construction sites.',
+        'chat.title': 'Team Chat',
+        'chat.subtitle': 'Communicate with your team in real-time',
+        'chat.inputPlaceholder': 'Type a message...',
+        'chat.send': 'Send',
+        'chat.edit': 'Edit',
+        'chat.delete': 'Delete',
+        'chat.edited': 'edited',
+        'chat.deleteConfirm': 'Are you sure you want to delete this message?',
+        'chat.noMessages': 'No messages yet',
+        'chat.startConversation': 'Start the conversation with your team'
     }
 };
 

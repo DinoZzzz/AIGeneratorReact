@@ -30,6 +30,7 @@ const Help = lazy(() => import('./pages/Help').then(m => ({ default: m.Help })))
 const Settings = lazy(() => import('./pages/Settings').then(m => ({ default: m.Settings })));
 const Analytics = lazy(() => import('./pages/Analytics').then(m => ({ default: m.Analytics })));
 const Profile = lazy(() => import('./pages/Profile').then(m => ({ default: m.ProfilePage })));
+const Chat = lazy(() => import('./pages/Chat').then(m => ({ default: m.Chat })));
 
 // Loading fallback component
 const LoadingFallback = () => (
@@ -84,6 +85,7 @@ function App() {
                                     <Route path="/analytics" element={<Analytics />} />
                                     <Route path="/help" element={<Help />} />
                                     <Route path="/profile" element={<Profile />} />
+                                    <Route path="/chat" element={<Chat />} />
                                     <Route path="/calendar" element={<Calendar />} />
                                     <Route path="/reports" element={<Reports />} />
                                     <Route path="/reports/new" element={<WaterMethodForm />} />

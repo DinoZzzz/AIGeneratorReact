@@ -16,7 +16,8 @@ import {
     User as UserIcon,
     X,
     ChevronLeft,
-    ChevronRight
+    ChevronRight,
+    MessageSquare
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 
@@ -45,6 +46,7 @@ export const Layout = ({ children }: LayoutProps) => {
         { name: t('nav.calendar'), href: '/calendar', icon: Calendar },
         { name: t('nav.examiners'), href: '/examiners', icon: UserCheck, adminOnly: true },
         { name: t('nav.customers'), href: '/customers', icon: Users },
+        { name: t('nav.chat'), href: '/chat', icon: MessageSquare },
         { name: t('nav.settings'), href: '/settings', icon: Settings },
         { name: t('nav.analytics'), href: '/analytics', icon: BarChart3 },
         { name: t('nav.help'), href: '/help', icon: HelpCircle },
