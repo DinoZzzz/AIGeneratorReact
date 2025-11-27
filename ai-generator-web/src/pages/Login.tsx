@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import { Lock } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
@@ -11,6 +12,7 @@ export const Login = () => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const navigate = useNavigate();
+    const { lowBandwidthMode, setLowBandwidthMode } = useAuth();
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -129,6 +131,19 @@ export const Login = () => {
                             >
                                 Sign in
                             </Button>
+                        </div>
+
+                        <div className="flex items-center space-x-2">
+                            <input
+                                type="checkbox"
+                                id="lowBandwidth"
+                                className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                                checked={lowBandwidthMode}
+                                onChange={(e) => setLowBandwidthMode(e.target.checked)}
+                            />
+                            <label htmlFor="lowBandwidth" className="text-sm text-muted-foreground cursor-pointer select-none">
+                                Low Bandwidth Mode (Mod slabog interneta)
+                            </label>
                         </div>
                     </form>
                 </div>

@@ -54,6 +54,15 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;
 };
 
+// Home component to handle redirection based on mode
+const Home = () => {
+  const { lowBandwidthMode } = useAuth();
+  if (lowBandwidthMode) {
+    return <Navigate to="/customers" replace />;
+  }
+  return <Dashboard />;
+};
+
 function App() {
   return (
     <ErrorBoundary>
@@ -77,7 +86,7 @@ function App() {
                               <ErrorBoundary>
                                 <Suspense fallback={<LoadingFallback />}>
                                   <Routes>
-                                    <Route path="/" element={<Dashboard />} />
+                                    <Route path="/" element={<Home />} />
                                     <Route path="/history" element={<History />} />
                                     <Route path="/history/:id" element={<HistoryDetails />} />
                                     <Route path="/examiners" element={<Examiners />} />

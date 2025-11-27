@@ -26,7 +26,7 @@ interface LayoutProps {
 }
 
 export const Layout = ({ children }: LayoutProps) => {
-    const { signOut, user, profile } = useAuth();
+    const { signOut, user, profile, lowBandwidthMode } = useAuth();
     const navigate = useNavigate();
     const location = useLocation();
     const { t } = useLanguage();
@@ -40,7 +40,7 @@ export const Layout = ({ children }: LayoutProps) => {
 
     const isAdmin = profile?.role === 'admin';
 
-    const navigation = [
+    const allNavigation = [
         { name: t('nav.platform'), href: '/', icon: LayoutDashboard },
         { name: t('nav.history'), href: '/history', icon: History },
         { name: t('nav.calendar'), href: '/calendar', icon: Calendar },
@@ -50,7 +50,12 @@ export const Layout = ({ children }: LayoutProps) => {
         { name: t('nav.settings'), href: '/settings', icon: Settings },
         { name: t('nav.analytics'), href: '/analytics', icon: BarChart3 },
         { name: t('nav.help'), href: '/help', icon: HelpCircle },
-    ].filter(item => !item.adminOnly || isAdmin);
+    ];
+
+    // Filter navigation based on low bandwidth mode
+    const navigation = lowBandwidthMode
+        ? allNavigation.filter(item => item.href === '/customers')
+        : allNavigation.filter(item => !item.adminOnly || isAdmin);
 
     // Get current page title
     const currentPage = navigation.find(item => item.href === location.pathname) || { name: 'AIGenerator' };
@@ -115,36 +120,27 @@ export const Layout = ({ children }: LayoutProps) => {
 
                     {/* User Profile & Logout */}
                     <div className="mt-auto p-3 border-t border-border sticky bottom-0 bg-card">
-                        {isSidebarCollapsed ? (
-                            <>
-                                <Link
-                                    to="/profile"
-                                    className="flex items-center justify-center mb-3 hover:bg-accent rounded-lg py-2 transition-colors group"
-                                    title="Profile"
-                                >
-                                    <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden">
-                                        {profile?.avatar_url ? (
-                                            <img src={profile.avatar_url} alt="Profile" className="h-full w-full object-cover" />
-                                        ) : (
-                                            <span className="text-primary font-medium text-sm">
-                                                {profile?.name?.charAt(0).toUpperCase() || user?.email?.charAt(0).toUpperCase()}
-                                            </span>
-                                        )}
-                                    </div>
-                                </Link>
-                                <button
-                                    onClick={handleSignOut}
-                                    className="w-full flex items-center justify-center px-3 py-2 text-sm font-medium text-destructive rounded-lg hover:bg-destructive/10 transition-colors"
-                                    title="Sign Out"
-                                >
-                                    <LogOut className="h-5 w-5" />
-                                </button>
-                            </>
+                        {lowBandwidthMode ? (
+                            <button
+                                onClick={handleSignOut}
+                                className={cn(
+                                    "w-full flex items-center px-4 py-2 text-sm font-medium text-destructive rounded-lg hover:bg-destructive/10 transition-colors",
+                                    isSidebarCollapsed && "justify-center px-2"
+                                )}
+                                title={t('nav.signOut')}
+                            >
+                                <LogOut className={cn("h-5 w-5", !isSidebarCollapsed && "mr-3")} />
+                                {!isSidebarCollapsed && t('nav.signOut')}
+                            </button>
                         ) : (
-                            <>
-                                <Link to="/profile" className="flex items-center mb-4 px-4 hover:bg-accent rounded-lg py-2 transition-colors group">
-                                    <div className="flex-shrink-0">
-                                        <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden">
+                            isSidebarCollapsed ? (
+                                <>
+                                    <Link
+                                        to="/profile"
+                                        className="flex items-center justify-center mb-3 hover:bg-accent rounded-lg py-2 transition-colors group"
+                                        title="Profile"
+                                    >
+                                        <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden">
                                             {profile?.avatar_url ? (
                                                 <img src={profile.avatar_url} alt="Profile" className="h-full w-full object-cover" />
                                             ) : (
@@ -153,23 +149,46 @@ export const Layout = ({ children }: LayoutProps) => {
                                                 </span>
                                             )}
                                         </div>
-                                    </div>
-                                    <div className="ml-3">
-                                        <p className="text-sm font-medium text-foreground truncate max-w-[140px] group-hover:text-primary transition-colors">
-                                            {profile?.name && profile?.last_name
-                                                ? `${profile.name} ${profile.last_name}`
-                                                : user?.email}
-                                        </p>
-                                    </div>
-                                </Link>
-                                <button
-                                    onClick={handleSignOut}
-                                    className="w-full flex items-center px-4 py-2 text-sm font-medium text-destructive rounded-lg hover:bg-destructive/10 transition-colors"
-                                >
-                                    <LogOut className="mr-3 h-5 w-5" />
-                                    {t('nav.signOut')}
-                                </button>
-                            </>
+                                    </Link>
+                                    <button
+                                        onClick={handleSignOut}
+                                        className="w-full flex items-center justify-center px-3 py-2 text-sm font-medium text-destructive rounded-lg hover:bg-destructive/10 transition-colors"
+                                        title="Sign Out"
+                                    >
+                                        <LogOut className="h-5 w-5" />
+                                    </button>
+                                </>
+                            ) : (
+                                <>
+                                    <Link to="/profile" className="flex items-center mb-4 px-4 hover:bg-accent rounded-lg py-2 transition-colors group">
+                                        <div className="flex-shrink-0">
+                                            <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden">
+                                                {profile?.avatar_url ? (
+                                                    <img src={profile.avatar_url} alt="Profile" className="h-full w-full object-cover" />
+                                                ) : (
+                                                    <span className="text-primary font-medium text-sm">
+                                                        {profile?.name?.charAt(0).toUpperCase() || user?.email?.charAt(0).toUpperCase()}
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </div>
+                                        <div className="ml-3">
+                                            <p className="text-sm font-medium text-foreground truncate max-w-[140px] group-hover:text-primary transition-colors">
+                                                {profile?.name && profile?.last_name
+                                                    ? `${profile.name} ${profile.last_name}`
+                                                    : user?.email}
+                                            </p>
+                                        </div>
+                                    </Link>
+                                    <button
+                                        onClick={handleSignOut}
+                                        className="w-full flex items-center px-4 py-2 text-sm font-medium text-destructive rounded-lg hover:bg-destructive/10 transition-colors"
+                                    >
+                                        <LogOut className="mr-3 h-5 w-5" />
+                                        {t('nav.signOut')}
+                                    </button>
+                                </>
+                            )
                         )}
                     </div>
                 </div>

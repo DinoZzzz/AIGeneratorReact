@@ -145,3 +145,30 @@
         }
     }
 }
+
+/* Low Bandwidth Mode Overrides */
+body.low-bandwidth {
+    --background: 0 0% 100%;
+    --foreground: 0 0% 0%;
+    --card: 0 0% 100%;
+    --popover: 0 0% 100%;
+    --primary: 220 10% 20%;
+    /* Dark gray instead of blue */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 0 0% 95%;
+    --muted: 0 0% 95%;
+    --border: 0 0% 80%;
+    --input: 0 0% 80%;
+    --ring: 0 0% 0%;
+    --radius: 0px;
+    /* No rounded corners */
+}
+
+body.low-bandwidth * {
+    box-shadow: none !important;
+    transition: none !important;
+    animation: none !important;
+    background-image: none !important;
+    /* Remove gradients */
+    backdrop-filter: none !important;
+}

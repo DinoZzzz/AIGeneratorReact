@@ -804,7 +804,14 @@ Object.assign(translations.en, {
     'calendar.date': 'Date',
     'calendar.time': 'Time',
     'calendar.event': 'Event',
-    'calendar.noEvents': 'No events in this range'
+    'calendar.noEvents': 'No events in this range',
+    'calendar.location': 'Location',
+    'calendar.locationPlaceholder': 'Enter location',
+    'calendar.locationHint': 'Auto-filled from construction site',
+    'calendar.reminders': 'Reminders',
+    'calendar.enableReminders': 'Enable reminders',
+    'calendar.addReminder': 'Add reminder',
+    'calendar.minutesBefore': 'Minutes before'
 });
 
 // Export dialog translations
@@ -1189,7 +1196,14 @@ Object.assign(translations.hr, {
     'calendar.date': 'Datum',
     'calendar.time': 'Vrijeme',
     'calendar.event': 'Događaj',
-    'calendar.noEvents': 'Nema događaja u ovom rasponu'
+    'calendar.noEvents': 'Nema događaja u ovom rasponu',
+    'calendar.location': 'Lokacija',
+    'calendar.locationPlaceholder': 'Unesite lokaciju',
+    'calendar.locationHint': 'Automatski ispunjeno iz gradilišta',
+    'calendar.reminders': 'Podsjetnici',
+    'calendar.enableReminders': 'Omogući podsjetnike',
+    'calendar.addReminder': 'Dodaj podsjetnik',
+    'calendar.minutesBefore': 'Minuta prije'
 });
 
 interface LanguageContextValue {

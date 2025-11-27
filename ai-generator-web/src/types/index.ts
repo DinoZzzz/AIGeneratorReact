@@ -186,17 +186,20 @@ export interface Appointment {
     id: string;
     title: string;
     description?: string;
-    start_time: string;
-    end_time: string;
-    // examiner_id is deprecated, use assignees
+    start: string; // Renamed from start_time to match calendar_events
+    end: string; // Renamed from end_time to match calendar_events
     customer_id?: string;
     construction_id?: string;
-    status: 'pending' | 'confirmed' | 'completed' | 'cancelled';
+    examiner_ids: string[]; // Array of examiner IDs
+    location?: string; // NEW: Event location
+    reminder_enabled?: boolean; // NEW: Whether reminders are enabled
+    reminder_times?: { minutes_before: number; type: string }[]; // NEW: Reminder configuration
     created_by: string;
     created_at: string;
+    updated_at: string;
 
     // Joined fields
-    assignees?: Profile[]; // Replaces examiner
+    assignees?: Profile[]; // Populated from examiner_ids
     customer?: Customer;
     construction?: Construction;
 }

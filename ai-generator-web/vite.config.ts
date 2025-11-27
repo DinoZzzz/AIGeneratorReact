@@ -6,7 +6,9 @@ import { visualizer } from 'rollup-plugin-visualizer'
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [
-    react(),
+    react({
+      jsxRuntime: 'automatic'
+    }),
     visualizer({
       open: false,
       gzipSize: true,

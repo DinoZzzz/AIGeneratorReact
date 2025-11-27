@@ -87,12 +87,11 @@ export const Calendar = () => {
             const data = await appointmentService.getAll(start, end);
 
             const calendarEvents: CalendarEvent[] = data.map(apt => {
-                const assigneesNames = apt.assignees?.map(a => `${a.name} ${a.last_name}`).join(', ') || '';
                 return {
                     id: apt.id,
-                    title: `${apt.title} (${assigneesNames})`,
-                    start: new Date(apt.start_time),
-                    end: new Date(apt.end_time),
+                    title: apt.title,
+                    start: new Date(apt.start),
+                    end: new Date(apt.end),
                     resource: apt
                 };
             });
