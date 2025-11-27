@@ -18,11 +18,12 @@ export const customerService = {
         pageSize: number = 10,
         sortBy: string = 'name',
         sortOrder: 'asc' | 'desc' = 'asc',
-        search: string = ''
+        search: string = '',
+        year?: string | null
     ) {
         // If sorting by activity, use special query with joins
         if (sortBy === 'last_activity') {
-            return this.getCustomersWithActivity(page, pageSize, sortOrder, search);
+            return this.getCustomersWithActivity(page, pageSize, sortOrder, search, year);
         }
 
         let query = supabase
@@ -36,6 +37,17 @@ export const customerService = {
                 query = query.or(
                     `name.ilike.%${sanitizedSearch}%,location.ilike.%${sanitizedSearch}%,work_order.ilike.%${sanitizedSearch}%,address.ilike.%${sanitizedSearch}%`
                 );
+            }
+        }
+
+        // Filter by year if provided
+        if (year) {
+            const yearNum = parseInt(year, 10);
+            if (!isNaN(yearNum)) {
+                // Use gte and lt to filter by year range
+                const startDate = `${yearNum}-01-01`;
+                const endDate = `${yearNum + 1}-01-01`;
+                query = query.gte('created_at', startDate).lt('created_at', endDate);
             }
         }
 
@@ -56,7 +68,8 @@ export const customerService = {
         page: number = 1,
         pageSize: number = 10,
         sortOrder: 'asc' | 'desc' = 'desc',
-        search: string = ''
+        search: string = '',
+        year?: string | null
     ) {
         // First, get all customers with search filter
         let customerQuery = supabase
@@ -69,6 +82,16 @@ export const customerService = {
                 customerQuery = customerQuery.or(
                     `name.ilike.%${sanitizedSearch}%,location.ilike.%${sanitizedSearch}%,work_order.ilike.%${sanitizedSearch}%,address.ilike.%${sanitizedSearch}%`
                 );
+            }
+        }
+
+        // Filter by year if provided
+        if (year) {
+            const yearNum = parseInt(year, 10);
+            if (!isNaN(yearNum)) {
+                const startDate = `${yearNum}-01-01`;
+                const endDate = `${yearNum + 1}-01-01`;
+                customerQuery = customerQuery.gte('created_at', startDate).lt('created_at', endDate);
             }
         }
 

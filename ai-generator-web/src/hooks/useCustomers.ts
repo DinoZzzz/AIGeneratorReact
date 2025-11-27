@@ -6,8 +6,8 @@ import type { Customer } from '../types';
 export const customerKeys = {
   all: ['customers'] as const,
   lists: () => [...customerKeys.all, 'list'] as const,
-  list: (page: number, pageSize: number, sortBy: string, sortOrder: 'asc' | 'desc', search: string) =>
-    [...customerKeys.lists(), { page, pageSize, sortBy, sortOrder, search }] as const,
+  list: (page: number, pageSize: number, sortBy: string, sortOrder: 'asc' | 'desc', search: string, year?: string | null) =>
+    [...customerKeys.lists(), { page, pageSize, sortBy, sortOrder, search, year }] as const,
   details: () => [...customerKeys.all, 'detail'] as const,
   detail: (id: string) => [...customerKeys.details(), id] as const,
 };
@@ -18,11 +18,12 @@ export const useCustomers = (
   pageSize: number = 10,
   sortBy: string = 'name',
   sortOrder: 'asc' | 'desc' = 'asc',
-  search: string = ''
+  search: string = '',
+  year?: string | null
 ) => {
   return useQuery({
-    queryKey: customerKeys.list(page, pageSize, sortBy, sortOrder, search),
-    queryFn: () => customerService.getCustomers(page, pageSize, sortBy, sortOrder, search),
+    queryKey: customerKeys.list(page, pageSize, sortBy, sortOrder, search, year),
+    queryFn: () => customerService.getCustomers(page, pageSize, sortBy, sortOrder, search, year),
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 };

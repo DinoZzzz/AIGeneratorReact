@@ -134,7 +134,7 @@ const StatsCard = memo(({ title, value, icon: Icon, href, color, bgColor }: Stat
 
     if (href) {
         return (
-            <Link to={href} className="group block bg-white dark:bg-slate-900 overflow-hidden shadow-sm rounded-xl border border-border hover:shadow-md transition-all duration-200">
+            <Link to={href} className="group block bg-white dark:bg-slate-900 overflow-hidden shadow-sm rounded-xl border border-border hover:shadow-md transition-all duration-200 hover-lift">
                 {content}
             </Link>
         );

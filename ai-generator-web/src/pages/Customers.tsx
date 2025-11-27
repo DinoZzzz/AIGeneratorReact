@@ -22,6 +22,7 @@ export const Customers = () => {
     const [pageSize] = useState(15);
     const [sortBy, setSortBy] = useState<SortField>('created_at');
     const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
+    const [selectedYear, setSelectedYear] = useState<string>('');
 
     // React Query hooks
     const { data, isLoading: loading, error } = useCustomers(
@@ -29,7 +30,8 @@ export const Customers = () => {
         pageSize,
         sortBy,
         sortOrder,
-        debouncedSearch
+        debouncedSearch,
+        selectedYear || null
     );
     const deleteMutation = useDeleteCustomer();
 
@@ -123,25 +125,39 @@ export const Customers = () => {
                                 onChange={(e) => setSearchTerm(e.target.value)}
                             />
                         </div>
-                        <button
-                            onClick={() => {
-                                if (sortBy === 'last_activity') {
-                                    setSortBy('created_at');
-                                    setSortOrder('desc');
-                                } else {
-                                    setSortBy('last_activity');
-                                    setSortOrder('desc');
-                                }
-                            }}
-                            className={`inline-flex items-center px-4 py-2 border rounded-md text-sm font-medium transition-colors ${
-                                sortBy === 'last_activity'
+                        <div className="flex flex-wrap gap-3">
+                            <select
+                                value={selectedYear}
+                                onChange={(e) => {
+                                    setSelectedYear(e.target.value);
+                                    setCurrentPage(1);
+                                }}
+                                className="inline-flex items-center px-4 py-2 border border-input rounded-md text-sm font-medium bg-card text-foreground hover:bg-accent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                            >
+                                <option value="">All Years</option>
+                                {Array.from({ length: new Date().getFullYear() - 2019 }, (_, i) => new Date().getFullYear() - i).map(year => (
+                                    <option key={year} value={year}>{year}</option>
+                                ))}
+                            </select>
+                            <button
+                                onClick={() => {
+                                    if (sortBy === 'last_activity') {
+                                        setSortBy('created_at');
+                                        setSortOrder('desc');
+                                    } else {
+                                        setSortBy('last_activity');
+                                        setSortOrder('desc');
+                                    }
+                                }}
+                                className={`inline-flex items-center px-4 py-2 border rounded-md text-sm font-medium transition-colors ${sortBy === 'last_activity'
                                     ? 'bg-primary text-primary-foreground border-primary hover:bg-primary/90'
                                     : 'bg-card text-foreground border-input hover:bg-accent'
-                            }`}
-                        >
-                            <Activity className="h-4 w-4 mr-2" />
-                            {t('customers.sortByActivity')}
-                        </button>
+                                    }`}
+                            >
+                                <Activity className="h-4 w-4 mr-2" />
+                                {t('customers.sortByActivity')}
+                            </button>
+                        </div>
                     </div>
                 </div>
 
