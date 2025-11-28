@@ -4,11 +4,25 @@ import { reportService } from '../services/reportService';
 import { constructionService } from '../services/constructionService';
 import { customerService } from '../services/customerService';
 import { Loader2, Plus, FileText, Trash2, ArrowLeft, FileDown, Pencil, Type, GripVertical, Archive } from 'lucide-react';
-import type { ReportForm, Construction, Customer, ReportFile } from '../types';
+import type { ReportForm, Construction, Customer, ReportFile, Profile } from '../types';
 import clsx from 'clsx';
-import { generatePDF, generateBulkPDF } from '../lib/pdfGenerator';
-import { generateWordDocument } from '../services/wordExportService';
 import { ExportDialog } from '../components/ExportDialog';
+
+// Dynamic imports for PDF/Word export to reduce initial bundle size
+const generatePDF = async (report: ReportForm, userProfile?: Profile) => {
+    const { generatePDF: gen } = await import('../lib/pdfGenerator');
+    return gen(report, userProfile);
+};
+
+const generateBulkPDF = async (reports: ReportForm[], filename: string, userProfile?: Profile) => {
+    const { generateBulkPDF: gen } = await import('../lib/pdfGenerator');
+    return gen(reports, filename, userProfile);
+};
+
+const generateWordDocument = async (reports: ReportForm[], metaData: any, userId?: string) => {
+    const { generateWordDocument: gen } = await import('../services/wordExportService');
+    return gen(reports, metaData, userId);
+};
 import type { ExportMetaData } from '../components/ExportDialog';
 import { Breadcrumbs } from '../components/ui/Breadcrumbs';
 import { useAuth } from '../context/AuthContext';

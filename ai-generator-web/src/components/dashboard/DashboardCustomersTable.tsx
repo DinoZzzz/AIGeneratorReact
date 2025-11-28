@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, memo } from 'react';
 import { Link } from 'react-router-dom';
 import { Search, Plus } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
@@ -18,6 +18,112 @@ interface CustomerTableItem {
     name: string;
     active_constructions: ActiveConstruction[];
 }
+
+// Memoized table row component to prevent unnecessary re-renders
+const CustomerTableRow = memo(({ customer, t }: { customer: CustomerTableItem; t: (key: string) => string }) => {
+    const displayedConstructions = customer.active_constructions.slice(0, 5);
+    const remainingCount = customer.active_constructions.length - 5;
+
+    return (
+        <tr className="hover:bg-muted/50 transition-colors">
+            <td className="px-6 py-4 font-medium">
+                <Link
+                    to={`/customers/${customer.id}/constructions`}
+                    className="text-primary hover:underline"
+                >
+                    {customer.work_order}
+                </Link>
+            </td>
+            <td className="px-6 py-4">
+                <Link
+                    to={`/customers/${customer.id}/constructions`}
+                    className="text-primary hover:underline"
+                >
+                    {customer.name}
+                </Link>
+            </td>
+            <td className="px-6 py-4">
+                {customer.active_constructions.length > 0 ? (
+                    <div className="flex flex-wrap gap-2">
+                        {displayedConstructions.map((ac) => (
+                            <Link
+                                key={ac.id}
+                                to={`/customers/${customer.id}/constructions/${ac.id}/reports`}
+                                className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+                            >
+                                {ac.work_order}
+                            </Link>
+                        ))}
+                        {remainingCount > 0 && (
+                            <Link
+                                to={`/customers/${customer.id}/constructions`}
+                                className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-muted text-muted-foreground hover:bg-muted/80 transition-colors"
+                            >
+                                +{remainingCount}
+                            </Link>
+                        )}
+                    </div>
+                ) : (
+                    <span className="text-muted-foreground italic text-sm">{t('dashboard.none')}</span>
+                )}
+            </td>
+        </tr>
+    );
+});
+CustomerTableRow.displayName = 'CustomerTableRow';
+
+// Memoized mobile card component
+const CustomerMobileCard = memo(({ customer, t }: { customer: CustomerTableItem; t: (key: string) => string }) => {
+    const displayedConstructions = customer.active_constructions.slice(0, 3);
+    const remainingCount = customer.active_constructions.length - 3;
+
+    return (
+        <div className="p-4 space-y-3">
+            <div className="flex justify-between items-start">
+                <div>
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-muted text-muted-foreground mb-1">
+                        {customer.work_order}
+                    </span>
+                    <h3 className="font-medium text-foreground">
+                        <Link to={`/customers/${customer.id}/constructions`} className="hover:underline">
+                            {customer.name}
+                        </Link>
+                    </h3>
+                </div>
+            </div>
+
+            <div>
+                <span className="text-xs text-muted-foreground uppercase tracking-wider font-semibold mb-2 block">
+                    {t('dashboard.activeOrders')}
+                </span>
+                {customer.active_constructions.length > 0 ? (
+                    <div className="flex flex-wrap gap-2">
+                        {displayedConstructions.map((ac) => (
+                            <Link
+                                key={ac.id}
+                                to={`/customers/${customer.id}/constructions/${ac.id}/reports`}
+                                className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+                            >
+                                {ac.work_order}
+                            </Link>
+                        ))}
+                        {remainingCount > 0 && (
+                            <Link
+                                to={`/customers/${customer.id}/constructions`}
+                                className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-muted text-muted-foreground hover:bg-muted/80 transition-colors"
+                            >
+                                +{remainingCount}
+                            </Link>
+                        )}
+                    </div>
+                ) : (
+                    <span className="text-muted-foreground italic text-sm">{t('dashboard.none')}</span>
+                )}
+            </div>
+        </div>
+    );
+});
+CustomerMobileCard.displayName = 'CustomerMobileCard';
 
 export const DashboardCustomersTable = () => {
     const [customers, setCustomers] = useState<CustomerTableItem[]>([]);
@@ -186,56 +292,9 @@ export const DashboardCustomersTable = () => {
                 ) : customers.length === 0 ? (
                     <div className="p-4 text-center text-muted-foreground">{t('dashboard.noCustomers')}</div>
                 ) : (
-                    customers.map((customer) => {
-                        const displayedConstructions = customer.active_constructions.slice(0, 3);
-                        const remainingCount = customer.active_constructions.length - 3;
-
-                        return (
-                            <div key={customer.id} className="p-4 space-y-3">
-                                <div className="flex justify-between items-start">
-                                    <div>
-                                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-muted text-muted-foreground mb-1">
-                                            {customer.work_order}
-                                        </span>
-                                        <h3 className="font-medium text-foreground">
-                                            <Link to={`/customers/${customer.id}/constructions`} className="hover:underline">
-                                                {customer.name}
-                                            </Link>
-                                        </h3>
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <span className="text-xs text-muted-foreground uppercase tracking-wider font-semibold mb-2 block">
-                                        {t('dashboard.activeOrders')}
-                                    </span>
-                                    {customer.active_constructions.length > 0 ? (
-                                        <div className="flex flex-wrap gap-2">
-                                            {displayedConstructions.map((ac) => (
-                                                <Link
-                                                    key={ac.id}
-                                                    to={`/customers/${customer.id}/constructions/${ac.id}/reports`}
-                                                    className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
-                                                >
-                                                    {ac.work_order}
-                                                </Link>
-                                            ))}
-                                            {remainingCount > 0 && (
-                                                <Link
-                                                    to={`/customers/${customer.id}/constructions`}
-                                                    className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-muted text-muted-foreground hover:bg-muted/80 transition-colors"
-                                                >
-                                                    +{remainingCount}
-                                                </Link>
-                                            )}
-                                        </div>
-                                    ) : (
-                                        <span className="text-muted-foreground italic text-sm">{t('dashboard.none')}</span>
-                                    )}
-                                </div>
-                            </div>
-                        );
-                    })
+                    customers.map((customer) => (
+                        <CustomerMobileCard key={customer.id} customer={customer} t={t} />
+                    ))
                 )}
             </div>
 
@@ -259,56 +318,9 @@ export const DashboardCustomersTable = () => {
                                 <td colSpan={3} className="px-6 py-8 text-center text-muted-foreground">{t('dashboard.noCustomers')}</td>
                             </tr>
                         ) : (
-                            customers.map((customer) => {
-                                const displayedConstructions = customer.active_constructions.slice(0, 5);
-                                const remainingCount = customer.active_constructions.length - 5;
-
-                                return (
-                                    <tr key={customer.id} className="hover:bg-muted/50 transition-colors">
-                                        <td className="px-6 py-4 font-medium">
-                                            <Link
-                                                to={`/customers/${customer.id}/constructions`}
-                                                className="text-primary hover:underline"
-                                            >
-                                                {customer.work_order}
-                                            </Link>
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <Link
-                                                to={`/customers/${customer.id}/constructions`}
-                                                className="text-primary hover:underline"
-                                            >
-                                                {customer.name}
-                                            </Link>
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            {customer.active_constructions.length > 0 ? (
-                                                <div className="flex flex-wrap gap-2">
-                                                    {displayedConstructions.map((ac) => (
-                                                        <Link
-                                                            key={ac.id}
-                                                            to={`/customers/${customer.id}/constructions/${ac.id}/reports`}
-                                                            className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
-                                                        >
-                                                            {ac.work_order}
-                                                        </Link>
-                                                    ))}
-                                                    {remainingCount > 0 && (
-                                                        <Link
-                                                            to={`/customers/${customer.id}/constructions`}
-                                                            className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-muted text-muted-foreground hover:bg-muted/80 transition-colors"
-                                                        >
-                                                            +{remainingCount}
-                                                        </Link>
-                                                    )}
-                                                </div>
-                                            ) : (
-                                                <span className="text-muted-foreground italic text-sm">{t('dashboard.none')}</span>
-                                            )}
-                                        </td>
-                                    </tr>
-                                );
-                            })
+                            customers.map((customer) => (
+                                <CustomerTableRow key={customer.id} customer={customer} t={t} />
+                            ))
                         )}
                     </tbody>
                 </table>

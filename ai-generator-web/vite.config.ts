@@ -44,6 +44,7 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2,json}'],
+        globIgnores: ['**/stats.html'], // Exclude bundle stats from service worker cache
         // Skip waiting and claim clients immediately for faster updates
         skipWaiting: true,
         clientsClaim: true,

@@ -13,8 +13,44 @@ import {
   saveToStore,
   deleteFromStore,
 } from './offlineDb';
+import { NetworkError } from './errorHandler';
 
-const MAX_RETRY_COUNT = 3;
+const MAX_RETRY_COUNT = 5;
+const BASE_RETRY_DELAY_MS = 1000; // 1 second base delay
+
+/**
+ * Check if an error is a network-related error
+ */
+const isNetworkError = (error: unknown): boolean => {
+  if (error instanceof NetworkError) return true;
+  if (error instanceof TypeError && error.message === 'Failed to fetch') return true;
+  if (error instanceof Error) {
+    const message = error.message.toLowerCase();
+    return (
+      message.includes('network') ||
+      message.includes('fetch') ||
+      message.includes('connection') ||
+      message.includes('offline') ||
+      message.includes('timeout') ||
+      message.includes('abort')
+    );
+  }
+  return false;
+};
+
+/**
+ * Calculate exponential backoff delay with jitter
+ */
+const getRetryDelay = (retryCount: number): number => {
+  const exponentialDelay = BASE_RETRY_DELAY_MS * Math.pow(2, retryCount);
+  const jitter = Math.random() * 1000; // Add up to 1 second of random jitter
+  return Math.min(exponentialDelay + jitter, 30000); // Cap at 30 seconds
+};
+
+/**
+ * Wait for specified milliseconds
+ */
+const delay = (ms: number): Promise<void> => new Promise(resolve => setTimeout(resolve, ms));
 
 type SyncEventCallback = (event: {
   type: 'sync_start' | 'sync_complete' | 'sync_error' | 'sync_progress';
@@ -138,11 +174,29 @@ const processSyncOperation = async (operation: SyncOperation): Promise<boolean> 
     return true;
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    console.error(`Sync operation failed:`, operation, error);
+    const isNetwork = isNetworkError(error);
+
+    console.error(`Sync operation failed:`, {
+      operation: operation.operation,
+      store: operation.store,
+      entityId: operation.entityId,
+      retryCount: operation.retryCount,
+      isNetworkError: isNetwork,
+      error: errorMessage
+    });
 
     if (operation.retryCount >= MAX_RETRY_COUNT) {
+      // Max retries exceeded - mark as failed
       await updateSyncOperationStatus(operation.id, 'failed', errorMessage);
+      emitSyncEvent({ type: 'sync_error', error: `Operation failed after ${MAX_RETRY_COUNT} retries: ${errorMessage}` });
+    } else if (isNetwork) {
+      // Network error - apply exponential backoff before next retry
+      const retryDelay = getRetryDelay(operation.retryCount);
+      console.log(`Network error, will retry in ${Math.round(retryDelay / 1000)}s`);
+      await updateSyncOperationStatus(operation.id, 'pending', errorMessage);
+      await delay(retryDelay);
     } else {
+      // Non-network error - still retry but without delay
       await updateSyncOperationStatus(operation.id, 'pending', errorMessage);
     }
     return false;

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
@@ -25,6 +25,7 @@ import {
     CloudOff
 } from 'lucide-react';
 import { cn } from '../lib/utils';
+import { prefetchCommonRoutes } from '../lib/routePrefetch';
 
 interface LayoutProps {
     children: React.ReactNode;
@@ -57,6 +58,11 @@ export const Layout = ({ children }: LayoutProps) => {
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
     const ot = offlineTranslations[language as keyof typeof offlineTranslations] || offlineTranslations.en;
+
+    // Prefetch common routes during idle time for faster navigation
+    useEffect(() => {
+        prefetchCommonRoutes();
+    }, []);
 
     const handleSignOut = async () => {
         await signOut();
