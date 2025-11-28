@@ -109,7 +109,8 @@ export const OfflineIndicator = () => {
   };
 
   return (
-    <div className="fixed bottom-4 right-4 z-50">
+    // Hidden on mobile (lg:block) since mobile has integrated offline status in bottom nav
+    <div className="hidden lg:block fixed bottom-4 right-4 z-50">
       {/* Main indicator button */}
       <button
         onClick={handleClick}
