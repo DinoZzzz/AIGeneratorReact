@@ -125,7 +125,7 @@ const CustomerMobileCard = memo(({ customer, t }: { customer: CustomerTableItem;
 });
 CustomerMobileCard.displayName = 'CustomerMobileCard';
 
-export const DashboardCustomersTable = () => {
+const DashboardCustomersTableComponent = () => {
     const [customers, setCustomers] = useState<CustomerTableItem[]>([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
@@ -356,3 +356,7 @@ export const DashboardCustomersTable = () => {
         </div>
     );
 };
+
+// Memoize to prevent unnecessary re-renders when parent updates
+export const DashboardCustomersTable = memo(DashboardCustomersTableComponent);
+DashboardCustomersTable.displayName = 'DashboardCustomersTable';

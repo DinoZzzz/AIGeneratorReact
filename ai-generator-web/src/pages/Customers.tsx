@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { Plus, Search, Pencil, Trash2, Building2, ChevronLeft, ChevronRight, ArrowUpDown, ArrowUp, ArrowDown, MapPin, Home, Activity } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
@@ -6,6 +6,7 @@ import { useCustomers, useDeleteCustomer } from '../hooks/useCustomers';
 import { TableSkeleton } from '../components/skeletons';
 import { errorHandler } from '../lib/errorHandler';
 import { useToast } from '../context/ToastContext';
+import { formatDate } from '../utils/dateFormatter';
 
 
 type SortField = 'work_order' | 'name' | 'location' | 'address' | 'created_at' | 'last_activity';
@@ -55,7 +56,7 @@ export const Customers = () => {
         }
     }, [error, showError]);
 
-    const handleDelete = async (id: string) => {
+    const handleDelete = useCallback(async (id: string) => {
         if (window.confirm(t('customers.deleteConfirm'))) {
             try {
                 await deleteMutation.mutateAsync(id);
@@ -65,18 +66,18 @@ export const Customers = () => {
                 showError(errorHandler.getUserMessage(appError));
             }
         }
-    };
+    }, [t, deleteMutation, success, showError]);
 
-    const handleSort = (field: SortField) => {
+    const handleSort = useCallback((field: SortField) => {
         if (sortBy === field) {
             setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
         } else {
             setSortBy(field);
             setSortOrder('asc');
         }
-    };
+    }, [sortBy, sortOrder]);
 
-    const totalPages = Math.ceil(totalCount / pageSize);
+    const totalPages = useMemo(() => Math.ceil(totalCount / pageSize), [totalCount, pageSize]);
 
     const SortIcon = ({ field }: { field: SortField }) => {
         if (sortBy !== field) return <ArrowUpDown className="h-4 w-4 ml-1 text-muted-foreground" />;
@@ -212,7 +213,7 @@ export const Customers = () => {
                                     )}
                                     <div className="flex items-center text-xs pt-1">
                                         <span className="text-muted-foreground">
-                                            {new Date(customer.created_at).toLocaleDateString('hr-HR')}
+                                            {formatDate(customer.created_at)}
                                         </span>
                                     </div>
                                 </div>
@@ -271,7 +272,7 @@ export const Customers = () => {
                                             {customer.address}
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
-                                            {new Date(customer.created_at).toLocaleDateString('hr-HR')}
+                                            {formatDate(customer.created_at)}
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-3">
                                             <Link

@@ -18,6 +18,7 @@ export const reportKeys = {
   all: ['reports'] as const,
   lists: () => [...reportKeys.all, 'list'] as const,
   list: () => [...reportKeys.lists()] as const,
+  paginated: (page: number, pageSize: number) => [...reportKeys.lists(), 'paginated', page, pageSize] as const,
   byConstruction: (constructionId: string) => [...reportKeys.lists(), 'construction', constructionId] as const,
   details: () => [...reportKeys.all, 'detail'] as const,
   detail: (id: string) => [...reportKeys.details(), id] as const,
@@ -54,6 +55,48 @@ async function getOfflineReports(): Promise<ReportForm[]> {
   const reports = await getAllFromStore<ReportForm>(STORES.REPORTS);
   // Sort by created_at descending
   return reports.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+}
+
+// Paginated reports hook for better performance with large datasets
+export const useReportsPaginated = (page: number = 1, pageSize: number = 15) => {
+  const { isOnline } = useOffline();
+
+  return useQuery({
+    queryKey: reportKeys.paginated(page, pageSize),
+    queryFn: async () => {
+      if (isOnline) {
+        try {
+          const data = await reportService.getPaginated(page, pageSize);
+          // Cache for offline use
+          if (data.data) {
+            await saveManyToStore(STORES.REPORTS, data.data);
+          }
+          return data;
+        } catch (error) {
+          console.warn('Online query failed, using offline data:', error);
+          return getOfflineReportsPaginated(page, pageSize);
+        }
+      } else {
+        return getOfflineReportsPaginated(page, pageSize);
+      }
+    },
+    staleTime: isOnline ? 3 * 60 * 1000 : Infinity,
+    placeholderData: (previousData) => previousData, // Keep previous data while fetching
+  });
+};
+
+async function getOfflineReportsPaginated(page: number, pageSize: number): Promise<{ data: ReportForm[]; count: number }> {
+  const allReports = await getAllFromStore<ReportForm>(STORES.REPORTS);
+  // Sort by created_at descending
+  const sorted = allReports.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+  const startIndex = (page - 1) * pageSize;
+  const endIndex = startIndex + pageSize;
+
+  return {
+    data: sorted.slice(startIndex, endIndex),
+    count: sorted.length,
+  };
 }
 
 export const useReportsByConstruction = (constructionId: string) => {

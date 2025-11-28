@@ -712,6 +712,8 @@ export const HistoryDetails = () => {
                                                         src={data.publicUrl}
                                                         alt={file.description || file.file_name}
                                                         className="w-full h-full object-cover hover:scale-105 transition-transform duration-200"
+                                                        loading="lazy"
+                                                        decoding="async"
                                                     />
                                                 </div>
                                             </a>

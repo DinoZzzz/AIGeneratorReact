@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { constructionService } from '../services/constructionService';
 import { customerService } from '../services/customerService';
@@ -8,6 +8,7 @@ import { Breadcrumbs } from '../components/ui/Breadcrumbs';
 import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../context/AuthContext';
 import { ConfirmArchiveDialog } from '../components/constructions/ConfirmArchiveDialog';
+import { formatDate } from '../utils/dateFormatter';
 
 type FilterType = 'all' | 'active' | 'archived';
 
@@ -61,13 +62,13 @@ export const Constructions = () => {
         }
     };
 
-    const handleArchiveClick = (construction: Construction) => {
+    const handleArchiveClick = useCallback((construction: Construction) => {
         setSelectedConstruction(construction);
         setIsArchiving(!construction.is_archived);
         setArchiveDialogOpen(true);
-    };
+    }, []);
 
-    const handleArchiveConfirm = async () => {
+    const handleArchiveConfirm = useCallback(async () => {
         if (!selectedConstruction) return;
 
         setArchiveLoading(true);
@@ -87,9 +88,9 @@ export const Constructions = () => {
         } finally {
             setArchiveLoading(false);
         }
-    };
+    }, [selectedConstruction, isArchiving, customerId]);
 
-    const handleDelete = async (id: string) => {
+    const handleDelete = useCallback(async (id: string) => {
         if (window.confirm(t('constructions.deleteConfirm'))) {
             try {
                 await constructionService.delete(id);
@@ -101,20 +102,22 @@ export const Constructions = () => {
                 alert('Failed to delete construction');
             }
         }
-    };
+    }, [t, customerId]);
 
-    // First filter by archived status, then by search term
-    const filteredConstructions = constructions
-        .filter(c => {
-            if (filter === 'active') return !c.is_archived;
-            if (filter === 'archived') return c.is_archived;
-            return true; // 'all'
-        })
-        .filter(c =>
-            c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            c.work_order?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            c.location?.toLowerCase().includes(searchTerm.toLowerCase())
-        );
+    // Memoize filtered constructions to prevent recalculation on every render
+    const filteredConstructions = useMemo(() => {
+        return constructions
+            .filter(c => {
+                if (filter === 'active') return !c.is_archived;
+                if (filter === 'archived') return c.is_archived;
+                return true; // 'all'
+            })
+            .filter(c =>
+                c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                c.work_order?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                c.location?.toLowerCase().includes(searchTerm.toLowerCase())
+            );
+    }, [constructions, filter, searchTerm]);
 
     // Pagination
     const totalCount = filteredConstructions.length;
@@ -277,7 +280,7 @@ export const Constructions = () => {
                                 )}
                                 <div className="flex items-center text-xs pt-1">
                                     <span className="text-muted-foreground">
-                                        {new Date(construction.created_at).toLocaleDateString('hr-HR')}
+                                        {formatDate(construction.created_at)}
                                     </span>
                                 </div>
 
@@ -334,7 +337,7 @@ export const Constructions = () => {
                                         {construction.location}
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
-                                        {new Date(construction.created_at).toLocaleDateString('hr-HR')}
+                                        {formatDate(construction.created_at)}
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-3">
                                         {!construction.is_archived ? (

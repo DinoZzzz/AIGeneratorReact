@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 
 import { Loader2, Trash2, Edit, FileText, Download } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -6,13 +6,18 @@ import { cn } from '../lib/utils';
 import { Button } from '../components/ui/Button';
 import { ExportDialog } from '../components/ExportDialog';
 import type { ExportMetaData } from '../components/ExportDialog';
-import { generateWordDocument } from '../services/wordExportService';
 import { useAuth } from '../context/AuthContext';
 import { useReports, useDeleteReport } from '../hooks/useReports';
 import { TableSkeleton } from '../components/skeletons';
 import { errorHandler } from '../lib/errorHandler';
 import { useToast } from '../context/ToastContext';
 import { useLanguage } from '../context/LanguageContext';
+
+// Dynamic import for Word export to reduce initial bundle size
+const generateWordDocument = async (reports: any[], metaData: any, userId?: string) => {
+    const { generateWordDocument: gen } = await import('../services/wordExportService');
+    return gen(reports, metaData, userId);
+};
 
 export const Reports = () => {
     const { t } = useLanguage();
@@ -34,40 +39,46 @@ export const Reports = () => {
         }
     }, [error, showError]);
 
-    const handleDelete = async (id: string) => {
+    const handleDelete = useCallback(async (id: string) => {
         if (!window.confirm(t('reports.deleteConfirm'))) return;
         try {
             await deleteMutation.mutateAsync(id);
             // Remove from selection if it was selected
-            const newSelected = new Set(selectedReports);
-            newSelected.delete(id);
-            setSelectedReports(newSelected);
+            setSelectedReports(prev => {
+                const newSelected = new Set(prev);
+                newSelected.delete(id);
+                return newSelected;
+            });
             success(t('reports.deleteSuccess'));
         } catch (err) {
             const appError = errorHandler.handle(err, 'ReportDelete');
             showError(errorHandler.getUserMessage(appError));
         }
-    };
+    }, [t, deleteMutation, success, showError]);
 
-    const toggleSelection = (id: string) => {
-        const newSelected = new Set(selectedReports);
-        if (newSelected.has(id)) {
-            newSelected.delete(id);
-        } else {
-            newSelected.add(id);
-        }
-        setSelectedReports(newSelected);
-    };
+    const toggleSelection = useCallback((id: string) => {
+        setSelectedReports(prev => {
+            const newSelected = new Set(prev);
+            if (newSelected.has(id)) {
+                newSelected.delete(id);
+            } else {
+                newSelected.add(id);
+            }
+            return newSelected;
+        });
+    }, []);
 
-    const toggleAll = () => {
-        if (selectedReports.size === reports.length) {
-            setSelectedReports(new Set());
-        } else {
-            setSelectedReports(new Set(reports.map(r => r.id)));
-        }
-    };
+    const toggleAll = useCallback(() => {
+        setSelectedReports(prev => {
+            if (prev.size === reports.length) {
+                return new Set();
+            } else {
+                return new Set(reports.map(r => r.id));
+            }
+        });
+    }, [reports]);
 
-    const handleExportConfirm = async (metaData: ExportMetaData) => {
+    const handleExportConfirm = useCallback(async (metaData: ExportMetaData) => {
         setIsExporting(true);
         try {
             const selectedData = reports.filter(r => selectedReports.has(r.id));
@@ -79,9 +90,9 @@ export const Reports = () => {
         } finally {
             setIsExporting(false);
         }
-    };
+    }, [reports, selectedReports, user?.id, success, t, showError]);
 
-    const handleDeleteSelected = async () => {
+    const handleDeleteSelected = useCallback(async () => {
         const count = selectedReports.size;
 
         // First confirmation
@@ -112,7 +123,7 @@ export const Reports = () => {
             const appError = errorHandler.handle(err, 'ReportBulkDelete');
             showError(errorHandler.getUserMessage(appError));
         }
-    };
+    }, [selectedReports, t, deleteMutation, success, showError]);
 
     if (loading) {
         return (
