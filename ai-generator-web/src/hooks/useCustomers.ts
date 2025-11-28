@@ -210,8 +210,8 @@ async function createCustomerOffline(customer: Partial<Customer>): Promise<Custo
   // Save to local store
   await saveToStore(STORES.CUSTOMERS, offlineCustomer);
 
-  // Add to sync queue
-  await addToSyncQueue(STORES.CUSTOMERS, 'create', customer);
+  // Add to sync queue - include temp ID so sync service knows which record to update
+  await addToSyncQueue(STORES.CUSTOMERS, 'create', customer, tempId);
 
   return offlineCustomer;
 }

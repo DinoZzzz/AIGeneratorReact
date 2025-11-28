@@ -191,8 +191,8 @@ async function createReportOffline(report: Partial<ReportForm>): Promise<ReportF
   // Save to local store
   await saveToStore(STORES.REPORTS, offlineReport);
 
-  // Add to sync queue
-  await addToSyncQueue(STORES.REPORTS, 'create', report);
+  // Add to sync queue - include temp ID so sync service knows which record to update
+  await addToSyncQueue(STORES.REPORTS, 'create', report, tempId);
 
   return offlineReport;
 }

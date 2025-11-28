@@ -141,8 +141,8 @@ async function createConstructionOffline(construction: Partial<Construction>): P
   // Save to local store
   await saveToStore(STORES.CONSTRUCTIONS, offlineConstruction);
 
-  // Add to sync queue
-  await addToSyncQueue(STORES.CONSTRUCTIONS, 'create', construction);
+  // Add to sync queue - include temp ID so sync service knows which record to update
+  await addToSyncQueue(STORES.CONSTRUCTIONS, 'create', construction, tempId);
 
   return offlineConstruction;
 }

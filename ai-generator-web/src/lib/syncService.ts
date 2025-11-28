@@ -70,7 +70,7 @@ const processSyncOperation = async (operation: SyncOperation): Promise<boolean> 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const createData = operation.data as any;
         // Remove offline-only fields
-        const { _offline_id, _is_offline, ...cleanData } = createData;
+        const { _offline_id, _is_offline, id: _id, ...cleanData } = createData;
 
         const { data, error } = await supabase
           .from(tableName)
@@ -80,10 +80,16 @@ const processSyncOperation = async (operation: SyncOperation): Promise<boolean> 
 
         if (error) throw error;
 
-        // Update local store with server-assigned ID if different
-        if (data && data.id !== createData.id) {
-          // Remove old offline record and save new one
-          await deleteFromStore(operation.store, createData.id);
+        // Update local store with server-assigned data
+        // operation.entityId contains the temp ID used for the offline record
+        if (data && operation.entityId) {
+          // Remove old offline record using the temp ID
+          try {
+            await deleteFromStore(operation.store, operation.entityId);
+          } catch (deleteError) {
+            console.warn('Could not delete temp record:', deleteError);
+          }
+          // Save the server-returned data
           await saveToStore(operation.store, { ...data, _synced: true });
         } else if (data) {
           await saveToStore(operation.store, { ...data, _synced: true });
