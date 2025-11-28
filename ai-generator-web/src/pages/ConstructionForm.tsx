@@ -110,12 +110,12 @@ export const ConstructionForm = () => {
         let isValid = true;
 
         if (!formData.name?.trim()) {
-            newErrors.name = t('constructions.name');
+            newErrors.name = t('constructions.nameRequired') || 'Name is required';
             isValid = false;
         }
 
         if (!formData.work_order?.trim()) {
-            newErrors.work_order = t('constructions.workOrder');
+            newErrors.work_order = t('constructions.workOrderRequired') || 'Work order is required';
             isValid = false;
         } else if (customerId) {
             if (isOnline) {
@@ -155,7 +155,7 @@ export const ConstructionForm = () => {
         }
 
         if (!formData.location?.trim()) {
-            newErrors.location = t('constructions.location');
+            newErrors.location = t('constructions.locationRequired') || 'Location is required';
             isValid = false;
         }
 
@@ -169,23 +169,26 @@ export const ConstructionForm = () => {
 
         setLoading(true);
         try {
-            if (await validate()) {
-                const dataToSave = {
-                    ...formData,
-                    customer_id: customerId
-                };
-
-                if (id && id !== 'new') {
-                    await updateMutation.mutateAsync({ id, construction: dataToSave });
-                } else {
-                    await createMutation.mutateAsync(dataToSave);
-                }
-                navigate(`/customers/${customerId}/constructions`);
+            const isValid = await validate();
+            if (!isValid) {
+                setLoading(false);
+                return;
             }
+
+            const dataToSave = {
+                ...formData,
+                customer_id: customerId
+            };
+
+            if (id && id !== 'new') {
+                await updateMutation.mutateAsync({ id, construction: dataToSave });
+            } else {
+                await createMutation.mutateAsync(dataToSave);
+            }
+            navigate(`/customers/${customerId}/constructions`);
         } catch (error) {
             console.error('Failed to save construction', error);
             alert('Failed to save construction');
-        } finally {
             setLoading(false);
         }
     };

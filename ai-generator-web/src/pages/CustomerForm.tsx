@@ -59,7 +59,7 @@ export const CustomerForm = () => {
         let isValid = true;
 
         if (!formData.name?.trim()) {
-            newErrors.name = t('customers.name');
+            newErrors.name = t('customers.nameRequired') || 'Name is required';
             isValid = false;
         } else if (isOnline) {
             // Only check server-side uniqueness when online
@@ -91,7 +91,7 @@ export const CustomerForm = () => {
         }
 
         if (!formData.work_order?.trim()) {
-            newErrors.work_order = t('customers.workOrder');
+            newErrors.work_order = t('customers.workOrderRequired') || 'Work order is required';
             isValid = false;
         } else if (isOnline) {
             // Only check server-side uniqueness when online
@@ -123,17 +123,17 @@ export const CustomerForm = () => {
         }
 
         if (!formData.location?.trim()) {
-            newErrors.location = t('customers.location');
+            newErrors.location = t('customers.locationRequired') || 'Location is required';
             isValid = false;
         }
 
         if (!formData.address?.trim()) {
-            newErrors.address = t('customers.address');
+            newErrors.address = t('customers.addressRequired') || 'Address is required';
             isValid = false;
         }
 
         if (!formData.postal_code?.trim()) {
-            newErrors.postal_code = t('customers.postalCode');
+            newErrors.postal_code = t('customers.postalCodeRequired') || 'Postal code is required';
             isValid = false;
         }
 
@@ -149,18 +149,21 @@ export const CustomerForm = () => {
         setLoading(true);
 
         try {
-            if (await validate()) {
-                if (id && id !== 'new') {
-                    await updateMutation.mutateAsync({ id, customer: formData });
-                } else {
-                    await createMutation.mutateAsync(formData);
-                }
-                navigate('/customers');
+            const isValid = await validate();
+            if (!isValid) {
+                setLoading(false);
+                return;
             }
+
+            if (id && id !== 'new') {
+                await updateMutation.mutateAsync({ id, customer: formData });
+            } else {
+                await createMutation.mutateAsync(formData);
+            }
+            navigate('/customers');
         } catch (error) {
             console.error('Failed to save customer', error);
             alert('Failed to save customer');
-        } finally {
             setLoading(false);
         }
     };
