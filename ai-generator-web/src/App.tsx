@@ -3,8 +3,10 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { OfflineProvider } from './context/OfflineContext';
 import { Layout } from './components/Layout';
 import { ErrorBoundary } from './components/ErrorBoundary';
+import { OfflineIndicator } from './components/OfflineIndicator';
 import { Loader2 } from 'lucide-react';
 import { ToastProvider } from './context/ToastContext';
 import { ThemeProvider } from './context/ThemeContext';
@@ -69,10 +71,11 @@ function App() {
       <QueryClientProvider client={queryClient}>
         <ReactQueryDevtools initialIsOpen={false} />
         <AuthProvider>
-          <ThemeProvider>
-            <LanguageProvider>
-              <ToastProvider>
-                <Router>
+          <OfflineProvider>
+            <ThemeProvider>
+              <LanguageProvider>
+                <ToastProvider>
+                  <Router>
                   <Suspense fallback={<LoadingFallback />}>
                     <Routes>
                       <Route path="/login" element={<Login />} />
@@ -123,11 +126,13 @@ function App() {
                         }
                       />
                     </Routes>
-                  </Suspense>
-                </Router>
-              </ToastProvider>
-            </LanguageProvider>
-          </ThemeProvider>
+                    </Suspense>
+                    <OfflineIndicator />
+                  </Router>
+                </ToastProvider>
+              </LanguageProvider>
+            </ThemeProvider>
+          </OfflineProvider>
         </AuthProvider>
       </QueryClientProvider>
     </ErrorBoundary>
