@@ -134,7 +134,8 @@ export const useCreateReport = () => {
           await saveToStore(STORES.REPORTS, result);
           return result;
         } catch (error) {
-          if (error instanceof Error && (error.message.includes('network') || error.message.includes('fetch'))) {
+          const errorMessage = error instanceof Error ? error.message.toLowerCase() : String(error).toLowerCase();
+          if (errorMessage.includes('network') || errorMessage.includes('fetch') || errorMessage.includes('cors') || errorMessage.includes('failed to fetch')) {
             return createReportOffline(report);
           }
           throw error;
@@ -210,7 +211,8 @@ export const useUpdateReport = () => {
           await saveToStore(STORES.REPORTS, result);
           return result;
         } catch (error) {
-          if (error instanceof Error && (error.message.includes('network') || error.message.includes('fetch'))) {
+          const errorMessage = error instanceof Error ? error.message.toLowerCase() : String(error).toLowerCase();
+          if (errorMessage.includes('network') || errorMessage.includes('fetch') || errorMessage.includes('cors') || errorMessage.includes('failed to fetch')) {
             return updateReportOffline(id, report);
           }
           throw error;
@@ -289,7 +291,8 @@ export const useDeleteReport = () => {
           // Remove from local cache
           await deleteFromStore(STORES.REPORTS, id);
         } catch (error) {
-          if (error instanceof Error && (error.message.includes('network') || error.message.includes('fetch'))) {
+          const errorMessage = error instanceof Error ? error.message.toLowerCase() : String(error).toLowerCase();
+          if (errorMessage.includes('network') || errorMessage.includes('fetch') || errorMessage.includes('cors') || errorMessage.includes('failed to fetch')) {
             return deleteReportOffline(id);
           }
           throw error;
@@ -331,7 +334,8 @@ export const useUpdateReportOrder = () => {
             await saveToStore(STORES.REPORTS, report);
           }
         } catch (error) {
-          if (error instanceof Error && (error.message.includes('network') || error.message.includes('fetch'))) {
+          const errorMessage = error instanceof Error ? error.message.toLowerCase() : String(error).toLowerCase();
+          if (errorMessage.includes('network') || errorMessage.includes('fetch') || errorMessage.includes('cors') || errorMessage.includes('failed to fetch')) {
             return updateReportOrderOffline(reports);
           }
           throw error;

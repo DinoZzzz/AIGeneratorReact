@@ -175,7 +175,8 @@ export const useCreateCustomer = () => {
           return result;
         } catch (error) {
           // Fall back to offline mode on network error
-          if (error instanceof Error && (error.message.includes('network') || error.message.includes('fetch'))) {
+          const errorMessage = error instanceof Error ? error.message.toLowerCase() : String(error).toLowerCase();
+          if (errorMessage.includes('network') || errorMessage.includes('fetch') || errorMessage.includes('cors') || errorMessage.includes('failed to fetch')) {
             return createCustomerOffline(customer);
           }
           throw error;
@@ -229,7 +230,8 @@ export const useUpdateCustomer = () => {
           await saveToStore(STORES.CUSTOMERS, result);
           return result;
         } catch (error) {
-          if (error instanceof Error && (error.message.includes('network') || error.message.includes('fetch'))) {
+          const errorMessage = error instanceof Error ? error.message.toLowerCase() : String(error).toLowerCase();
+          if (errorMessage.includes('network') || errorMessage.includes('fetch') || errorMessage.includes('cors') || errorMessage.includes('failed to fetch')) {
             return updateCustomerOffline(id, customer);
           }
           throw error;
@@ -283,7 +285,8 @@ export const useDeleteCustomer = () => {
           // Remove from local cache
           await deleteFromStore(STORES.CUSTOMERS, id);
         } catch (error) {
-          if (error instanceof Error && (error.message.includes('network') || error.message.includes('fetch'))) {
+          const errorMessage = error instanceof Error ? error.message.toLowerCase() : String(error).toLowerCase();
+          if (errorMessage.includes('network') || errorMessage.includes('fetch') || errorMessage.includes('cors') || errorMessage.includes('failed to fetch')) {
             return deleteCustomerOffline(id);
           }
           throw error;

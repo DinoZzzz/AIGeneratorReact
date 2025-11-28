@@ -102,7 +102,8 @@ export const useCreateConstruction = () => {
           await saveToStore(STORES.CONSTRUCTIONS, result);
           return result;
         } catch (error) {
-          if (error instanceof Error && (error.message.includes('network') || error.message.includes('fetch'))) {
+          const errorMessage = error instanceof Error ? error.message.toLowerCase() : String(error).toLowerCase();
+          if (errorMessage.includes('network') || errorMessage.includes('fetch') || errorMessage.includes('cors') || errorMessage.includes('failed to fetch')) {
             return createConstructionOffline(construction);
           }
           throw error;
@@ -160,7 +161,8 @@ export const useUpdateConstruction = () => {
           await saveToStore(STORES.CONSTRUCTIONS, result);
           return result;
         } catch (error) {
-          if (error instanceof Error && (error.message.includes('network') || error.message.includes('fetch'))) {
+          const errorMessage = error instanceof Error ? error.message.toLowerCase() : String(error).toLowerCase();
+          if (errorMessage.includes('network') || errorMessage.includes('fetch') || errorMessage.includes('cors') || errorMessage.includes('failed to fetch')) {
             return updateConstructionOffline(id, construction);
           }
           throw error;
@@ -238,7 +240,8 @@ export const useDeleteConstruction = () => {
           // Remove from local cache
           await deleteFromStore(STORES.CONSTRUCTIONS, id);
         } catch (error) {
-          if (error instanceof Error && (error.message.includes('network') || error.message.includes('fetch'))) {
+          const errorMessage = error instanceof Error ? error.message.toLowerCase() : String(error).toLowerCase();
+          if (errorMessage.includes('network') || errorMessage.includes('fetch') || errorMessage.includes('cors') || errorMessage.includes('failed to fetch')) {
             return deleteConstructionOffline(id);
           }
           throw error;
