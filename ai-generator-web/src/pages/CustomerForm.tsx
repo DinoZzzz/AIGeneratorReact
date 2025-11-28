@@ -2,10 +2,12 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { customerService } from '../services/customerService';
 import { useCreateCustomer, useUpdateCustomer } from '../hooks/useCustomers';
+import { useOffline } from '../context/OfflineContext';
 import { Input } from '../components/ui/Input';
 import { Loader2, Save, ArrowLeft } from 'lucide-react';
 import type { Customer } from '../types';
 import { useLanguage } from '../context/LanguageContext';
+import { getAllFromStore, STORES } from '../lib/offlineDb';
 
 const initialState: Partial<Customer> = {
     name: '',
@@ -22,6 +24,7 @@ export const CustomerForm = () => {
     const [formData, setFormData] = useState<Partial<Customer>>(initialState);
     const [errors, setErrors] = useState<Record<string, string>>({});
     const { t } = useLanguage();
+    const { isOnline } = useOffline();
 
     useEffect(() => {
         if (id && id !== 'new') {
@@ -58,22 +61,64 @@ export const CustomerForm = () => {
         if (!formData.name?.trim()) {
             newErrors.name = t('customers.name');
             isValid = false;
+        } else if (isOnline) {
+            // Only check server-side uniqueness when online
+            try {
+                const nameExists = await customerService.checkNameExists(formData.name, id === 'new' ? undefined : id);
+                if (nameExists) {
+                    newErrors.name = t('customers.nameExists') || 'Customer name already exists';
+                    isValid = false;
+                }
+            } catch (error) {
+                // Network error - skip server check, allow submission
+                console.warn('Could not validate name uniqueness:', error);
+            }
         } else {
-            const nameExists = await customerService.checkNameExists(formData.name, id === 'new' ? undefined : id);
-            if (nameExists) {
-                newErrors.name = t('customers.name');
-                isValid = false;
+            // Offline: check against local IndexedDB cache
+            try {
+                const cachedCustomers = await getAllFromStore<Customer>(STORES.CUSTOMERS);
+                const nameExists = cachedCustomers.some(
+                    c => c.name?.toLowerCase() === formData.name?.toLowerCase() && c.id !== id
+                );
+                if (nameExists) {
+                    newErrors.name = t('customers.nameExists') || 'Customer name already exists';
+                    isValid = false;
+                }
+            } catch (error) {
+                // IndexedDB error - allow submission
+                console.warn('Could not check local cache for name:', error);
             }
         }
 
         if (!formData.work_order?.trim()) {
             newErrors.work_order = t('customers.workOrder');
             isValid = false;
+        } else if (isOnline) {
+            // Only check server-side uniqueness when online
+            try {
+                const workOrderExists = await customerService.checkWorkOrderExists(formData.work_order, id === 'new' ? undefined : id);
+                if (workOrderExists) {
+                    newErrors.work_order = t('customers.workOrderExists') || 'Work order already exists';
+                    isValid = false;
+                }
+            } catch (error) {
+                // Network error - skip server check, allow submission
+                console.warn('Could not validate work order uniqueness:', error);
+            }
         } else {
-            const workOrderExists = await customerService.checkWorkOrderExists(formData.work_order, id === 'new' ? undefined : id);
-            if (workOrderExists) {
-                newErrors.work_order = t('customers.workOrder');
-                isValid = false;
+            // Offline: check against local IndexedDB cache
+            try {
+                const cachedCustomers = await getAllFromStore<Customer>(STORES.CUSTOMERS);
+                const workOrderExists = cachedCustomers.some(
+                    c => c.work_order?.toLowerCase() === formData.work_order?.toLowerCase() && c.id !== id
+                );
+                if (workOrderExists) {
+                    newErrors.work_order = t('customers.workOrderExists') || 'Work order already exists';
+                    isValid = false;
+                }
+            } catch (error) {
+                // IndexedDB error - allow submission
+                console.warn('Could not check local cache for work order:', error);
             }
         }
 

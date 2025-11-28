@@ -2,10 +2,13 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { constructionService } from '../services/constructionService';
 import { customerService } from '../services/customerService';
+import { useCreateConstruction, useUpdateConstruction } from '../hooks/useConstructions';
+import { useOffline } from '../context/OfflineContext';
 import { Input } from '../components/ui/Input';
 import { Loader2, Save, ArrowLeft } from 'lucide-react';
 import type { Construction, Customer } from '../types';
 import { useLanguage } from '../context/LanguageContext';
+import { getAllFromStore, getFromStore, STORES } from '../lib/offlineDb';
 
 const initialState: Partial<Construction> = {
     name: '',
@@ -21,6 +24,9 @@ export const ConstructionForm = () => {
     const [customer, setCustomer] = useState<Customer | null>(null);
     const [errors, setErrors] = useState<Record<string, string>>({});
     const { t } = useLanguage();
+    const { isOnline } = useOffline();
+    const createMutation = useCreateConstruction();
+    const updateMutation = useUpdateConstruction();
 
     useEffect(() => {
         if (customerId) {
@@ -33,21 +39,59 @@ export const ConstructionForm = () => {
 
     const loadCustomer = async (custId: string) => {
         try {
-            const data = await customerService.getById(custId);
-            setCustomer(data);
+            if (isOnline) {
+                const data = await customerService.getById(custId);
+                setCustomer(data);
+            } else {
+                // Load from offline cache
+                const data = await getFromStore<Customer>(STORES.CUSTOMERS, custId);
+                if (data) {
+                    setCustomer(data);
+                }
+            }
         } catch (error) {
             console.error('Failed to load customer', error);
+            // Try offline fallback
+            try {
+                const data = await getFromStore<Customer>(STORES.CUSTOMERS, custId);
+                if (data) {
+                    setCustomer(data);
+                }
+            } catch (offlineError) {
+                console.error('Failed to load customer from offline cache', offlineError);
+            }
         }
     };
 
     const loadConstruction = async (constId: string) => {
         setLoading(true);
         try {
-            const data = await constructionService.getById(constId);
-            setFormData(data);
+            if (isOnline) {
+                const data = await constructionService.getById(constId);
+                setFormData(data);
+            } else {
+                // Load from offline cache
+                const data = await getFromStore<Construction>(STORES.CONSTRUCTIONS, constId);
+                if (data) {
+                    setFormData(data);
+                } else {
+                    throw new Error('Construction not found offline');
+                }
+            }
         } catch (error) {
             console.error('Failed to load construction', error);
-            alert('Failed to load construction');
+            // Try offline fallback
+            try {
+                const data = await getFromStore<Construction>(STORES.CONSTRUCTIONS, constId);
+                if (data) {
+                    setFormData(data);
+                } else {
+                    alert('Failed to load construction');
+                }
+            } catch (offlineError) {
+                console.error('Failed to load construction from offline cache', offlineError);
+                alert('Failed to load construction');
+            }
         } finally {
             setLoading(false);
         }
@@ -74,14 +118,39 @@ export const ConstructionForm = () => {
             newErrors.work_order = t('constructions.workOrder');
             isValid = false;
         } else if (customerId) {
-            const workOrderExists = await constructionService.checkWorkOrderExists(
-                formData.work_order,
-                customerId,
-                id === 'new' ? undefined : id
-            );
-            if (workOrderExists) {
-                newErrors.work_order = t('constructions.workOrder');
-                isValid = false;
+            if (isOnline) {
+                // Check server-side uniqueness when online
+                try {
+                    const workOrderExists = await constructionService.checkWorkOrderExists(
+                        formData.work_order,
+                        customerId,
+                        id === 'new' ? undefined : id
+                    );
+                    if (workOrderExists) {
+                        newErrors.work_order = t('constructions.workOrderExists') || 'Work order already exists';
+                        isValid = false;
+                    }
+                } catch (error) {
+                    // Network error - skip server check, allow submission
+                    console.warn('Could not validate work order uniqueness:', error);
+                }
+            } else {
+                // Offline: check against local IndexedDB cache
+                try {
+                    const cachedConstructions = await getAllFromStore<Construction>(STORES.CONSTRUCTIONS);
+                    const workOrderExists = cachedConstructions.some(
+                        c => c.customer_id === customerId &&
+                             c.work_order?.toLowerCase() === formData.work_order?.toLowerCase() &&
+                             c.id !== id
+                    );
+                    if (workOrderExists) {
+                        newErrors.work_order = t('constructions.workOrderExists') || 'Work order already exists';
+                        isValid = false;
+                    }
+                } catch (error) {
+                    // IndexedDB error - allow submission
+                    console.warn('Could not check local cache for work order:', error);
+                }
             }
         }
 
@@ -107,9 +176,9 @@ export const ConstructionForm = () => {
                 };
 
                 if (id && id !== 'new') {
-                    await constructionService.update(id, dataToSave);
+                    await updateMutation.mutateAsync({ id, construction: dataToSave });
                 } else {
-                    await constructionService.create(dataToSave);
+                    await createMutation.mutateAsync(dataToSave);
                 }
                 navigate(`/customers/${customerId}/constructions`);
             }
