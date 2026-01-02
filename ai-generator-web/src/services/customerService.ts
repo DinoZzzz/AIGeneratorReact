@@ -195,6 +195,15 @@ export const customerService = {
     },
 
     async delete(id: string) {
+        // First delete related appointments (calendar_events)
+        const { error: appointmentsError } = await supabase
+            .from('calendar_events')
+            .delete()
+            .eq('customer_id', id);
+
+        if (appointmentsError) throw new AppError(appointmentsError.message, 'SUPABASE_ERROR', 500);
+
+        // Then delete the customer
         const { error } = await supabase
             .from('customers')
             .delete()
