@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { reportService } from '../services/reportService';
 import { supabase } from '../lib/supabase';
@@ -8,13 +8,18 @@ import { Button } from '../components/ui/Button';
 import { Loader2, Save, ArrowLeft, FileDown, Plus, ArrowRight, ChevronLeft, Check, X, ChevronUp } from 'lucide-react';
 import { Stepper } from '../components/ui/Stepper';
 import * as calc from '../lib/calculations/report';
-import { generatePDF } from '../lib/pdfGenerator';
 import type { ReportForm, ExaminationProcedure, ReportDraft, MaterialType, Material } from '../types';
 import { cn } from '../lib/utils';
 import { formatTime } from '../lib/calculations/testTime';
 import { getAirTestRequirements, type AirTestMethod, type PipeMaterial } from '../lib/calculations/airTable';
 import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../context/AuthContext';
+
+// Dynamic import for PDF generation to reduce initial bundle size
+const generatePDF = async (report: Partial<ReportForm>, userProfile?: any) => {
+    const { generatePDF: gen } = await import('../lib/pdfGenerator');
+    return gen(report, userProfile);
+};
 
 // Initial empty state
 const initialState: Partial<ReportForm> = {
@@ -60,14 +65,72 @@ export const AirMethodForm = () => {
     const [materialTypes, setMaterialTypes] = useState<MaterialType[]>([]);
     const [materials, setMaterials] = useState<Material[]>([]);
     const [step, setStep] = useState<1 | 2>(1);
-    const [calculated, setCalculated] = useState<CalculatedResults>({
-        pressureLoss: 0,
-        allowedLoss: 0,
-        satisfies: false,
-        testTime: '00:00',
-        requiredTestTime: 0
-    });
     const [showMobileResults, setShowMobileResults] = useState(false);
+
+    // Memoized calculations to prevent recalculation on every render
+    const calculated = useMemo<CalculatedResults>(() => {
+        const selectedProcedure = procedures.find(p => p.id === formData.examination_procedure_id);
+
+        // Diameter logic: Always use shaft diameter (pane_diameter) for test time
+        // Schema A (Draft 1): Shaft only - halve the time
+        // Schema B (Draft 2/3): Shaft + Pipeline - full time
+        const diameterMm = formData.pane_diameter || 0;
+
+        let procedureId = 1;
+        if (selectedProcedure) {
+            procedureId = selectedProcedure.id;
+        } else {
+            const p = formData.pressure_start || 0;
+            if (p >= 200) procedureId = 4;
+            else if (p >= 100) procedureId = 3;
+            else if (p >= 50) procedureId = 2;
+        }
+
+        const selectedMaterial = materials.find(m => m.id === formData.pipe_material_id);
+        const isConcrete = selectedMaterial
+            ? (selectedMaterial.name.toLowerCase().includes('beton') || selectedMaterial.name.toLowerCase().includes('concrete'))
+            : true; // Default to concrete if not selected
+
+        // Map ID to Method
+        const methodMap: Record<number, AirTestMethod> = {
+            1: 'LA',
+            2: 'LB',
+            3: 'LC',
+            4: 'LD'
+        };
+        const method = methodMap[procedureId] || 'LA';
+        const materialKey: PipeMaterial = isConcrete ? 'CONCRETE' : 'OTHER';
+
+        // Get requirements from table
+        const requirements = getAirTestRequirements(method, materialKey, diameterMm);
+
+        // Shaft logic: Halve the time if it's a shaft test (Draft 1)
+        let finalTime = requirements.requiredTime;
+        if (formData.draft_id === 1) {
+            finalTime = finalTime / 2;
+        }
+
+        const allowedLoss = requirements.allowedDrop;
+
+        const results = calc.calculateAirReport(formData as ReportForm, allowedLoss);
+
+        return {
+            pressureLoss: results.pressureLoss,
+            allowedLoss: allowedLoss,
+            satisfies: results.satisfies,
+            testTime: '00:00',
+            requiredTestTime: finalTime
+        };
+    }, [
+        formData.examination_procedure_id,
+        formData.pane_diameter,
+        formData.pressure_start,
+        formData.pressure_end,
+        formData.pipe_material_id,
+        formData.draft_id,
+        procedures,
+        materials
+    ]);
 
     const loadLookups = useCallback(async () => {
         const [procRes, draftRes, matTypeRes, materialsRes] = await Promise.all([
@@ -119,63 +182,6 @@ export const AirMethodForm = () => {
             setFormData(prev => ({ ...prev, material_type_id: 1 }));
         }
     }, [formData.draft_id, formData.material_type_id]);
-
-
-
-    useEffect(() => {
-        const selectedProcedure = procedures.find(p => p.id === formData.examination_procedure_id);
-
-        // Diameter logic: Always use shaft diameter (pane_diameter) for test time
-        // Schema A (Draft 1): Shaft only - halve the time
-        // Schema B (Draft 2/3): Shaft + Pipeline - full time
-        const diameterMm = formData.pane_diameter || 0;
-
-        let procedureId = 1;
-        if (selectedProcedure) {
-            procedureId = selectedProcedure.id;
-        } else {
-            const p = formData.pressure_start || 0;
-            if (p >= 200) procedureId = 4;
-            else if (p >= 100) procedureId = 3;
-            else if (p >= 50) procedureId = 2;
-        }
-
-        const selectedMaterial = materials.find(m => m.id === formData.pipe_material_id);
-        const isConcrete = selectedMaterial
-            ? (selectedMaterial.name.toLowerCase().includes('beton') || selectedMaterial.name.toLowerCase().includes('concrete'))
-            : true; // Default to concrete if not selected
-
-        // Map ID to Method
-        const methodMap: Record<number, AirTestMethod> = {
-            1: 'LA',
-            2: 'LB',
-            3: 'LC',
-            4: 'LD'
-        };
-        const method = methodMap[procedureId] || 'LA';
-        const materialKey: PipeMaterial = isConcrete ? 'CONCRETE' : 'OTHER';
-
-        // Get requirements from table
-        const requirements = getAirTestRequirements(method, materialKey, diameterMm);
-
-        // Shaft logic: Halve the time if it's a shaft test (Draft 1)
-        let finalTime = requirements.requiredTime;
-        if (formData.draft_id === 1) {
-            finalTime = finalTime / 2;
-        }
-
-        const allowedLoss = requirements.allowedDrop;
-
-        const results = calc.calculateAirReport(formData as ReportForm, allowedLoss);
-
-        setCalculated({
-            pressureLoss: results.pressureLoss,
-            allowedLoss: allowedLoss,
-            satisfies: results.satisfies,
-            testTime: '00:00',
-            requiredTestTime: finalTime
-        });
-    }, [formData, procedures, materials]);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
         const { name, value, type } = e.target;

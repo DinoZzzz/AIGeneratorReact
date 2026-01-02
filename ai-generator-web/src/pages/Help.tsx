@@ -50,7 +50,7 @@ export const Help = () => {
             items: [
                 {
                     question: "Kako stvoriti novi izvještaj?",
-                    answer: "1. Odaberite kupca iz popisa\n2. Odaberite gradilište\n3. Kliknite na 'Novi izvještaj'\n4. Odaberite metodu (Voda ili Zrak)\n5. Ispunite sva potrebna polja\n6. Kliknite 'Spremi'"
+                    answer: "1. Odaberite naručitelja iz popisa\n2. Odaberite gradilište\n3. Kliknite na 'Novi izvještaj'\n4. Odaberite metodu (Voda ili Zrak)\n5. Ispunite sva potrebna polja\n6. Kliknite 'Spremi'"
                 },
                 {
                     question: "Koja je razlika između metode vode i metode zraka?",
@@ -88,29 +88,29 @@ export const Help = () => {
                 },
                 {
                     question: "Koji podaci se uključuju u Word izvještaj?",
-                    answer: "Word izvještaj uključuje:\n- Opće podatke (temperatura, datum ispitivanja)\n- Podatke o kupcu i gradilištu\n- Skicu ispitivanja\n- Ulazne podatke (dimenzije, materijali)\n- Rezultate ispitivanja\n- Tablice s rezultatima\n- Zaključak (zadovoljava/ne zadovoljava)\n- Napomene i odstupanja\n- Potpis ovlaštene osobe\n- Priloge (fotografije/PDF-ove)"
+                    answer: "Word izvještaj uključuje:\n- Opće podatke (temperatura, datum ispitivanja)\n- Podatke o naručitelju i gradilištu\n- Skicu ispitivanja\n- Ulazne podatke (dimenzije, materijali)\n- Rezultate ispitivanja\n- Tablice s rezultatima\n- Zaključak (zadovoljava/ne zadovoljava)\n- Napomene i odstupanja\n- Potpis ovlaštene osobe\n- Priloge (fotografije/PDF-ove)"
                 }
             ]
         },
         {
             icon: <Database className="h-6 w-6" />,
-            title: "Kupci i Gradilišta",
+            title: "Naručitelji i Gradilišta",
             items: [
                 {
-                    question: "Kako dodati novog kupca?",
-                    answer: "1. Idite na stranicu 'Kupci'\n2. Kliknite 'Novi kupac'\n3. Ispunite podatke:\n   - Ime kupca *\n   - Adresa\n   - Lokacija\n   - Poštanski broj\n   - OIB\n   - Kontakt osoba\n   - Email\n   - Telefon\n4. Kliknite 'Spremi'\n\n* Obavezno polje"
+                    question: "Kako dodati novog naručitelja?",
+                    answer: "1. Idite na stranicu 'Naručitelji'\n2. Kliknite 'Novi naručitelj'\n3. Ispunite podatke:\n   - Ime naručitelja *\n   - Adresa\n   - Lokacija\n   - Poštanski broj\n   - OIB\n   - Kontakt osoba\n   - Email\n   - Telefon\n4. Kliknite 'Spremi'\n\n* Obavezno polje"
                 },
                 {
-                    question: "Kako dodati gradilište kupcu?",
-                    answer: "1. Odaberite kupca iz popisa\n2. Kliknite 'Novo gradilište'\n3. Ispunite podatke:\n   - Ime gradilišta *\n   - Radni nalog\n   - Lokacija\n   - Status (Aktivno/Neaktivno)\n4. Kliknite 'Spremi'\n\n* Obavezno polje"
+                    question: "Kako dodati gradilište naručitelju?",
+                    answer: "1. Odaberite naručitelja iz popisa\n2. Kliknite 'Novo gradilište'\n3. Ispunite podatke:\n   - Ime gradilišta *\n   - Radni nalog\n   - Lokacija\n   - Status (Aktivno/Neaktivno)\n4. Kliknite 'Spremi'\n\n* Obavezno polje"
                 },
                 {
-                    question: "Kako urediti podatke kupca?",
-                    answer: "1. Na stranici 'Kupci', pronađite kupca\n2. Kliknite ikonu olovke (Uredi)\n3. Izmijenite potrebna polja\n4. Kliknite 'Spremi'\n\nSve promjene će se odmah primijeniti."
+                    question: "Kako urediti podatke naručitelja?",
+                    answer: "1. Na stranici 'Naručitelji', pronađite naručitelja\n2. Kliknite ikonu olovke (Uredi)\n3. Izmijenite potrebna polja\n4. Kliknite 'Spremi'\n\nSve promjene će se odmah primijeniti."
                 },
                 {
-                    question: "Što se događa kad obrišem kupca?",
-                    answer: "Brisanje kupca će također obrisati:\n- Sva gradilišta povezana s kupcem\n- Sve izvještaje vezane uz ta gradilišta\n- Povijest izvoza\n\nOvo je trajna akcija i ne može se poništiti. Sustav će vas upozoriti prije brisanja."
+                    question: "Što se događa kad obrišem naručitelja?",
+                    answer: "Brisanje naručitelja će također obrisati:\n- Sva gradilišta povezana s naručiteljem\n- Sve izvještaje vezane uz ta gradilišta\n- Povijest izvoza\n\nOvo je trajna akcija i ne može se poništiti. Sustav će vas upozoriti prije brisanja."
                 }
             ]
         },

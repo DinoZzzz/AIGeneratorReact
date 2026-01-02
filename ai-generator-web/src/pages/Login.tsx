@@ -1,16 +1,18 @@
 import React, { useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import { Lock } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 
 export const Login = () => {
-    const [email, setEmail] = useState('');
+    const [identifier, setIdentifier] = useState(''); // Can be email or username
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const navigate = useNavigate();
+    const { lowBandwidthMode, setLowBandwidthMode } = useAuth();
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -18,15 +20,47 @@ export const Login = () => {
         setError(null);
 
         try {
-            const { error } = await supabase.auth.signInWithPassword({
-                email,
+            let emailToUse = identifier;
+
+            // Check if input is an email (contains @)
+            const isEmail = identifier.includes('@');
+
+            // If not an email, treat as username and lookup email
+            if (!isEmail) {
+                const { data, error: lookupError } = await supabase
+                    .from('profiles')
+                    .select('email')
+                    .ilike('username', identifier)
+                    .single();
+
+                if (lookupError) {
+                    throw new Error('Username not found. Please use your email address to login.');
+                }
+
+                if (!data?.email) {
+                    throw new Error('Username found but no email associated. Please contact support.');
+                }
+
+                emailToUse = data.email;
+            }
+
+            // Sign in with email
+            const { error: signInError } = await supabase.auth.signInWithPassword({
+                email: emailToUse,
                 password,
             });
 
-            if (error) throw error;
+            if (signInError) throw signInError;
             navigate('/');
         } catch (err: unknown) {
-            setError((err as Error).message || 'Failed to login');
+            const errorMessage = (err as Error).message || 'Failed to login';
+            if (errorMessage.includes('Invalid login credentials')) {
+                setError('Invalid username/email or password');
+            } else if (errorMessage.includes('Username not found')) {
+                setError('Username not found');
+            } else {
+                setError(errorMessage);
+            }
         } finally {
             setLoading(false);
         }
@@ -63,15 +97,15 @@ export const Login = () => {
 
                         <div>
                             <Input
-                                id="email"
-                                name="email"
-                                type="email"
-                                autoComplete="email"
+                                id="identifier"
+                                name="identifier"
+                                type="text"
+                                autoComplete="username"
                                 required
-                                label="Email address"
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
-                                placeholder="you@example.com"
+                                label="Email or Username"
+                                value={identifier}
+                                onChange={(e) => setIdentifier(e.target.value)}
+                                placeholder="you@example.com or username"
                             />
                         </div>
 
@@ -97,6 +131,19 @@ export const Login = () => {
                             >
                                 Sign in
                             </Button>
+                        </div>
+
+                        <div className="flex items-center space-x-2">
+                            <input
+                                type="checkbox"
+                                id="lowBandwidth"
+                                className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                                checked={lowBandwidthMode}
+                                onChange={(e) => setLowBandwidthMode(e.target.checked)}
+                            />
+                            <label htmlFor="lowBandwidth" className="text-sm text-muted-foreground cursor-pointer select-none">
+                                Low Bandwidth Mode (Mod slabog interneta)
+                            </label>
                         </div>
                     </form>
                 </div>

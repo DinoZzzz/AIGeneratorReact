@@ -40,6 +40,7 @@ export interface Construction {
     name: string;
     location?: string;
     is_active: boolean;
+    is_archived: boolean;
     created_at: string;
     customer?: Customer; // Joined
 }
@@ -62,7 +63,9 @@ export interface Profile {
     last_name: string;
     username: string;
     title?: string;
+    gender?: 'M' | 'F';
     role: 'user' | 'admin';
+    avatar_url?: string;
     accreditations: number[]; // List of ReportType IDs
     is_admin?: boolean; // Helper property for UI
 }
@@ -177,4 +180,26 @@ export interface ReportFile {
     created_at: string;
     type?: string; // legacy
     file_type?: 'image' | 'pdf';
+}
+
+export interface Appointment {
+    id: string;
+    title: string;
+    description?: string;
+    start: string; // Renamed from start_time to match calendar_events
+    end: string; // Renamed from end_time to match calendar_events
+    customer_id?: string;
+    construction_id?: string;
+    examiner_ids: string[]; // Array of examiner IDs
+    location?: string; // NEW: Event location
+    reminder_enabled?: boolean; // NEW: Whether reminders are enabled
+    reminder_times?: { minutes_before: number; type: string }[]; // NEW: Reminder configuration
+    created_by: string;
+    created_at: string;
+    updated_at: string;
+
+    // Joined fields
+    assignees?: Profile[]; // Populated from examiner_ids
+    customer?: Customer;
+    construction?: Construction;
 }

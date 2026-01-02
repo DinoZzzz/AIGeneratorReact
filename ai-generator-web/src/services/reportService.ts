@@ -17,6 +17,24 @@ export const reportService = {
         return data as ReportForm[];
     },
 
+    async getPaginated(page: number = 1, pageSize: number = 15) {
+        const from = (page - 1) * pageSize;
+        const to = from + pageSize - 1;
+
+        const { data, error, count } = await supabase
+            .from('report_forms')
+            .select(`
+        *,
+        construction:constructions(name, work_order),
+        draft:report_drafts(name)
+      `, { count: 'exact' })
+            .order('created_at', { ascending: false })
+            .range(from, to);
+
+        if (error) throw new AppError(error.message, 'SUPABASE_ERROR', 500);
+        return { data: data as ReportForm[], count: count || 0 };
+    },
+
     async getByConstruction(constructionId: string) {
         const { data, error } = await supabase
             .from('report_forms')

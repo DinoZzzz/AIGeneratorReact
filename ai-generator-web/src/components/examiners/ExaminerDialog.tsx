@@ -25,6 +25,7 @@ export const ExaminerDialog = ({ open, onOpenChange, examiner, onSave }: Examine
         email: '',
         password: '',
         title: '',
+        gender: undefined,
         role: 'user',
         accreditations: []
     });
@@ -45,6 +46,7 @@ export const ExaminerDialog = ({ open, onOpenChange, examiner, onSave }: Examine
                     email: examiner.email || '',
                     password: '', // Don't populate password for security
                     title: examiner.title || '',
+                    gender: examiner.gender,
                     role: examiner.role,
                     accreditations: examiner.accreditations || []
                 });
@@ -56,6 +58,7 @@ export const ExaminerDialog = ({ open, onOpenChange, examiner, onSave }: Examine
                     email: '',
                     password: '',
                     title: '',
+                    gender: undefined,
                     role: 'user',
                     accreditations: []
                 });
@@ -163,6 +166,36 @@ export const ExaminerDialog = ({ open, onOpenChange, examiner, onSave }: Examine
                                 value={formData.title}
                                 onChange={e => setFormData({ ...formData, title: e.target.value })}
                             />
+                        </div>
+                    </div>
+
+                    <div className="space-y-2">
+                        <Label>{t('examiners.dialog.gender')}</Label>
+                        <div className="flex gap-4">
+                            <div className="flex items-center space-x-2">
+                                <input
+                                    type="radio"
+                                    id="gender-m"
+                                    name="gender"
+                                    value="M"
+                                    checked={formData.gender === 'M'}
+                                    onChange={e => setFormData({ ...formData, gender: e.target.value as 'M' | 'F' })}
+                                    className="h-4 w-4 text-primary focus:ring-ring"
+                                />
+                                <Label htmlFor="gender-m" className="font-normal cursor-pointer">{t('examiners.dialog.male')}</Label>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                                <input
+                                    type="radio"
+                                    id="gender-f"
+                                    name="gender"
+                                    value="F"
+                                    checked={formData.gender === 'F'}
+                                    onChange={e => setFormData({ ...formData, gender: e.target.value as 'M' | 'F' })}
+                                    className="h-4 w-4 text-primary focus:ring-ring"
+                                />
+                                <Label htmlFor="gender-f" className="font-normal cursor-pointer">{t('examiners.dialog.female')}</Label>
+                            </div>
                         </div>
                     </div>
 

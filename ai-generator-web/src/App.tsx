@@ -3,13 +3,16 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { OfflineProvider } from './context/OfflineContext';
 import { Layout } from './components/Layout';
 import { ErrorBoundary } from './components/ErrorBoundary';
+import { OfflineIndicator } from './components/OfflineIndicator';
 import { Loader2 } from 'lucide-react';
 import { ToastProvider } from './context/ToastContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { LanguageProvider } from './context/LanguageContext';
 import { queryClient } from './lib/queryClient';
+import { Calendar } from './pages/Calendar';
 
 // Lazy load all page components
 const Login = lazy(() => import('./pages/Login').then(m => ({ default: m.Login })));
@@ -28,6 +31,8 @@ const Examiners = lazy(() => import('./pages/Examiners').then(m => ({ default: m
 const Help = lazy(() => import('./pages/Help').then(m => ({ default: m.Help })));
 const Settings = lazy(() => import('./pages/Settings').then(m => ({ default: m.Settings })));
 const Analytics = lazy(() => import('./pages/Analytics').then(m => ({ default: m.Analytics })));
+const Profile = lazy(() => import('./pages/Profile').then(m => ({ default: m.ProfilePage })));
+const Chat = lazy(() => import('./pages/Chat').then(m => ({ default: m.Chat })));
 
 // Loading fallback component
 const LoadingFallback = () => (
@@ -51,69 +56,83 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;
 };
 
+// Home component to handle redirection based on mode
+const Home = () => {
+  const { lowBandwidthMode } = useAuth();
+  if (lowBandwidthMode) {
+    return <Navigate to="/customers" replace />;
+  }
+  return <Dashboard />;
+};
+
 function App() {
   return (
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
-        <ReactQueryDevtools initialIsOpen={false} position="bottom-right" />
+        <ReactQueryDevtools initialIsOpen={false} />
         <AuthProvider>
-          <ThemeProvider>
-            <LanguageProvider>
-            <ToastProvider>
-              <Router>
-                <Suspense fallback={<LoadingFallback />}>
-                  <Routes>
-                    <Route path="/login" element={<Login />} />
+          <OfflineProvider>
+            <ThemeProvider>
+              <LanguageProvider>
+                <ToastProvider>
+                  <Router>
+                  <Suspense fallback={<LoadingFallback />}>
+                    <Routes>
+                      <Route path="/login" element={<Login />} />
 
-                {/* Protected Routes */}
-                <Route
-                  path="/*"
-                  element={
-                    <ProtectedRoute>
-                      <Layout>
-                        <ErrorBoundary>
-                          <Suspense fallback={<LoadingFallback />}>
-                            <Routes>
-                            <Route path="/" element={<Dashboard />} />
-                            <Route path="/history" element={<History />} />
-                            <Route path="/history/:id" element={<HistoryDetails />} />
-                            <Route path="/examiners" element={<Examiners />} />
-                            <Route path="/settings" element={<Settings />} />
-                            <Route path="/analytics" element={<Analytics />} />
-                            <Route path="/help" element={<Help />} />
+                      {/* Protected Routes */}
+                      <Route
+                        path="/*"
+                        element={
+                          <ProtectedRoute>
+                            <Layout>
+                              <ErrorBoundary>
+                                <Suspense fallback={<LoadingFallback />}>
+                                  <Routes>
+                                    <Route path="/" element={<Home />} />
+                                    <Route path="/history" element={<History />} />
+                                    <Route path="/history/:id" element={<HistoryDetails />} />
+                                    <Route path="/examiners" element={<Examiners />} />
+                                    <Route path="/settings" element={<Settings />} />
+                                    <Route path="/analytics" element={<Analytics />} />
+                                    <Route path="/help" element={<Help />} />
+                                    <Route path="/profile" element={<Profile />} />
+                                    <Route path="/chat" element={<Chat />} />
+                                    <Route path="/calendar" element={<Calendar />} />
+                                    <Route path="/reports" element={<Reports />} />
+                                    <Route path="/reports/new" element={<WaterMethodForm />} />
+                                    <Route path="/reports/new/air" element={<AirMethodForm />} />
+                                    <Route path="/reports/:id" element={<WaterMethodForm />} />
+                                    <Route path="/reports/air/:id" element={<AirMethodForm />} />
+                                    <Route path="/customers" element={<Customers />} />
+                                    <Route path="/customers/new" element={<CustomerForm />} />
+                                    <Route path="/customers/:id" element={<CustomerForm />} />
+                                    <Route path="/customers/:customerId/constructions" element={<Constructions />} />
+                                    <Route path="/customers/:customerId/constructions/new" element={<ConstructionForm />} />
+                                    <Route path="/customers/:customerId/constructions/:id" element={<ConstructionForm />} />
 
-                            <Route path="/reports" element={<Reports />} />
-                            <Route path="/reports/new" element={<WaterMethodForm />} />
-                            <Route path="/reports/new/air" element={<AirMethodForm />} />
-                            <Route path="/reports/:id" element={<WaterMethodForm />} />
-                            <Route path="/reports/air/:id" element={<AirMethodForm />} />
-                            <Route path="/customers" element={<Customers />} />
-                            <Route path="/customers/new" element={<CustomerForm />} />
-                            <Route path="/customers/:id" element={<CustomerForm />} />
-                            <Route path="/customers/:customerId/constructions" element={<Constructions />} />
-                            <Route path="/customers/:customerId/constructions/new" element={<ConstructionForm />} />
-                            <Route path="/customers/:customerId/constructions/:id" element={<ConstructionForm />} />
-
-                            {/* Construction Reports Routes */}
-                            <Route path="/customers/:customerId/constructions/:constructionId/reports" element={<ConstructionReports />} />
-                            <Route path="/customers/:customerId/constructions/:constructionId/reports/new/water" element={<WaterMethodForm />} />
-                            <Route path="/customers/:customerId/constructions/:constructionId/reports/new/air" element={<AirMethodForm />} />
-                            <Route path="/customers/:customerId/constructions/:constructionId/reports/:id" element={<WaterMethodForm />} />
-                            <Route path="/customers/:customerId/constructions/:constructionId/reports/air/:id" element={<AirMethodForm />} />
-                            {/* Add other routes here */}
-                            </Routes>
-                          </Suspense>
-                        </ErrorBoundary>
-                      </Layout>
-                    </ProtectedRoute>
-                  }
-                  />
-                  </Routes>
-                </Suspense>
-              </Router>
-            </ToastProvider>
-            </LanguageProvider>
-          </ThemeProvider>
+                                    {/* Construction Reports Routes */}
+                                    <Route path="/customers/:customerId/constructions/:constructionId/reports" element={<ConstructionReports />} />
+                                    <Route path="/customers/:customerId/constructions/:constructionId/reports/new/water" element={<WaterMethodForm />} />
+                                    <Route path="/customers/:customerId/constructions/:constructionId/reports/new/air" element={<AirMethodForm />} />
+                                    <Route path="/customers/:customerId/constructions/:constructionId/reports/:id" element={<WaterMethodForm />} />
+                                    <Route path="/customers/:customerId/constructions/:constructionId/reports/air/:id" element={<AirMethodForm />} />
+                                    {/* Add other routes here */}
+                                  </Routes>
+                                </Suspense>
+                              </ErrorBoundary>
+                            </Layout>
+                          </ProtectedRoute>
+                        }
+                      />
+                    </Routes>
+                    </Suspense>
+                    <OfflineIndicator />
+                  </Router>
+                </ToastProvider>
+              </LanguageProvider>
+            </ThemeProvider>
+          </OfflineProvider>
         </AuthProvider>
       </QueryClientProvider>
     </ErrorBoundary>

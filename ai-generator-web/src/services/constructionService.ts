@@ -3,12 +3,17 @@ import type { Construction } from '../types';
 import { AppError, NotFoundError } from '../lib/errorHandler';
 
 export const constructionService = {
-    async getByCustomerId(customerId: string) {
-        const { data, error } = await supabase
+    async getByCustomerId(customerId: string, includeArchived: boolean = false) {
+        let query = supabase
             .from('constructions')
-            .select('id, name, work_order, location, customer_id, is_active, created_at, updated_at')
-            .eq('customer_id', customerId)
-            .order('created_at', { ascending: false });
+            .select('id, name, work_order, location, customer_id, is_active, is_archived, created_at, updated_at')
+            .eq('customer_id', customerId);
+
+        if (!includeArchived) {
+            query = query.eq('is_archived', false);
+        }
+
+        const { data, error } = await query.order('created_at', { ascending: false });
 
         if (error) throw new AppError(error.message, 'SUPABASE_ERROR', 500);
         return data as Construction[];
@@ -76,5 +81,29 @@ export const constructionService = {
         const { data, error } = await query;
         if (error) throw new AppError(error.message, 'SUPABASE_ERROR', 500);
         return data.length > 0;
+    },
+
+    async archive(id: string) {
+        const { data, error } = await supabase
+            .from('constructions')
+            .update({ is_archived: true })
+            .eq('id', id)
+            .select()
+            .single();
+
+        if (error) throw new AppError(error.message, 'SUPABASE_ERROR', 500);
+        return data as Construction;
+    },
+
+    async unarchive(id: string) {
+        const { data, error } = await supabase
+            .from('constructions')
+            .update({ is_archived: false })
+            .eq('id', id)
+            .select()
+            .single();
+
+        if (error) throw new AppError(error.message, 'SUPABASE_ERROR', 500);
+        return data as Construction;
     }
 };

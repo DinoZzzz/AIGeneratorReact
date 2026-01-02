@@ -1,17 +1,20 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { historyService } from '../services/historyService';
-import type { ReportExport } from '../types';
-import { Loader2, Search, Trash2, ExternalLink, ChevronLeft, ChevronRight, User, Calendar, FileText } from 'lucide-react';
+import { examinerService } from '../services/examinerService';
+import type { ReportExport, Profile } from '../types';
+import { Loader2, Search, Trash2, ExternalLink, ChevronLeft, ChevronRight, User, Calendar, FileText, Users } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 
 export const History = () => {
     const navigate = useNavigate();
     const { t } = useLanguage();
     const [exports, setExports] = useState<ReportExport[]>([]);
+    const [users, setUsers] = useState<Profile[]>([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
     const [debouncedSearch, setDebouncedSearch] = useState('');
+    const [selectedUserId, setSelectedUserId] = useState<string>('');
     const [page, setPage] = useState(0);
     const [totalCount, setTotalCount] = useState<number | null>(0);
     const pageSize = 15;
@@ -29,7 +32,14 @@ export const History = () => {
     const loadData = useCallback(async () => {
         setLoading(true);
         try {
-            const result = await historyService.getAll(page, pageSize, debouncedSearch, sortColumn, sortOrder);
+            const result = await historyService.getAll(
+                page,
+                pageSize,
+                debouncedSearch,
+                sortColumn,
+                sortOrder,
+                selectedUserId || undefined
+            );
             setExports(result.data);
             setTotalCount(result.count);
         } catch (error) {
@@ -37,7 +47,19 @@ export const History = () => {
         } finally {
             setLoading(false);
         }
-    }, [page, debouncedSearch, sortColumn, sortOrder]);
+    }, [page, debouncedSearch, sortColumn, sortOrder, selectedUserId]);
+
+    useEffect(() => {
+        const loadUsers = async () => {
+            try {
+                const usersData = await examinerService.getExaminers();
+                setUsers(usersData);
+            } catch (error) {
+                console.error('Failed to load users:', error);
+            }
+        };
+        loadUsers();
+    }, []);
 
     useEffect(() => {
         loadData();
@@ -94,6 +116,24 @@ export const History = () => {
                             value={search}
                             onChange={handleSearchChange}
                         />
+                    </div>
+
+                    <div className="relative w-full sm:w-64">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <Users className="h-5 w-5 text-muted-foreground" />
+                        </div>
+                        <select
+                            value={selectedUserId}
+                            onChange={(e) => { setSelectedUserId(e.target.value); setPage(0); }}
+                            className="block w-full pl-10 pr-3 py-2 border border-input rounded-md leading-5 bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-input sm:text-sm appearance-none cursor-pointer"
+                        >
+                            <option value="">{t('history.allUsers')}</option>
+                            {users.map((user) => (
+                                <option key={user.id} value={user.id}>
+                                    {formatName(user)}
+                                </option>
+                            ))}
+                        </select>
                     </div>
 
                     {/* Pagination Controls */}

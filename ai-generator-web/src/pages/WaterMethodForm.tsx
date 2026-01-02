@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { reportService } from '../services/reportService';
 import { supabase } from '../lib/supabase';
@@ -8,11 +8,16 @@ import { Button } from '../components/ui/Button';
 import { Loader2, Save, ArrowLeft, FileDown, Plus, ArrowRight, ChevronLeft, Check, X, ChevronUp } from 'lucide-react';
 import { Stepper } from '../components/ui/Stepper';
 import * as calc from '../lib/calculations/report';
-import { generatePDF } from '../lib/pdfGenerator';
 import type { ReportForm, ReportDraft, MaterialType, Material } from '../types';
 import { cn } from '../lib/utils';
 import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../context/AuthContext';
+
+// Dynamic import for PDF generation to reduce initial bundle size
+const generatePDF = async (report: Partial<ReportForm>, userProfile?: any) => {
+    const { generatePDF: gen } = await import('../lib/pdfGenerator');
+    return gen(report, userProfile);
+};
 
 // Initial empty state
 const initialState: Partial<ReportForm> = {
@@ -67,54 +72,10 @@ export const WaterMethodForm = () => {
     const [materials, setMaterials] = useState<Material[]>([]);
     const [step, setStep] = useState<1 | 2>(1);
     const [dionicaError, setDionicaError] = useState<string>('');
-    const [calculated, setCalculated] = useState<CalculatedResults>({
-        waterLoss: 0,
-        waterVolumeLoss: 0,
-        wettedShaftSurface: 0,
-        wettedPipeSurface: 0,
-        totalWettedArea: 0,
-        allowedLossL: 0,
-        allowedLossMm: 0,
-        hydrostaticHeight: 0,
-        result: 0,
-        satisfies: false
-    });
     const [showMobileResults, setShowMobileResults] = useState(false);
 
-    const loadLookups = useCallback(async () => {
-        const [draftRes, matTypeRes, matRes] = await Promise.all([
-            supabase.from('report_drafts').select('*').order('id'),
-            supabase.from('material_types').select('*').order('id'),
-            supabase.from('materials').select('*').order('name')
-        ]);
-
-        if (draftRes.data) setDrafts(draftRes.data);
-        if (matTypeRes.data) setMaterialTypes(matTypeRes.data);
-        if (matRes.data) setMaterials(matRes.data);
-    }, []);
-
-    const loadReport = useCallback(async (reportId: string) => {
-        try {
-            setLoading(true);
-            const data = await reportService.getById(reportId);
-            setFormData(data);
-        } catch (error) {
-            console.error('Error loading report:', error);
-            alert(t('reports.form.loadError'));
-        } finally {
-            setLoading(false);
-        }
-    }, [t]);
-
-    useEffect(() => {
-        loadLookups();
-        if (id && id !== 'new') {
-            loadReport(id);
-        }
-    }, [id, loadLookups, loadReport]);
-
-
-    useEffect(() => {
+    // Memoized calculations to prevent recalculation on every render
+    const calculated = useMemo<CalculatedResults>(() => {
         // Convert inputs from mm/cm to meters for calculations
         const formDataInMeters = {
             ...formData,
@@ -182,10 +143,28 @@ export const WaterMethodForm = () => {
             formData.depositional_height || 0
         );
 
-        setCalculated({ ...results, wettedShaftSurface, wettedPipeSurface, hydrostaticHeight });
+        return { ...results, wettedShaftSurface, wettedPipeSurface, hydrostaticHeight };
+    }, [
+        formData.draft_id,
+        formData.material_type_id,
+        formData.pane_diameter,
+        formData.pane_width,
+        formData.pane_length,
+        formData.pane_height,
+        formData.pipe_diameter,
+        formData.pipe_length,
+        formData.water_height,
+        formData.water_height_start,
+        formData.water_height_end,
+        formData.depositional_height,
+        formData.temperature,
+        formData.examination_duration
+    ]);
 
+    // Auto-fill deviation text based on schema conditions
+    useEffect(() => {
         // Auto-fill deviation text for Schema C when hydrostatic height < 100cm
-        if (formData.draft_id === 2 && hydrostaticHeight < 1.0) {
+        if (formData.draft_id === 2 && calculated.hydrostaticHeight < 1.0) {
             const autoText = "Kod pojedinih dionica h2<100cm";
             if (formData.deviation !== autoText) {
                 setFormData(prev => ({ ...prev, deviation: autoText }));
@@ -199,7 +178,39 @@ export const WaterMethodForm = () => {
                 setFormData(prev => ({ ...prev, deviation: autoText }));
             }
         }
-    }, [formData]);
+    }, [formData.draft_id, formData.water_height, calculated.hydrostaticHeight, formData.deviation]);
+
+    const loadLookups = useCallback(async () => {
+        const [draftRes, matTypeRes, matRes] = await Promise.all([
+            supabase.from('report_drafts').select('*').order('id'),
+            supabase.from('material_types').select('*').order('id'),
+            supabase.from('materials').select('*').order('name')
+        ]);
+
+        if (draftRes.data) setDrafts(draftRes.data);
+        if (matTypeRes.data) setMaterialTypes(matTypeRes.data);
+        if (matRes.data) setMaterials(matRes.data);
+    }, []);
+
+    const loadReport = useCallback(async (reportId: string) => {
+        try {
+            setLoading(true);
+            const data = await reportService.getById(reportId);
+            setFormData(data);
+        } catch (error) {
+            console.error('Error loading report:', error);
+            alert(t('reports.form.loadError'));
+        } finally {
+            setLoading(false);
+        }
+    }, [t]);
+
+    useEffect(() => {
+        loadLookups();
+        if (id && id !== 'new') {
+            loadReport(id);
+        }
+    }, [id, loadLookups, loadReport]);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
         const { name, value, type } = e.target;

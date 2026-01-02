@@ -1,6 +1,31 @@
 -- WARNING: This schema is for context only and is not meant to be run.
 -- Table order and constraints may not be valid for execution.
 
+CREATE TABLE public.appointment_assignees (
+  appointment_id uuid NOT NULL,
+  examiner_id uuid NOT NULL,
+  CONSTRAINT appointment_assignees_pkey PRIMARY KEY (appointment_id, examiner_id),
+  CONSTRAINT appointment_assignees_appointment_id_fkey FOREIGN KEY (appointment_id) REFERENCES public.appointments(id),
+  CONSTRAINT appointment_assignees_examiner_id_fkey FOREIGN KEY (examiner_id) REFERENCES public.profiles(id)
+);
+CREATE TABLE public.appointments (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  title text NOT NULL,
+  description text,
+  start_time timestamp with time zone NOT NULL,
+  end_time timestamp with time zone NOT NULL,
+  examiner_id uuid,
+  customer_id uuid,
+  construction_id uuid,
+  status text DEFAULT 'pending'::text CHECK (status = ANY (ARRAY['pending'::text, 'confirmed'::text, 'completed'::text, 'cancelled'::text])),
+  created_by uuid DEFAULT auth.uid(),
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT appointments_pkey PRIMARY KEY (id),
+  CONSTRAINT appointments_examiner_id_fkey FOREIGN KEY (examiner_id) REFERENCES public.profiles(id),
+  CONSTRAINT appointments_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES public.customers(id),
+  CONSTRAINT appointments_construction_id_fkey FOREIGN KEY (construction_id) REFERENCES public.constructions(id),
+  CONSTRAINT appointments_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.profiles(id)
+);
 CREATE TABLE public.constructions (
   id uuid NOT NULL DEFAULT uuid_generate_v4(),
   customer_id uuid,
@@ -10,6 +35,7 @@ CREATE TABLE public.constructions (
   is_active boolean DEFAULT true,
   created_at timestamp with time zone DEFAULT now(),
   updated_at timestamp with time zone DEFAULT now(),
+  is_archived boolean NOT NULL DEFAULT false,
   CONSTRAINT constructions_pkey PRIMARY KEY (id),
   CONSTRAINT constructions_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES public.customers(id)
 );
@@ -59,6 +85,8 @@ CREATE TABLE public.profiles (
   accreditations jsonb DEFAULT '[]'::jsonb,
   created_at timestamp with time zone DEFAULT now(),
   updated_at timestamp with time zone DEFAULT now(),
+  gender text CHECK (gender = ANY (ARRAY['M'::text, 'F'::text])),
+  avatar_url text,
   CONSTRAINT profiles_pkey PRIMARY KEY (id),
   CONSTRAINT profiles_id_fkey FOREIGN KEY (id) REFERENCES auth.users(id)
 );
@@ -125,6 +153,19 @@ CREATE TABLE public.report_forms (
   user_id uuid,
   type_id integer,
   draft_id integer,
+  examination_procedure_id integer,
+  material_type_id integer,
+  pane_material_id integer,
+  pipe_material_id integer,
+  customer_id uuid,
+  construction_id uuid,
+  dionica text,
+  stock text,
+  temperature numeric,
+  pipe_length numeric,
+  pipe_diameter numeric,
+  pipeline_slope numeric,
+  pane_width numeric,
   pane_height numeric,
   pane_length numeric,
   saturation_of_test_section numeric,
@@ -141,6 +182,23 @@ CREATE TABLE public.report_forms (
   examination_date date,
   examination_duration text,
   examination_start_time text,
+  examination_end_time text,
+  satisfies boolean,
+  remark text,
+  deviation text,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  allowed_loss numeric,
+  pressure_loss numeric,
+  required_test_time numeric,
+  section_name text,
+  CONSTRAINT report_forms_pkey PRIMARY KEY (id),
+  CONSTRAINT report_forms_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id),
+  CONSTRAINT report_forms_type_id_fkey FOREIGN KEY (type_id) REFERENCES public.report_types(id),
+  CONSTRAINT report_forms_draft_id_fkey FOREIGN KEY (draft_id) REFERENCES public.report_drafts(id),
+  CONSTRAINT report_forms_examination_procedure_id_fkey FOREIGN KEY (examination_procedure_id) REFERENCES public.examination_procedures(id),
+  CONSTRAINT report_forms_material_type_id_fkey FOREIGN KEY (material_type_id) REFERENCES public.material_types(id),
+  CONSTRAINT report_forms_pane_material_id_fkey FOREIGN KEY (pane_material_id) REFERENCES public.materials(id),
   CONSTRAINT report_forms_pipe_material_id_fkey FOREIGN KEY (pipe_material_id) REFERENCES public.materials(id),
   CONSTRAINT report_forms_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES public.customers(id),
   CONSTRAINT report_forms_construction_id_fkey FOREIGN KEY (construction_id) REFERENCES public.constructions(id)

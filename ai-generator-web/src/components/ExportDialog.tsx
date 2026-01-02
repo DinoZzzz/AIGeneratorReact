@@ -27,6 +27,7 @@ export interface ExportMetaData {
     waterRemark: string;
     waterDeviation: string;
     certifierName: string;
+    includePdfs?: boolean;
 }
 
 export const ExportDialog = ({ open, onOpenChange, onConfirm, loading = false, defaultValues, reports, constructionId, uploadedFiles = [], onFileUploaded, onFileDeleted }: ExportDialogProps) => {
@@ -39,6 +40,7 @@ export const ExportDialog = ({ open, onOpenChange, onConfirm, loading = false, d
         waterRemark: defaultValues?.waterRemark || '',
         waterDeviation: defaultValues?.waterDeviation || '',
         certifierName: defaultValues?.certifierName || '',
+        includePdfs: defaultValues?.includePdfs || false,
     });
 
     const [selectedReportIds, setSelectedReportIds] = useState<Set<string>>(new Set());
@@ -112,8 +114,8 @@ export const ExportDialog = ({ open, onOpenChange, onConfirm, loading = false, d
 
                     {/* Report Selection Section */}
                     {reports && reports.length > 0 && (() => {
-                        const waterReports = reports.filter(r => r.type_id === 1);
-                        const airReports = reports.filter(r => r.type_id === 2);
+                        const waterReports = reports.filter(r => r.type_id === 1 || (!r.type_id && r.section_name && r.material_type_id === 1));
+                        const airReports = reports.filter(r => r.type_id === 2 || (!r.type_id && r.section_name && r.material_type_id === 2));
 
                         return (
                             <div className="space-y-4">
@@ -312,6 +314,28 @@ export const ExportDialog = ({ open, onOpenChange, onConfirm, loading = false, d
                                 onDelete={onFileDeleted}
                                 files={uploadedFiles}
                             />
+                        </div>
+                    )}
+
+                    {/* PDF Inclusion Option */}
+                    {reports && reports.length > 0 && (
+                        <div className="space-y-2 border-t border-border pt-4">
+                            <div className="flex items-start space-x-3">
+                                <input
+                                    type="checkbox"
+                                    id="includePdfs"
+                                    checked={data.includePdfs}
+                                    onChange={(e) => setData({ ...data, includePdfs: e.target.checked })}
+                                    className="rounded border-input text-primary focus:ring-ring mt-0.5"
+                                    disabled={loading}
+                                />
+                                <div className="flex-1">
+                                    <label htmlFor="includePdfs" className="text-sm font-medium leading-none cursor-pointer">
+                                        {t('export.includePdfs')}
+                                    </label>
+                                    <p className="text-xs text-muted-foreground mt-1">{t('export.includePdfsHelp')}</p>
+                                </div>
+                            </div>
                         </div>
                     )}
 

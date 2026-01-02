@@ -77,7 +77,9 @@ export const examinerService = {
                 title: profile.title,
                 accreditations: profile.accreditations || [],
                 role: profile.role || 'user',
-                email: profile.email
+                email: profile.email,
+                gender: profile.gender,
+                avatar_url: profile.avatar_url
             };
 
             const { data, error } = await supabase
@@ -101,7 +103,9 @@ export const examinerService = {
             username: profile.username,
             title: profile.title,
             accreditations: profile.accreditations,
-            role: profile.role
+            role: profile.role,
+            gender: profile.gender,
+            avatar_url: profile.avatar_url
         };
 
         // If password is provided, update it using Edge Function
@@ -151,5 +155,25 @@ export const examinerService = {
             .eq('id', id);
 
         if (error) throw error;
+    },
+
+    async uploadAvatar(file: File, userId: string): Promise<string> {
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${userId}-${Math.random()}.${fileExt}`;
+        const filePath = `${fileName}`;
+
+        const { error: uploadError } = await supabase.storage
+            .from('avatars')
+            .upload(filePath, file);
+
+        if (uploadError) {
+            throw uploadError;
+        }
+
+        const { data } = supabase.storage
+            .from('avatars')
+            .getPublicUrl(filePath);
+
+        return data.publicUrl;
     }
 };

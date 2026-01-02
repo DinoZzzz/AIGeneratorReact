@@ -11,6 +11,9 @@ interface AuthContextType {
     profile: Profile | null;
     loading: boolean;
     signOut: () => Promise<void>;
+    refreshProfile: () => Promise<void>;
+    lowBandwidthMode: boolean;
+    setLowBandwidthMode: (mode: boolean) => void;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -19,6 +22,9 @@ const AuthContext = createContext<AuthContextType>({
     profile: null,
     loading: true,
     signOut: async () => { },
+    refreshProfile: async () => { },
+    lowBandwidthMode: false,
+    setLowBandwidthMode: () => { },
 });
 
 // eslint-disable-next-line react-refresh/only-export-components
@@ -29,8 +35,26 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const [user, setUser] = useState<User | null>(null);
     const [profile, setProfile] = useState<Profile | null>(null);
     const [loading, setLoading] = useState(true);
+    const [lowBandwidthMode, setLowBandwidthMode] = useState(() => {
+        return localStorage.getItem('lowBandwidthMode') === 'true';
+    });
+
+    useEffect(() => {
+        localStorage.setItem('lowBandwidthMode', String(lowBandwidthMode));
+        if (lowBandwidthMode) {
+            document.body.classList.add('low-bandwidth');
+        } else {
+            document.body.classList.remove('low-bandwidth');
+        }
+    }, [lowBandwidthMode]);
 
     const loadProfile = async (userId: string) => {
+        // Skip profile loading in low bandwidth mode to save data
+        if (lowBandwidthMode) {
+            setLoading(false);
+            return;
+        }
+
         try {
             const { data, error } = await supabase
                 .from('profiles')
@@ -51,7 +75,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         supabase.auth.getSession().then(({ data: { session } }) => {
             setSession(session);
             setUser(session?.user ?? null);
-            if (session?.user) {
+            if (session?.user && !lowBandwidthMode) {
                 loadProfile(session.user.id);
             }
             setLoading(false);
@@ -63,7 +87,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         } = supabase.auth.onAuthStateChange((_event, session) => {
             setSession(session);
             setUser(session?.user ?? null);
-            if (session?.user) {
+            if (session?.user && !lowBandwidthMode) {
                 loadProfile(session.user.id);
             } else {
                 setProfile(null);
@@ -72,7 +96,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         });
 
         return () => subscription.unsubscribe();
-    }, []);
+    }, [lowBandwidthMode]);
 
     const signOut = async () => {
         await supabase.auth.signOut();
@@ -85,6 +109,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         profile,
         loading,
         signOut,
+        refreshProfile: async () => {
+            if (user && !lowBandwidthMode) {
+                await loadProfile(user.id);
+            }
+        },
+        lowBandwidthMode,
+        setLowBandwidthMode
     };
 
     return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

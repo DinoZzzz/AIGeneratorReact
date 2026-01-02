@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Users, HardHat, FileText, ArrowUpRight } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { cn } from '../lib/utils';
+import { formatTodayLong } from '../utils/dateFormatter';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { DashboardStats } from '../components/dashboard/DashboardStats';
@@ -58,7 +59,7 @@ export const Dashboard = () => {
                 <div>
                     <h1 className="text-3xl font-bold tracking-tight text-foreground">{t('dashboard.welcome')}, {getUserName()}</h1>
                     <p className="text-muted-foreground mt-1">
-                        {new Date().toLocaleDateString('hr-HR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                        {formatTodayLong()}
                     </p>
                 </div>
             </div>
@@ -134,7 +135,7 @@ const StatsCard = memo(({ title, value, icon: Icon, href, color, bgColor }: Stat
 
     if (href) {
         return (
-            <Link to={href} className="group block bg-white dark:bg-slate-900 overflow-hidden shadow-sm rounded-xl border border-border hover:shadow-md transition-all duration-200">
+            <Link to={href} className="group block bg-white dark:bg-slate-900 overflow-hidden shadow-sm rounded-xl border border-border hover:shadow-md transition-all duration-200 hover-lift">
                 {content}
             </Link>
         );

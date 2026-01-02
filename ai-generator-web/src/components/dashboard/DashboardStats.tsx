@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, memo, useCallback } from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { supabase } from '../../lib/supabase';
 import { useLanguage } from '../../context/LanguageContext';
@@ -17,17 +17,13 @@ interface ExaminerStat {
     weekCount: number;
 }
 
-export const DashboardStats = () => {
+const DashboardStatsComponent = () => {
     const [customerStats, setCustomerStats] = useState<StatItem[]>([]);
     const [examinerStats, setExaminerStats] = useState<ExaminerStat[]>([]);
     const [loading, setLoading] = useState(true);
     const { t } = useLanguage();
 
-    useEffect(() => {
-        fetchStats();
-    }, []);
-
-    const fetchStats = async () => {
+    const fetchStats = useCallback(async () => {
         try {
             // Get date ranges
             const now = new Date();
@@ -131,9 +127,11 @@ export const DashboardStats = () => {
         } finally {
             setLoading(false);
         }
-    };
+    }, []);
 
-
+    useEffect(() => {
+        fetchStats();
+    }, [fetchStats]);
 
     const COLORS = ['#23b14d', '#f29f05', '#d3efdb'];
 
@@ -216,3 +214,7 @@ export const DashboardStats = () => {
         </div>
     );
 };
+
+// Memoize to prevent unnecessary re-renders when parent updates
+export const DashboardStats = memo(DashboardStatsComponent);
+DashboardStats.displayName = 'DashboardStats';
