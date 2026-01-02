@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { prefetchCommonRoutes } from '../lib/routePrefetch';
+import { UserAvatar } from './ui/UserAvatar';
 
 interface LayoutProps {
     children: React.ReactNode;
@@ -174,15 +175,13 @@ export const Layout = ({ children }: LayoutProps) => {
                                         className="flex items-center justify-center mb-3 hover:bg-accent rounded-lg py-2 transition-colors group"
                                         title="Profile"
                                     >
-                                        <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden">
-                                            {profile?.avatar_url ? (
-                                                <img src={profile.avatar_url} alt="Profile" className="h-full w-full object-cover" />
-                                            ) : (
-                                                <span className="text-primary font-medium text-sm">
-                                                    {profile?.name?.charAt(0).toUpperCase() || user?.email?.charAt(0).toUpperCase()}
-                                                </span>
-                                            )}
-                                        </div>
+                                        <UserAvatar
+                                            src={profile?.avatar_url}
+                                            name={profile?.name}
+                                            email={user?.email}
+                                            id={profile?.id}
+                                            size="sm"
+                                        />
                                     </Link>
                                     <button
                                         onClick={handleSignOut}
@@ -195,17 +194,13 @@ export const Layout = ({ children }: LayoutProps) => {
                             ) : (
                                 <>
                                     <Link to="/profile" className="flex items-center mb-4 px-4 hover:bg-accent rounded-lg py-2 transition-colors group">
-                                        <div className="flex-shrink-0">
-                                            <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden">
-                                                {profile?.avatar_url ? (
-                                                    <img src={profile.avatar_url} alt="Profile" className="h-full w-full object-cover" />
-                                                ) : (
-                                                    <span className="text-primary font-medium text-sm">
-                                                        {profile?.name?.charAt(0).toUpperCase() || user?.email?.charAt(0).toUpperCase()}
-                                                    </span>
-                                                )}
-                                            </div>
-                                        </div>
+                                        <UserAvatar
+                                            src={profile?.avatar_url}
+                                            name={profile?.name}
+                                            email={user?.email}
+                                            id={profile?.id}
+                                            size="sm"
+                                        />
                                         <div className="ml-3">
                                             <p className="text-sm font-medium text-foreground truncate max-w-[140px] group-hover:text-primary transition-colors">
                                                 {profile?.name && profile?.last_name
@@ -413,17 +408,13 @@ export const Layout = ({ children }: LayoutProps) => {
                                 className="flex items-center mb-4 px-4 hover:bg-accent rounded-lg py-3 transition-colors group"
                                 onClick={() => setIsMoreMenuOpen(false)}
                             >
-                                <div className="flex-shrink-0">
-                                    <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden">
-                                        {profile?.avatar_url ? (
-                                            <img src={profile.avatar_url} alt="Profile" className="h-full w-full object-cover" />
-                                        ) : (
-                                            <span className="text-primary font-medium text-base">
-                                                {profile?.name?.charAt(0).toUpperCase() || user?.email?.charAt(0).toUpperCase()}
-                                            </span>
-                                        )}
-                                    </div>
-                                </div>
+                                <UserAvatar
+                                    src={profile?.avatar_url}
+                                    name={profile?.name}
+                                    email={user?.email}
+                                    id={profile?.id}
+                                    size="md"
+                                />
                                 <div className="ml-3 flex-1">
                                     <p className="text-sm font-medium text-foreground group-hover:text-primary transition-colors">
                                         {profile?.name && profile?.last_name
