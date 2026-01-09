@@ -46,23 +46,23 @@ export const Help = () => {
     const faqCategories: FAQCategory[] = language === 'hr' ? [
         {
             icon: <FileText className="h-6 w-6" />,
-            title: "Izvještaji i Ispitivanja",
+            title: "Obrasci i Ispitivanja",
             items: [
                 {
-                    question: "Kako stvoriti novi izvještaj?",
-                    answer: "1. Odaberite naručitelja iz popisa\n2. Odaberite gradilište\n3. Kliknite na 'Novi izvještaj'\n4. Odaberite metodu (Voda ili Zrak)\n5. Ispunite sva potrebna polja\n6. Kliknite 'Spremi'"
+                    question: "Kako stvoriti novi obrazac?",
+                    answer: "1. Odaberite naručitelja iz popisa\n2. Odaberite gradilište\n3. Kliknite na 'Novi obrazac'\n4. Odaberite metodu (Voda ili Zrak)\n5. Ispunite sva potrebna polja\n6. Kliknite 'Spremi'"
                 },
                 {
                     question: "Koja je razlika između metode vode i metode zraka?",
                     answer: "Metoda vode (W): Ispitivanje vodonepropusnosti punjenje sustava vodom i praćenjem pada razine vode tijekom 30 minuta.\n\nMetoda zraka (L): Ispitivanje punjenje sustava zrakom pod tlakom i praćenjem pada tlaka tijekom određenog vremena."
                 },
                 {
-                    question: "Kako urediti postojeći izvještaj?",
-                    answer: "1. Pronađite izvještaj na stranici gradilišta\n2. Kliknite ikonu olovke (Uredi)\n3. Izmijenite potrebna polja\n4. Kliknite 'Spremi' za spremanje promjena"
+                    question: "Kako urediti postojeći obrazac?",
+                    answer: "1. Pronađite obrazac na stranici gradilišta\n2. Kliknite ikonu olovke (Uredi)\n3. Izmijenite potrebna polja\n4. Kliknite 'Spremi' za spremanje promjena"
                 },
                 {
-                    question: "Kako obrisati izvještaj?",
-                    answer: "1. Pronađite izvještaj na stranici gradilišta\n2. Kliknite ikonu kante za smeće\n3. Potvrdite brisanje u dijalog prozoru\n\nNapomena: Brisanje je trajno i ne može se poništiti."
+                    question: "Kako obrisati obrazac?",
+                    answer: "1. Pronađite obrazac na stranici gradilišta\n2. Kliknite ikonu kante za smeće\n3. Potvrdite brisanje u dijalog prozoru\n\nNapomena: Brisanje je trajno i ne može se poništiti."
                 },
                 {
                     question: "Što znače statusi 'Zadovoljava' i 'Ne zadovoljava'?",
@@ -76,15 +76,15 @@ export const Help = () => {
             items: [
                 {
                     question: "Kako generirati Word izvještaj?",
-                    answer: "1. Na stranici gradilišta, odaberite izvještaje (ili ostavite neoznačeno za sve)\n2. Kliknite 'Generiraj izvještaj'\n3. Ispunite metadata:\n   - Dio gradilišta\n   - Odvodnja\n   - Napomene i odstupanja\n   - Ime ovlaštene osobe\n4. Dodajte fotografije/dokumente u 'Prilozi' sekciju (opcionalno)\n5. Kliknite 'Export Report'\n\nWord dokument će se automatski preuzeti."
+                    answer: "1. Na stranici gradilišta, odaberite obrasce (ili ostavite neoznačeno za sve)\n2. Kliknite 'Generiraj izvještaj'\n3. Ispunite metadata:\n   - Dio gradilišta\n   - Odvodnja\n   - Napomene i odstupanja\n   - Ime ovlaštene osobe\n4. Dodajte fotografije/dokumente u 'Prilozi' sekciju (opcionalno)\n5. Kliknite 'Export Report'\n\nWord dokument će se automatski preuzeti."
                 },
                 {
                     question: "Kako dodati fotografije u izvještaj?",
                     answer: "1. Kliknite 'Generiraj izvještaj'\n2. U dijalogu exporta, pronađite 'Prilozi' sekciju na dnu\n3. Povucite i ispustite fotografije ili kliknite za odabir\n4. Dodajte opis za svaku fotografiju (opcionalno)\n5. Podržani formati: JPG, PNG, PDF\n6. Fotografije će biti dodane na kraju Word dokumenta\n\nNapomena: Fotografije se čuvaju u originalnom formatu (JPG ostaje JPG)."
                 },
                 {
-                    question: "Kako izvesti PDF izvještaj?",
-                    answer: "1. Na stranici gradilišta, pronađite izvještaj\n2. Kliknite ikonu 'Izvoz PDF' pokraj izvještaja\n3. PDF će se automatski preuzeti\n\nZa više izvještaja:\n1. Odaberite izvještaje checkboxima\n2. Kliknite 'Izvoz odabranih' ili 'Izvoz svih'\n3. PDF bundle će se preuzeti"
+                    question: "Kako izvesti PDF?",
+                    answer: "1. Na stranici gradilišta, pronađite obrazac\n2. Kliknite ikonu 'Izvoz PDF' pokraj obrasca\n3. PDF će se automatski preuzeti\n\nZa više obrazaca:\n1. Odaberite obrasce checkboxima\n2. Kliknite 'Izvoz odabranih' ili 'Izvoz svih'\n3. PDF bundle će se preuzeti"
                 },
                 {
                     question: "Koji podaci se uključuju u Word izvještaj?",
@@ -110,7 +110,7 @@ export const Help = () => {
                 },
                 {
                     question: "Što se događa kad obrišem naručitelja?",
-                    answer: "Brisanje naručitelja će također obrisati:\n- Sva gradilišta povezana s naručiteljem\n- Sve izvještaje vezane uz ta gradilišta\n- Povijest izvoza\n\nOvo je trajna akcija i ne može se poništiti. Sustav će vas upozoriti prije brisanja."
+                    answer: "Brisanje naručitelja će također obrisati:\n- Sva gradilišta povezana s naručiteljem\n- Sve obrasce vezane uz ta gradilišta\n- Povijest izvoza\n\nOvo je trajna akcija i ne može se poništiti. Sustav će vas upozoriti prije brisanja."
                 }
             ]
         },
@@ -120,11 +120,11 @@ export const Help = () => {
             items: [
                 {
                     question: "Koje korisničke uloge postoje?",
-                    answer: "Admin: Pun pristup svim funkcijama, može upravljati korisnicima\n\nKorisnik: Može stvarati i uređivati izvještaje, ali ne može upravljati drugim korisnicima"
+                    answer: "Admin: Pun pristup svim funkcijama, može upravljati korisnicima\n\nKorisnik: Može stvarati i uređivati obrasce, ali ne može upravljati drugim korisnicima"
                 },
                 {
                     question: "Što su akreditacije?",
-                    answer: "Akreditacije određuju koje metode ispitivanja korisnik može koristiti:\n\n- Metoda vode (Tip 1): Za vodna ispitivanja\n- Metoda zraka (Tip 2): Za ispitivanja zrakom\n\nKorisnik mora imati odgovarajuću akreditaciju da bi stvorio izvještaj te metode."
+                    answer: "Akreditacije određuju koje metode ispitivanja korisnik može koristiti:\n\n- Metoda vode (Tip 1): Za vodna ispitivanja\n- Metoda zraka (Tip 2): Za ispitivanja zrakom\n\nKorisnik mora imati odgovarajuću akreditaciju da bi stvorio obrazac te metode."
                 },
                 {
                     question: "Kako dodati novog korisnika? (Samo Admin)",
@@ -141,16 +141,16 @@ export const Help = () => {
             title: "Najčešći Problemi",
             items: [
                 {
-                    question: "Ne mogu stvoriti izvještaj određene metode",
+                    question: "Ne mogu stvoriti obrazac određene metode",
                     answer: "Vjerojatno nemate akreditaciju za tu metodu.\n\nRješenje:\n1. Kontaktirajte administratora\n2. Tražite da vam dodijeli odgovarajuću akreditaciju (Metoda vode ili Metoda zraka)"
                 },
                 {
-                    question: "Izvještaj pokazuje 'Ne zadovoljava' ali mislim da bi trebao proći",
-                    answer: "Provjerite:\n1. Jesu li svi ulazni podaci točni (dimenzije, visine vode/tlakovi)\n2. Je li odabrana ispravna shema ispitivanja\n3. Je li trajanje ispitivanja ispravno\n\nSustav automatski izračunava rezultate prema normi HRN EN 1610:2015. Ako podaci ne zadovoljavaju kriterije norme, izvještaj će biti označen kao 'Ne zadovoljava'."
+                    question: "Obrazac pokazuje 'Ne zadovoljava' ali mislim da bi trebao proći",
+                    answer: "Provjerite:\n1. Jesu li svi ulazni podaci točni (dimenzije, visine vode/tlakovi)\n2. Je li odabrana ispravna shema ispitivanja\n3. Je li trajanje ispitivanja ispravno\n\nSustav automatski izračunava rezultate prema normi HRN EN 1610:2015. Ako podaci ne zadovoljavaju kriterije norme, obrazac će biti označen kao 'Ne zadovoljava'."
                 },
                 {
                     question: "Ne vidim gumb za generiranje Word izvještaja",
-                    answer: "Provjerite:\n1. Imate li izvještaje na gradilištu\n2. Jeste li na pravoj stranici (Gradilište → Izvještaji)\n3. Osvježite stranicu (F5)\n\nAko problem i dalje postoji, odjavite se i ponovno se prijavite."
+                    answer: "Provjerite:\n1. Imate li obrasce na gradilištu\n2. Jeste li na pravoj stranici (Gradilište → Obrasci)\n3. Osvježite stranicu (F5)\n\nAko problem i dalje postoji, odjavite se i ponovno se prijavite."
                 },
                 {
                     question: "Fotografije nisu dodane u Word dokument",
