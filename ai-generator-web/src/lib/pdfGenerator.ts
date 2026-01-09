@@ -1,11 +1,32 @@
 import jsPDF from 'jspdf';
 import type { ReportForm, Profile } from '../types';
 import * as calc from './calculations/report';
+import { RobotoRegular, RobotoBold } from './fonts/roboto';
 
 /**
  * PDF Generator for Water and Air Method Reports
- * Generates PDF reports with Croatian character support
+ * Generates PDF reports with Croatian character support using Roboto font
  */
+
+// Flag to track if fonts are registered
+let fontsRegistered = false;
+
+// Register Roboto fonts with jsPDF (only once)
+const registerFonts = (doc: jsPDF) => {
+    if (!fontsRegistered) {
+        // Add Roboto Regular
+        doc.addFileToVFS('Roboto-Regular.ttf', RobotoRegular);
+        doc.addFont('Roboto-Regular.ttf', 'Roboto', 'normal');
+
+        // Add Roboto Bold
+        doc.addFileToVFS('Roboto-Bold.ttf', RobotoBold);
+        doc.addFont('Roboto-Bold.ttf', 'Roboto', 'bold');
+
+        fontsRegistered = true;
+    }
+    // Set Roboto as default font
+    doc.setFont('Roboto');
+};
 
 // Helper to load image
 const loadImage = (src: string): Promise<HTMLImageElement> => {
@@ -17,96 +38,12 @@ const loadImage = (src: string): Promise<HTMLImageElement> => {
     });
 };
 
-// Helper to render Croatian text with special characters
-const renderCroatianText = (doc: jsPDF, text: string, x: number, y: number, options?: any) => {
-    // For characters that need special handling: č, ć, š, ž, đ, Č, Ć, Š, Ž, Đ
-    const specialChars: Record<string, { base: string, hasHacek: boolean, hasStroke: boolean, isAcute: boolean, isUppercase: boolean }> = {
-        'č': { base: 'c', hasHacek: true, hasStroke: false, isAcute: false, isUppercase: false },
-        'ć': { base: 'c', hasHacek: false, hasStroke: false, isAcute: true, isUppercase: false },
-        'š': { base: 's', hasHacek: true, hasStroke: false, isAcute: false, isUppercase: false },
-        'ž': { base: 'z', hasHacek: true, hasStroke: false, isAcute: false, isUppercase: false },
-        'đ': { base: 'd', hasHacek: false, hasStroke: true, isAcute: false, isUppercase: false },
-        'Č': { base: 'C', hasHacek: true, hasStroke: false, isAcute: false, isUppercase: true },
-        'Ć': { base: 'C', hasHacek: false, hasStroke: false, isAcute: true, isUppercase: true },
-        'Š': { base: 'S', hasHacek: true, hasStroke: false, isAcute: false, isUppercase: true },
-        'Ž': { base: 'Z', hasHacek: true, hasStroke: false, isAcute: false, isUppercase: true },
-        'Đ': { base: 'D', hasHacek: false, hasStroke: true, isAcute: false, isUppercase: true }
-    };
-
-    const hasSpecialChars = /[čćšžđČĆŠŽĐ]/.test(text);
-
-    if (!hasSpecialChars) {
-        doc.text(text, x, y, options);
-        return;
-    }
-
-    // Calculate starting X for centered/right alignment
-    const cleanText = text.replace(/[čćšžđČĆŠŽĐ]/g, (match) => specialChars[match]?.base || match);
-    const textWidth = doc.getTextWidth(cleanText);
-    let startX = x;
-
-    if (options?.align === 'center') {
-        startX = x - textWidth / 2;
-    } else if (options?.align === 'right') {
-        startX = x - textWidth;
-    }
-
-    // Render character by character
-    const fontSize = doc.getFontSize();
-    let currentX = startX;
-
-    for (let i = 0; i < text.length; i++) {
-        const char = text[i];
-        const special = specialChars[char];
-
-        if (special) {
-            doc.text(special.base, currentX, y);
-            const charWidth = doc.getTextWidth(special.base);
-
-            // Draw hacek (ˇ) for č, š, ž, Č, Š, Ž
-            if (special.hasHacek) {
-                // Uppercase letters need hacek higher up and slightly larger
-                const hacekOffset = special.isUppercase ? 0.38 : 0.28;
-                const hacekSize = special.isUppercase ? 0.8 : 0.6;
-                const hacekBaseY = y - fontSize * hacekOffset;
-                const hacekX = currentX + charWidth / 2;
-                doc.setLineWidth(0.4);
-                doc.line(hacekX - hacekSize, hacekBaseY - hacekSize, hacekX, hacekBaseY);
-                doc.line(hacekX, hacekBaseY, hacekX + hacekSize, hacekBaseY - hacekSize);
-                doc.setLineWidth(0.1);
-            }
-
-            // Draw acute accent (´) for ć, Ć
-            if (special.isAcute) {
-                const acuteOffset = special.isUppercase ? 0.42 : 0.32;
-                const acuteBaseY = y - fontSize * acuteOffset;
-                const acuteX = currentX + charWidth / 2;
-                doc.setLineWidth(0.4);
-                doc.line(acuteX - 0.3, acuteBaseY, acuteX + 0.6, acuteBaseY - 1.0);
-                doc.setLineWidth(0.1);
-            }
-
-            // Draw stroke for đ, Đ
-            if (special.hasStroke) {
-                const strokeY = special.isUppercase ? y - fontSize * 0.35 : y - fontSize * 0.3;
-                doc.setLineWidth(0.4);
-                doc.line(currentX + 0.3, strokeY, currentX + charWidth - 0.3, strokeY);
-                doc.setLineWidth(0.1);
-            }
-
-            currentX += charWidth;
-        } else {
-            doc.text(char, currentX, y);
-            currentX += doc.getTextWidth(char);
-        }
-    }
-};
-
 export const generatePDF = async (report: Partial<ReportForm>, userProfile?: Profile) => {
     const doc = new jsPDF({
         putOnlyUsedFonts: true,
         compress: true
     });
+    registerFonts(doc);
     await renderReportPage(doc, report, userProfile, 1, 1);
     doc.save(`report_${report.id || 'new'}.pdf`);
 };
@@ -116,6 +53,7 @@ export const generateBulkPDF = async (reports: Partial<ReportForm>[], filename: 
         putOnlyUsedFonts: true,
         compress: true
     });
+    registerFonts(doc);
     const totalPages = reports.length;
     for (let i = 0; i < reports.length; i++) {
         if (i > 0) {
@@ -131,6 +69,7 @@ export const generateBulkPDFAsBlob = async (reports: Partial<ReportForm>[], user
         putOnlyUsedFonts: true,
         compress: true
     });
+    registerFonts(doc);
     const totalPages = reports.length;
     for (let i = 0; i < reports.length; i++) {
         if (i > 0) {
@@ -177,7 +116,7 @@ const renderReportPage = async (doc: jsPDF, report: Partial<ReportForm>, userPro
     // Company Info (Center) - centered between the two vertical lines (60 and 135)
     const centerX = (60 + 135) / 2; // Center between the two lines
     doc.setFontSize(8);
-    doc.setFont('helvetica', 'normal');
+    doc.setFont('Roboto', 'normal');
     // Using D with stroke as workaround for Đ since standard fonts don't support it
     const fullText = 'GRAĐEVINSKI LABORATORIJ';
     const textWidth = doc.getTextWidth(fullText.replace('Đ', 'D'));
@@ -192,10 +131,10 @@ const renderReportPage = async (doc: jsPDF, report: Partial<ReportForm>, userPro
     doc.line(startX + graWidth + 0.3, 19, startX + graWidth + dWidth - 0.3, 19);
     doc.text('EVINSKI LABORATORIJ', startX + graWidth + dWidth, 20);
 
-    doc.setFont('helvetica', 'bold');
+    doc.setFont('Roboto', 'bold');
     doc.setFontSize(9);
     doc.text('ANTE-INŽENJERSTVO d.o.o.', centerX, 26, { align: 'center' });
-    doc.setFont('helvetica', 'normal');
+    doc.setFont('Roboto', 'normal');
     doc.setFontSize(7);
     doc.text('Petra Krešimira 19 ; 21 266 Zmijavci', centerX, 32, { align: 'center' });
     doc.text('www.ante-inzenjerstvo.hr', centerX, 37, { align: 'center' });
@@ -207,7 +146,7 @@ const renderReportPage = async (doc: jsPDF, report: Partial<ReportForm>, userPro
 
     // Title (Right) - Top section
     doc.setFontSize(8);
-    doc.setFont('helvetica', 'bold');
+    doc.setFont('Roboto', 'bold');
     const title = report.type_id === 1
         ? 'ISPITIVANJE\nVODONEPROPUSNOSTI\nCJEVOVODA CIJEVI I\nKONTROLNA OKNA\nPREMA HRN EN\n1610:2015 - L'
         : 'ISPITIVANJE\nVODONEPROPUSNOSTI\nCJEVOVODA\nMETODA ZRAK\nPREMA HRN EN\n1610:2015 - L';
@@ -221,9 +160,9 @@ const renderReportPage = async (doc: jsPDF, report: Partial<ReportForm>, userPro
 
     // Meta Info (Far Right) - Separate column
     doc.setFontSize(8);
-    doc.setFont('helvetica', 'bold');
+    doc.setFont('Roboto', 'bold');
     doc.text(`Stranica: ${pageNum}/${totalPages}`, pageWidth - 15, 17, { align: 'right' });
-    doc.setFont('helvetica', 'normal');
+    doc.setFont('Roboto', 'normal');
     doc.text('OB 21-2', pageWidth - 15, 22, { align: 'right' });
     doc.text('Izdanje: 2', pageWidth - 15, 27, { align: 'right' });
     doc.text(`Datum: ${new Date().toLocaleDateString('hr-HR')}`, pageWidth - 15, 32, { align: 'right' });
@@ -234,7 +173,7 @@ const renderReportPage = async (doc: jsPDF, report: Partial<ReportForm>, userPro
     const statusColor = satisfies ? '#008000' : '#FF0000';
 
     doc.setFontSize(16);
-    doc.setFont('helvetica', 'bold');
+    doc.setFont('Roboto', 'bold');
     doc.setTextColor(statusColor);
     doc.text(statusText, pageWidth / 2, 60, { align: 'center' });
     doc.setTextColor(0, 0, 0); // Reset
@@ -242,7 +181,7 @@ const renderReportPage = async (doc: jsPDF, report: Partial<ReportForm>, userPro
     // --- General Info ---
     let currentY = 75;
     doc.setFontSize(10);
-    doc.setFont('helvetica', 'normal');
+    doc.setFont('Roboto', 'normal');
 
     // Left side
     doc.text(`Temperatura: ${report.temperature} °C`, 40, currentY);
@@ -280,25 +219,25 @@ const renderReportPage = async (doc: jsPDF, report: Partial<ReportForm>, userPro
 
     // Helper for rows - two-column layout with proper spacing
     const drawLeftRow = (key: string, value: string, y: number, maxValueWidth?: number) => {
-        doc.setFont('helvetica', 'normal');
+        doc.setFont('Roboto', 'normal');
         doc.setFontSize(8);
-        renderCroatianText(doc, key + ':', leftX, y);
-        doc.setFont('helvetica', 'bold');
+        doc.text(key + ':', leftX, y);
+        doc.setFont('Roboto', 'bold');
         // Truncate value if too long
         let displayValue = value;
         const maxWidth = maxValueWidth || 35; // Default max width for values
         while (doc.getTextWidth(displayValue) > maxWidth && displayValue.length > 3) {
             displayValue = displayValue.slice(0, -4) + '...';
         }
-        renderCroatianText(doc, displayValue, leftValueX, y);
+        doc.text(displayValue, leftValueX, y);
     };
 
     const drawRightRow = (key: string, value: string, y: number) => {
-        doc.setFont('helvetica', 'normal');
+        doc.setFont('Roboto', 'normal');
         doc.setFontSize(8);
-        renderCroatianText(doc, key + ':', rightLabelX, y);
-        doc.setFont('helvetica', 'bold');
-        renderCroatianText(doc, value, rightValueX, y, { align: 'right' });
+        doc.text(key + ':', rightLabelX, y);
+        doc.setFont('Roboto', 'bold');
+        doc.text(value, rightValueX, y, { align: 'right' });
     };
 
     const addLeft = (k: string, v: string, maxWidth?: number) => { drawLeftRow(k, v, leftY, maxWidth); leftY += 5; };
@@ -497,7 +436,7 @@ const renderReportPage = async (doc: jsPDF, report: Partial<ReportForm>, userPro
 
         // Main category headers
         doc.setFontSize(8);
-        doc.setFont('helvetica', 'bold');
+        doc.setFont('Roboto', 'bold');
         doc.text('SUHE BETONSKE CIJEVI', tableX + 42.5, tableY + 2, { align: 'center' });
         doc.text('OSTALE CIJEVI', tableX + 127.5, tableY + 2, { align: 'center' });
 
@@ -550,7 +489,7 @@ const renderReportPage = async (doc: jsPDF, report: Partial<ReportForm>, userPro
 
         // Data rows
         y += 5;
-        doc.setFont('helvetica', 'normal');
+        doc.setFont('Roboto', 'normal');
         const rows = [
             { d: '100', c: [5, 4, 3, 1.5], o: [5, 4, 3, 1.5] },
             { d: '200', c: [5, 4, 3, 1.5], o: [5, 4, 3, 1.5] },
@@ -617,22 +556,22 @@ const renderReportPage = async (doc: jsPDF, report: Partial<ReportForm>, userPro
     currentY = Math.max(leftY, rightY) + 5;
 
     doc.setFontSize(10);
-    doc.setFont('helvetica', 'normal');
+    doc.setFont('Roboto', 'normal');
     doc.text('Napomena:', 20, currentY);
     if (report.remark) {
-        doc.setFont('helvetica', 'bold');
+        doc.setFont('Roboto', 'bold');
         doc.text(report.remark, 20, currentY + 5, { maxWidth: 80 });
     }
 
-    doc.setFont('helvetica', 'normal');
+    doc.setFont('Roboto', 'normal');
     doc.text('Odstupanje od norme:', 110, currentY);
     if (report.deviation) {
-        doc.setFont('helvetica', 'bold');
+        doc.setFont('Roboto', 'bold');
         doc.text(report.deviation, 110, currentY + 5, { maxWidth: 80 });
     }
 
     doc.setFontSize(12);
-    doc.setFont('helvetica', 'bold');
+    doc.setFont('Roboto', 'bold');
     const displayName = userProfile ? `${userProfile.name} ${userProfile.last_name}` : 'Nepoznat korisnik';
-    renderCroatianText(doc, `Izradio: ${displayName}`, pageWidth / 2, pageHeight - 20, { align: 'center' });
+    doc.text(`Izradio: ${displayName}`, pageWidth / 2, pageHeight - 20, { align: 'center' });
 };
