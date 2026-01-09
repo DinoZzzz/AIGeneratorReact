@@ -4,10 +4,11 @@ import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
 import type { Material } from '../types';
-import { Loader2, Plus, Trash2, Edit, Lock, RefreshCw } from 'lucide-react';
+import { Loader2, Plus, Trash2, Edit, Lock, RefreshCw, Star } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
 import { ConfirmDeleteMaterialDialog } from '../components/ConfirmDeleteMaterialDialog';
 import { useQueryClient } from '@tanstack/react-query';
+import { certifierService, type Certifier } from '../services/certifierService';
 
 export const Settings = () => {
     const { theme, setTheme, primaryColor, setPrimaryColor } = useTheme();
@@ -25,6 +26,13 @@ export const Settings = () => {
     const queryClient = useQueryClient();
     const [isClearing, setIsClearing] = useState(false);
 
+    // Certifier state
+    const [certifiers, setCertifiers] = useState<Certifier[]>([]);
+    const [certifiersLoading, setCertifiersLoading] = useState(true);
+    const [isAddingCertifier, setIsAddingCertifier] = useState(false);
+    const [editingCertifier, setEditingCertifier] = useState<Certifier | null>(null);
+    const [certifierForm, setCertifierForm] = useState({ name: '', title: '' });
+
     // Separate materials by type (1 = Shaft, 2 = Pipe)
     const shaftMaterials = materials.filter(m => m.material_type_id === 1);
     const pipeMaterials = materials.filter(m => m.material_type_id === 2);
@@ -32,6 +40,7 @@ export const Settings = () => {
     useEffect(() => {
         checkAdminStatus();
         fetchMaterials();
+        fetchCertifiers();
     }, []);
 
     const checkAdminStatus = async () => {
@@ -65,6 +74,78 @@ export const Settings = () => {
             addToast(error.message, 'error');
         } finally {
             setLoading(false);
+        }
+    };
+
+    const fetchCertifiers = async () => {
+        setCertifiersLoading(true);
+        try {
+            const data = await certifierService.getAll();
+            setCertifiers(data);
+        } catch (error: any) {
+            console.warn('Error fetching certifiers:', error.message);
+            // Don't show error toast - table might not exist yet
+        } finally {
+            setCertifiersLoading(false);
+        }
+    };
+
+    const handleAddCertifier = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!certifierForm.name.trim()) return;
+
+        try {
+            await certifierService.create({
+                name: certifierForm.name.trim(),
+                title: certifierForm.title.trim() || undefined,
+                is_default: certifiers.length === 0 // First one is default
+            });
+            addToast(t('certifiers.added'), 'success');
+            setIsAddingCertifier(false);
+            setCertifierForm({ name: '', title: '' });
+            fetchCertifiers();
+        } catch (error: any) {
+            addToast(error.message, 'error');
+        }
+    };
+
+    const handleUpdateCertifier = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!editingCertifier || !certifierForm.name.trim()) return;
+
+        try {
+            await certifierService.update(editingCertifier.id, {
+                name: certifierForm.name.trim(),
+                title: certifierForm.title.trim() || undefined
+            });
+            addToast(t('certifiers.updated'), 'success');
+            setEditingCertifier(null);
+            setCertifierForm({ name: '', title: '' });
+            fetchCertifiers();
+        } catch (error: any) {
+            addToast(error.message, 'error');
+        }
+    };
+
+    const handleDeleteCertifier = async (id: string) => {
+        if (!window.confirm(t('certifiers.deleteConfirm'))) return;
+
+        try {
+            await certifierService.delete(id);
+            addToast(t('certifiers.deleted'), 'success');
+            fetchCertifiers();
+        } catch (error: any) {
+            addToast(error.message, 'error');
+        }
+    };
+
+    const handleSetDefaultCertifier = async (id: string) => {
+        try {
+            await certifierService.setDefault(id);
+            addToast(t('certifiers.defaultSet'), 'success');
+            fetchCertifiers();
+        } catch (error: any) {
+            addToast(error.message, 'error');
         }
     };
 
@@ -441,6 +522,164 @@ export const Settings = () => {
                         </div>
                     </div>
                 </div>
+            </section>
+
+            {/* Certifiers Section - Admin Only */}
+            <section className="bg-card rounded-lg border border-border p-6">
+                <div className="flex items-center justify-between mb-6">
+                    <div>
+                        <h2 className="text-xl font-semibold text-foreground">{t('certifiers.title')}</h2>
+                        <p className="text-sm text-muted-foreground mt-1">{t('certifiers.description')}</p>
+                    </div>
+                    {isAdmin && (
+                        <button
+                            onClick={() => {
+                                setIsAddingCertifier(true);
+                                setCertifierForm({ name: '', title: '' });
+                                setEditingCertifier(null);
+                            }}
+                            className="inline-flex items-center px-3 py-2 text-sm font-medium text-primary-foreground bg-primary rounded-md hover:bg-primary/90 transition-colors"
+                        >
+                            <Plus className="h-4 w-4 mr-2" />
+                            {t('certifiers.add')}
+                        </button>
+                    )}
+                </div>
+
+                {!isAdmin ? (
+                    <div className="text-center py-8 bg-muted/30 rounded-lg border border-dashed border-border">
+                        <Lock className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
+                        <p className="text-muted-foreground font-medium">{t('materials.restricted')}</p>
+                    </div>
+                ) : certifiersLoading ? (
+                    <div className="flex justify-center py-8">
+                        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                    </div>
+                ) : (
+                    <div className="space-y-4">
+                        {(isAddingCertifier || editingCertifier) && (
+                            <form
+                                onSubmit={isAddingCertifier ? handleAddCertifier : handleUpdateCertifier}
+                                className="bg-muted/50 p-4 rounded-lg mb-4 border border-border"
+                            >
+                                <h3 className="font-medium mb-3 text-foreground">
+                                    {isAddingCertifier ? t('certifiers.new') : t('certifiers.edit')}
+                                </h3>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+                                    <div>
+                                        <label className="block text-sm font-medium text-muted-foreground mb-1">
+                                            {t('certifiers.name')} *
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={certifierForm.name}
+                                            onChange={(e) => setCertifierForm({ ...certifierForm, name: e.target.value })}
+                                            placeholder={t('certifiers.namePlaceholder')}
+                                            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring"
+                                            autoFocus
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-muted-foreground mb-1">
+                                            {t('certifiers.titleLabel')}
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={certifierForm.title}
+                                            onChange={(e) => setCertifierForm({ ...certifierForm, title: e.target.value })}
+                                            placeholder={t('certifiers.titlePlaceholder')}
+                                            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring"
+                                        />
+                                    </div>
+                                </div>
+                                <div className="flex gap-3">
+                                    <button
+                                        type="submit"
+                                        disabled={!certifierForm.name.trim()}
+                                        className="px-4 py-2 text-sm font-medium text-primary-foreground bg-primary rounded-md hover:bg-primary/90 disabled:opacity-50"
+                                    >
+                                        {t('materials.save')}
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setIsAddingCertifier(false);
+                                            setEditingCertifier(null);
+                                            setCertifierForm({ name: '', title: '' });
+                                        }}
+                                        className="px-4 py-2 text-sm font-medium text-muted-foreground bg-transparent border border-input rounded-md hover:bg-accent hover:text-accent-foreground"
+                                    >
+                                        {t('materials.cancel')}
+                                    </button>
+                                </div>
+                            </form>
+                        )}
+
+                        {certifiers.length === 0 ? (
+                            <div className="text-center py-12 bg-muted/30 rounded-lg border border-dashed border-border">
+                                <div className="flex flex-col items-center justify-center">
+                                    <Loader2 className="h-8 w-8 text-muted-foreground/50 mb-4" />
+                                    <p className="text-lg font-medium text-foreground">{t('certifiers.none')}</p>
+                                    <p className="text-sm text-muted-foreground mt-1">{t('certifiers.noneDesc')}</p>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="border border-border rounded-md divide-y divide-border">
+                                {certifiers.map((certifier) => (
+                                    <div key={certifier.id} className="flex items-center justify-between p-4 hover:bg-muted/50 transition-colors">
+                                        <div className="flex items-center gap-3">
+                                            {certifier.is_default && (
+                                                <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />
+                                            )}
+                                            <div>
+                                                <span className="font-medium text-foreground">
+                                                    {certifierService.getDisplayName(certifier)}
+                                                </span>
+                                                {certifier.is_default && (
+                                                    <span className="ml-2 text-xs text-muted-foreground">
+                                                        ({t('certifiers.default')})
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            {!certifier.is_default && (
+                                                <button
+                                                    onClick={() => handleSetDefaultCertifier(certifier.id)}
+                                                    className="p-2 text-muted-foreground hover:text-yellow-500 hover:bg-yellow-500/10 rounded-md transition-colors"
+                                                    title={t('certifiers.setDefault')}
+                                                >
+                                                    <Star className="h-4 w-4" />
+                                                </button>
+                                            )}
+                                            <button
+                                                onClick={() => {
+                                                    setEditingCertifier(certifier);
+                                                    setCertifierForm({
+                                                        name: certifier.name,
+                                                        title: certifier.title || ''
+                                                    });
+                                                    setIsAddingCertifier(false);
+                                                }}
+                                                className="p-2 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-md transition-colors"
+                                                title={t('materials.edit')}
+                                            >
+                                                <Edit className="h-4 w-4" />
+                                            </button>
+                                            <button
+                                                onClick={() => handleDeleteCertifier(certifier.id)}
+                                                className="p-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-md transition-colors"
+                                                title={t('materials.remove')}
+                                            >
+                                                <Trash2 className="h-4 w-4" />
+                                            </button>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                )}
             </section>
 
             {/* Shaft Materials Section */}

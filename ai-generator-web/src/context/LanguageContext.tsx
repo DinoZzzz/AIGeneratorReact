@@ -1208,6 +1208,51 @@ Object.assign(translations.hr, {
     'calendar.minutesBefore': 'Minuta prije'
 });
 
+// Certifier management translations
+Object.assign(translations.hr, {
+    'certifiers.title': 'Certifikatori',
+    'certifiers.description': 'Upravljajte certifikatorima koji se prikazuju u izvozu dokumenata.',
+    'certifiers.add': 'Dodaj certifikatora',
+    'certifiers.new': 'Novi certifikator',
+    'certifiers.edit': 'Uredi certifikatora',
+    'certifiers.name': 'Ime i prezime',
+    'certifiers.namePlaceholder': 'npr. Ivan Horvat',
+    'certifiers.titleLabel': 'Titula',
+    'certifiers.titlePlaceholder': 'npr. bacc.ing.secc.',
+    'certifiers.none': 'Nema certifikatora',
+    'certifiers.noneDesc': 'Dodajte certifikatore za prikaz u dokumentima.',
+    'certifiers.added': 'Certifikator dodan.',
+    'certifiers.updated': 'Certifikator ažuriran.',
+    'certifiers.deleted': 'Certifikator obrisan.',
+    'certifiers.deleteConfirm': 'Jeste li sigurni da želite obrisati ovog certifikatora?',
+    'certifiers.default': 'zadano',
+    'certifiers.setDefault': 'Postavi kao zadano',
+    'certifiers.defaultSet': 'Zadani certifikator postavljen.',
+    'certifiers.loadError': 'Greška pri učitavanju certifikatora'
+});
+
+Object.assign(translations.en, {
+    'certifiers.title': 'Certifiers',
+    'certifiers.description': 'Manage certifiers that appear in document exports.',
+    'certifiers.add': 'Add Certifier',
+    'certifiers.new': 'New Certifier',
+    'certifiers.edit': 'Edit Certifier',
+    'certifiers.name': 'Full Name',
+    'certifiers.namePlaceholder': 'e.g. John Smith',
+    'certifiers.titleLabel': 'Title',
+    'certifiers.titlePlaceholder': 'e.g. B.Sc.',
+    'certifiers.none': 'No certifiers found',
+    'certifiers.noneDesc': 'Add certifiers to display them in documents.',
+    'certifiers.added': 'Certifier added.',
+    'certifiers.updated': 'Certifier updated.',
+    'certifiers.deleted': 'Certifier deleted.',
+    'certifiers.deleteConfirm': 'Are you sure you want to delete this certifier?',
+    'certifiers.default': 'default',
+    'certifiers.setDefault': 'Set as default',
+    'certifiers.defaultSet': 'Default certifier set.',
+    'certifiers.loadError': 'Error loading certifiers'
+});
+
 interface LanguageContextValue {
     language: Language;
     setLanguage: (lang: Language) => void;

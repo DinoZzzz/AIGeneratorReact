@@ -4,6 +4,7 @@ import { Button } from './ui/Button';
 import type { User, ReportForm, ReportFile } from '../types';
 import { FileUploader } from './FileUploader';
 import { useLanguage } from '../context/LanguageContext';
+import { certifierService, type Certifier } from '../services/certifierService';
 
 interface ExportDialogProps {
     open: boolean;
@@ -44,6 +45,29 @@ export const ExportDialog = ({ open, onOpenChange, onConfirm, loading = false, d
     });
 
     const [selectedReportIds, setSelectedReportIds] = useState<Set<string>>(new Set());
+    const [certifiers, setCertifiers] = useState<Certifier[]>([]);
+
+    // Fetch certifiers on mount
+    useEffect(() => {
+        const fetchCertifiers = async () => {
+            try {
+                const data = await certifierService.getAll();
+                setCertifiers(data);
+                // If we have certifiers and no default value is set, use the default certifier
+                if (data.length > 0 && !defaultValues?.certifierName) {
+                    const defaultCertifier = data.find(c => c.is_default) || data[0];
+                    setData(prev => ({
+                        ...prev,
+                        certifierName: certifierService.getDisplayName(defaultCertifier)
+                    }));
+                }
+            } catch (error) {
+                console.warn('Error fetching certifiers:', error);
+                // Keep fallback values if fetch fails
+            }
+        };
+        fetchCertifiers();
+    }, []);
 
     // Update state when defaultValues change or dialog opens
     useEffect(() => {
@@ -300,8 +324,19 @@ export const ExportDialog = ({ open, onOpenChange, onConfirm, loading = false, d
                             onChange={(e) => setData({ ...data, certifierName: e.target.value })}
                             disabled={loading}
                         >
-                            <option value="Nikola Brečić bacc.ing.secc.">Nikola Brečić bacc.ing.secc.</option>
-                            <option value="Ante Milas">Ante Milas</option>
+                            {certifiers.length > 0 ? (
+                                certifiers.map((certifier) => (
+                                    <option key={certifier.id} value={certifierService.getDisplayName(certifier)}>
+                                        {certifierService.getDisplayName(certifier)}
+                                        {certifier.is_default ? ` (${t('certifiers.default')})` : ''}
+                                    </option>
+                                ))
+                            ) : (
+                                <>
+                                    <option value="Nikola Brečić bacc.ing.secc.">Nikola Brečić bacc.ing.secc.</option>
+                                    <option value="Ante Milas">Ante Milas</option>
+                                </>
+                            )}
                         </select>
                     </div>
 
