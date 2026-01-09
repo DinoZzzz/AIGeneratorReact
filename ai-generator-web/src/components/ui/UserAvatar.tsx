@@ -110,6 +110,8 @@ export function UserAvatar({
     size = "md",
     className,
 }: UserAvatarProps) {
+    const [imageError, setImageError] = React.useState(false);
+
     // Use id, email, or name as seed for consistent random icon/color
     const seed = id || email || name || "default";
     const iconIndex = getHashIndex(seed, AVATAR_ICONS.length);
@@ -118,7 +120,13 @@ export function UserAvatar({
     const IconComponent = AVATAR_ICONS[iconIndex];
     const colorClass = AVATAR_COLORS[colorIndex];
 
-    if (src) {
+    // Reset error state if src changes
+    React.useEffect(() => {
+        setImageError(false);
+    }, [src]);
+
+    // Show image if src exists and hasn't errored
+    if (src && !imageError) {
         return (
             <div
                 className={cn(
@@ -131,11 +139,13 @@ export function UserAvatar({
                     src={src}
                     alt={name || "Profile"}
                     className="h-full w-full object-cover"
+                    onError={() => setImageError(true)}
                 />
             </div>
         );
     }
 
+    // Fallback to icon avatar
     return (
         <div
             className={cn(
