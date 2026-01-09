@@ -432,7 +432,7 @@ export const WaterMethodForm = () => {
                             <div className="bg-card shadow-sm rounded-xl border border-border p-6">
                                 <div className="flex items-center justify-between mb-4">
                                     <h3 className="text-lg font-semibold text-foreground">{t('reports.form.structureType')}</h3>
-                                    {previousReport && id === 'new' && (
+                                    {previousReport && (!id || id === 'new') && (
                                         <Button
                                             type="button"
                                             variant="outline"
