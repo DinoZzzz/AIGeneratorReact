@@ -20,32 +20,41 @@ const loadImage = (src: string): Promise<HTMLImageElement> => {
 // Helper to render Croatian text with special characters
 const renderCroatianText = (doc: jsPDF, text: string, x: number, y: number, options?: any) => {
     // For characters that need special handling: č, ć, š, ž, đ, Č, Ć, Š, Ž, Đ
-    const specialChars: Record<string, { base: string, hasHacek: boolean, hasStroke: boolean }> = {
-        'č': { base: 'c', hasHacek: true, hasStroke: false },
-        'ć': { base: 'c', hasHacek: true, hasStroke: false },
-        'š': { base: 's', hasHacek: true, hasStroke: false },
-        'ž': { base: 'z', hasHacek: true, hasStroke: false },
-        'đ': { base: 'd', hasHacek: false, hasStroke: true },
-        'Č': { base: 'C', hasHacek: true, hasStroke: false },
-        'Ć': { base: 'C', hasHacek: true, hasStroke: false },
-        'Š': { base: 'S', hasHacek: true, hasStroke: false },
-        'Ž': { base: 'Z', hasHacek: true, hasStroke: false },
-        'Đ': { base: 'D', hasHacek: false, hasStroke: true }
+    const specialChars: Record<string, { base: string, hasHacek: boolean, hasStroke: boolean, isAcute: boolean }> = {
+        'č': { base: 'c', hasHacek: true, hasStroke: false, isAcute: false },
+        'ć': { base: 'c', hasHacek: false, hasStroke: false, isAcute: true },
+        'š': { base: 's', hasHacek: true, hasStroke: false, isAcute: false },
+        'ž': { base: 'z', hasHacek: true, hasStroke: false, isAcute: false },
+        'đ': { base: 'd', hasHacek: false, hasStroke: true, isAcute: false },
+        'Č': { base: 'C', hasHacek: true, hasStroke: false, isAcute: false },
+        'Ć': { base: 'C', hasHacek: false, hasStroke: false, isAcute: true },
+        'Š': { base: 'S', hasHacek: true, hasStroke: false, isAcute: false },
+        'Ž': { base: 'Z', hasHacek: true, hasStroke: false, isAcute: false },
+        'Đ': { base: 'D', hasHacek: false, hasStroke: true, isAcute: false }
     };
 
     const hasSpecialChars = /[čćšžđČĆŠŽĐ]/.test(text);
 
-    if (!hasSpecialChars || options?.align === 'center' || options?.align === 'right') {
-        // For centered/right-aligned or text without special chars, use simple replacement
-        const cleanText = text.replace(/[čćšžđČĆŠŽĐ]/g, (match) => specialChars[match]?.base || match);
-        doc.text(cleanText, x, y, options);
+    if (!hasSpecialChars) {
+        doc.text(text, x, y, options);
         return;
     }
 
-    // For left-aligned text with special chars, render character by character
+    // Calculate starting X for centered/right alignment
+    const cleanText = text.replace(/[čćšžđČĆŠŽĐ]/g, (match) => specialChars[match]?.base || match);
+    const textWidth = doc.getTextWidth(cleanText);
+    let startX = x;
+
+    if (options?.align === 'center') {
+        startX = x - textWidth / 2;
+    } else if (options?.align === 'right') {
+        startX = x - textWidth;
+    }
+
+    // Render character by character
     const currentFontSize = doc.getFontSize();
-    const currentLineWidth = 0.1; // Save current line width
-    let currentX = x;
+    const currentLineWidth = 0.1;
+    let currentX = startX;
 
     for (let i = 0; i < text.length; i++) {
         const char = text[i];
@@ -55,24 +64,32 @@ const renderCroatianText = (doc: jsPDF, text: string, x: number, y: number, opti
             doc.text(special.base, currentX, y);
             const charWidth = doc.getTextWidth(special.base);
 
-            // Draw hacek (ˇ) for č, ć, š, ž
+            // Draw hacek (ˇ) for č, š, ž
             if (special.hasHacek) {
                 const fontSize = doc.getFontSize();
-                // Position the hacek directly above the character
                 const hacekBaseY = y - fontSize * 0.22;
                 const hacekX = currentX + charWidth / 2;
                 doc.setLineWidth(0.3);
-                // Draw a small v-shape pointing down (like ˇ)
                 doc.line(hacekX - 0.5, hacekBaseY - 0.5, hacekX, hacekBaseY);
                 doc.line(hacekX, hacekBaseY, hacekX + 0.5, hacekBaseY - 0.5);
-                doc.setLineWidth(currentLineWidth); // Restore line width
+                doc.setLineWidth(currentLineWidth);
+            }
+
+            // Draw acute accent (´) for ć
+            if (special.isAcute) {
+                const fontSize = doc.getFontSize();
+                const acuteBaseY = y - fontSize * 0.28;
+                const acuteX = currentX + charWidth / 2;
+                doc.setLineWidth(0.3);
+                doc.line(acuteX - 0.3, acuteBaseY, acuteX + 0.5, acuteBaseY - 0.8);
+                doc.setLineWidth(currentLineWidth);
             }
 
             // Draw stroke for đ
             if (special.hasStroke) {
                 doc.setLineWidth(0.3);
                 doc.line(currentX + 0.3, y - currentFontSize * 0.3, currentX + charWidth - 0.3, y - currentFontSize * 0.3);
-                doc.setLineWidth(currentLineWidth); // Restore line width
+                doc.setLineWidth(currentLineWidth);
             }
 
             currentX += charWidth;
@@ -258,11 +275,18 @@ const renderReportPage = async (doc: jsPDF, report: Partial<ReportForm>, userPro
     let rightY = currentY;
 
     // Helper for rows
-    const drawLeftRow = (key: string, value: string, x: number, y: number) => {
+    const drawLeftRow = (key: string, value: string, x: number, y: number, maxValueWidth?: number) => {
         doc.setFont('helvetica', 'normal');
         renderCroatianText(doc, key + ':', x, y);
         doc.setFont('helvetica', 'bold');
-        renderCroatianText(doc, value, x + 55, y);
+        // Truncate value if too long
+        let displayValue = value;
+        if (maxValueWidth) {
+            while (doc.getTextWidth(displayValue) > maxValueWidth && displayValue.length > 3) {
+                displayValue = displayValue.slice(0, -4) + '...';
+            }
+        }
+        renderCroatianText(doc, displayValue, x + 35, y);
     };
 
     const drawRightRow = (key: string, value: string, x: number, y: number) => {
@@ -272,11 +296,12 @@ const renderReportPage = async (doc: jsPDF, report: Partial<ReportForm>, userPro
         renderCroatianText(doc, value, x + 60, y);
     };
 
-    const addLeft = (k: string, v: string) => { drawLeftRow(k, v, leftX, leftY); leftY += 5; };
+    const addLeft = (k: string, v: string, maxWidth?: number) => { drawLeftRow(k, v, leftX, leftY, maxWidth); leftY += 5; };
     const addRight = (k: string, v: string) => { drawRightRow(k, v, rightX, rightY); rightY += 5; };
 
     // --- Left Column Inputs ---
-    addLeft('Dionica', report.dionica || '-');
+    // Dionica has limited space (max 40mm width for value)
+    addLeft('Dionica', report.dionica || '-', 40);
 
     const isGully = report.draft_id === 4 || report.draft_id === 5;
     const typeLabel = isGully ? 'Tip slivnika' : 'Tip okna';
@@ -604,5 +629,5 @@ const renderReportPage = async (doc: jsPDF, report: Partial<ReportForm>, userPro
     doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
     const displayName = userProfile ? `${userProfile.name} ${userProfile.last_name}` : 'Nepoznat korisnik';
-    doc.text(`Izradio: ${displayName}`, pageWidth / 2, pageHeight - 20, { align: 'center' });
+    renderCroatianText(doc, `Izradio: ${displayName}`, pageWidth / 2, pageHeight - 20, { align: 'center' });
 };
