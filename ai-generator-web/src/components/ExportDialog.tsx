@@ -39,7 +39,7 @@ export const ExportDialog = ({ open, onOpenChange, onConfirm, loading = false, d
         airDeviation: defaultValues?.airDeviation || '',
         waterRemark: defaultValues?.waterRemark || '',
         waterDeviation: defaultValues?.waterDeviation || '',
-        certifierName: defaultValues?.certifierName || '',
+        certifierName: defaultValues?.certifierName || 'Nikola Brečić bacc.ing.secc.',
         includePdfs: defaultValues?.includePdfs || false,
     });
 
