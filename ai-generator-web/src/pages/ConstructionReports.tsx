@@ -602,8 +602,7 @@ export const ConstructionReports = () => {
                 onConfirm={handleExportConfirm}
                 loading={isExporting}
                 defaultValues={{
-                    constructionPart: construction.name,
-                    certifierName: profile?.name ? `${profile.name} ${profile.last_name}` : ''
+                    constructionPart: construction.name
                 }}
                 reports={selectedIds.size === 0 ? reports : undefined}
                 constructionId={constructionId!}
