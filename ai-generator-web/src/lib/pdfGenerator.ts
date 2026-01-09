@@ -244,8 +244,8 @@ const renderReportPage = async (doc: jsPDF, report: Partial<ReportForm>, userPro
     const addRight = (k: string, v: string) => { drawRightRow(k, v, rightY); rightY += 5; };
 
     // --- Left Column Inputs ---
-    // Dionica has limited space (max 30mm width for value)
-    addLeft('Dionica', report.dionica || '-', 30);
+    // Dionica - show full name without truncation
+    addLeft('Dionica', report.dionica || '-');
 
     const isGully = report.draft_id === 4 || report.draft_id === 5;
     const typeLabel = isGully ? 'Tip slivnika' : 'Tip okna';
