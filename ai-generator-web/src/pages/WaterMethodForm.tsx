@@ -5,7 +5,7 @@ import { supabase } from '../lib/supabase';
 import { Input } from '../components/ui/Input';
 import { Select } from '../components/ui/Select';
 import { Button } from '../components/ui/Button';
-import { Loader2, Save, ArrowLeft, FileDown, Plus, ArrowRight, ChevronLeft, Check, X, ChevronUp } from 'lucide-react';
+import { Loader2, Save, ArrowLeft, FileDown, Plus, ArrowRight, ChevronLeft, Check, X, ChevronUp, Copy } from 'lucide-react';
 import { Stepper } from '../components/ui/Stepper';
 import * as calc from '../lib/calculations/report';
 import type { ReportForm, ReportDraft, MaterialType, Material } from '../types';
@@ -73,6 +73,7 @@ export const WaterMethodForm = () => {
     const [step, setStep] = useState<1 | 2>(1);
     const [dionicaError, setDionicaError] = useState<string>('');
     const [showMobileResults, setShowMobileResults] = useState(false);
+    const [previousReport, setPreviousReport] = useState<ReportForm | null>(null);
 
     // Memoized calculations to prevent recalculation on every render
     const calculated = useMemo<CalculatedResults>(() => {
@@ -205,12 +206,36 @@ export const WaterMethodForm = () => {
         }
     }, [t]);
 
+    // Load previous report for copying data
+    const loadPreviousReport = useCallback(async () => {
+        if (constructionId && (!id || id === 'new')) {
+            try {
+                const lastReport = await reportService.getLastByConstructionAndType(constructionId, 1); // type_id 1 = Water
+                if (lastReport) {
+                    setPreviousReport(lastReport);
+                    // Auto-copy general info from previous report
+                    setFormData(prev => ({
+                        ...prev,
+                        examination_date: lastReport.examination_date || prev.examination_date,
+                        temperature: lastReport.temperature || prev.temperature,
+                        pane_material_id: lastReport.pane_material_id || prev.pane_material_id,
+                        pipe_material_id: lastReport.pipe_material_id || prev.pipe_material_id,
+                    }));
+                }
+            } catch (error) {
+                console.error('Error loading previous report:', error);
+            }
+        }
+    }, [constructionId, id]);
+
     useEffect(() => {
         loadLookups();
         if (id && id !== 'new') {
             loadReport(id);
+        } else {
+            loadPreviousReport();
         }
-    }, [id, loadLookups, loadReport]);
+    }, [id, loadLookups, loadReport, loadPreviousReport]);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
         const { name, value, type } = e.target;
@@ -305,6 +330,29 @@ export const WaterMethodForm = () => {
         }
     };
 
+    // Copy structure type from previous report
+    const copyStructureFromPrevious = () => {
+        if (previousReport) {
+            setFormData(prev => ({
+                ...prev,
+                draft_id: previousReport.draft_id || prev.draft_id,
+                material_type_id: previousReport.material_type_id || prev.material_type_id,
+                pane_diameter: previousReport.pane_diameter || prev.pane_diameter,
+                pane_width: previousReport.pane_width || prev.pane_width,
+                pane_length: previousReport.pane_length || prev.pane_length,
+                pane_height: previousReport.pane_height || prev.pane_height,
+                pipe_diameter: previousReport.pipe_diameter || prev.pipe_diameter,
+                pipe_length: previousReport.pipe_length || prev.pipe_length,
+                water_height: previousReport.water_height || prev.water_height,
+                ro_height: previousReport.ro_height || prev.ro_height,
+                depositional_height: previousReport.depositional_height || prev.depositional_height,
+                pipeline_slope: previousReport.pipeline_slope || prev.pipeline_slope,
+                examination_duration: previousReport.examination_duration || prev.examination_duration,
+                saturation_time: previousReport.saturation_time || prev.saturation_time,
+            }));
+        }
+    };
+
     const isShaftRound = formData.material_type_id === 1;
     const isShaftRectangular = formData.material_type_id === 2;
     const showPipeFields = [2, 3, 5].includes(formData.draft_id || 0);
@@ -382,7 +430,21 @@ export const WaterMethodForm = () => {
                             </div>
 
                             <div className="bg-card shadow-sm rounded-xl border border-border p-6">
-                                <h3 className="text-lg font-semibold text-foreground mb-4">{t('reports.form.structureType')}</h3>
+                                <div className="flex items-center justify-between mb-4">
+                                    <h3 className="text-lg font-semibold text-foreground">{t('reports.form.structureType')}</h3>
+                                    {previousReport && id === 'new' && (
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={copyStructureFromPrevious}
+                                            className="text-xs"
+                                        >
+                                            <Copy className="h-3 w-3 mr-1" />
+                                            {t('reports.form.copyFromPrevious')}
+                                        </Button>
+                                    )}
+                                </div>
                                 <div className="space-y-4">
                                     <Input
                                         label={t('reports.form.dionicaLabel')}

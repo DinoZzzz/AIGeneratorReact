@@ -123,5 +123,19 @@ export const reportService = {
         } catch (error: any) {
             throw new AppError(error.message || 'Failed to update report order', 'SUPABASE_ERROR', 500);
         }
+    },
+
+    async getLastByConstructionAndType(constructionId: string, typeId: number) {
+        const { data, error } = await supabase
+            .from('report_forms')
+            .select('*')
+            .eq('construction_id', constructionId)
+            .eq('type_id', typeId)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+        if (error) throw new AppError(error.message, 'SUPABASE_ERROR', 500);
+        return data as ReportForm | null;
     }
 };
