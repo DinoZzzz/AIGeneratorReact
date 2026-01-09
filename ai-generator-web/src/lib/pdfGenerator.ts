@@ -20,17 +20,17 @@ const loadImage = (src: string): Promise<HTMLImageElement> => {
 // Helper to render Croatian text with special characters
 const renderCroatianText = (doc: jsPDF, text: string, x: number, y: number, options?: any) => {
     // For characters that need special handling: č, ć, š, ž, đ, Č, Ć, Š, Ž, Đ
-    const specialChars: Record<string, { base: string, hasHacek: boolean, hasStroke: boolean, isAcute: boolean }> = {
-        'č': { base: 'c', hasHacek: true, hasStroke: false, isAcute: false },
-        'ć': { base: 'c', hasHacek: false, hasStroke: false, isAcute: true },
-        'š': { base: 's', hasHacek: true, hasStroke: false, isAcute: false },
-        'ž': { base: 'z', hasHacek: true, hasStroke: false, isAcute: false },
-        'đ': { base: 'd', hasHacek: false, hasStroke: true, isAcute: false },
-        'Č': { base: 'C', hasHacek: true, hasStroke: false, isAcute: false },
-        'Ć': { base: 'C', hasHacek: false, hasStroke: false, isAcute: true },
-        'Š': { base: 'S', hasHacek: true, hasStroke: false, isAcute: false },
-        'Ž': { base: 'Z', hasHacek: true, hasStroke: false, isAcute: false },
-        'Đ': { base: 'D', hasHacek: false, hasStroke: true, isAcute: false }
+    const specialChars: Record<string, { base: string, hasHacek: boolean, hasStroke: boolean, isAcute: boolean, isUppercase: boolean }> = {
+        'č': { base: 'c', hasHacek: true, hasStroke: false, isAcute: false, isUppercase: false },
+        'ć': { base: 'c', hasHacek: false, hasStroke: false, isAcute: true, isUppercase: false },
+        'š': { base: 's', hasHacek: true, hasStroke: false, isAcute: false, isUppercase: false },
+        'ž': { base: 'z', hasHacek: true, hasStroke: false, isAcute: false, isUppercase: false },
+        'đ': { base: 'd', hasHacek: false, hasStroke: true, isAcute: false, isUppercase: false },
+        'Č': { base: 'C', hasHacek: true, hasStroke: false, isAcute: false, isUppercase: true },
+        'Ć': { base: 'C', hasHacek: false, hasStroke: false, isAcute: true, isUppercase: true },
+        'Š': { base: 'S', hasHacek: true, hasStroke: false, isAcute: false, isUppercase: true },
+        'Ž': { base: 'Z', hasHacek: true, hasStroke: false, isAcute: false, isUppercase: true },
+        'Đ': { base: 'D', hasHacek: false, hasStroke: true, isAcute: false, isUppercase: true }
     };
 
     const hasSpecialChars = /[čćšžđČĆŠŽĐ]/.test(text);
@@ -52,8 +52,7 @@ const renderCroatianText = (doc: jsPDF, text: string, x: number, y: number, opti
     }
 
     // Render character by character
-    const currentFontSize = doc.getFontSize();
-    const currentLineWidth = 0.1;
+    const fontSize = doc.getFontSize();
     let currentX = startX;
 
     for (let i = 0; i < text.length; i++) {
@@ -64,32 +63,35 @@ const renderCroatianText = (doc: jsPDF, text: string, x: number, y: number, opti
             doc.text(special.base, currentX, y);
             const charWidth = doc.getTextWidth(special.base);
 
-            // Draw hacek (ˇ) for č, š, ž
+            // Draw hacek (ˇ) for č, š, ž, Č, Š, Ž
             if (special.hasHacek) {
-                const fontSize = doc.getFontSize();
-                const hacekBaseY = y - fontSize * 0.22;
+                // Uppercase letters need hacek higher up and slightly larger
+                const hacekOffset = special.isUppercase ? 0.38 : 0.28;
+                const hacekSize = special.isUppercase ? 0.8 : 0.6;
+                const hacekBaseY = y - fontSize * hacekOffset;
                 const hacekX = currentX + charWidth / 2;
-                doc.setLineWidth(0.3);
-                doc.line(hacekX - 0.5, hacekBaseY - 0.5, hacekX, hacekBaseY);
-                doc.line(hacekX, hacekBaseY, hacekX + 0.5, hacekBaseY - 0.5);
-                doc.setLineWidth(currentLineWidth);
+                doc.setLineWidth(0.4);
+                doc.line(hacekX - hacekSize, hacekBaseY - hacekSize, hacekX, hacekBaseY);
+                doc.line(hacekX, hacekBaseY, hacekX + hacekSize, hacekBaseY - hacekSize);
+                doc.setLineWidth(0.1);
             }
 
-            // Draw acute accent (´) for ć
+            // Draw acute accent (´) for ć, Ć
             if (special.isAcute) {
-                const fontSize = doc.getFontSize();
-                const acuteBaseY = y - fontSize * 0.28;
+                const acuteOffset = special.isUppercase ? 0.42 : 0.32;
+                const acuteBaseY = y - fontSize * acuteOffset;
                 const acuteX = currentX + charWidth / 2;
-                doc.setLineWidth(0.3);
-                doc.line(acuteX - 0.3, acuteBaseY, acuteX + 0.5, acuteBaseY - 0.8);
-                doc.setLineWidth(currentLineWidth);
+                doc.setLineWidth(0.4);
+                doc.line(acuteX - 0.3, acuteBaseY, acuteX + 0.6, acuteBaseY - 1.0);
+                doc.setLineWidth(0.1);
             }
 
-            // Draw stroke for đ
+            // Draw stroke for đ, Đ
             if (special.hasStroke) {
-                doc.setLineWidth(0.3);
-                doc.line(currentX + 0.3, y - currentFontSize * 0.3, currentX + charWidth - 0.3, y - currentFontSize * 0.3);
-                doc.setLineWidth(currentLineWidth);
+                const strokeY = special.isUppercase ? y - fontSize * 0.35 : y - fontSize * 0.3;
+                doc.setLineWidth(0.4);
+                doc.line(currentX + 0.3, strokeY, currentX + charWidth - 0.3, strokeY);
+                doc.setLineWidth(0.1);
             }
 
             currentX += charWidth;
@@ -269,39 +271,42 @@ const renderReportPage = async (doc: jsPDF, report: Partial<ReportForm>, userPro
     }
 
     // --- Input Data Section ---
-    const leftX = 40;
-    const rightX = 120;
+    const leftX = 15;
+    const leftValueX = 55; // Fixed position for left column values
+    const rightLabelX = pageWidth / 2 + 5; // Right column labels start at center + margin
+    const rightValueX = pageWidth - 15; // Right column values right-aligned
     let leftY = currentY;
     let rightY = currentY;
 
-    // Helper for rows
-    const drawLeftRow = (key: string, value: string, x: number, y: number, maxValueWidth?: number) => {
+    // Helper for rows - two-column layout with proper spacing
+    const drawLeftRow = (key: string, value: string, y: number, maxValueWidth?: number) => {
         doc.setFont('helvetica', 'normal');
-        renderCroatianText(doc, key + ':', x, y);
+        doc.setFontSize(8);
+        renderCroatianText(doc, key + ':', leftX, y);
         doc.setFont('helvetica', 'bold');
         // Truncate value if too long
         let displayValue = value;
-        if (maxValueWidth) {
-            while (doc.getTextWidth(displayValue) > maxValueWidth && displayValue.length > 3) {
-                displayValue = displayValue.slice(0, -4) + '...';
-            }
+        const maxWidth = maxValueWidth || 35; // Default max width for values
+        while (doc.getTextWidth(displayValue) > maxWidth && displayValue.length > 3) {
+            displayValue = displayValue.slice(0, -4) + '...';
         }
-        renderCroatianText(doc, displayValue, x + 35, y);
+        renderCroatianText(doc, displayValue, leftValueX, y);
     };
 
-    const drawRightRow = (key: string, value: string, x: number, y: number) => {
+    const drawRightRow = (key: string, value: string, y: number) => {
         doc.setFont('helvetica', 'normal');
-        renderCroatianText(doc, key + ':', x, y);
+        doc.setFontSize(8);
+        renderCroatianText(doc, key + ':', rightLabelX, y);
         doc.setFont('helvetica', 'bold');
-        renderCroatianText(doc, value, x + 60, y);
+        renderCroatianText(doc, value, rightValueX, y, { align: 'right' });
     };
 
-    const addLeft = (k: string, v: string, maxWidth?: number) => { drawLeftRow(k, v, leftX, leftY, maxWidth); leftY += 5; };
-    const addRight = (k: string, v: string) => { drawRightRow(k, v, rightX, rightY); rightY += 5; };
+    const addLeft = (k: string, v: string, maxWidth?: number) => { drawLeftRow(k, v, leftY, maxWidth); leftY += 5; };
+    const addRight = (k: string, v: string) => { drawRightRow(k, v, rightY); rightY += 5; };
 
     // --- Left Column Inputs ---
-    // Dionica has limited space (max 40mm width for value)
-    addLeft('Dionica', report.dionica || '-', 40);
+    // Dionica has limited space (max 30mm width for value)
+    addLeft('Dionica', report.dionica || '-', 30);
 
     const isGully = report.draft_id === 4 || report.draft_id === 5;
     const typeLabel = isGully ? 'Tip slivnika' : 'Tip okna';
@@ -385,7 +390,7 @@ const renderReportPage = async (doc: jsPDF, report: Partial<ReportForm>, userPro
     // For Air Method, show measurements in the right column
     if (report.type_id === 2) {
         const stabTime = report.stabilization_time || '00:00';
-        addRight('Vrijeme stabilizacije', stabTime.toString());
+        addRight('Vr. stabilizacije', stabTime.toString());
 
         const examDuration = report.examination_duration || '00:00';
         addRight('Trajanje', examDuration.toString());
@@ -394,10 +399,10 @@ const renderReportPage = async (doc: jsPDF, report: Partial<ReportForm>, userPro
         const testTimeMins = report.required_test_time || 0;
         const testMins = Math.floor(testTimeMins);
         const testSecs = Math.round((testTimeMins - testMins) * 60);
-        addRight('Vrijeme ispitivanja', `${testMins}m ${testSecs.toString().padStart(2, '0')}s`);
+        addRight('Vr. ispitivanja', `${testMins}m ${testSecs.toString().padStart(2, '0')}s`);
 
-        addRight('Tlak na početku', `${(report.pressure_start || 0).toFixed(2)} mbar`);
-        addRight('Tlak na kraju', `${(report.pressure_end || 0).toFixed(2)} mbar`);
+        addRight('Tlak poc.', `${(report.pressure_start || 0).toFixed(2)} mbar`);
+        addRight('Tlak kraj', `${(report.pressure_end || 0).toFixed(2)} mbar`);
         addRight('Pad tlaka', `${(report.pressure_loss || 0).toFixed(2)} mbar`);
     }
 
@@ -446,37 +451,37 @@ const renderReportPage = async (doc: jsPDF, report: Partial<ReportForm>, userPro
 
         const hydrostaticHeight = calc.calculateHydrostaticHeight(draftId, r.water_height!, r.pipe_diameter!, r.depositional_height!);
 
-        // Display Results (Left Column)
+        // Display Results (Left Column) - Use shorter labels to fit
         if (draftId === 1 || draftId === 3 || draftId === 4 || draftId === 5) {
-            const label = (draftId === 4 || draftId === 5) ? 'Omoćena površina slivnika' : 'Omoćena površina okna';
+            const label = (draftId === 4 || draftId === 5) ? 'Om. povr. slivnika' : 'Om. povr. okna';
             addLeft(label, `${wettedShaft.toFixed(2)} m²`);
         } else if (draftId === 2) {
             if (report.material_type_id === 2) {
-                addLeft('Omoćena površina kanala', `${wettedShaft.toFixed(2)} m²`);
+                addLeft('Om. povr. kanala', `${wettedShaft.toFixed(2)} m²`);
             } else {
-                addLeft('Omoćena površina okna', `${wettedShaft.toFixed(2)} m²`);
+                addLeft('Om. povr. okna', `${wettedShaft.toFixed(2)} m²`);
             }
         }
 
         if ([2, 3, 5].includes(draftId)) {
-            addLeft('Omoćena površina cijevi', `${wettedPipe.toFixed(2)} m²`);
+            addLeft('Om. povr. cijevi', `${wettedPipe.toFixed(2)} m²`);
         }
 
-        addLeft('Ukupna omočena površina', `${totalArea.toFixed(2)} m²`);
-        addLeft('Dozvoljeni gubitak', `${allowedLossL.toFixed(2)} l`);
-        addLeft('Dozvoljeni gubitak', `${allowedLossMm.toFixed(2)} mm`);
+        addLeft('Ukupna om. povr.', `${totalArea.toFixed(2)} m²`);
+        addLeft('Dozv. gubitak (l)', `${allowedLossL.toFixed(2)} l`);
+        addLeft('Dozv. gubitak (mm)', `${allowedLossMm.toFixed(2)} mm`);
 
-        // Display Results (Right Column)
-        addRight('Visina vode u oknu na početku', `${(report.water_height_start || 0).toFixed(2)} mm`);
-        addRight('Visina vode u oknu na kraju', `${(report.water_height_end || 0).toFixed(2)} mm`);
+        // Display Results (Right Column) - Use shorter labels
+        addRight('Vis. vode na poc.', `${(report.water_height_start || 0).toFixed(2)} mm`);
+        addRight('Vis. vode na kraju', `${(report.water_height_end || 0).toFixed(2)} mm`);
 
         if ([2, 3].includes(draftId) && hydrostaticHeight > 0) {
-            addRight('Hidrostatska visina', `${(hydrostaticHeight * 100).toFixed(0)} cm`);
+            addRight('Hidrost. visina', `${(hydrostaticHeight * 100).toFixed(0)} cm`);
         }
 
         addRight('Gubitak vode', `${waterLoss.toFixed(2)} mm`);
         addRight('ΔV', `${volLoss.toFixed(4)} l`);
-        addRight('Izmjereni gubitak', `${result.toFixed(2)} l/m²`);
+        addRight('Izmj. gubitak', `${result.toFixed(2)} l/m²`);
     } else if (report.type_id === 2) { // Air Method Results
         // Air method measurements are now in the input section above
         // Sync Y for table
