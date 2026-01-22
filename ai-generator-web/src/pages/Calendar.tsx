@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Calendar as BigCalendar, dateFnsLocalizer, Views } from 'react-big-calendar';
 import type { View } from 'react-big-calendar';
 import { format, parse, startOfWeek, getDay } from 'date-fns';
@@ -58,11 +58,28 @@ export const Calendar = () => {
         return () => window.removeEventListener('resize', handleResize);
     }, []);
 
+    // Debounce ref to prevent excessive API calls on rapid date/view changes
+    const debounceRef = useRef<NodeJS.Timeout | null>(null);
+
     useEffect(() => {
-        loadAppointments();
+        // Clear any pending debounced call
+        if (debounceRef.current) {
+            clearTimeout(debounceRef.current);
+        }
+
+        // Debounce the loadAppointments call by 300ms
+        debounceRef.current = setTimeout(() => {
+            loadAppointments();
+        }, 300);
+
+        return () => {
+            if (debounceRef.current) {
+                clearTimeout(debounceRef.current);
+            }
+        };
     }, [date, view]);
 
-    const loadAppointments = async () => {
+    const loadAppointments = useCallback(async () => {
         setLoading(true);
         try {
             // Calculate range based on view

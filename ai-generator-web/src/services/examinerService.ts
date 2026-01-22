@@ -5,7 +5,7 @@ export const examinerService = {
     async getExaminers(): Promise<Profile[]> {
         const { data, error } = await supabase
             .from('profiles')
-            .select('*')
+            .select('id, name, last_name, username, email, title, gender, avatar_url, role, accreditations')
             .order('name');
 
         if (error) throw error;
@@ -26,7 +26,7 @@ export const examinerService = {
     async getReportTypes(): Promise<ReportType[]> {
         const { data, error } = await supabase
             .from('report_types')
-            .select('*')
+            .select('id, name')
             .order('id');
 
         if (error) throw error;

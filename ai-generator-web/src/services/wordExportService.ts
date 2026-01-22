@@ -79,7 +79,7 @@ export const generateWordDocument = async (reports: ReportForm[], metaData: Expo
         if (reports[0].construction_id) {
             const { data: constr } = await supabase
                 .from('constructions')
-                .select('*')
+                .select('id, name, location, work_order, customer_id')
                 .eq('id', reports[0].construction_id)
                 .single();
 
@@ -91,7 +91,7 @@ export const generateWordDocument = async (reports: ReportForm[], metaData: Expo
                 if (constr.customer_id) {
                     const { data: cust } = await supabase
                         .from('customers')
-                        .select('*')
+                        .select('id, name, address, location')
                         .eq('id', constr.customer_id)
                         .single();
 
@@ -107,7 +107,7 @@ export const generateWordDocument = async (reports: ReportForm[], metaData: Expo
         if (userId) {
             const { data: profile } = await supabase
                 .from('profiles')
-                .select('*')
+                .select('id, name, last_name, gender')
                 .eq('id', userId)
                 .single();
 
@@ -140,7 +140,7 @@ export const generateWordDocument = async (reports: ReportForm[], metaData: Expo
         if (constructionId) {
             const { data: files } = await supabase
                 .from('report_files')
-                .select('*')
+                .select('id, file_name, file_path, description, construction_id')
                 .eq('construction_id', constructionId);
 
             if (files && files.length > 0) {
@@ -287,7 +287,7 @@ export const generateWordDocument = async (reports: ReportForm[], metaData: Expo
         // Fetch Procedure data for all air reports if missing
         const airReportsNeedData = reports.filter(r => r.type_id === 2 && !(r as any).examination_procedure);
         if (airReportsNeedData.length > 0) {
-            const { data: procedures } = await supabase.from('examination_procedures').select('*');
+            const { data: procedures } = await supabase.from('examination_procedures').select('id, name, pressure, allowed_loss');
             if (procedures) {
                 reports.forEach(r => {
                     if (r.type_id === 2 && !(r as any).examination_procedure) {
@@ -307,7 +307,7 @@ export const generateWordDocument = async (reports: ReportForm[], metaData: Expo
         if (materialIds.size > 0) {
             const { data: materials } = await supabase
                 .from('materials')
-                .select('*')
+                .select('id, name')
                 .in('id', Array.from(materialIds));
 
             if (materials) {

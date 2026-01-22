@@ -56,9 +56,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }
 
         try {
+            // Only fetch fields needed for UI display and role checking
             const { data, error } = await supabase
                 .from('profiles')
-                .select('*')
+                .select('id, name, last_name, username, email, avatar_url, role, accreditations')
                 .eq('id', userId)
                 .maybeSingle();
 
