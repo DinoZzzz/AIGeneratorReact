@@ -606,6 +606,7 @@ export const HistoryDetails = () => {
                     <button
                         onClick={() => navigate('/history')}
                         className="p-2 rounded-full hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
+                        aria-label="Go back to history"
                     >
                         <ArrowLeft className="h-6 w-6" />
                     </button>

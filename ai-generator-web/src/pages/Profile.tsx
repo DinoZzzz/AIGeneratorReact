@@ -128,6 +128,8 @@ export const ProfilePage = () => {
                                         src={formData.avatar_url}
                                         alt="Profile"
                                         className="h-full w-full object-cover"
+                                        loading="lazy"
+                                        decoding="async"
                                     />
                                 ) : (
                                     <span className="text-4xl font-bold text-muted-foreground">

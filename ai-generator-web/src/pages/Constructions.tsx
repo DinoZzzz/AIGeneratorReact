@@ -156,6 +156,7 @@ export const Constructions = () => {
                     <button
                         onClick={() => navigate('/customers')}
                         className="p-2 rounded-full hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
+                        aria-label="Go back to customers"
                     >
                         <ArrowLeft className="h-6 w-6" />
                     </button>

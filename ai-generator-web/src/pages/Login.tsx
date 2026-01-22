@@ -22,8 +22,9 @@ export const Login = () => {
         try {
             let emailToUse = identifier;
 
-            // Check if input is an email (contains @)
-            const isEmail = identifier.includes('@');
+            // Check if input is a valid email format (not just contains @)
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            const isEmail = emailRegex.test(identifier);
 
             // If not an email, treat as username and lookup email
             if (!isEmail) {

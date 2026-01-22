@@ -193,6 +193,8 @@ export const Chat = () => {
                                                     src={msg.user.avatar_url}
                                                     alt={getUserName(msg)}
                                                     className="h-7 w-7 sm:h-8 sm:w-8 rounded-full"
+                                                    loading="lazy"
+                                                    decoding="async"
                                                 />
                                             ) : (
                                                 <div className="h-7 w-7 sm:h-8 sm:w-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs sm:text-sm font-medium">
