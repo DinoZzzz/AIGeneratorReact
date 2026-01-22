@@ -71,15 +71,16 @@ export const customerService = {
         search: string = '',
         year?: string | null
     ) {
-        // First, get all customers with search filter
-        let customerQuery = supabase
-            .from('customers')
-            .select('id, name, location, work_order, address, created_at, updated_at');
+        // Use the database view that computes last_activity_date efficiently
+        // This replaces 5 queries with 1 single query
+        let query = supabase
+            .from('customer_with_activity')
+            .select('id, name, location, work_order, address, created_at, last_activity_date', { count: 'exact' });
 
         if (search) {
             const sanitizedSearch = search.replace(/,/g, '');
             if (sanitizedSearch) {
-                customerQuery = customerQuery.or(
+                query = query.or(
                     `name.ilike.%${sanitizedSearch}%,location.ilike.%${sanitizedSearch}%,work_order.ilike.%${sanitizedSearch}%,address.ilike.%${sanitizedSearch}%`
                 );
             }
@@ -91,68 +92,21 @@ export const customerService = {
             if (!isNaN(yearNum)) {
                 const startDate = `${yearNum}-01-01`;
                 const endDate = `${yearNum + 1}-01-01`;
-                customerQuery = customerQuery.gte('created_at', startDate).lt('created_at', endDate);
+                query = query.gte('created_at', startDate).lt('created_at', endDate);
             }
         }
 
-        const { data: customers, error: customersError } = await customerQuery;
-        if (customersError) throw new AppError(customersError.message, 'SUPABASE_ERROR', 500);
-        if (!customers || customers.length === 0) return { data: [], count: 0 };
-
-        const customerIds = customers.map(c => c.id);
-
-        // Get all related activities in parallel
-        const [
-            { data: constructions },
-            { data: reports },
-            { data: exports },
-            { data: appointments }
-        ] = await Promise.all([
-            supabase.from('constructions').select('customer_id, updated_at').in('customer_id', customerIds),
-            supabase.from('report_forms').select('customer_id, updated_at').in('customer_id', customerIds),
-            supabase.from('report_exports').select('customer_id, updated_at').in('customer_id', customerIds),
-            supabase.from('appointments').select('customer_id, created_at').in('customer_id', customerIds)
-        ]);
-
-        // Calculate last activity for each customer
-        const customersWithActivity = customers.map(customer => {
-            const dates = [
-                customer.updated_at,
-                ...(constructions?.filter(c => c.customer_id === customer.id).map(c => c.updated_at) || []),
-                ...(reports?.filter(r => r.customer_id === customer.id).map(r => r.updated_at) || []),
-                ...(exports?.filter(e => e.customer_id === customer.id).map(e => e.updated_at) || []),
-                ...(appointments?.filter(a => a.customer_id === customer.id).map(a => a.created_at) || [])
-            ].filter(Boolean);
-
-            const lastActivityDate = dates.length > 0
-                ? new Date(Math.max(...dates.map(d => new Date(d as string).getTime())))
-                : new Date(customer.created_at);
-
-            return {
-                id: customer.id,
-                name: customer.name,
-                location: customer.location,
-                work_order: customer.work_order,
-                address: customer.address,
-                created_at: customer.created_at,
-                last_activity_date: lastActivityDate.toISOString()
-            };
-        });
-
-        // Sort by activity
-        customersWithActivity.sort((a, b) => {
-            const dateA = new Date(a.last_activity_date).getTime();
-            const dateB = new Date(b.last_activity_date).getTime();
-            return sortOrder === 'asc' ? dateA - dateB : dateB - dateA;
-        });
+        // Sort by last_activity_date
+        query = query.order('last_activity_date', { ascending: sortOrder === 'asc' });
 
         // Apply pagination
-        const totalCount = customersWithActivity.length;
         const start = (page - 1) * pageSize;
-        const end = start + pageSize;
-        const paginatedData = customersWithActivity.slice(start, end);
+        const end = start + pageSize - 1;
 
-        return { data: paginatedData, count: totalCount };
+        const { data, error, count } = await query.range(start, end);
+
+        if (error) throw new AppError(error.message, 'SUPABASE_ERROR', 500);
+        return { data: data || [], count: count || 0 };
     },
 
     async getById(id: string) {

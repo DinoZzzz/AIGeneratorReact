@@ -3,11 +3,9 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { historyService } from '../services/historyService';
 import type { ReportExport, ReportExportForm, ReportForm } from '../types';
-import { generateWordDocument } from '../services/wordExportService';
 import type { ExportMetaData } from '../components/ExportDialog';
 import { Loader2, ArrowLeft, Download, GripVertical, FileText, Pencil } from 'lucide-react';
 import { supabase } from '../lib/supabase';
-import { generatePDF, generateBulkPDF } from '../lib/pdfGenerator';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import type { ReportFile } from '../types';
@@ -84,7 +82,8 @@ export const HistoryDetails = () => {
             if (error) throw error;
             if (!reportData) throw new Error('Report not found');
 
-            // Generate single PDF
+            // Dynamic import for PDF generator (reduces initial bundle size)
+            const { generatePDF } = await import('../lib/pdfGenerator');
             generatePDF(reportData, profile || undefined);
             setActionMessage(null);
         } catch (error) {
@@ -123,7 +122,8 @@ export const HistoryDetails = () => {
                 .filter((rf): rf is ReportForm => !!rf);
             if (orderedReports.length === 0) throw new Error('No reports found');
 
-            // Generate bulk PDF
+            // Dynamic import for PDF generator (reduces initial bundle size)
+            const { generateBulkPDF } = await import('../lib/pdfGenerator');
             generateBulkPDF(orderedReports, `${exportData.construction_part}_Reports.pdf`, profile || undefined);
             setActionMessage(null);
         } catch (error) {
@@ -173,6 +173,8 @@ export const HistoryDetails = () => {
                 waterDeviation: exportData.water_deviation || ''
             };
 
+            // Dynamic import for Word generator (reduces initial bundle size)
+            const { generateWordDocument } = await import('../services/wordExportService');
             await generateWordDocument(orderedReports, metaData);
             setActionMessage(null);
         } catch (error) {

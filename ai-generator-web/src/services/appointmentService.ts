@@ -8,31 +8,37 @@ export const appointmentService = {
             .from('calendar_events')
             .select(`
                 *,
-                customer:customers(*),
-                construction:constructions(*)
+                customer:customers(id, name, location, work_order),
+                construction:constructions(id, name, location, work_order)
             `)
             .gte('start', start.toISOString())
             .lte('end', end.toISOString());
 
         if (error) throw new AppError(error.message, 'SUPABASE_ERROR', 500);
 
-        // Fetch examiner profiles for each event
-        const eventsWithAssignees = await Promise.all(
-            (data || []).map(async (event: any) => {
-                if (event.examiner_ids && event.examiner_ids.length > 0) {
-                    const { data: profiles } = await supabase
-                        .from('profiles')
-                        .select('*')
-                        .in('id', event.examiner_ids);
+        // Collect all unique examiner IDs from all events (batch query instead of N+1)
+        const allExaminerIds = [...new Set(
+            (data || []).flatMap((event: any) => event.examiner_ids || [])
+        )];
 
-                    return {
-                        ...event,
-                        assignees: profiles || []
-                    };
-                }
-                return { ...event, assignees: [] };
-            })
-        );
+        // Single query to fetch all examiner profiles
+        let profileMap = new Map<string, any>();
+        if (allExaminerIds.length > 0) {
+            const { data: profiles } = await supabase
+                .from('profiles')
+                .select('id, name, last_name, avatar_url, title')
+                .in('id', allExaminerIds);
+
+            profileMap = new Map((profiles || []).map(p => [p.id, p]));
+        }
+
+        // Map examiner profiles to each event
+        const eventsWithAssignees = (data || []).map((event: any) => ({
+            ...event,
+            assignees: (event.examiner_ids || [])
+                .map((id: string) => profileMap.get(id))
+                .filter(Boolean)
+        }));
 
         return eventsWithAssignees as Appointment[];
     },

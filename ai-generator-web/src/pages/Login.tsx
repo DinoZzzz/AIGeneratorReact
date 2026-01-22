@@ -53,14 +53,9 @@ export const Login = () => {
             if (signInError) throw signInError;
             navigate('/');
         } catch (err: unknown) {
-            const errorMessage = (err as Error).message || 'Failed to login';
-            if (errorMessage.includes('Invalid login credentials')) {
-                setError('Invalid username/email or password');
-            } else if (errorMessage.includes('Username not found')) {
-                setError('Username not found');
-            } else {
-                setError(errorMessage);
-            }
+            // Use generic error message to prevent user enumeration attacks
+            // Don't reveal whether username/email exists or if password is wrong
+            setError('Invalid credentials. Please check your username/email and password.');
         } finally {
             setLoading(false);
         }
