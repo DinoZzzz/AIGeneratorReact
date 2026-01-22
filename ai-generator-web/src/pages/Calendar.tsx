@@ -119,7 +119,7 @@ export const Calendar = () => {
         } finally {
             setLoading(false);
         }
-    };
+    }, [date, view]);
 
     const handleSelectSlot = ({ start, end }: { start: Date; end: Date }) => {
         setSelectedSlot({ start, end });
