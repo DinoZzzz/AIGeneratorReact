@@ -308,7 +308,7 @@ export const AirMethodForm = () => {
                         t={t}
                         previousReport={previousReport}
                         onCopyFromPrevious={copyStructureFromPrevious}
-                        isNew={id === 'new'}
+                        isNew={!id || id === 'new'}
                     />
                 )}
 
