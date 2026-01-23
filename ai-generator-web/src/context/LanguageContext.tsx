@@ -1262,7 +1262,9 @@ Object.assign(translations.hr, {
     'schemeManager.noImage': 'Nema slike',
     'schemeManager.currentImage': 'Trenutna slika',
     'schemeManager.dragDrop': 'Povuci sliku ili klikni',
-    'schemeManager.updatedBy': 'Izmijenio'
+    'schemeManager.updatedBy': 'Izmijenio',
+    'schemeManager.waterMethod': 'Metoda vodom',
+    'schemeManager.airMethod': 'Metoda zrakom'
 });
 
 Object.assign(translations.en, {
@@ -1285,7 +1287,9 @@ Object.assign(translations.en, {
     'schemeManager.noImage': 'No image',
     'schemeManager.currentImage': 'Current image',
     'schemeManager.dragDrop': 'Drag image or click',
-    'schemeManager.updatedBy': 'Updated by'
+    'schemeManager.updatedBy': 'Updated by',
+    'schemeManager.waterMethod': 'Water Method',
+    'schemeManager.airMethod': 'Air Method'
 });
 
 // Calendar translations (HR)

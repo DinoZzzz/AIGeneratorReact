@@ -226,6 +226,7 @@ export interface SchemeImage {
     name: string;
     description?: string;
     file_path?: string;
+    method_type: 'water' | 'air';
     updated_at: string;
     updated_by?: string;
     updated_by_name?: string;

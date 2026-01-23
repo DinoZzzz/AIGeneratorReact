@@ -354,6 +354,22 @@ export const SchemeManager: React.FC = () => {
         loadSchemes();
     }, [loadSchemes]);
 
+    // Group schemes by method type
+    const waterSchemes = schemes.filter(s => s.method_type === 'water');
+    const airSchemes = schemes.filter(s => s.method_type === 'air');
+
+    const renderSchemeGrid = (schemeList: SchemeImage[]) => (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+            {schemeList.map((scheme) => (
+                <SchemeCard
+                    key={scheme.id}
+                    scheme={scheme}
+                    onUpdate={loadSchemes}
+                />
+            ))}
+        </div>
+    );
+
     return (
         <section className="bg-card rounded-lg border border-border p-6">
             <div className="flex items-center gap-3 mb-6">
@@ -373,14 +389,38 @@ export const SchemeManager: React.FC = () => {
                     {t('schemeManager.noSchemes')}
                 </div>
             ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-                    {schemes.map((scheme) => (
-                        <SchemeCard
-                            key={scheme.id}
-                            scheme={scheme}
-                            onUpdate={loadSchemes}
-                        />
-                    ))}
+                <div className="space-y-8">
+                    {/* Water Method Schemes */}
+                    {waterSchemes.length > 0 && (
+                        <div>
+                            <div className="flex items-center gap-2 mb-4">
+                                <div className="w-3 h-3 rounded-full bg-blue-500"></div>
+                                <h3 className="text-lg font-medium text-foreground">
+                                    {t('schemeManager.waterMethod')}
+                                </h3>
+                                <span className="text-sm text-muted-foreground">
+                                    ({waterSchemes.length})
+                                </span>
+                            </div>
+                            {renderSchemeGrid(waterSchemes)}
+                        </div>
+                    )}
+
+                    {/* Air Method Schemes */}
+                    {airSchemes.length > 0 && (
+                        <div>
+                            <div className="flex items-center gap-2 mb-4">
+                                <div className="w-3 h-3 rounded-full bg-emerald-500"></div>
+                                <h3 className="text-lg font-medium text-foreground">
+                                    {t('schemeManager.airMethod')}
+                                </h3>
+                                <span className="text-sm text-muted-foreground">
+                                    ({airSchemes.length})
+                                </span>
+                            </div>
+                            {renderSchemeGrid(airSchemes)}
+                        </div>
+                    )}
                 </div>
             )}
         </section>
