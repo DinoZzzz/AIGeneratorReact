@@ -283,11 +283,11 @@ const SchemeCard: React.FC<SchemeCardProps> = ({ scheme, onUpdate }) => {
                     </>
                 ) : (
                     <>
-                        <div className="flex items-start justify-between">
+                        <div className="flex items-start justify-between gap-2">
                             <div className="flex-1 min-w-0">
-                                <h3 className="font-medium text-foreground truncate">{scheme.name}</h3>
+                                <h3 className="font-medium text-foreground text-sm leading-tight" title={scheme.name}>{scheme.name}</h3>
                                 {scheme.description && (
-                                    <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
+                                    <p className="text-xs text-muted-foreground mt-1 line-clamp-3" title={scheme.description}>
                                         {scheme.description}
                                     </p>
                                 )}
@@ -373,7 +373,7 @@ export const SchemeManager: React.FC = () => {
                     {t('schemeManager.noSchemes')}
                 </div>
             ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
                     {schemes.map((scheme) => (
                         <SchemeCard
                             key={scheme.id}
