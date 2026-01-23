@@ -203,3 +203,20 @@ export interface Appointment {
     customer?: Customer;
     construction?: Construction;
 }
+
+export interface TemplateInfo {
+    name: string;
+    path: string;
+    size: number;
+    lastUpdated: string;
+    updatedBy?: string;
+}
+
+export interface TemplateValidationResult {
+    isValid: boolean;
+    foundTags: string[];
+    missingTags: string[];
+    unrecognizedTags: string[];
+    errors: string[];
+}
+

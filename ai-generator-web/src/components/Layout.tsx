@@ -15,7 +15,7 @@ import {
     MessageSquare,
 } from 'lucide-react';
 import { prefetchCommonRoutes } from '../lib/routePrefetch';
-import { DesktopSidebar, MobileBottomNav, MobileMoreMenu } from './layout';
+import { DesktopSidebar, MobileBottomNav, MobileMoreMenu } from './layout/index';
 
 interface LayoutProps {
     children: React.ReactNode;

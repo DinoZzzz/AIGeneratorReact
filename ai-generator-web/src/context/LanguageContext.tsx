@@ -713,6 +713,65 @@ Object.assign(translations.en, {
     'settings.cacheWarning': 'This will clear all cached data except your login. The page will reload.'
 });
 
+// Template Editor translations
+Object.assign(translations.hr, {
+    'templateEditor.title': 'Predložak dokumenta',
+    'templateEditor.currentTemplate': 'Trenutni predložak',
+    'templateEditor.lastUpdated': 'Zadnja izmjena',
+    'templateEditor.updatedBy': 'Izmijenio',
+    'templateEditor.uploadNew': 'Povuci novi predložak ili klikni za odabir',
+    'templateEditor.supportedFormat': 'Podržani format: .docx (Word)',
+    'templateEditor.validation': 'Validacija predloška',
+    'templateEditor.validating': 'Validacija u tijeku...',
+    'templateEditor.tagFound': 'pronađen',
+    'templateEditor.tagMissing': 'nedostaje (obavezno)',
+    'templateEditor.unrecognized': 'neprepoznat (bit će prazan)',
+    'templateEditor.moreTags': 'dodatnih oznaka',
+    'templateEditor.previewBtn': 'Pregledaj',
+    'templateEditor.activateBtn': 'Aktiviraj predložak',
+    'templateEditor.uploading': 'Učitavanje...',
+    'templateEditor.previousVersions': 'Prethodne verzije',
+    'templateEditor.restore': 'Vrati',
+    'templateEditor.download': 'Preuzmi',
+    'templateEditor.uploadSuccess': 'Predložak uspješno učitan',
+    'templateEditor.uploadError': 'Greška pri učitavanju predloška',
+    'templateEditor.rollbackConfirm': 'Jeste li sigurni da želite vratiti ovu verziju predloška?',
+    'templateEditor.rollbackSuccess': 'Predložak uspješno vraćen',
+    'templateEditor.rollbackError': 'Greška pri vraćanju predloška',
+    'templateEditor.deleteBackupConfirm': 'Jeste li sigurni da želite obrisati ovu sigurnosnu kopiju?',
+    'templateEditor.deleteBackupSuccess': 'Sigurnosna kopija obrisana',
+    'templateEditor.deleteBackupError': 'Greška pri brisanju sigurnosne kopije'
+});
+
+Object.assign(translations.en, {
+    'templateEditor.title': 'Document Template',
+    'templateEditor.currentTemplate': 'Current Template',
+    'templateEditor.lastUpdated': 'Last Updated',
+    'templateEditor.updatedBy': 'Updated by',
+    'templateEditor.uploadNew': 'Drag new template or click to browse',
+    'templateEditor.supportedFormat': 'Supported format: .docx (Word)',
+    'templateEditor.validation': 'Template Validation',
+    'templateEditor.validating': 'Validating...',
+    'templateEditor.tagFound': 'found',
+    'templateEditor.tagMissing': 'missing (required)',
+    'templateEditor.unrecognized': 'unrecognized (will be empty)',
+    'templateEditor.moreTags': 'more tags',
+    'templateEditor.previewBtn': 'Preview',
+    'templateEditor.activateBtn': 'Activate Template',
+    'templateEditor.uploading': 'Uploading...',
+    'templateEditor.previousVersions': 'Previous Versions',
+    'templateEditor.restore': 'Restore',
+    'templateEditor.download': 'Download',
+    'templateEditor.uploadSuccess': 'Template uploaded successfully',
+    'templateEditor.uploadError': 'Error uploading template',
+    'templateEditor.rollbackConfirm': 'Are you sure you want to restore this template version?',
+    'templateEditor.rollbackSuccess': 'Template restored successfully',
+    'templateEditor.rollbackError': 'Error restoring template',
+    'templateEditor.deleteBackupConfirm': 'Are you sure you want to delete this backup?',
+    'templateEditor.deleteBackupSuccess': 'Backup deleted',
+    'templateEditor.deleteBackupError': 'Error deleting backup'
+});
+
 // Analytics translations
 Object.assign(translations.hr, {
     'analytics.title': 'Analitika',

@@ -8,6 +8,7 @@ import { Loader2, Plus, Trash2, Edit, Lock, RefreshCw } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
 import { ConfirmDeleteMaterialDialog } from '../components/ConfirmDeleteMaterialDialog';
 import { useQueryClient } from '@tanstack/react-query';
+import { TemplateEditor } from '../components/settings/TemplateEditor';
 
 export const Settings = () => {
     const { theme, setTheme, primaryColor, setPrimaryColor } = useTheme();
@@ -448,6 +449,9 @@ export const Settings = () => {
 
             {/* Pipe Materials Section */}
             {renderMaterialSection(pipeMaterials, 2)}
+
+            {/* Document Template Section - Admin Only */}
+            {isAdmin && <TemplateEditor />}
 
             {/* Delete Confirmation Dialog */}
             <ConfirmDeleteMaterialDialog
