@@ -220,3 +220,14 @@ export interface TemplateValidationResult {
     errors: string[];
 }
 
+export interface SchemeImage {
+    id: string;
+    scheme_number: number;
+    name: string;
+    description?: string;
+    file_path?: string;
+    updated_at: string;
+    updated_by?: string;
+    updated_by_name?: string;
+}
+

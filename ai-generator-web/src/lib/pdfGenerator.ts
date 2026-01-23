@@ -1,6 +1,7 @@
 import jsPDF from 'jspdf';
 import type { ReportForm, Profile } from '../types';
 import * as calc from './calculations/report';
+import { getSchemeImageUrl } from '../services/schemeService';
 
 /**
  * PDF Generator for Water and Air Method Reports
@@ -144,9 +145,18 @@ const renderReportPage = async (doc: jsPDF, report: Partial<ReportForm>, userPro
     try {
         logoImg = await loadImage('/assets/ai_icon.png');
         const schemeNum = report.draft_id || 1;
-        sketchImg = await loadImage(`/assets/Scheme${schemeNum}.PNG`);
+        // Try to load from Supabase Storage first, fallback to local
+        const schemeUrl = await getSchemeImageUrl(schemeNum);
+        sketchImg = await loadImage(schemeUrl);
     } catch (e) {
         console.warn('Failed to load some images', e);
+        // Fallback to local asset if cloud loading fails
+        try {
+            const schemeNum = report.draft_id || 1;
+            sketchImg = await loadImage(`/assets/Scheme${schemeNum}.PNG`);
+        } catch {
+            console.warn('Failed to load fallback image');
+        }
     }
 
     // --- Header ---

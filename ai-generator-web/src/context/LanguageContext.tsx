@@ -1241,6 +1241,53 @@ Object.assign(translations.en, {
     'common.delete': 'Delete'
 });
 
+// Scheme Manager translations
+Object.assign(translations.hr, {
+    'schemeManager.title': 'Upravljanje shemama',
+    'schemeManager.subtitle': 'Upravljajte slikama shema koje se koriste u PDF izvještajima.',
+    'schemeManager.name': 'Naziv sheme',
+    'schemeManager.description': 'Opis',
+    'schemeManager.upload': 'Učitaj',
+    'schemeManager.uploadHint': 'PNG ili JPG, max 5MB',
+    'schemeManager.save': 'Spremi',
+    'schemeManager.reset': 'Vrati zadano',
+    'schemeManager.resetConfirm': 'Jeste li sigurni da želite vratiti zadanu sliku?',
+    'schemeManager.uploadSuccess': 'Slika sheme uspješno učitana',
+    'schemeManager.uploadError': 'Greška pri učitavanju slike',
+    'schemeManager.saveSuccess': 'Podaci sheme spremljeni',
+    'schemeManager.saveError': 'Greška pri spremanju podataka',
+    'schemeManager.resetSuccess': 'Slika vraćena na zadanu',
+    'schemeManager.resetError': 'Greška pri vraćanju slike',
+    'schemeManager.noSchemes': 'Nema dostupnih shema. Pokrenite SQL migraciju.',
+    'schemeManager.noImage': 'Nema slike',
+    'schemeManager.currentImage': 'Trenutna slika',
+    'schemeManager.dragDrop': 'Povuci sliku ili klikni',
+    'schemeManager.updatedBy': 'Izmijenio'
+});
+
+Object.assign(translations.en, {
+    'schemeManager.title': 'Scheme Management',
+    'schemeManager.subtitle': 'Manage scheme images used in PDF reports.',
+    'schemeManager.name': 'Scheme Name',
+    'schemeManager.description': 'Description',
+    'schemeManager.upload': 'Upload',
+    'schemeManager.uploadHint': 'PNG or JPG, max 5MB',
+    'schemeManager.save': 'Save',
+    'schemeManager.reset': 'Reset to Default',
+    'schemeManager.resetConfirm': 'Are you sure you want to reset to the default image?',
+    'schemeManager.uploadSuccess': 'Scheme image uploaded successfully',
+    'schemeManager.uploadError': 'Error uploading image',
+    'schemeManager.saveSuccess': 'Scheme data saved',
+    'schemeManager.saveError': 'Error saving data',
+    'schemeManager.resetSuccess': 'Image reset to default',
+    'schemeManager.resetError': 'Error resetting image',
+    'schemeManager.noSchemes': 'No schemes available. Run SQL migration.',
+    'schemeManager.noImage': 'No image',
+    'schemeManager.currentImage': 'Current image',
+    'schemeManager.dragDrop': 'Drag image or click',
+    'schemeManager.updatedBy': 'Updated by'
+});
+
 // Calendar translations (HR)
 Object.assign(translations.hr, {
     'nav.calendar': 'Kalendar',

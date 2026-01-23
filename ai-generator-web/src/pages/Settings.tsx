@@ -9,6 +9,7 @@ import { useToast } from '../context/ToastContext';
 import { ConfirmDeleteMaterialDialog } from '../components/ConfirmDeleteMaterialDialog';
 import { useQueryClient } from '@tanstack/react-query';
 import { TemplateEditor } from '../components/settings/TemplateEditor';
+import { SchemeManager } from '../components/settings/SchemeManager';
 
 export const Settings = () => {
     const { theme, setTheme, primaryColor, setPrimaryColor } = useTheme();
@@ -487,6 +488,9 @@ export const Settings = () => {
 
                     {/* Document Template Section */}
                     <TemplateEditor />
+
+                    {/* Scheme Images Section */}
+                    <SchemeManager />
                 </div>
             )}
 
