@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, Copy } from 'lucide-react';
 import { Input } from '../../../components/ui/Input';
 import { Select } from '../../../components/ui/Select';
 import { Button } from '../../../components/ui/Button';
@@ -14,6 +14,9 @@ interface ParametersStepProps {
     onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => void;
     onNext: () => void;
     t: (key: string) => string;
+    previousReport?: ReportForm | null;
+    onCopyFromPrevious?: () => void;
+    isNew?: boolean;
 }
 
 export const ParametersStep = ({
@@ -24,7 +27,10 @@ export const ParametersStep = ({
     dionicaError,
     onChange,
     onNext,
-    t
+    t,
+    previousReport,
+    onCopyFromPrevious,
+    isNew
 }: ParametersStepProps) => {
     const isShaftRound = formData.material_type_id === 1;
     const isShaftRectangular = formData.material_type_id === 2;
@@ -58,7 +64,21 @@ export const ParametersStep = ({
 
                 {/* Structure Type Card */}
                 <div className="bg-card shadow-sm rounded-xl border border-border p-6">
-                    <h3 className="text-lg font-semibold text-foreground mb-4">{t('reports.form.structureType')}</h3>
+                    <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-lg font-semibold text-foreground">{t('reports.form.structureType')}</h3>
+                        {previousReport && isNew && onCopyFromPrevious && (
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={onCopyFromPrevious}
+                                className="text-xs"
+                            >
+                                <Copy className="h-3 w-3 mr-1" />
+                                {t('reports.form.copyFromPrevious')}
+                            </Button>
+                        )}
+                    </div>
                     <div className="space-y-4">
                         <Input
                             label={t('reports.form.dionicaLabel')}

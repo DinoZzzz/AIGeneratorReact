@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { reportService } from '../services/reportService';
 import { supabase } from '../lib/supabase';
 import { Button } from '../components/ui/Button';
-import { Loader2, ArrowLeft, FileDown, Plus } from 'lucide-react';
+import { Loader2, ArrowLeft, FileDown, Plus, Copy } from 'lucide-react';
 import { Stepper } from '../components/ui/Stepper';
 import type { ReportForm, ReportDraft, MaterialType, Material } from '../types';
 import { useLanguage } from '../context/LanguageContext';
@@ -62,6 +62,7 @@ export const WaterMethodForm = () => {
     const [step, setStep] = useState<1 | 2>(1);
     const [dionicaError, setDionicaError] = useState<string>('');
     const [showMobileResults, setShowMobileResults] = useState(false);
+    const [previousReport, setPreviousReport] = useState<ReportForm | null>(null);
 
     // Use the extracted calculations hook
     const calculated = useWaterCalculations(formData);
@@ -110,12 +111,36 @@ export const WaterMethodForm = () => {
         }
     }, [t]);
 
+    // Load previous report for copying data
+    const loadPreviousReport = useCallback(async () => {
+        if (constructionId && (!id || id === 'new')) {
+            try {
+                const lastReport = await reportService.getLastByConstructionAndType(constructionId, 1); // type_id 1 = Water
+                if (lastReport) {
+                    setPreviousReport(lastReport);
+                    // Auto-copy general info from previous report
+                    setFormData(prev => ({
+                        ...prev,
+                        examination_date: lastReport.examination_date || prev.examination_date,
+                        temperature: lastReport.temperature || prev.temperature,
+                        pane_material_id: lastReport.pane_material_id || prev.pane_material_id,
+                        pipe_material_id: lastReport.pipe_material_id || prev.pipe_material_id,
+                    }));
+                }
+            } catch (error) {
+                console.error('Error loading previous report:', error);
+            }
+        }
+    }, [constructionId, id]);
+
     useEffect(() => {
         loadLookups();
         if (id && id !== 'new') {
             loadReport(id);
+        } else {
+            loadPreviousReport();
         }
-    }, [id, loadLookups, loadReport]);
+    }, [id, loadLookups, loadReport, loadPreviousReport]);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
         const { name, value, type } = e.target;
@@ -210,6 +235,29 @@ export const WaterMethodForm = () => {
         }
     };
 
+    // Copy structure type from previous report
+    const copyStructureFromPrevious = () => {
+        if (previousReport) {
+            setFormData(prev => ({
+                ...prev,
+                draft_id: previousReport.draft_id || prev.draft_id,
+                material_type_id: previousReport.material_type_id || prev.material_type_id,
+                pane_diameter: previousReport.pane_diameter || prev.pane_diameter,
+                pane_width: previousReport.pane_width || prev.pane_width,
+                pane_length: previousReport.pane_length || prev.pane_length,
+                pane_height: previousReport.pane_height || prev.pane_height,
+                pipe_diameter: previousReport.pipe_diameter || prev.pipe_diameter,
+                pipe_length: previousReport.pipe_length || prev.pipe_length,
+                water_height: previousReport.water_height || prev.water_height,
+                ro_height: previousReport.ro_height || prev.ro_height,
+                depositional_height: previousReport.depositional_height || prev.depositional_height,
+                pipeline_slope: previousReport.pipeline_slope || prev.pipeline_slope,
+                examination_duration: previousReport.examination_duration || prev.examination_duration,
+                saturation_time: previousReport.saturation_time || prev.saturation_time,
+            }));
+        }
+    };
+
     if (loading && id && id !== 'new') {
         return (
             <div className="flex justify-center items-center h-64">
@@ -270,6 +318,9 @@ export const WaterMethodForm = () => {
                         onChange={handleChange}
                         onNext={() => setStep(2)}
                         t={t}
+                        previousReport={previousReport}
+                        onCopyFromPrevious={copyStructureFromPrevious}
+                        isNew={id === 'new'}
                     />
                 )}
 
