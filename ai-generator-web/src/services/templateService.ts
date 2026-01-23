@@ -57,11 +57,20 @@ export const getActiveTemplate = async (): Promise<TemplateInfo | null> => {
 
         if (!activeFile) return null;
 
+        // Get metadata including uploader info
+        const { data: metadata } = await supabase
+            .from('template_metadata')
+            .select('uploaded_by_name, uploaded_at')
+            .eq('file_name', 'method1610.docx')
+            .eq('is_active', true)
+            .single();
+
         return {
             name: activeFile.name,
             path: activeFile.name,
             size: activeFile.metadata?.size || 0,
-            lastUpdated: activeFile.updated_at || activeFile.created_at || new Date().toISOString()
+            lastUpdated: metadata?.uploaded_at || activeFile.updated_at || activeFile.created_at || new Date().toISOString(),
+            updatedBy: metadata?.uploaded_by_name
         };
     } catch (error) {
         console.error('Error getting active template:', error);
@@ -229,6 +238,36 @@ export const uploadTemplate = async (file: File): Promise<{ success: boolean; er
 
         if (uploadError) {
             return { success: false, error: uploadError.message };
+        }
+
+        // Record uploader info
+        try {
+            const { data: { user } } = await supabase.auth.getUser();
+            const { data: profile } = await supabase
+                .from('profiles')
+                .select('name, last_name')
+                .eq('id', user?.id)
+                .single();
+
+            const uploaderName = profile ? `${profile.name} ${profile.last_name}`.trim() : user?.email || 'Unknown';
+
+            // Mark all as inactive first
+            await supabase
+                .from('template_metadata')
+                .update({ is_active: false })
+                .eq('file_name', 'method1610.docx');
+
+            // Insert new metadata record
+            await supabase
+                .from('template_metadata')
+                .insert({
+                    file_name: 'method1610.docx',
+                    uploaded_by: user?.id,
+                    uploaded_by_name: uploaderName,
+                    is_active: true
+                });
+        } catch (e) {
+            console.warn('Could not record template metadata:', e);
         }
 
         return { success: true };

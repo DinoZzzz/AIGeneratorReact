@@ -212,6 +212,9 @@ export const TemplateEditor: React.FC = () => {
                                         <p className="font-medium text-foreground">{activeTemplate.name}</p>
                                         <p className="text-sm text-muted-foreground">
                                             {formatFileSize(activeTemplate.size)} • {t('templateEditor.lastUpdated')}: {formatDate(activeTemplate.lastUpdated)}
+                                            {activeTemplate.updatedBy && (
+                                                <span> • {t('templateEditor.updatedBy')}: {activeTemplate.updatedBy}</span>
+                                            )}
                                         </p>
                                     </div>
                                 </div>
@@ -233,8 +236,8 @@ export const TemplateEditor: React.FC = () => {
                         onDragOver={handleDragOver}
                         onDragLeave={handleDragLeave}
                         className={`relative border-2 border-dashed rounded-lg p-8 text-center transition-colors ${isDragging
-                                ? 'border-primary bg-primary/10'
-                                : 'border-border hover:border-primary/50'
+                            ? 'border-primary bg-primary/10'
+                            : 'border-border hover:border-primary/50'
                             }`}
                     >
                         <input
