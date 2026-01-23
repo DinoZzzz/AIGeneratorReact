@@ -1,10 +1,12 @@
-
 /**
  * Calculates the required test time for Air Method (EN 1610)
  * Ported from AIGenerator/Common/TestTimeClass.cs
  */
 
-import { AIR_TEST_STANDARDS, type AirTestMethod } from './airTable';
+import { AIR_TEST_STANDARDS, type AirTestMethod } from '../../features/air/calculations';
+
+// Re-export formatTime from air calculations for backward compatibility
+export { formatTime } from '../../features/air/calculations';
 
 export const calculateRequiredTestTime = (
     procedureId: number, // 1=LA, 2=LB, 3=LC, 4=LD
@@ -76,10 +78,4 @@ export const calculateRequiredTestTime = (
     }
 
     return calculatedTime;
-};
-
-export const formatTime = (minutes: number): string => {
-    const m = Math.floor(minutes);
-    const s = Math.round((minutes - m) * 60);
-    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
 };

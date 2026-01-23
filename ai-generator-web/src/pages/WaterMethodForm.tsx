@@ -13,7 +13,7 @@ import {
     MeasurementsStep,
     MobileResultsDrawer,
     useWaterCalculations
-} from './water-method';
+} from '../features/water';
 
 // Dynamic import for PDF generation to reduce initial bundle size
 const generatePDF = async (report: Partial<ReportForm>, userProfile?: any) => {

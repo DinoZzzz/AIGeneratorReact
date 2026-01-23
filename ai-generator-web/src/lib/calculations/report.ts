@@ -1,248 +1,77 @@
 /**
  * Core calculations for Report Forms.
- * Ported from C# ReportForm.cs
+ * This file re-exports from the new feature-based modules for backward compatibility.
+ *
+ * Water calculations: src/features/water/calculations/
+ * Air calculations: src/features/air/calculations/
  */
 
+// Re-export water calculations
+export {
+    calculateWaterLoss,
+    calculateWaterVolumeLoss,
+    calculateWettedShaftSurface,
+    calculateWettedPipeSurface,
+    calculateTotalWettedArea,
+    getCriteria,
+    calculateAllowedLossL,
+    calculateAllowedLossMm,
+    calculateResult,
+    calculateHydrostaticHeight,
+    calculateWaterReport,
+    isWaterSatisfying,
+    type WaterReportCalculations
+} from '../../features/water/calculations';
+
+// Re-export air calculations
+export {
+    calculatePressureLoss,
+    calculateAirReport,
+    isAirSatisfying,
+    getAirTestRequirements,
+    formatTime,
+    AIR_TEST_STANDARDS,
+    type AirTestMethod,
+    type PipeMaterial,
+    type AirReportCalculations
+} from '../../features/air/calculations';
+
 import type { ReportForm } from '../../types';
+import { isWaterSatisfying } from '../../features/water/calculations';
+import { isAirSatisfying } from '../../features/air/calculations';
 
+// Legacy interface for backward compatibility
 export interface ReportFormCalculations {
-    // Inputs
     draftId: number;
-    materialTypeId: number; // 1 = Shaft, 2 = Pipe
-
-    // Dimensions (in meters)
-    paneDiameter?: number; // Shaft
-    paneWidth?: number; // Rectangular Shaft
-    paneLength?: number; // Rectangular Shaft
-    paneHeight?: number; // Rectangular Shaft
-
+    materialTypeId: number;
+    paneDiameter?: number;
+    paneWidth?: number;
+    paneLength?: number;
+    paneHeight?: number;
     pipeDiameter?: number;
     pipeLength?: number;
-
     waterHeight: number;
-    waterHeightStart: number; // Usually in mm or cm, need to verify unit consistency
+    waterHeightStart: number;
     waterHeightEnd: number;
-
     pressureStart?: number;
     pressureEnd?: number;
-
     depositionalHeight?: number;
 }
 
-const PI = Math.PI;
-
-// Helper to round to 2 decimal places
-const round2 = (num: number) => Math.round((num + Number.EPSILON) * 100) / 100;
-
-export const calculateWaterLoss = (start: number, end: number): number => {
-    return Math.abs(end - start);
-};
-
-export const calculatePressureLoss = (start: number, end: number): number => {
-    return Math.abs(end - start);
-};
-
-export const calculateWaterVolumeLoss = (
-    loss: number, // in mm
-    materialTypeId: number,
-    paneDiameter: number = 0, // m
-    paneWidth: number = 0, // m
-    paneLength: number = 0 // m
-): number => {
-    // Loss is in mm. Surface area * height change.
-    // To get Liters (dm^3):
-    // Area in m^2. Height in mm -> m: height/1000.
-    // Volume in m^3. 1 m^3 = 1000 L.
-    // Effectively: Area (m^2) * loss (mm) = Liters.
-
-    if (materialTypeId === 1) {
-        // Round Shaft
-        return loss * (paneDiameter * paneDiameter * PI / 4);
-    } else if (materialTypeId === 2) {
-        // Rectangular Shaft
-        return loss * (paneWidth * paneLength);
-    }
-    return 0;
-};
-
-// Function expects dimensions in METERS
-export const calculateWettedShaftSurface = (
-    draftId: number,
-    materialTypeId: number,
-    waterHeight: number, // m
-    paneDiameter: number = 0, // m
-    paneWidth: number = 0, // m
-    paneLength: number = 0 // m
-): number => {
-    // Draft 2 is Pipe Only (Scheme C), but spec implies Shaft surface is calculated.
-    // Draft 6 is unknown, keeping exclusion if valid.
-    if (draftId === 6) return 0;
-
-    if (materialTypeId === 1) {
-        // Round Shaft / Gully
-        return (paneDiameter * paneDiameter * PI / 4) + (paneDiameter * PI * waterHeight);
-    } else if (materialTypeId === 2) {
-        // Rectangular Shaft / Gully
-        return (paneLength * paneWidth) + 2 * (paneLength * waterHeight) + 2 * (paneWidth * waterHeight);
-    }
-    return 0;
-};
-
-export const calculateWettedPipeSurface = (
-    draftId: number,
-    pipeDiameter: number, // m
-    pipeLength: number // m
-): number => {
-    // Exclude Shaft Only (1) and Gully Only (4)
-    if (draftId === 1 || draftId === 4) return 0;
-    return round2(pipeDiameter * pipeDiameter * PI / 4) + (pipeDiameter * PI * pipeLength);
-};
-
-export const calculateTotalWettedArea = (
-    wettedPipeSurface: number,
-    wettedShaftSurface: number
-): number => {
-    return wettedPipeSurface + wettedShaftSurface;
-};
-
-export const getCriteria = (draftId: number): number => {
-    if (draftId === 1) return 0.401; // Shaft (Scheme A)
-    else if (draftId === 2) return 0.15; // Pipe (Scheme C) - Updated to match reference
-    else if (draftId === 3) return 0.201; // Shaft + Pipe (Scheme B)
-    else if (draftId === 4) return 0.401; // Gully (Scheme D) - Assuming same as Shaft
-    else if (draftId === 5) return 0.201; // Gully + Pipe (Scheme E) - Same as Shaft + Pipe
-    return 0;
-};
-
-export const calculateAllowedLossL = (
-    criteria: number,
-    totalWettedArea: number
-): number => {
-    return round2(criteria * totalWettedArea);
-};
-
-export const calculateAllowedLossMm = (
-    allowedLossL: number,
-    materialTypeId: number,
-    paneDiameter: number = 0,
-    paneWidth: number = 0,
-    paneLength: number = 0
-): number => {
-    // allowedLossL (Liters) = Area(m2) * Height(mm)
-    // Height(mm) = allowedLossL / Area(m2)
-
-    let area = 1;
-    if (materialTypeId === 1) {
-        area = paneDiameter * paneDiameter * PI / 4;
-    } else if (materialTypeId === 2) {
-        area = paneLength * paneWidth;
-    }
-
-    return area === 0 ? 0 : round2(allowedLossL / area);
-};
-
-export const calculateResult = (
-    waterVolumeLoss: number,
-    totalWettedArea: number
-): number => {
-    return round2(totalWettedArea === 0 ? 0 : waterVolumeLoss / totalWettedArea);
-};
-
+/**
+ * Legacy unified satisfying check - use isWaterSatisfying or isAirSatisfying instead
+ * @deprecated Use isWaterSatisfying or isAirSatisfying from respective modules
+ */
 export const isSatisfying = (
     result: number,
     criteria: number,
-    typeId: number, // 1 = Water, 2 = Air
+    typeId: number,
     pressureLoss: number = 0,
     allowedPressureLoss: number = 0
 ): boolean => {
     if (typeId === 1) {
-        return result <= criteria;
+        return isWaterSatisfying(result, criteria);
     } else {
-        return pressureLoss <= allowedPressureLoss;
+        return isAirSatisfying(pressureLoss, allowedPressureLoss);
     }
-};
-
-export const calculateHydrostaticHeight = (
-    draftId: number,
-    waterHeight: number, // m
-    pipeDiameter: number, // m
-    depositionalHeight: number = 0 // m
-): number => {
-    if (draftId === 8) {
-        return Math.abs(waterHeight - depositionalHeight - pipeDiameter);
-    }
-    return waterHeight - pipeDiameter;
-};
-
-// Wrapper functions for forms
-export const calculateWaterReport = (form: ReportForm) => {
-    const waterLoss = calculateWaterLoss(form.water_height_start, form.water_height_end);
-
-    // In calculateWaterVolumeLoss, we used to pass raw form values, but now we assume caller converts to meters if not done in form.
-    // The WaterMethodForm component converts values to meters before calling this wrapper in one place,
-    // but here we just pass `form`.
-    // IMPORTANT: The `form` object passed here usually has raw input values (e.g. cm, mm).
-    // However, the individual calculator functions are pure and unit-agnostic or expect meters.
-    // We should standardize inputs.
-    // Based on `WaterMethodForm.tsx` line 88, it creates a `formDataInMeters` object.
-    // So we can assume `form` here has meters for dimensions.
-
-    const waterVolumeLoss = calculateWaterVolumeLoss(
-        waterLoss,
-        form.material_type_id || 1,
-        form.pane_diameter,
-        form.pane_width,
-        form.pane_length
-    );
-
-    const wettedShaftSurface = calculateWettedShaftSurface(
-        form.draft_id,
-        form.material_type_id || 1,
-        form.water_height,
-        form.pane_diameter,
-        form.pane_width,
-        form.pane_length
-    );
-
-    const wettedPipeSurface = calculateWettedPipeSurface(
-        form.draft_id,
-        form.pipe_diameter,
-        form.pipe_length
-    );
-
-    const totalWettedArea = calculateTotalWettedArea(wettedPipeSurface, wettedShaftSurface);
-    const criteria = getCriteria(form.draft_id);
-    const allowedLossL = calculateAllowedLossL(criteria, totalWettedArea);
-    const allowedLossMm = calculateAllowedLossMm(
-        allowedLossL,
-        form.material_type_id || 1,
-        form.pane_diameter,
-        form.pane_width,
-        form.pane_length
-    );
-    const result = calculateResult(waterVolumeLoss, totalWettedArea);
-    const satisfies = isSatisfying(result, criteria, 1);
-
-    return {
-        waterLoss,
-        waterVolumeLoss,
-        totalWettedArea,
-        allowedLossL,
-        allowedLossMm,
-        result,
-        satisfies
-    };
-};
-
-export const calculateAirReport = (form: ReportForm, allowedLoss: number = 0.10) => {
-    // For Air, calculatePressureLoss uses simple subtraction.
-    // form.pressure_start/end are usually mbar.
-    const pressureLoss = calculatePressureLoss(form.pressure_start, form.pressure_end);
-    const satisfies = isSatisfying(0, 0, 2, pressureLoss, allowedLoss);
-
-    return {
-        pressureLoss,
-        allowedLoss,
-        satisfies
-    };
 };
