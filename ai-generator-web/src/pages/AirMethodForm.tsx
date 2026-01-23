@@ -528,8 +528,9 @@ export const AirMethodForm = () => {
                                 <h3 className="text-lg font-semibold text-foreground mb-4">{t('reports.form.remarksSection')}</h3>
                                 <div className="space-y-4">
                                     <div>
-                                        <label className="text-sm font-medium mb-1 block">{t('reports.form.remarkLabel')}</label>
+                                        <label htmlFor="air-remark" className="text-sm font-medium mb-1 block">{t('reports.form.remarkLabel')}</label>
                                         <textarea
+                                            id="air-remark"
                                             name="remark"
                                             value={formData.remark || ''}
                                             onChange={handleChange}
@@ -538,8 +539,9 @@ export const AirMethodForm = () => {
                                         />
                                     </div>
                                     <div>
-                                        <label className="text-sm font-medium mb-1 block">{t('reports.form.deviationLabel')}</label>
+                                        <label htmlFor="air-deviation" className="text-sm font-medium mb-1 block">{t('reports.form.deviationLabel')}</label>
                                         <textarea
+                                            id="air-deviation"
                                             name="deviation"
                                             value={formData.deviation || ''}
                                             onChange={handleChange}

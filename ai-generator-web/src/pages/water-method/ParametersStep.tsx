@@ -224,8 +224,9 @@ export const ParametersStep = ({
                             onChange={onChange}
                         />
                         <div>
-                            <label className="text-sm font-medium mb-1 block">{t('reports.form.duration')}</label>
+                            <label htmlFor="examination_duration" className="text-sm font-medium mb-1 block">{t('reports.form.duration')}</label>
                             <input
+                                id="examination_duration"
                                 type="text"
                                 name="examination_duration"
                                 value={formData.examination_duration || '00:30:00'}
@@ -235,8 +236,9 @@ export const ParametersStep = ({
                             />
                         </div>
                         <div>
-                            <label className="text-sm font-medium mb-1 block">{t('reports.form.saturationTime')}</label>
+                            <label htmlFor="saturation_time" className="text-sm font-medium mb-1 block">{t('reports.form.saturationTime')}</label>
                             <input
+                                id="saturation_time"
                                 type="text"
                                 name="saturation_time"
                                 value={formData.saturation_time || '01:00:00'}

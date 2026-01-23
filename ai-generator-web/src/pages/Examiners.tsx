@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { Plus, Search, Pencil, Trash2, UserCheck, Lock } from 'lucide-react';
+import { useEffect, useState, useMemo } from 'react';
+import { Plus, Search, Pencil, Trash2, UserCheck, Lock, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { ExaminerDialog } from '../components/examiners/ExaminerDialog';
@@ -20,6 +20,8 @@ export const Examiners = () => {
     const [selectedExaminer, setSelectedExaminer] = useState<Profile | null>(null);
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
     const [examinerToDelete, setExaminerToDelete] = useState<Profile | null>(null);
+    const [currentPage, setCurrentPage] = useState(1);
+    const pageSize = 10;
 
     const isAdmin = profile?.role === 'admin';
 
@@ -78,11 +80,26 @@ export const Examiners = () => {
             .join(', ');
     };
 
-    const filteredExaminers = examiners.filter(e =>
-        (e.name?.toLowerCase() || '').includes(search.toLowerCase()) ||
-        (e.last_name?.toLowerCase() || '').includes(search.toLowerCase()) ||
-        (e.username?.toLowerCase() || '').includes(search.toLowerCase())
+    const filteredExaminers = useMemo(() =>
+        examiners.filter((e: Profile) =>
+            (e.name?.toLowerCase() || '').includes(search.toLowerCase()) ||
+            (e.last_name?.toLowerCase() || '').includes(search.toLowerCase()) ||
+            (e.username?.toLowerCase() || '').includes(search.toLowerCase())
+        ),
+        [examiners, search]
     );
+
+    // Pagination calculations
+    const totalPages = Math.ceil(filteredExaminers.length / pageSize);
+    const paginatedExaminers = useMemo(() => {
+        const startIndex = (currentPage - 1) * pageSize;
+        return filteredExaminers.slice(startIndex, startIndex + pageSize);
+    }, [filteredExaminers, currentPage, pageSize]);
+
+    // Reset to page 1 when search changes
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [search]);
 
     // Access control - only admins can view this page
     if (!isAdmin) {
@@ -133,7 +150,7 @@ export const Examiners = () => {
                         <div className="p-4 text-center text-muted-foreground">
                             {t('examiners.loading')}
                         </div>
-                    ) : filteredExaminers.length === 0 ? (
+                    ) : paginatedExaminers.length === 0 ? (
                         <div className="p-8 text-center text-muted-foreground">
                             <div className="flex flex-col items-center justify-center">
                                 <UserCheck className="h-12 w-12 text-muted-foreground/50 mb-4" />
@@ -150,7 +167,7 @@ export const Examiners = () => {
                             </div>
                         </div>
                     ) : (
-                        filteredExaminers.map((examiner) => (
+                        paginatedExaminers.map((examiner: Profile) => (
                             <div key={examiner.id} className="p-4 space-y-3">
                                 <div className="flex justify-between items-start">
                                     <div>
@@ -241,7 +258,7 @@ export const Examiners = () => {
                                         {t('examiners.loading')}
                                     </td>
                                 </tr>
-                            ) : filteredExaminers.length === 0 ? (
+                            ) : paginatedExaminers.length === 0 ? (
                                 <tr>
                                     <td colSpan={5} className="px-6 py-12 text-center text-muted-foreground">
                                         <div className="flex flex-col items-center justify-center">
@@ -260,7 +277,7 @@ export const Examiners = () => {
                                     </td>
                                 </tr>
                             ) : (
-                                filteredExaminers.map((examiner) => (
+                                paginatedExaminers.map((examiner: Profile) => (
                                     <tr key={examiner.id} className="hover:bg-muted/50 transition-colors">
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <div className="flex flex-col">
@@ -309,6 +326,36 @@ export const Examiners = () => {
                         </tbody>
                     </table>
                 </div>
+
+                {/* Pagination Controls */}
+                {totalPages > 1 && (
+                    <div className="px-4 py-3 border-t border-border flex items-center justify-between">
+                        <div className="text-sm text-muted-foreground">
+                            {t('common.showing') || 'Showing'} {((currentPage - 1) * pageSize) + 1}-{Math.min(currentPage * pageSize, filteredExaminers.length)} {t('common.of') || 'of'} {filteredExaminers.length}
+                        </div>
+                        <div className="flex items-center space-x-2">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setCurrentPage((p: number) => Math.max(1, p - 1))}
+                                disabled={currentPage === 1}
+                            >
+                                <ChevronLeft className="h-4 w-4" />
+                            </Button>
+                            <span className="text-sm text-muted-foreground px-2">
+                                {currentPage} / {totalPages}
+                            </span>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setCurrentPage((p: number) => Math.min(totalPages, p + 1))}
+                                disabled={currentPage === totalPages}
+                            >
+                                <ChevronRight className="h-4 w-4" />
+                            </Button>
+                        </div>
+                    </div>
+                )}
             </div>
 
             <ExaminerDialog

@@ -13,6 +13,35 @@ import {
   STORES,
 } from '../lib/offlineDb';
 
+// Helper to detect network errors properly using error.cause and instanceof
+function isNetworkError(error: unknown): boolean {
+  // Check if it's a TypeError (common for fetch failures)
+  if (error instanceof TypeError) {
+    return true;
+  }
+
+  // Check error.cause for nested network errors
+  if (error instanceof Error && error.cause) {
+    if (error.cause instanceof TypeError) {
+      return true;
+    }
+    // Recursively check cause chain
+    if (isNetworkError(error.cause)) {
+      return true;
+    }
+  }
+
+  // Fallback: check error name for common network error types
+  if (error instanceof Error) {
+    const networkErrorNames = ['NetworkError', 'AbortError', 'TimeoutError'];
+    if (networkErrorNames.includes(error.name)) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
 // Query keys
 export const reportKeys = {
   all: ['reports'] as const,
@@ -177,8 +206,7 @@ export const useCreateReport = () => {
           await saveToStore(STORES.REPORTS, result);
           return result;
         } catch (error) {
-          const errorMessage = error instanceof Error ? error.message.toLowerCase() : String(error).toLowerCase();
-          if (errorMessage.includes('network') || errorMessage.includes('fetch') || errorMessage.includes('cors') || errorMessage.includes('failed to fetch')) {
+          if (isNetworkError(error)) {
             return createReportOffline(report);
           }
           throw error;
@@ -254,8 +282,7 @@ export const useUpdateReport = () => {
           await saveToStore(STORES.REPORTS, result);
           return result;
         } catch (error) {
-          const errorMessage = error instanceof Error ? error.message.toLowerCase() : String(error).toLowerCase();
-          if (errorMessage.includes('network') || errorMessage.includes('fetch') || errorMessage.includes('cors') || errorMessage.includes('failed to fetch')) {
+          if (isNetworkError(error)) {
             return updateReportOffline(id, report);
           }
           throw error;
@@ -334,8 +361,7 @@ export const useDeleteReport = () => {
           // Remove from local cache
           await deleteFromStore(STORES.REPORTS, id);
         } catch (error) {
-          const errorMessage = error instanceof Error ? error.message.toLowerCase() : String(error).toLowerCase();
-          if (errorMessage.includes('network') || errorMessage.includes('fetch') || errorMessage.includes('cors') || errorMessage.includes('failed to fetch')) {
+          if (isNetworkError(error)) {
             return deleteReportOffline(id);
           }
           throw error;
@@ -377,8 +403,7 @@ export const useUpdateReportOrder = () => {
             await saveToStore(STORES.REPORTS, report);
           }
         } catch (error) {
-          const errorMessage = error instanceof Error ? error.message.toLowerCase() : String(error).toLowerCase();
-          if (errorMessage.includes('network') || errorMessage.includes('fetch') || errorMessage.includes('cors') || errorMessage.includes('failed to fetch')) {
+          if (isNetworkError(error)) {
             return updateReportOrderOffline(reports);
           }
           throw error;

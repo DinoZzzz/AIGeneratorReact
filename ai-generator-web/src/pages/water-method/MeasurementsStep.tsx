@@ -54,8 +54,9 @@ export const MeasurementsStep = ({
                     <h3 className="text-lg font-semibold text-foreground mb-4">{t('reports.form.notesSection')}</h3>
                     <div className="space-y-4">
                         <div>
-                            <label className="text-sm font-medium mb-1 block">{t('reports.form.remarkLabel')}</label>
+                            <label htmlFor="remark" className="text-sm font-medium mb-1 block">{t('reports.form.remarkLabel')}</label>
                             <textarea
+                                id="remark"
                                 name="remark"
                                 value={formData.remark || ''}
                                 onChange={onChange}
@@ -64,8 +65,9 @@ export const MeasurementsStep = ({
                             />
                         </div>
                         <div>
-                            <label className="text-sm font-medium mb-1 block">{t('reports.form.deviationLabel')}</label>
+                            <label htmlFor="deviation" className="text-sm font-medium mb-1 block">{t('reports.form.deviationLabel')}</label>
                             <textarea
+                                id="deviation"
                                 name="deviation"
                                 value={formData.deviation || ''}
                                 onChange={onChange}
