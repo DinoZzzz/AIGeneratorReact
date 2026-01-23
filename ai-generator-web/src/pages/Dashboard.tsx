@@ -9,6 +9,7 @@ import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { DashboardStats } from '../components/dashboard/DashboardStats';
 import { DashboardCustomersTable } from '../components/dashboard/DashboardCustomersTable';
+import { StatsCardsSkeleton } from '../components/skeletons/CardSkeleton';
 
 // Dashboard stats query
 const useDashboardStats = () => {
@@ -49,7 +50,19 @@ export const Dashboard = () => {
     };
 
     if (loading) {
-        return <div className="flex justify-center p-8">{t('dashboard.loading')}</div>;
+        return (
+            <div className="space-y-6 max-w-[1600px] mx-auto">
+                {/* Skeleton for Welcome Header */}
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-border pb-6">
+                    <div className="space-y-2">
+                        <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-64 animate-pulse" />
+                        <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-40 animate-pulse" />
+                    </div>
+                </div>
+                {/* Skeleton for Stats Cards */}
+                <StatsCardsSkeleton />
+            </div>
+        );
     }
 
     return (

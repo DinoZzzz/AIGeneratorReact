@@ -21,33 +21,23 @@ interface LayoutProps {
     children: React.ReactNode;
 }
 
-const offlineTranslations = {
-    hr: {
-        online: 'Online',
-        offline: 'Offline',
-        pendingChanges: 'promjena na čekanju',
-        syncing: 'Sinkronizacija...',
-        tapToSync: 'Sinkroniziraj',
-    },
-    en: {
-        online: 'Online',
-        offline: 'Offline',
-        pendingChanges: 'pending changes',
-        syncing: 'Syncing...',
-        tapToSync: 'Sync now',
-    },
-};
-
 export const Layout = ({ children }: LayoutProps) => {
     const { signOut, user, profile, lowBandwidthMode } = useAuth();
     const navigate = useNavigate();
     const location = useLocation();
-    const { t, language } = useLanguage();
+    const { t } = useLanguage();
     const { isOnline, pendingChanges, syncStatus, triggerSync } = useOffline();
     const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
-    const ot = offlineTranslations[language as keyof typeof offlineTranslations] || offlineTranslations.en;
+    // Use centralized translations for offline status
+    const ot = {
+        online: t('offline.online'),
+        offline: t('offline.offline'),
+        pendingChanges: t('offline.pendingChanges'),
+        syncing: t('offline.syncing'),
+        tapToSync: t('offline.tapToSync'),
+    };
 
     // Prefetch common routes during idle time for faster navigation
     useEffect(() => {

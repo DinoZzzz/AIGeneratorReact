@@ -10,6 +10,7 @@ import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../context/AuthContext';
 import { appointmentService } from '../services/appointmentService';
 import { AppointmentDialog } from '../components/calendar/AppointmentDialog';
+import { CalendarSkeleton } from '../components/skeletons/CalendarSkeleton';
 import type { Appointment } from '../types';
 import { Loader2, Plus } from 'lucide-react';
 import { Button } from '../components/ui/Button';
@@ -39,6 +40,7 @@ export const Calendar = () => {
     const { profile } = useAuth();
     const [events, setEvents] = useState<CalendarEvent[]>([]);
     const [loading, setLoading] = useState(true);
+    const [initialLoading, setInitialLoading] = useState(true);
     const [view, setView] = useState<View>(Views.MONTH);
     const [date, setDate] = useState(new Date());
 
@@ -118,6 +120,7 @@ export const Calendar = () => {
             console.error('Failed to load appointments', error);
         } finally {
             setLoading(false);
+            setInitialLoading(false);
         }
     }, [date, view]);
 
@@ -171,6 +174,11 @@ export const Calendar = () => {
         return { style };
     };
 
+    // Show skeleton on initial load
+    if (initialLoading) {
+        return <CalendarSkeleton />;
+    }
+
     return (
         <div className="h-[calc(100vh-100px)] flex flex-col space-y-4">
             <div className="flex justify-between items-center">
@@ -185,7 +193,7 @@ export const Calendar = () => {
             </div>
 
             <div className="flex-1 bg-card rounded-lg shadow p-4 border border-border">
-                {loading && (
+                {loading && !initialLoading && (
                     <div className="absolute inset-0 bg-background/50 flex items-center justify-center z-10">
                         <Loader2 className="h-8 w-8 animate-spin text-primary" />
                     </div>

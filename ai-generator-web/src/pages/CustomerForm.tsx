@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { customerService } from '../services/customerService';
 import { useCreateCustomer, useUpdateCustomer } from '../hooks/useCustomers';
@@ -45,12 +45,52 @@ export const CustomerForm = () => {
         }
     };
 
+    // Debounce refs for uniqueness validation
+    const nameDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const workOrderDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    // Debounced uniqueness check for name field
+    const validateNameUniqueness = useCallback(async (name: string) => {
+        if (!name?.trim() || !isOnline) return;
+        try {
+            const nameExists = await customerService.checkNameExists(name, id === 'new' ? undefined : id);
+            if (nameExists) {
+                setErrors(prev => ({ ...prev, name: t('customers.nameExists') || 'Customer name already exists' }));
+            }
+        } catch (error) {
+            console.warn('Could not validate name uniqueness:', error);
+        }
+    }, [id, isOnline, t]);
+
+    // Debounced uniqueness check for work order field
+    const validateWorkOrderUniqueness = useCallback(async (workOrder: string) => {
+        if (!workOrder?.trim() || !isOnline) return;
+        try {
+            const workOrderExists = await customerService.checkWorkOrderExists(workOrder, id === 'new' ? undefined : id);
+            if (workOrderExists) {
+                setErrors(prev => ({ ...prev, work_order: t('customers.workOrderExists') || 'Work order already exists' }));
+            }
+        } catch (error) {
+            console.warn('Could not validate work order uniqueness:', error);
+        }
+    }, [id, isOnline, t]);
+
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
         // Clear error when user types
         if (errors[name]) {
             setErrors(prev => ({ ...prev, [name]: '' }));
+        }
+
+        // Debounced uniqueness validation for specific fields
+        if (name === 'name' && value.trim()) {
+            if (nameDebounceRef.current) clearTimeout(nameDebounceRef.current);
+            nameDebounceRef.current = setTimeout(() => validateNameUniqueness(value), 500);
+        }
+        if (name === 'work_order' && value.trim()) {
+            if (workOrderDebounceRef.current) clearTimeout(workOrderDebounceRef.current);
+            workOrderDebounceRef.current = setTimeout(() => validateWorkOrderUniqueness(value), 500);
         }
     };
 

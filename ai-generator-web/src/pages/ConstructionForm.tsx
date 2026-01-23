@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { constructionService } from '../services/constructionService';
 import { customerService } from '../services/customerService';
@@ -97,11 +97,37 @@ export const ConstructionForm = () => {
         }
     };
 
+    // Debounce ref for work order uniqueness validation
+    const workOrderDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    // Debounced uniqueness check for work order field
+    const validateWorkOrderUniqueness = useCallback(async (workOrder: string) => {
+        if (!workOrder?.trim() || !isOnline || !customerId) return;
+        try {
+            const workOrderExists = await constructionService.checkWorkOrderExists(
+                workOrder,
+                customerId,
+                id === 'new' ? undefined : id
+            );
+            if (workOrderExists) {
+                setErrors(prev => ({ ...prev, work_order: t('constructions.workOrderExists') || 'Work order already exists' }));
+            }
+        } catch (error) {
+            console.warn('Could not validate work order uniqueness:', error);
+        }
+    }, [customerId, id, isOnline, t]);
+
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
         if (errors[name]) {
             setErrors(prev => ({ ...prev, [name]: '' }));
+        }
+
+        // Debounced uniqueness validation for work_order field
+        if (name === 'work_order' && value.trim()) {
+            if (workOrderDebounceRef.current) clearTimeout(workOrderDebounceRef.current);
+            workOrderDebounceRef.current = setTimeout(() => validateWorkOrderUniqueness(value), 500);
         }
     };
 

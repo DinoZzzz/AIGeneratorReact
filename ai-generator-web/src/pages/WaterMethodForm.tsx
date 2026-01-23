@@ -1,17 +1,19 @@
-import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { reportService } from '../services/reportService';
 import { supabase } from '../lib/supabase';
-import { Input } from '../components/ui/Input';
-import { Select } from '../components/ui/Select';
 import { Button } from '../components/ui/Button';
-import { Loader2, Save, ArrowLeft, FileDown, Plus, ArrowRight, ChevronLeft, Check, X, ChevronUp } from 'lucide-react';
+import { Loader2, ArrowLeft, FileDown, Plus } from 'lucide-react';
 import { Stepper } from '../components/ui/Stepper';
-import * as calc from '../lib/calculations/report';
 import type { ReportForm, ReportDraft, MaterialType, Material } from '../types';
-import { cn } from '../lib/utils';
 import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../context/AuthContext';
+import {
+    ParametersStep,
+    MeasurementsStep,
+    MobileResultsDrawer,
+    useWaterCalculations
+} from './water-method';
 
 // Dynamic import for PDF generation to reduce initial bundle size
 const generatePDF = async (report: Partial<ReportForm>, userProfile?: any) => {
@@ -47,19 +49,6 @@ const initialState: Partial<ReportForm> = {
     saturation_time: '01:00:00', // Default 1 hour
 };
 
-interface CalculatedResults {
-    waterLoss: number;
-    waterVolumeLoss: number;
-    wettedShaftSurface: number;
-    wettedPipeSurface: number;
-    totalWettedArea: number;
-    allowedLossL: number;
-    allowedLossMm: number;
-    hydrostaticHeight: number;
-    result: number;
-    satisfies: boolean;
-}
-
 export const WaterMethodForm = () => {
     const { id, customerId, constructionId } = useParams();
     const navigate = useNavigate();
@@ -74,92 +63,8 @@ export const WaterMethodForm = () => {
     const [dionicaError, setDionicaError] = useState<string>('');
     const [showMobileResults, setShowMobileResults] = useState(false);
 
-    // Memoized calculations to prevent recalculation on every render
-    const calculated = useMemo<CalculatedResults>(() => {
-        // Convert inputs from mm/cm to meters for calculations
-        const formDataInMeters = {
-            ...formData,
-            pane_diameter: (formData.pane_diameter || 0) / 1000, // mm to m
-            pane_width: (formData.pane_width || 0) / 100, // cm to m (for rectangular)
-            pane_length: (formData.pane_length || 0) / 100, // cm to m (for rectangular)
-            pane_height: (formData.pane_height || 0) / 100, // cm to m
-            pipe_diameter: (formData.pipe_diameter || 0) / 1000, // mm to m
-            water_height: (formData.water_height || 0) / 100, // cm to m
-            depositional_height: (formData.depositional_height || 0) // already in m
-        };
-
-        const results = calc.calculateWaterReport(formDataInMeters as ReportForm);
-
-        // Calculate wetted shaft surface separately for display
-        const wettedShaftSurface = calc.calculateWettedShaftSurface(
-            formData.draft_id || 1,
-            formData.material_type_id || 1,
-            (formData.water_height || 0) / 100, // cm to m
-            (formData.pane_diameter || 0) / 1000, // mm to m
-            (formData.pane_width || 0) / 100, // cm to m (for rectangular)
-            (formData.pane_length || 0) / 100 // cm to m (for rectangular)
-        );
-
-        // Calculate wetted pipe surface separately for display
-        let wettedPipeSurface = 0;
-
-        // For Schema C (Pipe Only), calculate based on shaft type
-        if (formData.draft_id === 2) {
-            if (formData.material_type_id === 1) {
-                // Round: Main pipe (covered by wettedShaftSurface) + secondary pipe
-                const secondaryPipeDiameter = (formData.pipe_diameter || 0) / 1000; // mm to m
-                const secondaryPipeSurface = calc.calculateWettedPipeSurface(
-                    formData.draft_id,
-                    secondaryPipeDiameter,
-                    formData.pipe_length || 0
-                );
-
-                wettedPipeSurface = secondaryPipeSurface;
-            } else if (formData.material_type_id === 2) {
-                // Rectangular: Channel (covered by wettedShaftSurface) + small pipe
-                const secondaryPipeDiameter = (formData.pipe_diameter || 0) / 1000; // mm to m
-                const secondaryPipeSurface = calc.calculateWettedPipeSurface(
-                    formData.draft_id,
-                    secondaryPipeDiameter,
-                    formData.pipe_length || 0
-                );
-
-                wettedPipeSurface = secondaryPipeSurface;
-            }
-        } else {
-            // For other schemes, use single pipe calculation
-            wettedPipeSurface = calc.calculateWettedPipeSurface(
-                formData.draft_id || 1,
-                (formData.pipe_diameter || 0) / 1000, // mm to m
-                formData.pipe_length || 0 // already in m
-            );
-        }
-
-        // Calculate hydrostatic height
-        const hydrostaticHeight = calc.calculateHydrostaticHeight(
-            formData.draft_id || 1,
-            (formData.water_height || 0) / 100, // cm to m
-            (formData.pipe_diameter || 0) / 1000, // mm to m
-            formData.depositional_height || 0
-        );
-
-        return { ...results, wettedShaftSurface, wettedPipeSurface, hydrostaticHeight };
-    }, [
-        formData.draft_id,
-        formData.material_type_id,
-        formData.pane_diameter,
-        formData.pane_width,
-        formData.pane_length,
-        formData.pane_height,
-        formData.pipe_diameter,
-        formData.pipe_length,
-        formData.water_height,
-        formData.water_height_start,
-        formData.water_height_end,
-        formData.depositional_height,
-        formData.temperature,
-        formData.examination_duration
-    ]);
+    // Use the extracted calculations hook
+    const calculated = useWaterCalculations(formData);
 
     // Auto-fill deviation text based on schema conditions
     useEffect(() => {
@@ -305,11 +210,6 @@ export const WaterMethodForm = () => {
         }
     };
 
-    const isShaftRound = formData.material_type_id === 1;
-    const isShaftRectangular = formData.material_type_id === 2;
-    const showPipeFields = [2, 3, 5].includes(formData.draft_id || 0);
-    const showGullyFields = [4, 5].includes(formData.draft_id || 0);
-
     if (loading && id && id !== 'new') {
         return (
             <div className="flex justify-center items-center h-64">
@@ -320,6 +220,7 @@ export const WaterMethodForm = () => {
 
     return (
         <div className="w-full max-w-[1800px] mx-auto px-4 sm:px-6 space-y-6 sm:space-y-8 pb-24 lg:pb-0">
+            {/* Header */}
             <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-4">
                     <Button variant="ghost" size="icon" onClick={handleBack} aria-label="Go back">
@@ -350,487 +251,49 @@ export const WaterMethodForm = () => {
                 </div>
             </div>
 
+            {/* Stepper */}
             <Stepper
                 steps={[t('reports.form.stepper.parameters'), t('reports.form.stepper.measurements')]}
                 currentStep={step - 1}
                 onStepClick={(s) => setStep((s + 1) as 1 | 2)}
             />
 
+            {/* Form */}
             <form onSubmit={handleSubmit} className="space-y-6">
                 {step === 1 && (
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                        <div className="lg:col-span-3 grid grid-cols-1 md:grid-cols-3 gap-6">
-                            <div className="bg-card shadow-sm rounded-xl border border-border p-6">
-                                <h3 className="text-lg font-semibold text-foreground mb-4">{t('reports.form.generalInfo')}</h3>
-                                <div className="space-y-4">
-                                    <Input
-                                        label={t('reports.form.examDate')}
-                                        type="date"
-                                        name="examination_date"
-                                        value={formData.examination_date}
-                                        onChange={handleChange}
-                                    />
-                                    <Input
-                                        label={t('reports.form.temperature')}
-                                        type="number"
-                                        step="0.1"
-                                        name="temperature"
-                                        value={formData.temperature}
-                                        onChange={handleChange}
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="bg-card shadow-sm rounded-xl border border-border p-6">
-                                <h3 className="text-lg font-semibold text-foreground mb-4">{t('reports.form.structureType')}</h3>
-                                <div className="space-y-4">
-                                    <Input
-                                        label={t('reports.form.dionicaLabel')}
-                                        type="text"
-                                        name="dionica"
-                                        value={formData.dionica}
-                                        onChange={handleChange}
-                                        placeholder={t('reports.form.dionicaPlaceholder')}
-                                    />
-                                    {dionicaError && <p className="mt-1 text-sm text-destructive">{dionicaError}</p>}
-                                    <Select
-                                        label={t('reports.form.schemeLabel')}
-                                        name="draft_id"
-                                        value={formData.draft_id}
-                                        onChange={handleChange}
-                                    >
-                                        {drafts.length === 0 && (
-                                            <>
-                                                <option value={1}>{t('reports.form.schemeA')}</option>
-                                                <option value={3}>{t('reports.form.schemeB')}</option>
-                                                <option value={2}>{t('reports.form.schemeC')}</option>
-                                                <option value={4}>{t('reports.form.schemeD')}</option>
-                                                <option value={5}>{t('reports.form.schemeE')}</option>
-                                            </>
-                                        )}
-                                        {drafts.map(d => (
-                                            <option key={d.id} value={d.id}>{d.name}</option>
-                                        ))}
-                                    </Select>
-                                    <Select
-                                        label={formData.draft_id === 4 || formData.draft_id === 5 ? t('reports.form.gullyType') : t('reports.form.shaftType')}
-                                        name="material_type_id"
-                                        value={formData.material_type_id}
-                                        onChange={handleChange}
-                                    >
-                                        {materialTypes.length === 0 && (
-                                            <>
-                                                <option value={1}>{t('reports.form.round')}</option>
-                                                <option value={2}>{t('reports.form.rectangular')}</option>
-                                            </>
-                                        )}
-                                        {materialTypes.map(m => (
-                                            <option key={m.id} value={m.id}>{m.name}</option>
-                                        ))}
-                                    </Select>
-                                    <Select
-                                        label={formData.draft_id === 4 || formData.draft_id === 5 ? t('reports.form.gullyMaterial') : t('reports.form.shaftMaterial')}
-                                        name="pane_material_id"
-                                        value={formData.pane_material_id || (isShaftRound ? 1 : 6)}
-                                        onChange={handleChange}
-                                    >
-                                        {materials.length > 0 ? (
-                                            materials.map(m => (
-                                                <option key={m.id} value={m.id}>{m.name}</option>
-                                            ))
-                                        ) : (
-                                            <option value={1}>{t('reports.form.standardMaterial')}</option>
-                                        )}
-                                    </Select>
-                                </div>
-                            </div>
-
-                            <div className="bg-card shadow-sm rounded-xl border border-border p-6">
-                                <h3 className="text-lg font-semibold text-foreground mb-4">{t('reports.form.dimensions')}</h3>
-                                <div className="space-y-4">
-                                    {isShaftRound && (
-                                        <Input
-                                            label={formData.draft_id === 4 || formData.draft_id === 5 ? t('reports.form.gullyDiameter') : t('reports.form.paneDiameterMm')}
-                                            type="number"
-                                            step="1"
-                                            name="pane_diameter"
-                                            value={formData.pane_diameter}
-                                            onChange={handleChange}
-                                        />
-                                    )}
-                                    {isShaftRectangular && formData.draft_id !== 2 && (
-                                        <>
-                                            <Input
-                                                label={formData.draft_id === 4 || formData.draft_id === 5 ? t('reports.form.gullyWidth') : t('reports.form.paneWidthCm')}
-                                                type="number"
-                                                step="0.01"
-                                                name="pane_width"
-                                                value={formData.pane_width}
-                                                onChange={handleChange}
-                                            />
-                                            <Input
-                                                label={formData.draft_id === 4 || formData.draft_id === 5 ? t('reports.form.gullyLength') : t('reports.form.paneLengthCm')}
-                                                type="number"
-                                                step="0.01"
-                                                name="pane_length"
-                                                value={formData.pane_length}
-                                                onChange={handleChange}
-                                            />
-                                            <Input
-                                                label={formData.draft_id === 4 || formData.draft_id === 5 ? t('reports.form.gullyHeight') : t('reports.form.shaftHeight')}
-                                                type="number"
-                                                step="0.01"
-                                                name="pane_height"
-                                                value={formData.pane_height}
-                                                onChange={handleChange}
-                                            />
-                                        </>
-                                    )}
-
-                                    {formData.draft_id === 2 && isShaftRound && (
-                                        <Input
-                                            label={t('reports.form.mainPipeDiameter')}
-                                            type="number"
-                                            step="1"
-                                            name="pane_diameter"
-                                            value={formData.pane_diameter}
-                                            onChange={handleChange}
-                                        />
-                                    )}
-
-                                    {formData.draft_id === 2 && isShaftRectangular && (
-                                        <>
-                                            <Input
-                                                label={t('reports.form.channelWidth')}
-                                                type="number"
-                                                step="0.01"
-                                                name="pane_width"
-                                                value={formData.pane_width}
-                                                onChange={handleChange}
-                                            />
-                                            <Input
-                                                label={t('reports.form.channelLength')}
-                                                type="number"
-                                                step="0.01"
-                                                name="pane_length"
-                                                value={formData.pane_length}
-                                                onChange={handleChange}
-                                            />
-                                            <Input
-                                                label={t('reports.form.channelHeight')}
-                                                type="number"
-                                                step="0.01"
-                                                name="pane_height"
-                                                value={formData.pane_height}
-                                                onChange={handleChange}
-                                            />
-                                        </>
-                                    )}
-
-                                    {isShaftRound && (
-                                        <Input
-                                            label={t('reports.form.roHeight')}
-                                            type="number"
-                                            step="0.01"
-                                            name="ro_height"
-                                            value={formData.ro_height}
-                                            onChange={handleChange}
-                                        />
-                                    )}
-
-                                    <Input
-                                        label={t('reports.form.waterHeight')}
-                                        type="number"
-                                        step="0.01"
-                                        name="water_height"
-                                        value={formData.water_height}
-                                        onChange={handleChange}
-                                    />
-                                    <div>
-                                        <label className="text-sm font-medium mb-1 block">{t('reports.form.duration')}</label>
-                                        <input
-                                            type="text"
-                                            name="examination_duration"
-                                            value={formData.examination_duration || '00:30:00'}
-                                            onChange={handleChange}
-                                            placeholder="00:30:00"
-                                            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="text-sm font-medium mb-1 block">{t('reports.form.saturationTime')}</label>
-                                        <input
-                                            type="text"
-                                            name="saturation_time"
-                                            value={formData.saturation_time || '01:00:00'}
-                                            onChange={handleChange}
-                                            placeholder="01:00:00"
-                                            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                                        />
-                                    </div>
-                                    {showPipeFields && (
-                                        <>
-                                            <Select
-                                                label={t('reports.form.pipeMaterial')}
-                                                name="pipe_material_id"
-                                                value={formData.pipe_material_id || 1}
-                                                onChange={handleChange}
-                                            >
-                                                {materials.length > 0 ? (
-                                                    materials.map(m => (
-                                                        <option key={m.id} value={m.id}>{m.name}</option>
-                                                    ))
-                                                ) : (
-                                                    <option value={1}>{t('reports.form.standardPipe')}</option>
-                                                )}
-                                            </Select>
-                                            <Input
-                                                label={t('reports.form.pipeDiameterMm')}
-                                                type="number"
-                                                step="1"
-                                                name="pipe_diameter"
-                                                value={formData.pipe_diameter}
-                                                onChange={handleChange}
-                                            />
-                                            <Input
-                                                label={t('reports.form.pipeLengthMeters')}
-                                                type="number"
-                                                step="0.01"
-                                                name="pipe_length"
-                                                value={formData.pipe_length}
-                                                onChange={handleChange}
-                                            />
-                                            <Input
-                                                label={t('reports.form.slope')}
-                                                type="number"
-                                                step="0.01"
-                                                name="pipeline_slope"
-                                                value={formData.pipeline_slope}
-                                                onChange={handleChange}
-                                            />
-                                        </>
-                                    )}
-                                    {showGullyFields && formData.draft_id !== 4 && (
-                                        <Input
-                                            label={t('reports.form.depositionalHeight')}
-                                            type="number"
-                                            step="0.01"
-                                            name="depositional_height"
-                                            value={formData.depositional_height}
-                                            onChange={handleChange}
-                                        />
-                                    )}
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="lg:col-span-3 flex justify-end">
-                            <Button type="button" onClick={() => setStep(2)} size="lg" className="w-full sm:w-auto">
-                                {t('reports.form.nextStep')} <ArrowRight className="ml-2 h-5 w-5" />
-                            </Button>
-                        </div>
-                    </div>
+                    <ParametersStep
+                        formData={formData}
+                        drafts={drafts}
+                        materialTypes={materialTypes}
+                        materials={materials}
+                        dionicaError={dionicaError}
+                        onChange={handleChange}
+                        onNext={() => setStep(2)}
+                        t={t}
+                    />
                 )}
 
                 {step === 2 && (
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                        <div className="lg:col-span-2 space-y-6">
-                            <div className="bg-card shadow-sm rounded-xl border border-border p-6">
-                                <h3 className="text-lg font-semibold text-foreground mb-4">{t('reports.form.measurementsSection')}</h3>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    <Input
-                                        label={t('reports.form.startWaterLevel')}
-                                        type="number"
-                                        step="0.01"
-                                        name="water_height_start"
-                                        value={formData.water_height_start}
-                                        onChange={handleChange}
-                                    />
-                                    <Input
-                                        label={t('reports.form.endWaterLevel')}
-                                        type="number"
-                                        step="0.01"
-                                        name="water_height_end"
-                                        value={formData.water_height_end}
-                                        onChange={handleChange}
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="bg-card shadow-sm rounded-xl border border-border p-6">
-                                <h3 className="text-lg font-semibold text-foreground mb-4">{t('reports.form.notesSection')}</h3>
-                                <div className="space-y-4">
-                                    <div>
-                                        <label className="text-sm font-medium mb-1 block">{t('reports.form.remarkLabel')}</label>
-                                        <textarea
-                                            name="remark"
-                                            value={formData.remark || ''}
-                                            onChange={handleChange}
-                                            className="w-full min-h-[80px] rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                                            placeholder={t('reports.form.remarkPlaceholder')}
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="text-sm font-medium mb-1 block">{t('reports.form.deviationLabel')}</label>
-                                        <textarea
-                                            name="deviation"
-                                            value={formData.deviation || ''}
-                                            onChange={handleChange}
-                                            className="w-full min-h-[80px] rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                                            placeholder={t('reports.form.deviationPlaceholder')}
-                                        />
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="flex flex-col-reverse sm:flex-row justify-between pt-4 gap-4">
-                                <Button type="button" variant="outline" onClick={() => setStep(1)} size="lg" className="w-full sm:w-auto">
-                                    <ChevronLeft className="mr-2 h-5 w-5" /> {t('reports.form.prevStep')}
-                                </Button>
-                                <Button type="submit" size="lg" className="w-full sm:w-auto">
-                                    <Save className="mr-2 h-4 w-4" />
-                                    {t('reports.form.saveReport')}
-                                </Button>
-                            </div>
-                        </div>
-
-                        <div className="hidden lg:block lg:col-span-1">
-                            <div className="bg-card shadow-sm rounded-xl border border-border p-6 sticky top-6">
-                                <h3 className="text-lg font-semibold text-foreground mb-6">{t('reports.form.calculatedResults')}</h3>
-
-                                <div className="space-y-6">
-                                    <div className={cn(
-                                        "p-4 rounded-lg border flex flex-col items-center justify-center text-center",
-                                        calculated.satisfies
-                                            ? "bg-green-50 border-green-200 dark:bg-green-900/20 dark:border-green-900/50"
-                                            : "bg-red-50 border-red-200 dark:bg-red-900/20 dark:border-red-900/50"
-                                    )}>
-                                        <span className={cn(
-                                            "text-sm font-medium uppercase tracking-wider mb-1",
-                                            calculated.satisfies ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"
-                                        )}>{t('reports.form.status')}</span>
-                                        <span className={cn(
-                                            "text-2xl font-bold",
-                                            calculated.satisfies ? "text-green-700 dark:text-green-300" : "text-red-700 dark:text-red-300"
-                                        )}>
-                                            {calculated.satisfies ? t('reports.form.satisfies') : t('reports.form.failed')}
-                                        </span>
-                                    </div>
-
-                                    <div className="space-y-4">
-                                        <ResultRow label={t('reports.form.wettedShaftSurface')} value={`${calculated.wettedShaftSurface.toFixed(2)} m`} />
-                                        {showPipeFields && (
-                                            <ResultRow label={t('reports.form.wettedPipeSurface')} value={`${calculated.wettedPipeSurface.toFixed(2)} m`} />
-                                        )}
-                                        <ResultRow label={t('reports.form.totalWettedArea')} value={`${calculated.totalWettedArea.toFixed(2)} m`} />
-                                        <ResultRow label={t('reports.form.allowedLossLiters')} value={`${calculated.allowedLossL.toFixed(2)} ${t('reports.form.volumeLossUnit')}`} />
-                                        <ResultRow label={t('reports.form.allowedLossMm')} value={`${calculated.allowedLossMm.toFixed(2)} ${t('reports.form.waterLossUnitMm')}`} />
-                                        {showPipeFields && formData.draft_id !== 5 && calculated.hydrostaticHeight > 0 && (
-                                            <ResultRow label={t('reports.form.hydrostaticHeight')} value={`${(calculated.hydrostaticHeight * 100).toFixed(0)} cm`} />
-                                        )}
-                                        <ResultRow label={t('reports.form.waterLoss')} value={`${calculated.waterLoss.toFixed(2)} ${t('reports.form.waterLossUnitMm')}`} />
-                                        <ResultRow label={t('reports.form.volumeLoss')} value={`${calculated.waterVolumeLoss.toFixed(4)} ${t('reports.form.volumeLossUnit')}`} />
-                                        <div className="pt-4 border-t border-border">
-                                            <ResultRow label={t('reports.form.result')} value={`${calculated.result.toFixed(2)} ${t('reports.form.resultUnit')}`} highlight />
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                    <MeasurementsStep
+                        formData={formData}
+                        calculated={calculated}
+                        onChange={handleChange}
+                        onPrevious={() => setStep(1)}
+                        t={t}
+                    />
                 )}
             </form>
 
             {/* Mobile Results FAB & Drawer (Only in Step 2) */}
             {step === 2 && (
-                <>
-                    {/* FAB / Bottom Bar */}
-                    <div className="fixed bottom-0 left-0 right-0 p-4 bg-card border-t border-border lg:hidden z-50 flex items-center justify-between shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] animate-in slide-in-from-bottom duration-300">
-                        <div className="flex items-center space-x-3">
-                            <div className={cn(
-                                "h-10 w-10 rounded-full flex items-center justify-center border",
-                                calculated.satisfies
-                                    ? "bg-green-100 border-green-200 text-green-700 dark:bg-green-900/30 dark:border-green-800 dark:text-green-400"
-                                    : "bg-red-100 border-red-200 text-red-700 dark:bg-red-900/30 dark:border-red-800 dark:text-red-400"
-                            )}>
-                                {calculated.satisfies ? <Check className="h-5 w-5" /> : <X className="h-5 w-5" />}
-                            </div>
-                            <div className="flex flex-col">
-                                <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">{t('reports.form.status')}</span>
-                                <span className={cn("font-bold text-sm", calculated.satisfies ? "text-green-700 dark:text-green-400" : "text-red-700 dark:text-red-400")}>
-                                    {calculated.satisfies ? t('reports.form.satisfies') : t('reports.form.failed')}
-                                </span>
-                            </div>
-                        </div>
-                        <Button variant="outline" size="sm" onClick={() => setShowMobileResults(true)}>
-                            {t('reports.form.details')} <ChevronUp className="ml-2 h-4 w-4" />
-                        </Button>
-                    </div>
-
-                    {/* Mobile Results Drawer/Modal */}
-                    {showMobileResults && (
-                        <div className="fixed inset-0 z-[60] lg:hidden flex items-end justify-center bg-black/50 backdrop-blur-sm" onClick={() => setShowMobileResults(false)}>
-                            <div className="bg-card w-full max-w-md rounded-t-xl p-6 space-y-6 animate-in slide-in-from-bottom duration-200 border-t border-border shadow-2xl" onClick={e => e.stopPropagation()}>
-                                <div className="flex items-center justify-between mb-2">
-                                    <h3 className="text-lg font-semibold">{t('reports.form.calculatedResults')}</h3>
-                                    <Button variant="ghost" size="icon" onClick={() => setShowMobileResults(false)} className="-mr-2">
-                                        <X className="h-5 w-5" />
-                                    </Button>
-                                </div>
-
-                                <div className="space-y-6">
-                                    <div className={cn(
-                                        "p-4 rounded-lg border flex flex-col items-center justify-center text-center",
-                                        calculated.satisfies
-                                            ? "bg-green-50 border-green-200 dark:bg-green-900/20 dark:border-green-900/50"
-                                            : "bg-red-50 border-red-200 dark:bg-red-900/20 dark:border-red-900/50"
-                                    )}>
-                                        <span className={cn(
-                                            "text-sm font-medium uppercase tracking-wider mb-1",
-                                            calculated.satisfies ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"
-                                        )}>{t('reports.form.status')}</span>
-                                        <span className={cn(
-                                            "text-2xl font-bold",
-                                            calculated.satisfies ? "text-green-700 dark:text-green-300" : "text-red-700 dark:text-red-300"
-                                        )}>
-                                            {calculated.satisfies ? t('reports.form.satisfies') : t('reports.form.failed')}
-                                        </span>
-                                    </div>
-
-                                    <div className="space-y-4">
-                                        <ResultRow label={t('reports.form.wettedShaftSurface')} value={`${calculated.wettedShaftSurface.toFixed(2)} m`} />
-                                        {showPipeFields && (
-                                            <ResultRow label={t('reports.form.wettedPipeSurface')} value={`${calculated.wettedPipeSurface.toFixed(2)} m`} />
-                                        )}
-                                        <ResultRow label={t('reports.form.totalWettedArea')} value={`${calculated.totalWettedArea.toFixed(2)} m`} />
-                                        <ResultRow label={t('reports.form.allowedLossLiters')} value={`${calculated.allowedLossL.toFixed(2)} ${t('reports.form.volumeLossUnit')}`} />
-                                        <ResultRow label={t('reports.form.allowedLossMm')} value={`${calculated.allowedLossMm.toFixed(2)} ${t('reports.form.waterLossUnitMm')}`} />
-                                        {showPipeFields && formData.draft_id !== 5 && calculated.hydrostaticHeight > 0 && (
-                                            <ResultRow label={t('reports.form.hydrostaticHeight')} value={`${(calculated.hydrostaticHeight * 100).toFixed(0)} cm`} />
-                                        )}
-                                        <ResultRow label={t('reports.form.waterLoss')} value={`${calculated.waterLoss.toFixed(2)} ${t('reports.form.waterLossUnitMm')}`} />
-                                        <ResultRow label={t('reports.form.volumeLoss')} value={`${calculated.waterVolumeLoss.toFixed(4)} ${t('reports.form.volumeLossUnit')}`} />
-                                        <div className="pt-4 border-t border-border">
-                                            <ResultRow label={t('reports.form.result')} value={`${calculated.result.toFixed(2)} ${t('reports.form.resultUnit')}`} highlight />
-                                        </div>
-                                    </div>
-
-                                    <Button className="w-full" size="lg" onClick={() => setShowMobileResults(false)}>
-                                        {t('common.close')}
-                                    </Button>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-                </>
+                <MobileResultsDrawer
+                    formData={formData}
+                    calculated={calculated}
+                    showMobileResults={showMobileResults}
+                    setShowMobileResults={setShowMobileResults}
+                    t={t}
+                />
             )}
         </div>
     );
 };
-
-const ResultRow = ({ label, value, highlight = false }: { label: string, value: string, highlight?: boolean }) => (
-    <div className="flex justify-between items-center">
-        <span className={cn("text-sm", highlight ? "font-semibold text-foreground" : "text-muted-foreground")}>{label}</span>
-        <span className={cn("font-medium", highlight ? "text-lg text-primary" : "text-foreground")}>{value}</span>
-    </div>
-);

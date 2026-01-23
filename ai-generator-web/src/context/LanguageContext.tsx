@@ -203,7 +203,12 @@ const translations: Record<Language, TranslationDictionary> = {
         'chat.edited': 'uređeno',
         'chat.deleteConfirm': 'Jeste li sigurni da želite obrisati ovu poruku?',
         'chat.noMessages': 'Nema poruka',
-        'chat.startConversation': 'Započnite razgovor s timom'
+        'chat.startConversation': 'Započnite razgovor s timom',
+        'offline.online': 'Online',
+        'offline.offline': 'Offline',
+        'offline.pendingChanges': 'promjena na čekanju',
+        'offline.syncing': 'Sinkronizacija...',
+        'offline.tapToSync': 'Sinkroniziraj'
     },
     en: {
         'nav.platform': 'Platform',
@@ -401,7 +406,12 @@ const translations: Record<Language, TranslationDictionary> = {
         'chat.edited': 'edited',
         'chat.deleteConfirm': 'Are you sure you want to delete this message?',
         'chat.noMessages': 'No messages yet',
-        'chat.startConversation': 'Start the conversation with your team'
+        'chat.startConversation': 'Start the conversation with your team',
+        'offline.online': 'Online',
+        'offline.offline': 'Offline',
+        'offline.pendingChanges': 'pending changes',
+        'offline.syncing': 'Syncing...',
+        'offline.tapToSync': 'Sync now'
     }
 };
 
