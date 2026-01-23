@@ -4,7 +4,7 @@ import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
 import type { Material } from '../types';
-import { Loader2, Plus, Trash2, Edit, Lock, RefreshCw } from 'lucide-react';
+import { Loader2, Plus, Trash2, Edit, Lock, RefreshCw, Settings2, Shield } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
 import { ConfirmDeleteMaterialDialog } from '../components/ConfirmDeleteMaterialDialog';
 import { useQueryClient } from '@tanstack/react-query';
@@ -25,6 +25,7 @@ export const Settings = () => {
     const [materialToDelete, setMaterialToDelete] = useState<Material | null>(null);
     const queryClient = useQueryClient();
     const [isClearing, setIsClearing] = useState(false);
+    const [activeTab, setActiveTab] = useState<'general' | 'admin'>('general');
 
     // Separate materials by type (1 = Shaft, 2 = Pipe)
     const shaftMaterials = materials.filter(m => m.material_type_id === 1);
@@ -319,139 +320,175 @@ export const Settings = () => {
     };
 
     return (
-        <div className="max-w-4xl mx-auto space-y-8">
+        <div className="max-w-4xl mx-auto space-y-6">
             <h1 className="text-2xl font-bold text-foreground">{t('nav.settings')}</h1>
 
-            {/* Language */}
-            <section className="bg-card rounded-lg border border-border p-6">
-                <h2 className="text-xl font-semibold mb-2 text-foreground">{t('settings.language')}</h2>
-                <p className="text-sm text-muted-foreground mb-4">{t('settings.languageDescription')}</p>
-                <div className="flex gap-3">
-                    <button
-                        onClick={() => setLanguage('hr')}
-                        className={`px-4 py-2 rounded-md border text-sm font-medium transition-colors ${language === 'hr'
-                            ? 'border-primary bg-primary/10 text-primary'
-                            : 'border-border bg-background text-foreground hover:border-primary/50'
-                            }`}
-                    >
-                        {t('language.croatian')}
-                    </button>
-                    <button
-                        onClick={() => setLanguage('en')}
-                        className={`px-4 py-2 rounded-md border text-sm font-medium transition-colors ${language === 'en'
-                            ? 'border-primary bg-primary/10 text-primary'
-                            : 'border-border bg-background text-foreground hover:border-primary/50'
-                            }`}
-                    >
-                        {t('language.english')}
-                    </button>
-                </div>
-            </section>
-
-            {/* Cache Management Section */}
-            <section className="bg-card rounded-lg border border-border p-6">
-                <h2 className="text-xl font-semibold mb-2 text-foreground">{t('settings.cacheManagement')}</h2>
-                <p className="text-sm text-muted-foreground mb-4">{t('settings.cacheDescription')}</p>
+            {/* Tab Navigation */}
+            <div className="flex gap-2 border-b border-border">
                 <button
-                    onClick={handleClearCache}
-                    disabled={isClearing}
-                    className="inline-flex items-center px-4 py-2 text-sm font-medium text-destructive bg-destructive/10 border border-destructive/20 rounded-md hover:bg-destructive/20 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    onClick={() => setActiveTab('general')}
+                    className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 transition-colors -mb-px ${activeTab === 'general'
+                        ? 'border-primary text-primary'
+                        : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'
+                        }`}
                 >
-                    <RefreshCw className={`h-4 w-4 mr-2 ${isClearing ? 'animate-spin' : ''}`} />
-                    {isClearing ? t('settings.clearing') : t('settings.clearCache')}
+                    <Settings2 className="h-4 w-4" />
+                    {t('settings.generalTab')}
                 </button>
-                <p className="text-xs text-muted-foreground mt-3">
-                    {t('settings.cacheWarning')}
-                </p>
-            </section>
+                {isAdmin && (
+                    <button
+                        onClick={() => setActiveTab('admin')}
+                        className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 transition-colors -mb-px ${activeTab === 'admin'
+                            ? 'border-primary text-primary'
+                            : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'
+                            }`}
+                    >
+                        <Shield className="h-4 w-4" />
+                        {t('settings.adminTab')}
+                    </button>
+                )}
+            </div>
 
-            {/* Appearance Section */}
-            <section className="bg-card rounded-lg border border-border p-6">
-                <h2 className="text-xl font-semibold mb-4 text-foreground">{t('settings.appearance')}</h2>
-                <div className="space-y-4">
-                    <div>
-                        <p className="font-medium text-foreground mb-3">{t('settings.theme')}</p>
-                        <p className="text-sm text-muted-foreground mb-4">{t('settings.themeDesc')}</p>
-                        <div className="grid grid-cols-3 gap-3">
+            {/* General Tab Content */}
+            {activeTab === 'general' && (
+                <div className="space-y-8">
+                    {/* Language */}
+                    <section className="bg-card rounded-lg border border-border p-6">
+                        <h2 className="text-xl font-semibold mb-2 text-foreground">{t('settings.language')}</h2>
+                        <p className="text-sm text-muted-foreground mb-4">{t('settings.languageDescription')}</p>
+                        <div className="flex gap-3">
                             <button
-                                onClick={() => setTheme('light')}
-                                className={`p-4 rounded-lg border-2 transition-all ${theme === 'light'
-                                    ? 'border-primary bg-primary/10'
-                                    : 'border-border bg-background hover:border-primary/50'
+                                onClick={() => setLanguage('hr')}
+                                className={`px-4 py-2 rounded-md border text-sm font-medium transition-colors ${language === 'hr'
+                                    ? 'border-primary bg-primary/10 text-primary'
+                                    : 'border-border bg-background text-foreground hover:border-primary/50'
                                     }`}
                             >
-                                <div className="flex flex-col items-center gap-2">
-                                    <div className="w-8 h-8 rounded-full bg-white border-2 border-gray-300 flex items-center justify-center">
-                                        <div className="w-4 h-4 rounded-full bg-yellow-400"></div>
-                                    </div>
-                                    <span className="text-sm font-medium text-foreground">{t('settings.light')}</span>
-                                </div>
+                                {t('language.croatian')}
                             </button>
                             <button
-                                onClick={() => setTheme('dark')}
-                                className={`p-4 rounded-lg border-2 transition-all ${theme === 'dark'
-                                    ? 'border-primary bg-primary/10'
-                                    : 'border-border bg-background hover:border-primary/50'
+                                onClick={() => setLanguage('en')}
+                                className={`px-4 py-2 rounded-md border text-sm font-medium transition-colors ${language === 'en'
+                                    ? 'border-primary bg-primary/10 text-primary'
+                                    : 'border-border bg-background text-foreground hover:border-primary/50'
                                     }`}
                             >
-                                <div className="flex flex-col items-center gap-2">
-                                    <div className="w-8 h-8 rounded-full bg-slate-900 border-2 border-slate-700 flex items-center justify-center">
-                                        <div className="w-3 h-3 rounded-full bg-slate-400"></div>
-                                    </div>
-                                    <span className="text-sm font-medium text-foreground">{t('settings.dark')}</span>
-                                </div>
-                            </button>
-                            <button
-                                onClick={() => setTheme('system')}
-                                className={`p-4 rounded-lg border-2 transition-all ${theme === 'system'
-                                    ? 'border-primary bg-primary/10'
-                                    : 'border-border bg-background hover:border-primary/50'
-                                    }`}
-                            >
-                                <div className="flex flex-col items-center gap-2">
-                                    <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-white to-slate-900 border-2 border-gray-400"></div>
-                                    <span className="text-sm font-medium text-foreground">{t('settings.system')}</span>
-                                </div>
+                                {t('language.english')}
                             </button>
                         </div>
-                    </div>
+                    </section>
 
-                    <div className="pt-4 border-t border-border">
-                        <p className="font-medium text-foreground mb-3">{t('settings.primaryColor')}</p>
-                        <p className="text-sm text-muted-foreground mb-4">{t('settings.primaryColorDesc')}</p>
-                        <div className="grid grid-cols-4 sm:grid-cols-8 gap-3">
-                            {primaryColors.map((color) => (
-                                <button
-                                    key={color.name}
-                                    onClick={() => setPrimaryColor(color)}
-                                    className={`group relative flex flex-col items-center gap-2 p-2 rounded-lg border-2 transition-all ${primaryColor.name === color.name
-                                        ? 'border-primary bg-primary/10'
-                                        : 'border-transparent hover:bg-muted'
-                                        }`}
-                                    title={color.name}
-                                >
-                                    <div
-                                        className={`w-8 h-8 rounded-full ${color.class} shadow-sm ring-offset-background transition-transform group-hover:scale-110 ${primaryColor.name === color.name ? 'ring-2 ring-primary ring-offset-2' : ''
+                    {/* Cache Management Section */}
+                    <section className="bg-card rounded-lg border border-border p-6">
+                        <h2 className="text-xl font-semibold mb-2 text-foreground">{t('settings.cacheManagement')}</h2>
+                        <p className="text-sm text-muted-foreground mb-4">{t('settings.cacheDescription')}</p>
+                        <button
+                            onClick={handleClearCache}
+                            disabled={isClearing}
+                            className="inline-flex items-center px-4 py-2 text-sm font-medium text-destructive bg-destructive/10 border border-destructive/20 rounded-md hover:bg-destructive/20 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        >
+                            <RefreshCw className={`h-4 w-4 mr-2 ${isClearing ? 'animate-spin' : ''}`} />
+                            {isClearing ? t('settings.clearing') : t('settings.clearCache')}
+                        </button>
+                        <p className="text-xs text-muted-foreground mt-3">
+                            {t('settings.cacheWarning')}
+                        </p>
+                    </section>
+
+                    {/* Appearance Section */}
+                    <section className="bg-card rounded-lg border border-border p-6">
+                        <h2 className="text-xl font-semibold mb-4 text-foreground">{t('settings.appearance')}</h2>
+                        <div className="space-y-4">
+                            <div>
+                                <p className="font-medium text-foreground mb-3">{t('settings.theme')}</p>
+                                <p className="text-sm text-muted-foreground mb-4">{t('settings.themeDesc')}</p>
+                                <div className="grid grid-cols-3 gap-3">
+                                    <button
+                                        onClick={() => setTheme('light')}
+                                        className={`p-4 rounded-lg border-2 transition-all ${theme === 'light'
+                                            ? 'border-primary bg-primary/10'
+                                            : 'border-border bg-background hover:border-primary/50'
                                             }`}
-                                    />
-                                    <span className="text-xs font-medium text-muted-foreground group-hover:text-foreground">
-                                        {color.name}
-                                    </span>
-                                </button>
-                            ))}
+                                    >
+                                        <div className="flex flex-col items-center gap-2">
+                                            <div className="w-8 h-8 rounded-full bg-white border-2 border-gray-300 flex items-center justify-center">
+                                                <div className="w-4 h-4 rounded-full bg-yellow-400"></div>
+                                            </div>
+                                            <span className="text-sm font-medium text-foreground">{t('settings.light')}</span>
+                                        </div>
+                                    </button>
+                                    <button
+                                        onClick={() => setTheme('dark')}
+                                        className={`p-4 rounded-lg border-2 transition-all ${theme === 'dark'
+                                            ? 'border-primary bg-primary/10'
+                                            : 'border-border bg-background hover:border-primary/50'
+                                            }`}
+                                    >
+                                        <div className="flex flex-col items-center gap-2">
+                                            <div className="w-8 h-8 rounded-full bg-slate-900 border-2 border-slate-700 flex items-center justify-center">
+                                                <div className="w-3 h-3 rounded-full bg-slate-400"></div>
+                                            </div>
+                                            <span className="text-sm font-medium text-foreground">{t('settings.dark')}</span>
+                                        </div>
+                                    </button>
+                                    <button
+                                        onClick={() => setTheme('system')}
+                                        className={`p-4 rounded-lg border-2 transition-all ${theme === 'system'
+                                            ? 'border-primary bg-primary/10'
+                                            : 'border-border bg-background hover:border-primary/50'
+                                            }`}
+                                    >
+                                        <div className="flex flex-col items-center gap-2">
+                                            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-white to-slate-900 border-2 border-gray-400"></div>
+                                            <span className="text-sm font-medium text-foreground">{t('settings.system')}</span>
+                                        </div>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div className="pt-4 border-t border-border">
+                                <p className="font-medium text-foreground mb-3">{t('settings.primaryColor')}</p>
+                                <p className="text-sm text-muted-foreground mb-4">{t('settings.primaryColorDesc')}</p>
+                                <div className="grid grid-cols-4 sm:grid-cols-8 gap-3">
+                                    {primaryColors.map((color) => (
+                                        <button
+                                            key={color.name}
+                                            onClick={() => setPrimaryColor(color)}
+                                            className={`group relative flex flex-col items-center gap-2 p-2 rounded-lg border-2 transition-all ${primaryColor.name === color.name
+                                                ? 'border-primary bg-primary/10'
+                                                : 'border-transparent hover:bg-muted'
+                                                }`}
+                                            title={color.name}
+                                        >
+                                            <div
+                                                className={`w-8 h-8 rounded-full ${color.class} shadow-sm ring-offset-background transition-transform group-hover:scale-110 ${primaryColor.name === color.name ? 'ring-2 ring-primary ring-offset-2' : ''
+                                                    }`}
+                                            />
+                                            <span className="text-xs font-medium text-muted-foreground group-hover:text-foreground">
+                                                {color.name}
+                                            </span>
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
                         </div>
-                    </div>
+                    </section>
                 </div>
-            </section>
+            )}
 
-            {/* Shaft Materials Section */}
-            {renderMaterialSection(shaftMaterials, 1)}
+            {/* Admin Tab Content */}
+            {activeTab === 'admin' && isAdmin && (
+                <div className="space-y-8">
+                    {/* Shaft Materials Section */}
+                    {renderMaterialSection(shaftMaterials, 1)}
 
-            {/* Pipe Materials Section */}
-            {renderMaterialSection(pipeMaterials, 2)}
+                    {/* Pipe Materials Section */}
+                    {renderMaterialSection(pipeMaterials, 2)}
 
-            {/* Document Template Section - Admin Only */}
-            {isAdmin && <TemplateEditor />}
+                    {/* Document Template Section */}
+                    <TemplateEditor />
+                </div>
+            )}
 
             {/* Delete Confirmation Dialog */}
             <ConfirmDeleteMaterialDialog

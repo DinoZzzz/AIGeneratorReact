@@ -693,7 +693,9 @@ Object.assign(translations.hr, {
     'settings.clearCache': 'Obriši predmemoriju',
     'settings.clearing': 'Brisanje...',
     'settings.cacheCleared': 'Predmemorija uspješno obrisana',
-    'settings.cacheWarning': 'Ovo će obrisati sve spremljene podatke osim vaše prijave. Stranica će se ponovno učitati.'
+    'settings.cacheWarning': 'Ovo će obrisati sve spremljene podatke osim vaše prijave. Stranica će se ponovno učitati.',
+    'settings.generalTab': 'Općenito',
+    'settings.adminTab': 'Administracija'
 });
 
 Object.assign(translations.en, {
@@ -710,7 +712,9 @@ Object.assign(translations.en, {
     'settings.clearCache': 'Clear Cache',
     'settings.clearing': 'Clearing...',
     'settings.cacheCleared': 'Cache cleared successfully',
-    'settings.cacheWarning': 'This will clear all cached data except your login. The page will reload.'
+    'settings.cacheWarning': 'This will clear all cached data except your login. The page will reload.',
+    'settings.generalTab': 'General',
+    'settings.adminTab': 'Administration'
 });
 
 // Template Editor translations
