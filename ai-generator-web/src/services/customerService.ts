@@ -74,7 +74,7 @@ export const customerService = {
         // Use the database view that computes last_activity_date efficiently
         // This replaces 5 queries with 1 single query
         let query = supabase
-            .from('customer_with_activity')
+            .from('customer_activity')
             .select('id, name, location, work_order, address, created_at, last_activity_date', { count: 'exact' });
 
         if (search) {
