@@ -4,7 +4,7 @@ import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
 import type { Material } from '../types';
-import { Loader2, Plus, Trash2, Edit, Lock, RefreshCw, Star } from 'lucide-react';
+import { Loader2, Plus, Trash2, Edit, Lock, RefreshCw, Star, Settings2, Shield } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
 import { ConfirmDeleteMaterialDialog } from '../components/ConfirmDeleteMaterialDialog';
 import { useQueryClient } from '@tanstack/react-query';
@@ -25,6 +25,7 @@ export const Settings = () => {
     const [materialToDelete, setMaterialToDelete] = useState<Material | null>(null);
     const queryClient = useQueryClient();
     const [isClearing, setIsClearing] = useState(false);
+    const [activeTab, setActiveTab] = useState<'general' | 'admin'>('general');
 
     // Certifier state
     const [certifiers, setCertifiers] = useState<Certifier[]>([]);
@@ -399,9 +400,38 @@ export const Settings = () => {
     };
 
     return (
-        <div className="max-w-4xl mx-auto space-y-8">
+        <div className="max-w-4xl mx-auto space-y-6">
             <h1 className="text-2xl font-bold text-foreground">{t('nav.settings')}</h1>
 
+            {/* Tab Navigation */}
+            <div className="flex gap-2 border-b border-border">
+                <button
+                    onClick={() => setActiveTab('general')}
+                    className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 transition-colors -mb-px ${activeTab === 'general'
+                        ? 'border-primary text-primary'
+                        : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'
+                        }`}
+                >
+                    <Settings2 className="h-4 w-4" />
+                    {t('settings.generalTab')}
+                </button>
+                {isAdmin && (
+                    <button
+                        onClick={() => setActiveTab('admin')}
+                        className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 transition-colors -mb-px ${activeTab === 'admin'
+                            ? 'border-primary text-primary'
+                            : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'
+                            }`}
+                    >
+                        <Shield className="h-4 w-4" />
+                        {t('settings.adminTab')}
+                    </button>
+                )}
+            </div>
+
+            {/* General Tab Content */}
+            {activeTab === 'general' && (
+            <div className="space-y-8">
             {/* Language */}
             <section className="bg-card rounded-lg border border-border p-6">
                 <h2 className="text-xl font-semibold mb-2 text-foreground">{t('settings.language')}</h2>
@@ -523,7 +553,12 @@ export const Settings = () => {
                     </div>
                 </div>
             </section>
+            </div>
+            )}
 
+            {/* Admin Tab Content */}
+            {activeTab === 'admin' && isAdmin && (
+            <div className="space-y-8">
             {/* Certifiers Section - Admin Only */}
             <section className="bg-card rounded-lg border border-border p-6">
                 <div className="flex items-center justify-between mb-6">
@@ -687,6 +722,8 @@ export const Settings = () => {
 
             {/* Pipe Materials Section */}
             {renderMaterialSection(pipeMaterials, 2)}
+            </div>
+            )}
 
             {/* Delete Confirmation Dialog */}
             <ConfirmDeleteMaterialDialog
