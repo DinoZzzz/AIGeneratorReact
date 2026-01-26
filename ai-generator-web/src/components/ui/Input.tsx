@@ -7,9 +7,21 @@ export interface InputProps
 }
 
 const Input = React.forwardRef<HTMLInputElement, InputProps>(
-    ({ className, type, label, id, ...props }, ref) => {
+    ({ className, type, label, id, onFocus, ...props }, ref) => {
         // Generate a unique ID if not provided
         const inputId = id || (label ? `input-${label.toLowerCase().replace(/\s+/g, '-')}` : undefined);
+
+        // Handle focus - select all content if it's a number field with value 0
+        const handleFocus = (e: React.FocusEvent<HTMLInputElement>) => {
+            if (type === 'number') {
+                const value = e.target.value;
+                if (value === '0' || value === '0.00' || value === '0.0' || parseFloat(value) === 0) {
+                    e.target.select();
+                }
+            }
+            // Call the original onFocus if provided
+            onFocus?.(e);
+        };
 
         return (
             <div className="space-y-2">
@@ -29,6 +41,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
                         className
                     )}
                     ref={ref}
+                    onFocus={handleFocus}
                     {...props}
                 />
             </div>
