@@ -146,11 +146,11 @@ export const AirMethodForm = () => {
         if (matTypeRes.data) setMaterialTypes(matTypeRes.data);
         if (materialsRes.data) {
             setMaterials(materialsRes.data);
-            // Set default material to 'Ostale cijevi' if not set
+            // Set default pipe material if not set
             if (!formData.pipe_material_id) {
-                const defaultMat = materialsRes.data.find(m => m.name.toLowerCase().includes('ostale cijevi'));
-                if (defaultMat) {
-                    setFormData(prev => ({ ...prev, pipe_material_id: defaultMat.id }));
+                const pipeMaterials = materialsRes.data.filter(m => m.material_type_id === 2);
+                if (pipeMaterials.length > 0) {
+                    setFormData(prev => ({ ...prev, pipe_material_id: pipeMaterials[0].id }));
                 }
             }
         }
@@ -462,7 +462,7 @@ export const AirMethodForm = () => {
                                     >
                                         <option value="">{t('reports.form.selectMaterial')}</option>
                                         {materials
-                                            .filter(m => ['suhe betonske cijevi', 'ostale cijevi'].includes(m.name.toLowerCase()))
+                                            .filter(m => m.material_type_id === 2)
                                             .map(m => (
                                                 <option key={m.id} value={m.id}>{m.name}</option>
                                             ))}
