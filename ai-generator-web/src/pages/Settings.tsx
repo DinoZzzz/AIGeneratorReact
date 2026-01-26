@@ -562,11 +562,11 @@ export const Settings = () => {
             {activeTab === 'admin' && isAdmin && (
             <div className="space-y-8">
             {/* Certifiers Section - Admin Only */}
-            <section className="bg-card rounded-lg border border-border p-6">
-                <div className="flex items-center justify-between mb-6">
+            <section className="bg-card rounded-lg border border-border p-4 sm:p-6">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 sm:mb-6">
                     <div>
-                        <h2 className="text-xl font-semibold text-foreground">{t('certifiers.title')}</h2>
-                        <p className="text-sm text-muted-foreground mt-1">{t('certifiers.description')}</p>
+                        <h2 className="text-lg sm:text-xl font-semibold text-foreground">{t('certifiers.title')}</h2>
+                        <p className="text-xs sm:text-sm text-muted-foreground mt-1">{t('certifiers.description')}</p>
                     </div>
                     {isAdmin && (
                         <button
@@ -575,7 +575,7 @@ export const Settings = () => {
                                 setCertifierForm({ name: '', title: '' });
                                 setEditingCertifier(null);
                             }}
-                            className="inline-flex items-center px-3 py-2 text-sm font-medium text-primary-foreground bg-primary rounded-md hover:bg-primary/90 transition-colors"
+                            className="inline-flex items-center justify-center px-3 py-2 text-sm font-medium text-primary-foreground bg-primary rounded-md hover:bg-primary/90 transition-colors w-full sm:w-auto"
                         >
                             <Plus className="h-4 w-4 mr-2" />
                             {t('certifiers.add')}
