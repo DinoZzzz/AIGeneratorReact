@@ -433,15 +433,15 @@ export const Settings = () => {
 
             {/* General Tab Content */}
             {activeTab === 'general' && (
-            <div className="space-y-8">
+            <div className="space-y-6 sm:space-y-8">
             {/* Language */}
-            <section className="bg-card rounded-lg border border-border p-6">
-                <h2 className="text-xl font-semibold mb-2 text-foreground">{t('settings.language')}</h2>
-                <p className="text-sm text-muted-foreground mb-4">{t('settings.languageDescription')}</p>
-                <div className="flex gap-3">
+            <section className="bg-card rounded-lg border border-border p-4 sm:p-6">
+                <h2 className="text-lg sm:text-xl font-semibold mb-2 text-foreground">{t('settings.language')}</h2>
+                <p className="text-xs sm:text-sm text-muted-foreground mb-4">{t('settings.languageDescription')}</p>
+                <div className="flex gap-2 sm:gap-3">
                     <button
                         onClick={() => setLanguage('hr')}
-                        className={`px-4 py-2 rounded-md border text-sm font-medium transition-colors ${language === 'hr'
+                        className={`flex-1 sm:flex-none px-3 sm:px-4 py-2 rounded-md border text-sm font-medium transition-colors ${language === 'hr'
                             ? 'border-primary bg-primary/10 text-primary'
                             : 'border-border bg-background text-foreground hover:border-primary/50'
                             }`}
@@ -450,7 +450,7 @@ export const Settings = () => {
                     </button>
                     <button
                         onClick={() => setLanguage('en')}
-                        className={`px-4 py-2 rounded-md border text-sm font-medium transition-colors ${language === 'en'
+                        className={`flex-1 sm:flex-none px-3 sm:px-4 py-2 rounded-md border text-sm font-medium transition-colors ${language === 'en'
                             ? 'border-primary bg-primary/10 text-primary'
                             : 'border-border bg-background text-foreground hover:border-primary/50'
                             }`}
@@ -461,13 +461,13 @@ export const Settings = () => {
             </section>
 
             {/* Cache Management Section */}
-            <section className="bg-card rounded-lg border border-border p-6">
-                <h2 className="text-xl font-semibold mb-2 text-foreground">{t('settings.cacheManagement')}</h2>
-                <p className="text-sm text-muted-foreground mb-4">{t('settings.cacheDescription')}</p>
+            <section className="bg-card rounded-lg border border-border p-4 sm:p-6">
+                <h2 className="text-lg sm:text-xl font-semibold mb-2 text-foreground">{t('settings.cacheManagement')}</h2>
+                <p className="text-xs sm:text-sm text-muted-foreground mb-4">{t('settings.cacheDescription')}</p>
                 <button
                     onClick={handleClearCache}
                     disabled={isClearing}
-                    className="inline-flex items-center px-4 py-2 text-sm font-medium text-destructive bg-destructive/10 border border-destructive/20 rounded-md hover:bg-destructive/20 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    className="inline-flex items-center justify-center w-full sm:w-auto px-4 py-2 text-sm font-medium text-destructive bg-destructive/10 border border-destructive/20 rounded-md hover:bg-destructive/20 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                     <RefreshCw className={`h-4 w-4 mr-2 ${isClearing ? 'animate-spin' : ''}`} />
                     {isClearing ? t('settings.clearing') : t('settings.clearCache')}
@@ -478,75 +478,75 @@ export const Settings = () => {
             </section>
 
             {/* Appearance Section */}
-            <section className="bg-card rounded-lg border border-border p-6">
-                <h2 className="text-xl font-semibold mb-4 text-foreground">{t('settings.appearance')}</h2>
+            <section className="bg-card rounded-lg border border-border p-4 sm:p-6">
+                <h2 className="text-lg sm:text-xl font-semibold mb-4 text-foreground">{t('settings.appearance')}</h2>
                 <div className="space-y-4">
                     <div>
-                        <p className="font-medium text-foreground mb-3">{t('settings.theme')}</p>
-                        <p className="text-sm text-muted-foreground mb-4">{t('settings.themeDesc')}</p>
-                        <div className="grid grid-cols-3 gap-3">
+                        <p className="font-medium text-foreground mb-2 sm:mb-3">{t('settings.theme')}</p>
+                        <p className="text-xs sm:text-sm text-muted-foreground mb-3 sm:mb-4">{t('settings.themeDesc')}</p>
+                        <div className="grid grid-cols-3 gap-2 sm:gap-3">
                             <button
                                 onClick={() => setTheme('light')}
-                                className={`p-4 rounded-lg border-2 transition-all ${theme === 'light'
+                                className={`p-2 sm:p-4 rounded-lg border-2 transition-all ${theme === 'light'
                                     ? 'border-primary bg-primary/10'
                                     : 'border-border bg-background hover:border-primary/50'
                                     }`}
                             >
-                                <div className="flex flex-col items-center gap-2">
-                                    <div className="w-8 h-8 rounded-full bg-white border-2 border-gray-300 flex items-center justify-center">
-                                        <div className="w-4 h-4 rounded-full bg-yellow-400"></div>
+                                <div className="flex flex-col items-center gap-1 sm:gap-2">
+                                    <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-white border-2 border-gray-300 flex items-center justify-center">
+                                        <div className="w-3 h-3 sm:w-4 sm:h-4 rounded-full bg-yellow-400"></div>
                                     </div>
-                                    <span className="text-sm font-medium text-foreground">{t('settings.light')}</span>
+                                    <span className="text-xs sm:text-sm font-medium text-foreground">{t('settings.light')}</span>
                                 </div>
                             </button>
                             <button
                                 onClick={() => setTheme('dark')}
-                                className={`p-4 rounded-lg border-2 transition-all ${theme === 'dark'
+                                className={`p-2 sm:p-4 rounded-lg border-2 transition-all ${theme === 'dark'
                                     ? 'border-primary bg-primary/10'
                                     : 'border-border bg-background hover:border-primary/50'
                                     }`}
                             >
-                                <div className="flex flex-col items-center gap-2">
-                                    <div className="w-8 h-8 rounded-full bg-slate-900 border-2 border-slate-700 flex items-center justify-center">
-                                        <div className="w-3 h-3 rounded-full bg-slate-400"></div>
+                                <div className="flex flex-col items-center gap-1 sm:gap-2">
+                                    <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-slate-900 border-2 border-slate-700 flex items-center justify-center">
+                                        <div className="w-2 h-2 sm:w-3 sm:h-3 rounded-full bg-slate-400"></div>
                                     </div>
-                                    <span className="text-sm font-medium text-foreground">{t('settings.dark')}</span>
+                                    <span className="text-xs sm:text-sm font-medium text-foreground">{t('settings.dark')}</span>
                                 </div>
                             </button>
                             <button
                                 onClick={() => setTheme('system')}
-                                className={`p-4 rounded-lg border-2 transition-all ${theme === 'system'
+                                className={`p-2 sm:p-4 rounded-lg border-2 transition-all ${theme === 'system'
                                     ? 'border-primary bg-primary/10'
                                     : 'border-border bg-background hover:border-primary/50'
                                     }`}
                             >
-                                <div className="flex flex-col items-center gap-2">
-                                    <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-white to-slate-900 border-2 border-gray-400"></div>
-                                    <span className="text-sm font-medium text-foreground">{t('settings.system')}</span>
+                                <div className="flex flex-col items-center gap-1 sm:gap-2">
+                                    <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-lg bg-gradient-to-br from-white to-slate-900 border-2 border-gray-400"></div>
+                                    <span className="text-xs sm:text-sm font-medium text-foreground">{t('settings.system')}</span>
                                 </div>
                             </button>
                         </div>
                     </div>
 
                     <div className="pt-4 border-t border-border">
-                        <p className="font-medium text-foreground mb-3">{t('settings.primaryColor')}</p>
-                        <p className="text-sm text-muted-foreground mb-4">{t('settings.primaryColorDesc')}</p>
-                        <div className="grid grid-cols-4 sm:grid-cols-8 gap-3">
+                        <p className="font-medium text-foreground mb-2 sm:mb-3">{t('settings.primaryColor')}</p>
+                        <p className="text-xs sm:text-sm text-muted-foreground mb-3 sm:mb-4">{t('settings.primaryColorDesc')}</p>
+                        <div className="grid grid-cols-4 sm:grid-cols-8 gap-2 sm:gap-3">
                             {primaryColors.map((color) => (
                                 <button
                                     key={color.name}
                                     onClick={() => setPrimaryColor(color)}
-                                    className={`group relative flex flex-col items-center gap-2 p-2 rounded-lg border-2 transition-all ${primaryColor.name === color.name
+                                    className={`group relative flex flex-col items-center gap-1 sm:gap-2 p-1.5 sm:p-2 rounded-lg border-2 transition-all ${primaryColor.name === color.name
                                         ? 'border-primary bg-primary/10'
                                         : 'border-transparent hover:bg-muted'
                                         }`}
                                     title={color.name}
                                 >
                                     <div
-                                        className={`w-8 h-8 rounded-full ${color.class} shadow-sm ring-offset-background transition-transform group-hover:scale-110 ${primaryColor.name === color.name ? 'ring-2 ring-primary ring-offset-2' : ''
+                                        className={`w-6 h-6 sm:w-8 sm:h-8 rounded-full ${color.class} shadow-sm ring-offset-background transition-transform group-hover:scale-110 ${primaryColor.name === color.name ? 'ring-2 ring-primary ring-offset-2' : ''
                                             }`}
                                     />
-                                    <span className="text-xs font-medium text-muted-foreground group-hover:text-foreground">
+                                    <span className="text-[10px] sm:text-xs font-medium text-muted-foreground group-hover:text-foreground truncate w-full text-center">
                                         {color.name}
                                     </span>
                                 </button>
@@ -560,7 +560,7 @@ export const Settings = () => {
 
             {/* Admin Tab Content */}
             {activeTab === 'admin' && isAdmin && (
-            <div className="space-y-8">
+            <div className="space-y-6 sm:space-y-8">
             {/* Certifiers Section - Admin Only */}
             <section className="bg-card rounded-lg border border-border p-4 sm:p-6">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 sm:mb-6">
@@ -629,11 +629,11 @@ export const Settings = () => {
                                         />
                                     </div>
                                 </div>
-                                <div className="flex gap-3">
+                                <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
                                     <button
                                         type="submit"
                                         disabled={!certifierForm.name.trim()}
-                                        className="px-4 py-2 text-sm font-medium text-primary-foreground bg-primary rounded-md hover:bg-primary/90 disabled:opacity-50"
+                                        className="px-4 py-2 text-sm font-medium text-primary-foreground bg-primary rounded-md hover:bg-primary/90 disabled:opacity-50 w-full sm:w-auto"
                                     >
                                         {t('materials.save')}
                                     </button>
@@ -644,7 +644,7 @@ export const Settings = () => {
                                             setEditingCertifier(null);
                                             setCertifierForm({ name: '', title: '' });
                                         }}
-                                        className="px-4 py-2 text-sm font-medium text-muted-foreground bg-transparent border border-input rounded-md hover:bg-accent hover:text-accent-foreground"
+                                        className="px-4 py-2 text-sm font-medium text-muted-foreground bg-transparent border border-input rounded-md hover:bg-accent hover:text-accent-foreground w-full sm:w-auto"
                                     >
                                         {t('materials.cancel')}
                                     </button>
@@ -663,23 +663,23 @@ export const Settings = () => {
                         ) : (
                             <div className="border border-border rounded-md divide-y divide-border">
                                 {certifiers.map((certifier) => (
-                                    <div key={certifier.id} className="flex items-center justify-between p-4 hover:bg-muted/50 transition-colors">
-                                        <div className="flex items-center gap-3">
+                                    <div key={certifier.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-3 sm:p-4 gap-2 sm:gap-0 hover:bg-muted/50 transition-colors">
+                                        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
                                             {certifier.is_default && (
-                                                <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />
+                                                <Star className="h-4 w-4 text-yellow-500 fill-yellow-500 flex-shrink-0" />
                                             )}
-                                            <div>
-                                                <span className="font-medium text-foreground">
+                                            <div className="min-w-0">
+                                                <span className="font-medium text-foreground text-sm sm:text-base block truncate">
                                                     {certifierService.getDisplayName(certifier)}
                                                 </span>
                                                 {certifier.is_default && (
-                                                    <span className="ml-2 text-xs text-muted-foreground">
+                                                    <span className="text-xs text-muted-foreground">
                                                         ({t('certifiers.default')})
                                                     </span>
                                                 )}
                                             </div>
                                         </div>
-                                        <div className="flex items-center gap-2">
+                                        <div className="flex items-center gap-1 sm:gap-2 self-end sm:self-auto">
                                             {!certifier.is_default && (
                                                 <button
                                                     onClick={() => handleSetDefaultCertifier(certifier.id)}
