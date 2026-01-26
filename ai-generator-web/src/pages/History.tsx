@@ -290,10 +290,10 @@ export const History = () => {
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">
                                             {formatName(item.user)}
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">
+                                        <td className="px-6 py-4 text-sm text-foreground max-w-xs">
                                             <button
                                                 onClick={() => item.construction_id && item.customer_id && navigate(`/customers/${item.customer_id}/constructions/${item.construction_id}/reports`)}
-                                                className="text-primary hover:text-primary/80 underline-offset-4 hover:underline"
+                                                className="text-primary hover:text-primary/80 underline-offset-4 hover:underline break-words text-left"
                                             >
                                                 {item.construction_part}
                                             </button>
