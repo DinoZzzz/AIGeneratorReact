@@ -12,11 +12,22 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
         const inputId = id || (label ? `input-${label.toLowerCase().replace(/\s+/g, '-')}` : undefined);
 
         // Handle focus - select all content if it's a number field with value 0
+        // Use setTimeout for better mobile compatibility
         const handleFocus = (e: React.FocusEvent<HTMLInputElement>) => {
             if (type === 'number') {
                 const value = e.target.value;
+                const target = e.target;
                 if (value === '0' || value === '0.00' || value === '0.0' || parseFloat(value) === 0) {
-                    e.target.select();
+                    // Use setTimeout for mobile compatibility
+                    setTimeout(() => {
+                        target.select();
+                        // Also try setSelectionRange as fallback for some mobile browsers
+                        try {
+                            target.setSelectionRange(0, target.value.length);
+                        } catch {
+                            // setSelectionRange might not be supported for number inputs in some browsers
+                        }
+                    }, 0);
                 }
             }
             // Call the original onFocus if provided
