@@ -5,16 +5,17 @@ import './styles/animations.css'
 import App from './App.tsx'
 import { registerSW } from 'virtual:pwa-register'
 
-// Register service worker
+// Register service worker with automatic updates
 const updateSW = registerSW({
   onNeedRefresh() {
-    if (confirm('New content available. Reload?')) {
-      updateSW(true)
-    }
+    // Automatically refresh when new version is available
+    updateSW(true)
   },
   onOfflineReady() {
     console.log('App ready to work offline')
   },
+  // Check for updates immediately and periodically
+  immediate: true,
 })
 
 createRoot(document.getElementById('root')!).render(
