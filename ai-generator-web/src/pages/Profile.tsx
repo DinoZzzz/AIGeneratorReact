@@ -10,6 +10,7 @@ import { Checkbox } from '../components/ui/Checkbox';
 import { Camera, Loader2, FileText, PieChart, TrendingUp } from 'lucide-react';
 import type { Profile, ReportType } from '../types';
 import { useAnalytics } from '../hooks/useAnalytics';
+import { UserAvatar } from '../components/ui/UserAvatar';
 
 export const ProfilePage = () => {
     const { profile, user, refreshProfile } = useAuth();
@@ -122,26 +123,19 @@ export const ProfilePage = () => {
                     {/* Avatar Section */}
                     <div className="flex flex-col items-center mb-8">
                         <div className="relative group">
-                            <div className="h-32 w-32 rounded-full overflow-hidden bg-muted border-4 border-background shadow-lg flex items-center justify-center">
-                                {formData.avatar_url ? (
-                                    <img
-                                        src={formData.avatar_url}
-                                        alt="Profile"
-                                        className="h-full w-full object-cover"
-                                        loading="lazy"
-                                        decoding="async"
-                                    />
-                                ) : (
-                                    <span className="text-4xl font-bold text-muted-foreground">
-                                        {formData.name?.charAt(0) || user?.email?.charAt(0)}
-                                    </span>
-                                )}
-                                {uploading && (
-                                    <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                                        <Loader2 className="h-8 w-8 text-white animate-spin" />
-                                    </div>
-                                )}
-                            </div>
+                            <UserAvatar
+                                src={formData.avatar_url}
+                                name={formData.name}
+                                email={user?.email}
+                                id={profile?.id}
+                                size="xl"
+                                className="border-4 border-background shadow-lg"
+                            />
+                            {uploading && (
+                                <div className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center">
+                                    <Loader2 className="h-8 w-8 text-white animate-spin" />
+                                </div>
+                            )}
                             <button
                                 type="button"
                                 onClick={() => fileInputRef.current?.click()}

@@ -5,6 +5,7 @@ import { useLanguage } from '../context/LanguageContext';
 import { Send, Loader2, MessageSquare, Pencil, Trash2, X, Check } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { useToast } from '../context/ToastContext';
+import { UserAvatar } from '../components/ui/UserAvatar';
 
 export const Chat = () => {
     const [messages, setMessages] = useState<Message[]>([]);
@@ -187,21 +188,13 @@ export const Chat = () => {
                                 <div className={`flex gap-2 sm:gap-3 max-w-[85%] sm:max-w-[70%] ${isOwn ? 'flex-row-reverse' : 'flex-row'}`}>
                                     {/* Avatar */}
                                     {showAvatar ? (
-                                        <div className="flex-shrink-0">
-                                            {msg.user?.avatar_url ? (
-                                                <img
-                                                    src={msg.user.avatar_url}
-                                                    alt={getUserName(msg)}
-                                                    className="h-7 w-7 sm:h-8 sm:w-8 rounded-full"
-                                                    loading="lazy"
-                                                    decoding="async"
-                                                />
-                                            ) : (
-                                                <div className="h-7 w-7 sm:h-8 sm:w-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs sm:text-sm font-medium">
-                                                    {getInitials(msg)}
-                                                </div>
-                                            )}
-                                        </div>
+                                        <UserAvatar
+                                            src={msg.user?.avatar_url}
+                                            name={msg.user?.name}
+                                            email={msg.user?.email}
+                                            id={msg.user_id}
+                                            size="sm"
+                                        />
                                     ) : (
                                         <div className="w-7 sm:w-8" />
                                     )}

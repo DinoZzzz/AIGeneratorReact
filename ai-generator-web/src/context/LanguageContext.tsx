@@ -29,7 +29,7 @@ const translations: Record<Language, TranslationDictionary> = {
         'history.remove': 'Obriši',
         'history.searchPlaceholder': 'Traži dio gradilišta...',
         'history.noDataTitle': 'Nema povijesti',
-        'history.noDataDesc': 'Izvezeni izvještaji pojavit će se ovdje.',
+        'history.noDataDesc': 'Izvezeni obrasci pojavit će se ovdje.',
         'history.loading': 'Učitavanje...',
         'history.allUsers': 'Svi ispitivači',
         'history.page': 'Stranica',
@@ -46,7 +46,7 @@ const translations: Record<Language, TranslationDictionary> = {
         'exportDetails.waterDeviation': 'Odstupanje voda',
         'exportDetails.airRemark': 'Napomena zrak',
         'exportDetails.airDeviation': 'Odstupanje zrak',
-        'exportDetails.includedReports': 'Uključeni izvještaji',
+        'exportDetails.includedReports': 'Uključeni obrasci',
         'exportDetails.ordinal': 'Redni broj',
         'exportDetails.type': 'Tip',
         'exportDetails.satisfies': 'Zadovoljava',
@@ -59,7 +59,7 @@ const translations: Record<Language, TranslationDictionary> = {
         'exportDetails.exportAllPdf': 'Izvoz svih PDF',
         'exportDetails.water': 'Voda',
         'exportDetails.air': 'Zrak',
-        'exportDetails.report': 'Izvještaj',
+        'exportDetails.report': 'Obrazac',
         'exportDetails.attachments': 'Prilozi',
         'exportDetails.selectAll': 'Označi sve',
         'exportDetails.exporting': 'Izvoz u tijeku...',
@@ -73,7 +73,7 @@ const translations: Record<Language, TranslationDictionary> = {
         'dashboard.ready': 'Vaš generator je spreman.',
         'dashboard.totalCustomers': 'Ukupno naručitelja',
         'dashboard.activeSites': 'Aktivna gradilišta',
-        'dashboard.totalReports': 'Ukupno izvještaja',
+        'dashboard.totalReports': 'Ukupno obrazaca',
         'dashboard.customersTable': 'Naručitelji',
         'dashboard.search': 'Pretraga...',
         'dashboard.addCustomer': 'Dodaj naručitelja',
@@ -155,8 +155,8 @@ const translations: Record<Language, TranslationDictionary> = {
         'customers.next': 'Sljedeća',
         'customers.viewConstructions': 'Pogledaj gradilišta',
         'customers.edit': 'Uredi',
-        'customers.deleteConfirm': 'Brisanje naručitelja će ukloniti sve povezane izvještaje. Nastaviti?',
-        'reports.title': 'Izvještaji',
+        'customers.deleteConfirm': 'Brisanje naručitelja će ukloniti sve povezane obrasce. Nastaviti?',
+        'reports.title': 'Obrasci',
         'reports.dionica': 'Dionica',
         'reports.searchDionica': 'Traži dionicu...',
         'reports.type': 'Tip',
@@ -166,15 +166,15 @@ const translations: Record<Language, TranslationDictionary> = {
         'reports.air': 'Zrak',
         'reports.satisfies': 'Zadovoljava',
         'reports.failed': 'Ne zadovoljava',
-        'reports.noData': 'Nema izvještaja',
+        'reports.noData': 'Nema obrazaca',
         'reports.deleteSelected': 'Obriši odabrano',
-        'reports.newReport': 'Novi izvještaj',
+        'reports.newReport': 'Novi obrazac',
         'reports.new': 'Novi',
         'reports.waterMethod': 'Metoda vodom',
         'reports.airMethod': 'Metoda zrakom',
         'reports.addSection': 'Dodaj sekciju',
         'reports.enterSectionName': 'Unesite naziv sekcije:',
-        'reports.generateReports': 'Generiraj izvještaje',
+        'reports.generateReports': 'Generiraj izvještaj',
         'reports.generate': 'Generiraj',
         'reports.exportSelected': 'Izvezi odabrano',
         'reports.exportAll': 'Izvezi sve',
@@ -185,15 +185,15 @@ const translations: Record<Language, TranslationDictionary> = {
         'reports.draft': 'Nacrt',
         'reports.actions': 'Akcije',
         'common.all': 'Sve',
-        'reports.manageViewReports': 'Upravljanje i pregled svih izvještaja.',
-        'reports.deleteConfirm': 'Jeste li sigurni da želite obrisati ovaj izvještaj?',
+        'reports.manageViewReports': 'Upravljanje i pregled svih obrazaca.',
+        'reports.deleteConfirm': 'Jeste li sigurni da želite obrisati ovaj obrazac?',
         'reports.deleteSelectedConfirm': 'Jeste li sigurni da želite obrisati {count} odabran{plural}?',
-        'reports.deleteSelectedFinal': 'Ova radnja se ne može poništiti. Obrisati {count} izvještaj{plural} trajno?',
-        'reports.deleteSuccess': 'Izvještaj uspješno obrisan',
-        'reports.deleteSelectedSuccess': 'Uspješno obrisan{plural} {count} izvještaj{plural}',
-        'reports.exportSuccess': 'Izvještaj uspješno izvezen',
-        'reports.noReports': 'Nema pronađenih izvještaja',
-        'reports.reportsFromConstructions': 'Izvještaji se kreiraju iz gradilišta.',
+        'reports.deleteSelectedFinal': 'Ova radnja se ne može poništiti. Obrisati {count} obrazac{plural} trajno?',
+        'reports.deleteSuccess': 'Obrazac uspješno obrisan',
+        'reports.deleteSelectedSuccess': 'Uspješno obrisan{plural} {count} obrazac{plural}',
+        'reports.exportSuccess': 'Obrazac uspješno izvezen',
+        'reports.noReports': 'Nema pronađenih obrazaca',
+        'reports.reportsFromConstructions': 'Obrasci se kreiraju iz gradilišta.',
         'chat.title': 'Timski chat',
         'chat.subtitle': 'Komunicirajte s timom u stvarnom vremenu',
         'chat.inputPlaceholder': 'Unesite poruku...',
@@ -203,12 +203,7 @@ const translations: Record<Language, TranslationDictionary> = {
         'chat.edited': 'uređeno',
         'chat.deleteConfirm': 'Jeste li sigurni da želite obrisati ovu poruku?',
         'chat.noMessages': 'Nema poruka',
-        'chat.startConversation': 'Započnite razgovor s timom',
-        'offline.online': 'Online',
-        'offline.offline': 'Offline',
-        'offline.pendingChanges': 'promjena na čekanju',
-        'offline.syncing': 'Sinkronizacija...',
-        'offline.tapToSync': 'Sinkroniziraj'
+        'chat.startConversation': 'Započnite razgovor s timom'
     },
     en: {
         'nav.platform': 'Platform',
@@ -406,12 +401,7 @@ const translations: Record<Language, TranslationDictionary> = {
         'chat.edited': 'edited',
         'chat.deleteConfirm': 'Are you sure you want to delete this message?',
         'chat.noMessages': 'No messages yet',
-        'chat.startConversation': 'Start the conversation with your team',
-        'offline.online': 'Online',
-        'offline.offline': 'Offline',
-        'offline.pendingChanges': 'pending changes',
-        'offline.syncing': 'Syncing...',
-        'offline.tapToSync': 'Sync now'
+        'chat.startConversation': 'Start the conversation with your team'
     }
 };
 
@@ -428,7 +418,7 @@ Object.assign(translations.hr, {
     'customers.placeholderLocation': 'Grad / Regija',
     'customers.placeholderAddress': 'Ulica i broj',
     'customers.placeholderPostal': 'Poštanski broj',
-    'customers.deleteConfirm': 'Brisanje naručitelja će ukloniti sve povezane izvještaje. Nastaviti?',
+    'customers.deleteConfirm': 'Brisanje naručitelja će ukloniti sve povezane obrasce. Nastaviti?',
     'customers.deleteSuccess': 'Naručitelj uspješno obrisan.',
     'customers.search': 'Pretraži naručitelje...',
     'customers.viewConstructions': 'Pogledaj gradilišta',
@@ -443,10 +433,10 @@ Object.assign(translations.hr, {
     'constructions.location': 'Lokacija',
     'constructions.dateAdded': 'Datum dodavanja',
     'constructions.actions': 'Akcije',
-    'constructions.viewReports': 'Pogledaj izvještaje',
+    'constructions.viewReports': 'Pogledaj obrasce',
     'constructions.edit': 'Uredi',
     'constructions.delete': 'Obriši',
-    'constructions.deleteConfirm': 'Jeste li sigurni da želite obrisati ovo gradilište? Ovo će obrisati sve povezane izvještaje.',
+    'constructions.deleteConfirm': 'Jeste li sigurni da želite obrisati ovo gradilište? Ovo će obrisati sve povezane obrasce.',
     'constructions.none': 'Nema gradilišta.',
     'constructions.loading': 'Učitavanje...',
     'constructions.save': 'Spremi',
@@ -459,7 +449,7 @@ Object.assign(translations.hr, {
     'reports.exportPdf': 'Izvoz PDF',
     'reports.edit': 'Uredi',
     'reports.delete': 'Obriši',
-    'reports.noData': 'Nema izvješća za ovo gradilište.',
+    'reports.noData': 'Nema obrazaca za ovo gradilište.',
     'reports.satisfies': 'Zadovoljava',
     'reports.failed': 'Ne zadovoljava',
     'reports.new': 'Novo',
@@ -566,7 +556,7 @@ Object.assign(translations.hr, {
     'constructions.unarchive': 'Vrati iz arhive',
     'constructions.archived': 'Arhivirano',
     'constructions.archiveConfirmTitle': 'Potvrda arhiviranja',
-    'constructions.archiveConfirmMessage': 'Jeste li sigurni da želite arhivirati ovo gradilište? Za arhivirana gradilišta neće biti moguće kreirati nove izvještaje.',
+    'constructions.archiveConfirmMessage': 'Jeste li sigurni da želite arhivirati ovo gradilište? Za arhivirana gradilišta neće biti moguće kreirati nove obrasce.',
     'constructions.unarchiveConfirmTitle': 'Vraćanje iz arhive',
     'constructions.unarchiveConfirmMessage': 'Jeste li sigurni da želite vratiti ovo gradilište iz arhive?',
     'constructions.archiveSuccess': 'Gradilište uspješno arhivirano',
@@ -602,8 +592,8 @@ Object.assign(translations.en, {
 
 // Export dialog translations
 Object.assign(translations.hr, {
-    'export.includePdfs': 'Dodaj PDF-ove izvještaja na kraj dokumenta',
-    'export.includePdfsHelp': 'Označeni izvještaji će biti generirani kao PDF i dodani na kraj Word dokumenta'
+    'export.includePdfs': 'Dodaj PDF-ove obrazaca na kraj dokumenta',
+    'export.includePdfsHelp': 'Označeni obrasci će biti generirani kao PDF i dodani na kraj Word dokumenta'
 });
 
 Object.assign(translations.en, {
@@ -626,7 +616,7 @@ Object.assign(translations.hr, {
     'materials.cancel': 'Odustani',
     'materials.noneShaftTitle': 'Nema materijala za okna',
     'materials.nonePipeTitle': 'Nema materijala za cijevi',
-    'materials.noneDesc': 'Dodajte materijale kako biste ih koristili u izvještajima.',
+    'materials.noneDesc': 'Dodajte materijale kako biste ih koristili u obrascima.',
     'materials.edit': 'Uredi',
     'materials.remove': 'Ukloni',
     'materials.added': 'Materijal dodan.',
@@ -634,7 +624,7 @@ Object.assign(translations.hr, {
     'materials.removed': 'Materijal uklonjen.',
     'materials.deleteConfirm': 'Jeste li sigurni da želite ukloniti ovaj materijal?',
     'materials.restricted': 'Upravljanje materijalima je ograničeno na administratore.',
-    'materials.inUseError': 'Materijal se koristi u izvještajima pa ga nije moguće ukloniti.',
+    'materials.inUseError': 'Materijal se koristi u obrascima pa ga nije moguće ukloniti.',
     'materials.deleteDialogTitle': 'Potvrdi brisanje',
     'materials.deleteDialogMessage': 'Jeste li sigurni da želite obrisati ovaj materijal?',
     'materials.materialType': 'Vrsta materijala',
@@ -693,9 +683,7 @@ Object.assign(translations.hr, {
     'settings.clearCache': 'Obriši predmemoriju',
     'settings.clearing': 'Brisanje...',
     'settings.cacheCleared': 'Predmemorija uspješno obrisana',
-    'settings.cacheWarning': 'Ovo će obrisati sve spremljene podatke osim vaše prijave. Stranica će se ponovno učitati.',
-    'settings.generalTab': 'Općenito',
-    'settings.adminTab': 'Administracija'
+    'settings.cacheWarning': 'Ovo će obrisati sve spremljene podatke osim vaše prijave. Stranica će se ponovno učitati.'
 });
 
 Object.assign(translations.en, {
@@ -712,68 +700,7 @@ Object.assign(translations.en, {
     'settings.clearCache': 'Clear Cache',
     'settings.clearing': 'Clearing...',
     'settings.cacheCleared': 'Cache cleared successfully',
-    'settings.cacheWarning': 'This will clear all cached data except your login. The page will reload.',
-    'settings.generalTab': 'General',
-    'settings.adminTab': 'Administration'
-});
-
-// Template Editor translations
-Object.assign(translations.hr, {
-    'templateEditor.title': 'Predložak dokumenta',
-    'templateEditor.currentTemplate': 'Trenutni predložak',
-    'templateEditor.lastUpdated': 'Zadnja izmjena',
-    'templateEditor.updatedBy': 'Izmijenio',
-    'templateEditor.uploadNew': 'Povuci novi predložak ili klikni za odabir',
-    'templateEditor.supportedFormat': 'Podržani format: .docx (Word)',
-    'templateEditor.validation': 'Validacija predloška',
-    'templateEditor.validating': 'Validacija u tijeku...',
-    'templateEditor.tagFound': 'pronađen',
-    'templateEditor.tagMissing': 'nedostaje (obavezno)',
-    'templateEditor.unrecognized': 'neprepoznat (bit će prazan)',
-    'templateEditor.moreTags': 'dodatnih oznaka',
-    'templateEditor.previewBtn': 'Pregledaj',
-    'templateEditor.activateBtn': 'Aktiviraj predložak',
-    'templateEditor.uploading': 'Učitavanje...',
-    'templateEditor.previousVersions': 'Prethodne verzije',
-    'templateEditor.restore': 'Vrati',
-    'templateEditor.download': 'Preuzmi',
-    'templateEditor.uploadSuccess': 'Predložak uspješno učitan',
-    'templateEditor.uploadError': 'Greška pri učitavanju predloška',
-    'templateEditor.rollbackConfirm': 'Jeste li sigurni da želite vratiti ovu verziju predloška?',
-    'templateEditor.rollbackSuccess': 'Predložak uspješno vraćen',
-    'templateEditor.rollbackError': 'Greška pri vraćanju predloška',
-    'templateEditor.deleteBackupConfirm': 'Jeste li sigurni da želite obrisati ovu sigurnosnu kopiju?',
-    'templateEditor.deleteBackupSuccess': 'Sigurnosna kopija obrisana',
-    'templateEditor.deleteBackupError': 'Greška pri brisanju sigurnosne kopije'
-});
-
-Object.assign(translations.en, {
-    'templateEditor.title': 'Document Template',
-    'templateEditor.currentTemplate': 'Current Template',
-    'templateEditor.lastUpdated': 'Last Updated',
-    'templateEditor.updatedBy': 'Updated by',
-    'templateEditor.uploadNew': 'Drag new template or click to browse',
-    'templateEditor.supportedFormat': 'Supported format: .docx (Word)',
-    'templateEditor.validation': 'Template Validation',
-    'templateEditor.validating': 'Validating...',
-    'templateEditor.tagFound': 'found',
-    'templateEditor.tagMissing': 'missing (required)',
-    'templateEditor.unrecognized': 'unrecognized (will be empty)',
-    'templateEditor.moreTags': 'more tags',
-    'templateEditor.previewBtn': 'Preview',
-    'templateEditor.activateBtn': 'Activate Template',
-    'templateEditor.uploading': 'Uploading...',
-    'templateEditor.previousVersions': 'Previous Versions',
-    'templateEditor.restore': 'Restore',
-    'templateEditor.download': 'Download',
-    'templateEditor.uploadSuccess': 'Template uploaded successfully',
-    'templateEditor.uploadError': 'Error uploading template',
-    'templateEditor.rollbackConfirm': 'Are you sure you want to restore this template version?',
-    'templateEditor.rollbackSuccess': 'Template restored successfully',
-    'templateEditor.rollbackError': 'Error restoring template',
-    'templateEditor.deleteBackupConfirm': 'Are you sure you want to delete this backup?',
-    'templateEditor.deleteBackupSuccess': 'Backup deleted',
-    'templateEditor.deleteBackupError': 'Error deleting backup'
+    'settings.cacheWarning': 'This will clear all cached data except your login. The page will reload.'
 });
 
 // Analytics translations
@@ -789,10 +716,10 @@ Object.assign(translations.hr, {
     'analytics.air': 'Zrak',
     'analytics.loading': 'Učitavanje analitike...',
     'analytics.error': 'Neuspjelo učitavanje analitike. Pokušajte ponovo.',
-    'analytics.totalReports': 'Ukupno izvještaja',
+    'analytics.totalReports': 'Ukupno obrazaca',
     'analytics.activeCustomers': 'Ukupno naručitelja',
     'analytics.constructionSites': 'Ukupno gradilišta',
-    'analytics.recentActivity': 'Aktivni izvještaji',
+    'analytics.recentActivity': 'Aktivni obrasci',
     'analytics.thisWeek': 'Zadnjih 7 dana',
     'profile.title': 'Moj Profil',
     'profile.subtitle': 'Upravljajte svojim osobnim podacima i postavkama.',
@@ -805,9 +732,9 @@ Object.assign(translations.hr, {
     'reports.form.notesSection': 'Bilješke',
     'reports.form.calculatedResults': 'Izračunati rezultati',
     'reports.form.nextStep': 'Sljedeći korak',
-    'reports.form.saveReport': 'Spremi izvještaj',
-    'reports.form.saveSuccess': 'Izvještaj spremljen. Spreman za novi unos.',
-    'reports.form.loadError': 'Neuspjelo učitavanje izvještaja',
+    'reports.form.saveReport': 'Spremi obrazac',
+    'reports.form.saveSuccess': 'Obrazac spremljen. Spreman za novi unos.',
+    'reports.form.loadError': 'Neuspjelo učitavanje obrasca',
     'reports.form.temperature': 'Temperatura (°C)',
     'reports.form.paneWidthM': 'Širina okna (m)',
     'reports.form.paneLengthM': 'Dužina okna (m)',
@@ -889,8 +816,8 @@ Object.assign(translations.en, {
 
 // Export dialog translations
 Object.assign(translations.hr, {
-    'export.optionsTitle': 'Opcije izvoza izvještaja',
-    'export.selectReports': 'Odaberite izvještaje za izvoz',
+    'export.optionsTitle': 'Opcije izvoza',
+    'export.selectReports': 'Odaberite obrasce za izvoz',
     'export.selectAll': 'Odaberi sve',
     'export.deselectAll': 'Poništi odabir',
     'export.selected': 'odabrano',
@@ -905,10 +832,10 @@ Object.assign(translations.hr, {
     'export.certifierName': 'Certifikator',
     'export.certifierPlaceholder': 'Ime i prezime certifikatora',
     'export.attachments': 'Prilozi',
-    'export.attachmentsHelp': 'Dodajte fotografije ili PDF dokumente koji će biti priloženi izvještaju',
+    'export.attachmentsHelp': 'Dodajte fotografije ili PDF dokumente koji će biti priloženi',
     'export.cancel': 'Odustani',
     'export.exporting': 'Izvoz u tijeku...',
-    'export.exportReport': 'Izvezi izvještaj'
+    'export.exportReport': 'Izvezi'
 });
 
 Object.assign(translations.en, {
@@ -936,14 +863,14 @@ Object.assign(translations.en, {
 
 // Clean HR overrides for report forms (accents)
 Object.assign(translations.hr, {
-    'reports.form.editTitle': 'Uredi izvještaj',
+    'reports.form.editTitle': 'Uredi obrazac',
     'reports.form.generalInfo': 'Opće informacije',
     'reports.form.notesSection': 'Bilješke',
     'reports.form.calculatedResults': 'Izračunati rezultati',
     'reports.form.nextStep': 'Sljedeći korak',
-    'reports.form.saveReport': 'Spremi izvještaj',
-    'reports.form.saveSuccess': 'Izvještaj spremljen. Spreman za novi unos.',
-    'reports.form.loadError': 'Neuspjelo učitavanje izvještaja',
+    'reports.form.saveReport': 'Spremi obrazac',
+    'reports.form.saveSuccess': 'Obrazac spremljen. Spreman za novi unos.',
+    'reports.form.loadError': 'Neuspjelo učitavanje obrasca',
     'reports.form.temperature': 'Temperatura (°C)',
     'reports.form.paneWidthM': 'Širina okna (m)',
     'reports.form.paneLengthM': 'Dužina okna (m)',
@@ -991,7 +918,7 @@ Object.assign(translations.hr, {
     'reports.form.saveAndNew': 'Spremi i novi',
     'reports.form.copyFromPrevious': 'Kopiraj s prethodnog',
     'reports.form.prevStep': 'Prethodni korak',
-    'reports.form.saveError': 'Spremanje izvještaja nije uspjelo',
+    'reports.form.saveError': 'Spremanje obrasca nije uspjelo',
     'reports.form.examProcedure': 'Postupak ispitivanja',
     'reports.form.selectProcedure': 'Odaberite postupak',
     'reports.form.selectMaterial': 'Odaberite materijal',
@@ -1123,7 +1050,7 @@ Object.assign(translations.en, {
     'reports.form.failed': 'FAILED',
     'reports.form.exportPdf': 'Export PDF',
     'reports.form.saveAndNew': 'Save & New',
-    'reports.form.copyFromPrevious': 'Copy from Previous',
+    'reports.form.copyFromPrevious': 'Copy from previous',
     'reports.form.nextStep': 'Next Step',
     'reports.form.prevStep': 'Previous Step',
     'reports.form.saveReport': 'Save Report',
@@ -1243,57 +1170,6 @@ Object.assign(translations.en, {
     'common.delete': 'Delete'
 });
 
-// Scheme Manager translations
-Object.assign(translations.hr, {
-    'schemeManager.title': 'Upravljanje shemama',
-    'schemeManager.subtitle': 'Upravljajte slikama shema koje se koriste u PDF izvještajima.',
-    'schemeManager.name': 'Naziv sheme',
-    'schemeManager.description': 'Opis',
-    'schemeManager.upload': 'Učitaj',
-    'schemeManager.uploadHint': 'PNG ili JPG, max 5MB',
-    'schemeManager.save': 'Spremi',
-    'schemeManager.reset': 'Vrati zadano',
-    'schemeManager.resetConfirm': 'Jeste li sigurni da želite vratiti zadanu sliku?',
-    'schemeManager.uploadSuccess': 'Slika sheme uspješno učitana',
-    'schemeManager.uploadError': 'Greška pri učitavanju slike',
-    'schemeManager.saveSuccess': 'Podaci sheme spremljeni',
-    'schemeManager.saveError': 'Greška pri spremanju podataka',
-    'schemeManager.resetSuccess': 'Slika vraćena na zadanu',
-    'schemeManager.resetError': 'Greška pri vraćanju slike',
-    'schemeManager.noSchemes': 'Nema dostupnih shema. Pokrenite SQL migraciju.',
-    'schemeManager.noImage': 'Nema slike',
-    'schemeManager.currentImage': 'Trenutna slika',
-    'schemeManager.dragDrop': 'Povuci sliku ili klikni',
-    'schemeManager.updatedBy': 'Izmijenio',
-    'schemeManager.waterMethod': 'Metoda vodom',
-    'schemeManager.airMethod': 'Metoda zrakom'
-});
-
-Object.assign(translations.en, {
-    'schemeManager.title': 'Scheme Management',
-    'schemeManager.subtitle': 'Manage scheme images used in PDF reports.',
-    'schemeManager.name': 'Scheme Name',
-    'schemeManager.description': 'Description',
-    'schemeManager.upload': 'Upload',
-    'schemeManager.uploadHint': 'PNG or JPG, max 5MB',
-    'schemeManager.save': 'Save',
-    'schemeManager.reset': 'Reset to Default',
-    'schemeManager.resetConfirm': 'Are you sure you want to reset to the default image?',
-    'schemeManager.uploadSuccess': 'Scheme image uploaded successfully',
-    'schemeManager.uploadError': 'Error uploading image',
-    'schemeManager.saveSuccess': 'Scheme data saved',
-    'schemeManager.saveError': 'Error saving data',
-    'schemeManager.resetSuccess': 'Image reset to default',
-    'schemeManager.resetError': 'Error resetting image',
-    'schemeManager.noSchemes': 'No schemes available. Run SQL migration.',
-    'schemeManager.noImage': 'No image',
-    'schemeManager.currentImage': 'Current image',
-    'schemeManager.dragDrop': 'Drag image or click',
-    'schemeManager.updatedBy': 'Updated by',
-    'schemeManager.waterMethod': 'Water Method',
-    'schemeManager.airMethod': 'Air Method'
-});
-
 // Calendar translations (HR)
 Object.assign(translations.hr, {
     'nav.calendar': 'Kalendar',
@@ -1330,6 +1206,51 @@ Object.assign(translations.hr, {
     'calendar.enableReminders': 'Omogući podsjetnike',
     'calendar.addReminder': 'Dodaj podsjetnik',
     'calendar.minutesBefore': 'Minuta prije'
+});
+
+// Certifier management translations
+Object.assign(translations.hr, {
+    'certifiers.title': 'Certifikatori',
+    'certifiers.description': 'Upravljajte certifikatorima koji se prikazuju u izvozu dokumenata.',
+    'certifiers.add': 'Dodaj certifikatora',
+    'certifiers.new': 'Novi certifikator',
+    'certifiers.edit': 'Uredi certifikatora',
+    'certifiers.name': 'Ime i prezime',
+    'certifiers.namePlaceholder': 'npr. Ivan Horvat',
+    'certifiers.titleLabel': 'Titula',
+    'certifiers.titlePlaceholder': 'npr. bacc.ing.secc.',
+    'certifiers.none': 'Nema certifikatora',
+    'certifiers.noneDesc': 'Dodajte certifikatore za prikaz u dokumentima.',
+    'certifiers.added': 'Certifikator dodan.',
+    'certifiers.updated': 'Certifikator ažuriran.',
+    'certifiers.deleted': 'Certifikator obrisan.',
+    'certifiers.deleteConfirm': 'Jeste li sigurni da želite obrisati ovog certifikatora?',
+    'certifiers.default': 'zadano',
+    'certifiers.setDefault': 'Postavi kao zadano',
+    'certifiers.defaultSet': 'Zadani certifikator postavljen.',
+    'certifiers.loadError': 'Greška pri učitavanju certifikatora'
+});
+
+Object.assign(translations.en, {
+    'certifiers.title': 'Certifiers',
+    'certifiers.description': 'Manage certifiers that appear in document exports.',
+    'certifiers.add': 'Add Certifier',
+    'certifiers.new': 'New Certifier',
+    'certifiers.edit': 'Edit Certifier',
+    'certifiers.name': 'Full Name',
+    'certifiers.namePlaceholder': 'e.g. John Smith',
+    'certifiers.titleLabel': 'Title',
+    'certifiers.titlePlaceholder': 'e.g. B.Sc.',
+    'certifiers.none': 'No certifiers found',
+    'certifiers.noneDesc': 'Add certifiers to display them in documents.',
+    'certifiers.added': 'Certifier added.',
+    'certifiers.updated': 'Certifier updated.',
+    'certifiers.deleted': 'Certifier deleted.',
+    'certifiers.deleteConfirm': 'Are you sure you want to delete this certifier?',
+    'certifiers.default': 'default',
+    'certifiers.setDefault': 'Set as default',
+    'certifiers.defaultSet': 'Default certifier set.',
+    'certifiers.loadError': 'Error loading certifiers'
 });
 
 interface LanguageContextValue {

@@ -1,12 +1,32 @@
 import jsPDF from 'jspdf';
 import type { ReportForm, Profile } from '../types';
 import * as calc from './calculations/report';
-import { getSchemeImageUrl } from '../services/schemeService';
+import { RobotoRegular, RobotoBold } from './fonts/roboto';
 
 /**
  * PDF Generator for Water and Air Method Reports
- * Generates PDF reports with Croatian character support
+ * Generates PDF reports with Croatian character support using Roboto font
  */
+
+// Flag to track if fonts are registered
+let fontsRegistered = false;
+
+// Register Roboto fonts with jsPDF (only once)
+const registerFonts = (doc: jsPDF) => {
+    if (!fontsRegistered) {
+        // Add Roboto Regular
+        doc.addFileToVFS('Roboto-Regular.ttf', RobotoRegular);
+        doc.addFont('Roboto-Regular.ttf', 'Roboto', 'normal');
+
+        // Add Roboto Bold
+        doc.addFileToVFS('Roboto-Bold.ttf', RobotoBold);
+        doc.addFont('Roboto-Bold.ttf', 'Roboto', 'bold');
+
+        fontsRegistered = true;
+    }
+    // Set Roboto as default font
+    doc.setFont('Roboto');
+};
 
 // Helper to load image
 const loadImage = (src: string): Promise<HTMLImageElement> => {
@@ -18,77 +38,12 @@ const loadImage = (src: string): Promise<HTMLImageElement> => {
     });
 };
 
-// Helper to render Croatian text with special characters
-const renderCroatianText = (doc: jsPDF, text: string, x: number, y: number, options?: any) => {
-    // For characters that need special handling: č, ć, š, ž, đ, Č, Ć, Š, Ž, Đ
-    const specialChars: Record<string, { base: string, hasHacek: boolean, hasStroke: boolean }> = {
-        'č': { base: 'c', hasHacek: true, hasStroke: false },
-        'ć': { base: 'c', hasHacek: true, hasStroke: false },
-        'š': { base: 's', hasHacek: true, hasStroke: false },
-        'ž': { base: 'z', hasHacek: true, hasStroke: false },
-        'đ': { base: 'd', hasHacek: false, hasStroke: true },
-        'Č': { base: 'C', hasHacek: true, hasStroke: false },
-        'Ć': { base: 'C', hasHacek: true, hasStroke: false },
-        'Š': { base: 'S', hasHacek: true, hasStroke: false },
-        'Ž': { base: 'Z', hasHacek: true, hasStroke: false },
-        'Đ': { base: 'D', hasHacek: false, hasStroke: true }
-    };
-
-    const hasSpecialChars = /[čćšžđČĆŠŽĐ]/.test(text);
-
-    if (!hasSpecialChars || options?.align === 'center' || options?.align === 'right') {
-        // For centered/right-aligned or text without special chars, use simple replacement
-        const cleanText = text.replace(/[čćšžđČĆŠŽĐ]/g, (match) => specialChars[match]?.base || match);
-        doc.text(cleanText, x, y, options);
-        return;
-    }
-
-    // For left-aligned text with special chars, render character by character
-    const currentFontSize = doc.getFontSize();
-    const currentLineWidth = 0.1; // Save current line width
-    let currentX = x;
-
-    for (let i = 0; i < text.length; i++) {
-        const char = text[i];
-        const special = specialChars[char];
-
-        if (special) {
-            doc.text(special.base, currentX, y);
-            const charWidth = doc.getTextWidth(special.base);
-
-            // Draw hacek (ˇ) for č, ć, š, ž
-            if (special.hasHacek) {
-                const fontSize = doc.getFontSize();
-                // Position the hacek directly above the character
-                const hacekBaseY = y - fontSize * 0.22;
-                const hacekX = currentX + charWidth / 2;
-                doc.setLineWidth(0.3);
-                // Draw a small v-shape pointing down (like ˇ)
-                doc.line(hacekX - 0.5, hacekBaseY - 0.5, hacekX, hacekBaseY);
-                doc.line(hacekX, hacekBaseY, hacekX + 0.5, hacekBaseY - 0.5);
-                doc.setLineWidth(currentLineWidth); // Restore line width
-            }
-
-            // Draw stroke for đ
-            if (special.hasStroke) {
-                doc.setLineWidth(0.3);
-                doc.line(currentX + 0.3, y - currentFontSize * 0.3, currentX + charWidth - 0.3, y - currentFontSize * 0.3);
-                doc.setLineWidth(currentLineWidth); // Restore line width
-            }
-
-            currentX += charWidth;
-        } else {
-            doc.text(char, currentX, y);
-            currentX += doc.getTextWidth(char);
-        }
-    }
-};
-
 export const generatePDF = async (report: Partial<ReportForm>, userProfile?: Profile) => {
     const doc = new jsPDF({
         putOnlyUsedFonts: true,
         compress: true
     });
+    registerFonts(doc);
     await renderReportPage(doc, report, userProfile, 1, 1);
     doc.save(`report_${report.id || 'new'}.pdf`);
 };
@@ -98,6 +53,7 @@ export const generateBulkPDF = async (reports: Partial<ReportForm>[], filename: 
         putOnlyUsedFonts: true,
         compress: true
     });
+    registerFonts(doc);
     const totalPages = reports.length;
     for (let i = 0; i < reports.length; i++) {
         if (i > 0) {
@@ -113,6 +69,7 @@ export const generateBulkPDFAsBlob = async (reports: Partial<ReportForm>[], user
         putOnlyUsedFonts: true,
         compress: true
     });
+    registerFonts(doc);
     const totalPages = reports.length;
     for (let i = 0; i < reports.length; i++) {
         if (i > 0) {
@@ -145,18 +102,9 @@ const renderReportPage = async (doc: jsPDF, report: Partial<ReportForm>, userPro
     try {
         logoImg = await loadImage('/assets/ai_icon.png');
         const schemeNum = report.draft_id || 1;
-        // Try to load from Supabase Storage first, fallback to local
-        const schemeUrl = await getSchemeImageUrl(schemeNum);
-        sketchImg = await loadImage(schemeUrl);
+        sketchImg = await loadImage(`/assets/Scheme${schemeNum}.PNG`);
     } catch (e) {
         console.warn('Failed to load some images', e);
-        // Fallback to local asset if cloud loading fails
-        try {
-            const schemeNum = report.draft_id || 1;
-            sketchImg = await loadImage(`/assets/Scheme${schemeNum}.PNG`);
-        } catch {
-            console.warn('Failed to load fallback image');
-        }
     }
 
     // --- Header ---
@@ -168,7 +116,7 @@ const renderReportPage = async (doc: jsPDF, report: Partial<ReportForm>, userPro
     // Company Info (Center) - centered between the two vertical lines (60 and 135)
     const centerX = (60 + 135) / 2; // Center between the two lines
     doc.setFontSize(8);
-    doc.setFont('helvetica', 'normal');
+    doc.setFont('Roboto', 'normal');
     // Using D with stroke as workaround for Đ since standard fonts don't support it
     const fullText = 'GRAĐEVINSKI LABORATORIJ';
     const textWidth = doc.getTextWidth(fullText.replace('Đ', 'D'));
@@ -183,10 +131,10 @@ const renderReportPage = async (doc: jsPDF, report: Partial<ReportForm>, userPro
     doc.line(startX + graWidth + 0.3, 19, startX + graWidth + dWidth - 0.3, 19);
     doc.text('EVINSKI LABORATORIJ', startX + graWidth + dWidth, 20);
 
-    doc.setFont('helvetica', 'bold');
+    doc.setFont('Roboto', 'bold');
     doc.setFontSize(9);
     doc.text('ANTE-INŽENJERSTVO d.o.o.', centerX, 26, { align: 'center' });
-    doc.setFont('helvetica', 'normal');
+    doc.setFont('Roboto', 'normal');
     doc.setFontSize(7);
     doc.text('Petra Krešimira 19 ; 21 266 Zmijavci', centerX, 32, { align: 'center' });
     doc.text('www.ante-inzenjerstvo.hr', centerX, 37, { align: 'center' });
@@ -198,7 +146,7 @@ const renderReportPage = async (doc: jsPDF, report: Partial<ReportForm>, userPro
 
     // Title (Right) - Top section
     doc.setFontSize(8);
-    doc.setFont('helvetica', 'bold');
+    doc.setFont('Roboto', 'bold');
     const title = report.type_id === 1
         ? 'ISPITIVANJE\nVODONEPROPUSNOSTI\nCJEVOVODA CIJEVI I\nKONTROLNA OKNA\nPREMA HRN EN\n1610:2015 - L'
         : 'ISPITIVANJE\nVODONEPROPUSNOSTI\nCJEVOVODA\nMETODA ZRAK\nPREMA HRN EN\n1610:2015 - L';
@@ -212,9 +160,9 @@ const renderReportPage = async (doc: jsPDF, report: Partial<ReportForm>, userPro
 
     // Meta Info (Far Right) - Separate column
     doc.setFontSize(8);
-    doc.setFont('helvetica', 'bold');
+    doc.setFont('Roboto', 'bold');
     doc.text(`Stranica: ${pageNum}/${totalPages}`, pageWidth - 15, 17, { align: 'right' });
-    doc.setFont('helvetica', 'normal');
+    doc.setFont('Roboto', 'normal');
     doc.text('OB 21-2', pageWidth - 15, 22, { align: 'right' });
     doc.text('Izdanje: 2', pageWidth - 15, 27, { align: 'right' });
     doc.text(`Datum: ${new Date().toLocaleDateString('hr-HR')}`, pageWidth - 15, 32, { align: 'right' });
@@ -225,7 +173,7 @@ const renderReportPage = async (doc: jsPDF, report: Partial<ReportForm>, userPro
     const statusColor = satisfies ? '#008000' : '#FF0000';
 
     doc.setFontSize(16);
-    doc.setFont('helvetica', 'bold');
+    doc.setFont('Roboto', 'bold');
     doc.setTextColor(statusColor);
     doc.text(statusText, pageWidth / 2, 60, { align: 'center' });
     doc.setTextColor(0, 0, 0); // Reset
@@ -233,7 +181,7 @@ const renderReportPage = async (doc: jsPDF, report: Partial<ReportForm>, userPro
     // --- General Info ---
     let currentY = 75;
     doc.setFontSize(10);
-    doc.setFont('helvetica', 'normal');
+    doc.setFont('Roboto', 'normal');
 
     // Left side
     doc.text(`Temperatura: ${report.temperature} °C`, 40, currentY);
@@ -262,30 +210,41 @@ const renderReportPage = async (doc: jsPDF, report: Partial<ReportForm>, userPro
     }
 
     // --- Input Data Section ---
-    const leftX = 40;
-    const rightX = 120;
+    const leftX = 15;
+    const leftValueX = 55; // Fixed position for left column values
+    const rightLabelX = pageWidth / 2 + 5; // Right column labels start at center + margin
+    const rightValueX = pageWidth - 15; // Right column values right-aligned
     let leftY = currentY;
     let rightY = currentY;
 
-    // Helper for rows
-    const drawLeftRow = (key: string, value: string, x: number, y: number) => {
-        doc.setFont('helvetica', 'normal');
-        renderCroatianText(doc, key + ':', x, y);
-        doc.setFont('helvetica', 'bold');
-        renderCroatianText(doc, value, x + 55, y);
+    // Helper for rows - two-column layout with proper spacing
+    const drawLeftRow = (key: string, value: string, y: number, maxValueWidth?: number) => {
+        doc.setFont('Roboto', 'normal');
+        doc.setFontSize(8);
+        doc.text(key + ':', leftX, y);
+        doc.setFont('Roboto', 'bold');
+        // Truncate value if too long
+        let displayValue = value;
+        const maxWidth = maxValueWidth || 35; // Default max width for values
+        while (doc.getTextWidth(displayValue) > maxWidth && displayValue.length > 3) {
+            displayValue = displayValue.slice(0, -4) + '...';
+        }
+        doc.text(displayValue, leftValueX, y);
     };
 
-    const drawRightRow = (key: string, value: string, x: number, y: number) => {
-        doc.setFont('helvetica', 'normal');
-        renderCroatianText(doc, key + ':', x, y);
-        doc.setFont('helvetica', 'bold');
-        renderCroatianText(doc, value, x + 60, y);
+    const drawRightRow = (key: string, value: string, y: number) => {
+        doc.setFont('Roboto', 'normal');
+        doc.setFontSize(8);
+        doc.text(key + ':', rightLabelX, y);
+        doc.setFont('Roboto', 'bold');
+        doc.text(value, rightValueX, y, { align: 'right' });
     };
 
-    const addLeft = (k: string, v: string) => { drawLeftRow(k, v, leftX, leftY); leftY += 5; };
-    const addRight = (k: string, v: string) => { drawRightRow(k, v, rightX, rightY); rightY += 5; };
+    const addLeft = (k: string, v: string, maxWidth?: number) => { drawLeftRow(k, v, leftY, maxWidth); leftY += 5; };
+    const addRight = (k: string, v: string) => { drawRightRow(k, v, rightY); rightY += 5; };
 
     // --- Left Column Inputs ---
+    // Dionica - show full name without truncation
     addLeft('Dionica', report.dionica || '-');
 
     const isGully = report.draft_id === 4 || report.draft_id === 5;
@@ -370,7 +329,7 @@ const renderReportPage = async (doc: jsPDF, report: Partial<ReportForm>, userPro
     // For Air Method, show measurements in the right column
     if (report.type_id === 2) {
         const stabTime = report.stabilization_time || '00:00';
-        addRight('Vrijeme stabilizacije', stabTime.toString());
+        addRight('Vr. stabilizacije', stabTime.toString());
 
         const examDuration = report.examination_duration || '00:00';
         addRight('Trajanje', examDuration.toString());
@@ -379,10 +338,10 @@ const renderReportPage = async (doc: jsPDF, report: Partial<ReportForm>, userPro
         const testTimeMins = report.required_test_time || 0;
         const testMins = Math.floor(testTimeMins);
         const testSecs = Math.round((testTimeMins - testMins) * 60);
-        addRight('Vrijeme ispitivanja', `${testMins}m ${testSecs.toString().padStart(2, '0')}s`);
+        addRight('Vr. ispitivanja', `${testMins}m ${testSecs.toString().padStart(2, '0')}s`);
 
-        addRight('Tlak na početku', `${(report.pressure_start || 0).toFixed(2)} mbar`);
-        addRight('Tlak na kraju', `${(report.pressure_end || 0).toFixed(2)} mbar`);
+        addRight('Tlak poc.', `${(report.pressure_start || 0).toFixed(2)} mbar`);
+        addRight('Tlak kraj', `${(report.pressure_end || 0).toFixed(2)} mbar`);
         addRight('Pad tlaka', `${(report.pressure_loss || 0).toFixed(2)} mbar`);
     }
 
@@ -431,37 +390,37 @@ const renderReportPage = async (doc: jsPDF, report: Partial<ReportForm>, userPro
 
         const hydrostaticHeight = calc.calculateHydrostaticHeight(draftId, r.water_height!, r.pipe_diameter!, r.depositional_height!);
 
-        // Display Results (Left Column)
+        // Display Results (Left Column) - Use shorter labels to fit
         if (draftId === 1 || draftId === 3 || draftId === 4 || draftId === 5) {
-            const label = (draftId === 4 || draftId === 5) ? 'Omoćena površina slivnika' : 'Omoćena površina okna';
+            const label = (draftId === 4 || draftId === 5) ? 'Om. povr. slivnika' : 'Om. povr. okna';
             addLeft(label, `${wettedShaft.toFixed(2)} m²`);
         } else if (draftId === 2) {
             if (report.material_type_id === 2) {
-                addLeft('Omoćena površina kanala', `${wettedShaft.toFixed(2)} m²`);
+                addLeft('Om. povr. kanala', `${wettedShaft.toFixed(2)} m²`);
             } else {
-                addLeft('Omoćena površina okna', `${wettedShaft.toFixed(2)} m²`);
+                addLeft('Om. povr. okna', `${wettedShaft.toFixed(2)} m²`);
             }
         }
 
         if ([2, 3, 5].includes(draftId)) {
-            addLeft('Omoćena površina cijevi', `${wettedPipe.toFixed(2)} m²`);
+            addLeft('Om. povr. cijevi', `${wettedPipe.toFixed(2)} m²`);
         }
 
-        addLeft('Ukupna omočena površina', `${totalArea.toFixed(2)} m²`);
-        addLeft('Dozvoljeni gubitak', `${allowedLossL.toFixed(2)} l`);
-        addLeft('Dozvoljeni gubitak', `${allowedLossMm.toFixed(2)} mm`);
+        addLeft('Ukupna om. povr.', `${totalArea.toFixed(2)} m²`);
+        addLeft('Dozv. gubitak (l)', `${allowedLossL.toFixed(2)} l`);
+        addLeft('Dozv. gubitak (mm)', `${allowedLossMm.toFixed(2)} mm`);
 
-        // Display Results (Right Column)
-        addRight('Visina vode u oknu na početku', `${(report.water_height_start || 0).toFixed(2)} mm`);
-        addRight('Visina vode u oknu na kraju', `${(report.water_height_end || 0).toFixed(2)} mm`);
+        // Display Results (Right Column) - Use shorter labels
+        addRight('Vis. vode na poc.', `${(report.water_height_start || 0).toFixed(2)} mm`);
+        addRight('Vis. vode na kraju', `${(report.water_height_end || 0).toFixed(2)} mm`);
 
         if ([2, 3].includes(draftId) && hydrostaticHeight > 0) {
-            addRight('Hidrostatska visina', `${(hydrostaticHeight * 100).toFixed(0)} cm`);
+            addRight('Hidrost. visina', `${(hydrostaticHeight * 100).toFixed(0)} cm`);
         }
 
         addRight('Gubitak vode', `${waterLoss.toFixed(2)} mm`);
         addRight('ΔV', `${volLoss.toFixed(4)} l`);
-        addRight('Izmjereni gubitak', `${result.toFixed(2)} l/m²`);
+        addRight('Izmj. gubitak', `${result.toFixed(2)} l/m²`);
     } else if (report.type_id === 2) { // Air Method Results
         // Air method measurements are now in the input section above
         // Sync Y for table
@@ -477,7 +436,7 @@ const renderReportPage = async (doc: jsPDF, report: Partial<ReportForm>, userPro
 
         // Main category headers
         doc.setFontSize(8);
-        doc.setFont('helvetica', 'bold');
+        doc.setFont('Roboto', 'bold');
         doc.text('SUHE BETONSKE CIJEVI', tableX + 42.5, tableY + 2, { align: 'center' });
         doc.text('OSTALE CIJEVI', tableX + 127.5, tableY + 2, { align: 'center' });
 
@@ -530,7 +489,7 @@ const renderReportPage = async (doc: jsPDF, report: Partial<ReportForm>, userPro
 
         // Data rows
         y += 5;
-        doc.setFont('helvetica', 'normal');
+        doc.setFont('Roboto', 'normal');
         const rows = [
             { d: '100', c: [5, 4, 3, 1.5], o: [5, 4, 3, 1.5] },
             { d: '200', c: [5, 4, 3, 1.5], o: [5, 4, 3, 1.5] },
@@ -597,22 +556,22 @@ const renderReportPage = async (doc: jsPDF, report: Partial<ReportForm>, userPro
     currentY = Math.max(leftY, rightY) + 5;
 
     doc.setFontSize(10);
-    doc.setFont('helvetica', 'normal');
+    doc.setFont('Roboto', 'normal');
     doc.text('Napomena:', 20, currentY);
     if (report.remark) {
-        doc.setFont('helvetica', 'bold');
+        doc.setFont('Roboto', 'bold');
         doc.text(report.remark, 20, currentY + 5, { maxWidth: 80 });
     }
 
-    doc.setFont('helvetica', 'normal');
+    doc.setFont('Roboto', 'normal');
     doc.text('Odstupanje od norme:', 110, currentY);
     if (report.deviation) {
-        doc.setFont('helvetica', 'bold');
+        doc.setFont('Roboto', 'bold');
         doc.text(report.deviation, 110, currentY + 5, { maxWidth: 80 });
     }
 
     doc.setFontSize(12);
-    doc.setFont('helvetica', 'bold');
+    doc.setFont('Roboto', 'bold');
     const displayName = userProfile ? `${userProfile.name} ${userProfile.last_name}` : 'Nepoznat korisnik';
     doc.text(`Izradio: ${displayName}`, pageWidth / 2, pageHeight - 20, { align: 'center' });
 };

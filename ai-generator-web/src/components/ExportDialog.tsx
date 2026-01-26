@@ -4,6 +4,7 @@ import { Button } from './ui/Button';
 import type { User, ReportForm, ReportFile } from '../types';
 import { FileUploader } from './FileUploader';
 import { useLanguage } from '../context/LanguageContext';
+import { certifierService, type Certifier } from '../services/certifierService';
 
 interface ExportDialogProps {
     open: boolean;
@@ -39,11 +40,34 @@ export const ExportDialog = ({ open, onOpenChange, onConfirm, loading = false, d
         airDeviation: defaultValues?.airDeviation || '',
         waterRemark: defaultValues?.waterRemark || '',
         waterDeviation: defaultValues?.waterDeviation || '',
-        certifierName: defaultValues?.certifierName || '',
+        certifierName: defaultValues?.certifierName || 'Nikola Brečić bacc.ing.secc.',
         includePdfs: defaultValues?.includePdfs || false,
     });
 
     const [selectedReportIds, setSelectedReportIds] = useState<Set<string>>(new Set());
+    const [certifiers, setCertifiers] = useState<Certifier[]>([]);
+
+    // Fetch certifiers on mount
+    useEffect(() => {
+        const fetchCertifiers = async () => {
+            try {
+                const data = await certifierService.getAll();
+                setCertifiers(data);
+                // If we have certifiers and no default value is set, use the default certifier
+                if (data.length > 0 && !defaultValues?.certifierName) {
+                    const defaultCertifier = data.find(c => c.is_default) || data[0];
+                    setData(prev => ({
+                        ...prev,
+                        certifierName: certifierService.getDisplayName(defaultCertifier)
+                    }));
+                }
+            } catch (error) {
+                console.warn('Error fetching certifiers:', error);
+                // Keep fallback values if fetch fails
+            }
+        };
+        fetchCertifiers();
+    }, []);
 
     // Update state when defaultValues change or dialog opens
     useEffect(() => {
@@ -294,13 +318,26 @@ export const ExportDialog = ({ open, onOpenChange, onConfirm, loading = false, d
 
                     <div className="space-y-2">
                         <label className="text-sm font-medium leading-none">{t('export.certifierName')}</label>
-                        <input
-                            className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                        <select
+                            className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
                             value={data.certifierName}
                             onChange={(e) => setData({ ...data, certifierName: e.target.value })}
-                            placeholder={t('export.certifierPlaceholder')}
                             disabled={loading}
-                        />
+                        >
+                            {certifiers.length > 0 ? (
+                                certifiers.map((certifier) => (
+                                    <option key={certifier.id} value={certifierService.getDisplayName(certifier)}>
+                                        {certifierService.getDisplayName(certifier)}
+                                        {certifier.is_default ? ` (${t('certifiers.default')})` : ''}
+                                    </option>
+                                ))
+                            ) : (
+                                <>
+                                    <option value="Nikola Brečić bacc.ing.secc.">Nikola Brečić bacc.ing.secc.</option>
+                                    <option value="Ante Milas">Ante Milas</option>
+                                </>
+                            )}
+                        </select>
                     </div>
 
                     {/* File Upload Section */}
