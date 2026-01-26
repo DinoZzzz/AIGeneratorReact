@@ -546,8 +546,11 @@ export const generateWordDocument = async (reports: ReportForm[], metaData: Expo
             mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
         });
 
-        // 8. Save file
-        saveAs(blob, `${metaData.constructionPart || 'Report'}_${new Date().getTime()}.docx`);
+        // 8. Save file - Format: "WorkOrder - DD.MM.YYYY.docx"
+        const today = new Date();
+        const formattedDate = `${today.getDate().toString().padStart(2, '0')}.${(today.getMonth() + 1).toString().padStart(2, '0')}.${today.getFullYear()}`;
+        const workOrderPart = construction?.work_order || metaData.constructionPart || 'Report';
+        saveAs(blob, `${workOrderPart} - ${formattedDate}.docx`);
 
         // 9. Save to History (Database)
         if (userId) {
