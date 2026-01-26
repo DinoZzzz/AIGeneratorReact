@@ -102,12 +102,12 @@ export const generateWordDocument = async (reports: ReportForm[], metaData: Expo
             }
         }
 
-        // Fetch user profile for gender determination
+        // Fetch user profile for gender determination and creator name
         let userProfile: any = null;
         if (userId) {
             const { data: profile } = await supabase
                 .from('profiles')
-                .select('id, name, last_name, gender')
+                .select('id, name, last_name, gender, title')
                 .eq('id', userId)
                 .single();
 
@@ -474,8 +474,17 @@ export const generateWordDocument = async (reports: ReportForm[], metaData: Expo
         const airMethodSatisfies = anyAirFailed ? "ne zadovoljava" : "zadovoljava"; // Or empty? Mapping says: "ne zadovoljava" if any fail.
 
         // 6. Set the data matching the Mustache tags in the docx template
+        // creator = user who generated the report (logged-in user)
+        // certifier = selected certifier (Ante or Nikola)
+        const creatorFullName = userProfile
+            ? `${userProfile.name || ''} ${userProfile.last_name || ''}`.trim()
+            : "";
+        const creatorName = userProfile?.title
+            ? `${creatorFullName} ${userProfile.title}`.trim()
+            : creatorFullName || "System";
+
         doc.render({
-            creator: metaData.certifierName || "System",
+            creator: creatorName,
             certifier: metaData.certifierName,
             constructionSitePart: metaData.constructionPart || "-",
             currentDate: new Date().toLocaleDateString('hr-HR'),
