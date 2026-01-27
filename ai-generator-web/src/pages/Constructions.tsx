@@ -188,31 +188,28 @@ export const Constructions = () => {
                             <div className="inline-flex rounded-lg border border-input p-1 bg-muted/30">
                                 <button
                                     onClick={() => setFilter('all')}
-                                    className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
-                                        filter === 'all'
+                                    className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${filter === 'all'
                                             ? 'bg-background text-foreground shadow-sm'
                                             : 'text-muted-foreground hover:text-foreground'
-                                    }`}
+                                        }`}
                                 >
                                     {t('constructions.filterAll')}
                                 </button>
                                 <button
                                     onClick={() => setFilter('active')}
-                                    className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
-                                        filter === 'active'
+                                    className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${filter === 'active'
                                             ? 'bg-background text-foreground shadow-sm'
                                             : 'text-muted-foreground hover:text-foreground'
-                                    }`}
+                                        }`}
                                 >
                                     {t('constructions.filterActive')}
                                 </button>
                                 <button
                                     onClick={() => setFilter('archived')}
-                                    className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
-                                        filter === 'archived'
+                                    className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${filter === 'archived'
                                             ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-300 shadow-sm'
                                             : 'text-muted-foreground hover:text-foreground'
-                                    }`}
+                                        }`}
                                 >
                                     {t('constructions.filterArchived')}
                                 </button>
@@ -244,8 +241,8 @@ export const Constructions = () => {
                                             )}
                                         </div>
                                         <h3 className="text-lg font-bold text-foreground flex items-center">
-                                            <HardHat className="h-4 w-4 mr-2 text-primary" />
-                                            {construction.name}
+                                            <HardHat className="h-4 w-4 mr-2 text-primary flex-shrink-0" />
+                                            <span className="truncate max-w-[200px] md:max-w-[300px]" title={construction.name}>{construction.name}</span>
                                         </h3>
                                     </div>
                                     <div className="flex space-x-2">
@@ -331,8 +328,8 @@ export const Constructions = () => {
                                             )}
                                         </div>
                                     </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
-                                        {construction.name}
+                                    <td className="px-6 py-4 text-sm text-muted-foreground max-w-[250px]">
+                                        <span className="block truncate" title={construction.name}>{construction.name}</span>
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
                                         {construction.location}

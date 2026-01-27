@@ -180,7 +180,7 @@ export const Customers = () => {
                                         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-muted text-muted-foreground mb-1">
                                             {customer.work_order || '-'}
                                         </span>
-                                        <h3 className="text-lg font-bold text-foreground">{customer.name}</h3>
+                                        <h3 className="text-lg font-bold text-foreground truncate max-w-[200px] md:max-w-[300px]" title={customer.name}>{customer.name}</h3>
                                     </div>
                                     <div className="flex space-x-2">
                                         <Link
@@ -262,8 +262,8 @@ export const Customers = () => {
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">
                                             {customer.work_order}
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-foreground">
-                                            {customer.name}
+                                        <td className="px-6 py-4 text-sm font-medium text-foreground max-w-[250px]">
+                                            <span className="block truncate" title={customer.name}>{customer.name}</span>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
                                             {customer.location}
