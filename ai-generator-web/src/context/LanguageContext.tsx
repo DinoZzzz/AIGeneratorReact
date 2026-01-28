@@ -1257,6 +1257,112 @@ Object.assign(translations.en, {
     'certifiers.loadError': 'Error loading certifiers'
 });
 
+// TemplateEditor translations (HR)
+Object.assign(translations.hr, {
+    'templateEditor.title': 'Predložak dokumenta',
+    'templateEditor.previewBtn': 'Pregled',
+    'templateEditor.currentTemplate': 'Trenutni predložak',
+    'templateEditor.lastUpdated': 'Zadnja izmjena',
+    'templateEditor.updatedBy': 'Izmijenio',
+    'templateEditor.download': 'Preuzmi',
+    'templateEditor.uploadNew': 'Povucite ili kliknite za učitavanje novog predloška',
+    'templateEditor.supportedFormat': 'Podržani format: .docx',
+    'templateEditor.validating': 'Validacija...',
+    'templateEditor.validation': 'Rezultati validacije',
+    'templateEditor.tagMissing': 'nedostaje',
+    'templateEditor.tagFound': 'pronađeno',
+    'templateEditor.moreTags': 'dodatnih oznaka',
+    'templateEditor.unrecognized': 'neprepoznata oznaka',
+    'templateEditor.uploading': 'Učitavanje...',
+    'templateEditor.activateBtn': 'Aktiviraj predložak',
+    'templateEditor.previousVersions': 'Prethodne verzije',
+    'templateEditor.restore': 'Vrati',
+    'templateEditor.uploadSuccess': 'Predložak uspješno učitan',
+    'templateEditor.uploadError': 'Greška prilikom učitavanja predloška',
+    'templateEditor.rollbackConfirm': 'Jeste li sigurni da želite vratiti ovu verziju predloška?',
+    'templateEditor.rollbackSuccess': 'Predložak uspješno vraćen',
+    'templateEditor.rollbackError': 'Greška prilikom vraćanja predloška',
+    'templateEditor.deleteBackupConfirm': 'Jeste li sigurni da želite obrisati ovu sigurnosnu kopiju?',
+    'templateEditor.deleteBackupSuccess': 'Sigurnosna kopija uspješno obrisana',
+    'templateEditor.deleteBackupError': 'Greška prilikom brisanja sigurnosne kopije'
+});
+
+// TemplateEditor translations (EN)
+Object.assign(translations.en, {
+    'templateEditor.title': 'Document Template',
+    'templateEditor.previewBtn': 'Preview',
+    'templateEditor.currentTemplate': 'Current Template',
+    'templateEditor.lastUpdated': 'Last Updated',
+    'templateEditor.updatedBy': 'Updated by',
+    'templateEditor.download': 'Download',
+    'templateEditor.uploadNew': 'Drag and drop or click to upload a new template',
+    'templateEditor.supportedFormat': 'Supported format: .docx',
+    'templateEditor.validating': 'Validating...',
+    'templateEditor.validation': 'Validation Results',
+    'templateEditor.tagMissing': 'missing',
+    'templateEditor.tagFound': 'found',
+    'templateEditor.moreTags': 'more tags',
+    'templateEditor.unrecognized': 'unrecognized tag',
+    'templateEditor.uploading': 'Uploading...',
+    'templateEditor.activateBtn': 'Activate Template',
+    'templateEditor.previousVersions': 'Previous Versions',
+    'templateEditor.restore': 'Restore',
+    'templateEditor.uploadSuccess': 'Template uploaded successfully',
+    'templateEditor.uploadError': 'Error uploading template',
+    'templateEditor.rollbackConfirm': 'Are you sure you want to restore this template version?',
+    'templateEditor.rollbackSuccess': 'Template restored successfully',
+    'templateEditor.rollbackError': 'Error restoring template',
+    'templateEditor.deleteBackupConfirm': 'Are you sure you want to delete this backup?',
+    'templateEditor.deleteBackupSuccess': 'Backup deleted successfully',
+    'templateEditor.deleteBackupError': 'Error deleting backup'
+});
+
+// SchemeManager translations (HR)
+Object.assign(translations.hr, {
+    'schemeManager.title': 'Sheme ispitivanja',
+    'schemeManager.subtitle': 'Upravljajte slikama shema za obrasce ispitivanja',
+    'schemeManager.noSchemes': 'Nema dostupnih shema',
+    'schemeManager.waterMethod': 'Metoda vodom',
+    'schemeManager.airMethod': 'Metoda zrakom',
+    'schemeManager.dragDrop': 'Povucite ili kliknite za učitavanje',
+    'schemeManager.upload': 'Učitaj',
+    'schemeManager.uploadSuccess': 'Slika sheme uspješno učitana',
+    'schemeManager.uploadError': 'Greška prilikom učitavanja slike',
+    'schemeManager.name': 'Naziv',
+    'schemeManager.description': 'Opis',
+    'schemeManager.save': 'Spremi',
+    'schemeManager.saveSuccess': 'Podaci sheme uspješno spremljeni',
+    'schemeManager.saveError': 'Greška prilikom spremanja podataka',
+    'schemeManager.resetConfirm': 'Jeste li sigurni da želite vratiti izvornu sliku sheme?',
+    'schemeManager.resetSuccess': 'Shema uspješno vraćena na izvorno',
+    'schemeManager.resetError': 'Greška prilikom vraćanja sheme',
+    'schemeManager.reset': 'Vrati izvorno',
+    'schemeManager.updatedBy': 'Izmijenio'
+});
+
+// SchemeManager translations (EN)
+Object.assign(translations.en, {
+    'schemeManager.title': 'Test Schemes',
+    'schemeManager.subtitle': 'Manage scheme images for test reports',
+    'schemeManager.noSchemes': 'No schemes available',
+    'schemeManager.waterMethod': 'Water Method',
+    'schemeManager.airMethod': 'Air Method',
+    'schemeManager.dragDrop': 'Drag and drop or click to upload',
+    'schemeManager.upload': 'Upload',
+    'schemeManager.uploadSuccess': 'Scheme image uploaded successfully',
+    'schemeManager.uploadError': 'Error uploading image',
+    'schemeManager.name': 'Name',
+    'schemeManager.description': 'Description',
+    'schemeManager.save': 'Save',
+    'schemeManager.saveSuccess': 'Scheme data saved successfully',
+    'schemeManager.saveError': 'Error saving data',
+    'schemeManager.resetConfirm': 'Are you sure you want to reset to the original scheme image?',
+    'schemeManager.resetSuccess': 'Scheme reset successfully',
+    'schemeManager.resetError': 'Error resetting scheme',
+    'schemeManager.reset': 'Reset to Original',
+    'schemeManager.updatedBy': 'Updated by'
+});
+
 interface LanguageContextValue {
     language: Language;
     setLanguage: (lang: Language) => void;
