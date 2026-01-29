@@ -1,13 +1,13 @@
 export class AppError extends Error {
   public code: string;
   public statusCode?: number;
-  public context?: Record<string, any>;
+  public context?: Record<string, unknown>;
 
   constructor(
     message: string,
     code: string,
     statusCode?: number,
-    context?: Record<string, any>
+    context?: Record<string, unknown>
   ) {
     super(message);
     this.code = code;
@@ -19,7 +19,7 @@ export class AppError extends Error {
 }
 
 export class ValidationError extends AppError {
-  constructor(message: string, context?: Record<string, any>) {
+  constructor(message: string, context?: Record<string, unknown>) {
     super(message, 'VALIDATION_ERROR', 400, context);
     this.name = 'ValidationError';
   }
@@ -149,7 +149,8 @@ export const errorHandler = {
 /**
  * Wrap async functions with error handling
  */
-export const withErrorHandling = <T extends (...args: any[]) => Promise<any>>(
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const withErrorHandling = <T extends (...args: unknown[]) => Promise<any>>(
   fn: T,
   context: string
 ): T => {

@@ -1,6 +1,19 @@
 import { supabase } from '../lib/supabase';
 import type { Profile, ReportType } from '../types';
 
+interface ProfileFromDB {
+    id: string;
+    name: string;
+    last_name: string;
+    username?: string;
+    email: string;
+    title?: string;
+    gender?: string;
+    avatar_url?: string;
+    role: string;
+    accreditations?: string;
+}
+
 export const examinerService = {
     async getExaminers(): Promise<Profile[]> {
         const { data, error } = await supabase
@@ -16,7 +29,7 @@ export const examinerService = {
         // I updated types/index.ts to have 'last_name' and optional 'lastName' map if needed.
         // Ideally we just use the DB shape.
 
-        return data.map((p: any) => ({
+        return (data as ProfileFromDB[]).map((p) => ({
             ...p,
             lastName: p.last_name, // Compatibility mapping
             isAdmin: p.role === 'admin'

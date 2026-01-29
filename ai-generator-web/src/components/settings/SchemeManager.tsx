@@ -89,8 +89,8 @@ const SchemeCard: React.FC<SchemeCardProps> = ({ scheme, onUpdate }) => {
             } else {
                 addToast(result.error || t('schemeManager.uploadError'), 'error');
             }
-        } catch (error: any) {
-            addToast(error.message, 'error');
+        } catch (error) {
+            addToast(error instanceof Error ? error.message : 'Unknown error', 'error');
         } finally {
             setUploading(false);
         }
@@ -115,8 +115,8 @@ const SchemeCard: React.FC<SchemeCardProps> = ({ scheme, onUpdate }) => {
             } else {
                 addToast(result.error || t('schemeManager.saveError'), 'error');
             }
-        } catch (error: any) {
-            addToast(error.message, 'error');
+        } catch (error) {
+            addToast(error instanceof Error ? error.message : 'Unknown error', 'error');
         } finally {
             setSaving(false);
         }
@@ -134,8 +134,8 @@ const SchemeCard: React.FC<SchemeCardProps> = ({ scheme, onUpdate }) => {
             } else {
                 addToast(result.error || t('schemeManager.resetError'), 'error');
             }
-        } catch (error: any) {
-            addToast(error.message, 'error');
+        } catch (error) {
+            addToast(error instanceof Error ? error.message : 'Unknown error', 'error');
         } finally {
             setResetting(false);
         }

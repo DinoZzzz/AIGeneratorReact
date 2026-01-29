@@ -1,6 +1,11 @@
 import { supabase } from '../lib/supabase';
 import type { ReportExport, ReportExportForm } from '../types';
 
+interface ReportExportWithRelations {
+    report_export_forms?: { count: number }[];
+    [key: string]: unknown;
+}
+
 export const historyService = {
     async getAll(
         page: number = 0,
@@ -35,7 +40,7 @@ export const historyService = {
         if (error) throw error;
 
         // Map the count from report_export_forms to a flat property
-        const mappedData = data.map((item: any) => ({
+        const mappedData = (data as ReportExportWithRelations[]).map((item) => ({
             ...item,
             forms_count: item.report_export_forms?.[0]?.count ?? 0
         }));

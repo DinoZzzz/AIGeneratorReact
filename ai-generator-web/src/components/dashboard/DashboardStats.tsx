@@ -17,6 +17,19 @@ interface ExaminerStat {
     weekCount: number;
 }
 
+interface ReportWithConstruction {
+    id: string;
+    user_id: string;
+    created_at: string;
+    construction: {
+        id: string;
+        customer: {
+            id: string;
+            name: string;
+        } | null;
+    } | null;
+}
+
 const DashboardStatsComponent = () => {
     const [customerStats, setCustomerStats] = useState<StatItem[]>([]);
     const [examinerStats, setExaminerStats] = useState<ExaminerStat[]>([]);
@@ -53,7 +66,7 @@ const DashboardStatsComponent = () => {
             // 1. Process Customer Stats
             const customerCounts: Record<string, { name: string, count: number }> = {};
 
-            reports.forEach((report: any) => {
+            (reports as ReportWithConstruction[]).forEach((report) => {
                 const customer = report.construction?.customer;
                 if (customer) {
                     if (!customerCounts[customer.id]) {
@@ -84,7 +97,7 @@ const DashboardStatsComponent = () => {
             });
 
             // Count reports for each user
-            reports.forEach((report: any) => {
+            (reports as ReportWithConstruction[]).forEach((report) => {
                 if (report.user_id && examinerCounts[report.user_id]) {
                     const reportDate = new Date(report.created_at);
 

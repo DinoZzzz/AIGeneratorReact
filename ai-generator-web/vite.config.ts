@@ -14,7 +14,8 @@ export default defineConfig({
       gzipSize: true,
       brotliSize: true,
       filename: 'dist/stats.html',
-    }) as any, // Plugin type compatibility
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    }) as any, // Plugin type compatibility - visualizer types don't match Vite plugin interface
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['icon-192x192.png', 'icon-512x512.png', 'apple-touch-icon.png'],

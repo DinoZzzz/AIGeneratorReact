@@ -19,6 +19,21 @@ interface CustomerTableItem {
     active_constructions: ActiveConstruction[];
 }
 
+interface CustomerWithConstructions {
+    id: string;
+    work_order: string;
+    name: string;
+    updated_at: string;
+    constructions: {
+        id: string;
+        work_order: string | null;
+        name: string;
+        is_active: boolean;
+        updated_at: string;
+        created_at: string;
+    }[] | null;
+}
+
 // Memoized table row component to prevent unnecessary re-renders
 const CustomerTableRow = memo(({ customer, t }: { customer: CustomerTableItem; t: (key: string) => string }) => {
     const displayedConstructions = customer.active_constructions.slice(0, 5);
@@ -178,7 +193,7 @@ const DashboardCustomersTableComponent = () => {
                 return;
             }
 
-            const customerIds = customersData.map((c: any) => c.id);
+            const customerIds = (customersData as CustomerWithConstructions[]).map((c) => c.id);
 
             // Get all related activities in parallel
             const [
@@ -192,17 +207,17 @@ const DashboardCustomersTableComponent = () => {
             ]);
 
             // Format customers with activity calculation
-            const formatted: (CustomerTableItem & { last_activity_date: string })[] = customersData.map((c: any) => {
+            const formatted: (CustomerTableItem & { last_activity_date: string })[] = (customersData as CustomerWithConstructions[]).map((c) => {
                 const active = c.constructions
-                    ?.filter((con: any) => con.is_active)
-                    .map((con: any) => ({
+                    ?.filter((con) => con.is_active)
+                    .map((con) => ({
                         id: con.id,
                         work_order: con.work_order || '',
                         name: con.name,
                         updated_at: con.updated_at,
                         created_at: con.created_at
                     }))
-                    .sort((a: any, b: any) => {
+                    .sort((a, b) => {
                         const dateA = new Date(a.updated_at || a.created_at).getTime();
                         const dateB = new Date(b.updated_at || b.created_at).getTime();
                         return dateB - dateA;
@@ -211,7 +226,7 @@ const DashboardCustomersTableComponent = () => {
                 // Calculate last activity date
                 const dates = [
                     c.updated_at,
-                    ...(c.constructions?.map((con: any) => con.updated_at) || []),
+                    ...(c.constructions?.map((con) => con.updated_at) || []),
                     ...(reports?.filter(r => r.customer_id === c.id).map(r => r.updated_at) || []),
                     ...(exports?.filter(e => e.customer_id === c.id).map(e => e.updated_at) || []),
                     ...(appointments?.filter(a => a.customer_id === c.id).map(a => a.created_at) || [])

@@ -64,9 +64,9 @@ export function FileUploader({ constructionId, onUploadComplete, onDelete, files
       }
 
       alert('Datoteka uspješno učitana!');
-    } catch (error: any) {
+    } catch (error) {
       console.error('Upload error:', error);
-      alert(`Greška pri učitavanju: ${error.message}`);
+      alert(`Greška pri učitavanju: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setUploading(false);
     }
@@ -98,9 +98,9 @@ export function FileUploader({ constructionId, onUploadComplete, onDelete, files
       }
 
       alert('Datoteka obrisana!');
-    } catch (error: any) {
+    } catch (error) {
       console.error('Delete error:', error);
-      alert(`Greška pri brisanju: ${error.message}`);
+      alert(`Greška pri brisanju: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
 

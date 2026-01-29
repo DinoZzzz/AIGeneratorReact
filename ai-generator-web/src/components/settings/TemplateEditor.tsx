@@ -54,8 +54,8 @@ export const TemplateEditor: React.FC = () => {
         try {
             const result = await validateTemplate(file);
             setValidation(result);
-        } catch (error: any) {
-            addToast(error.message, 'error');
+        } catch (error) {
+            addToast(error instanceof Error ? error.message : 'Unknown error', 'error');
         } finally {
             setValidating(false);
         }
@@ -101,8 +101,8 @@ export const TemplateEditor: React.FC = () => {
             } else {
                 addToast(result.error || t('templateEditor.uploadError'), 'error');
             }
-        } catch (error: any) {
-            addToast(error.message, 'error');
+        } catch (error) {
+            addToast(error instanceof Error ? error.message : 'Unknown error', 'error');
         } finally {
             setUploading(false);
         }
@@ -120,8 +120,8 @@ export const TemplateEditor: React.FC = () => {
             } else {
                 addToast(result.error || t('templateEditor.rollbackError'), 'error');
             }
-        } catch (error: any) {
-            addToast(error.message, 'error');
+        } catch (error) {
+            addToast(error instanceof Error ? error.message : 'Unknown error', 'error');
         } finally {
             setLoading(false);
         }
@@ -138,8 +138,8 @@ export const TemplateEditor: React.FC = () => {
             } else {
                 addToast(result.error || t('templateEditor.deleteBackupError'), 'error');
             }
-        } catch (error: any) {
-            addToast(error.message, 'error');
+        } catch (error) {
+            addToast(error instanceof Error ? error.message : 'Unknown error', 'error');
         }
     };
 

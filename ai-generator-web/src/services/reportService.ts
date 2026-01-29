@@ -120,8 +120,8 @@ export const reportService = {
             );
 
             await Promise.all(updates);
-        } catch (error: any) {
-            throw new AppError(error.message || 'Failed to update report order', 'SUPABASE_ERROR', 500);
+        } catch (error) {
+            throw new AppError(error instanceof Error ? error.message : 'Failed to update report order', 'SUPABASE_ERROR', 500);
         }
     },
 

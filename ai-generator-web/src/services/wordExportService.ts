@@ -615,13 +615,24 @@ export const generateWordDocument = async (reports: ReportForm[], metaData: Expo
             }
         }
 
-    } catch (error: any) {
+    } catch (error) {
         console.error("Error generating document:", error);
 
         // Enhanced error reporting for docxtemplater
-        if (error.properties && error.properties.errors) {
+        interface DocxTemplaterError {
+            properties?: {
+                errors?: Array<{
+                    message: string;
+                    part: string;
+                    offset: number;
+                    context: string;
+                }>;
+            };
+        }
+        const docxError = error as DocxTemplaterError;
+        if (docxError.properties?.errors) {
             console.error("Detailed template errors:");
-            error.properties.errors.forEach((err: any) => {
+            docxError.properties.errors.forEach((err) => {
                 console.error({
                     message: err.message,
                     part: err.part,

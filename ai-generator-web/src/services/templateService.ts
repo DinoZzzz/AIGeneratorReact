@@ -186,8 +186,8 @@ export const validateTemplate = async (file: File): Promise<TemplateValidationRe
         result.isValid = result.errors.length === 0 && result.missingTags.length === 0;
 
         return result;
-    } catch (error: any) {
-        result.errors.push(`Validation error: ${error.message}`);
+    } catch (error) {
+        result.errors.push(`Validation error: ${error instanceof Error ? error.message : 'Unknown error'}`);
         return result;
     }
 };
@@ -271,8 +271,8 @@ export const uploadTemplate = async (file: File): Promise<{ success: boolean; er
         }
 
         return { success: true };
-    } catch (error: any) {
-        return { success: false, error: error.message };
+    } catch (error) {
+        return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
     }
 };
 
@@ -350,8 +350,8 @@ export const rollbackTemplate = async (backupPath: string): Promise<{ success: b
         }
 
         return { success: true };
-    } catch (error: any) {
-        return { success: false, error: error.message };
+    } catch (error) {
+        return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
     }
 };
 
@@ -374,7 +374,7 @@ export const deleteTemplateBackup = async (backupPath: string): Promise<{ succes
         }
 
         return { success: true };
-    } catch (error: any) {
-        return { success: false, error: error.message };
+    } catch (error) {
+        return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
     }
 };
