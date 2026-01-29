@@ -3,8 +3,7 @@ import {
     calculatePressureLoss,
     calculateWaterVolumeLoss,
     calculateTotalWettedArea,
-    calculateAllowedLossL,
-    calculateResult
+    calculateAllowedLossL
 } from '../src/lib/calculations';
 import type { ReportForm } from '../src/types';
 

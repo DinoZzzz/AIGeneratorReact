@@ -268,7 +268,7 @@ export const WaterMethodForm = () => {
             }
             // Only save 'satisfies' from calculated - all other fields are display-only
             // Remove id from formData to avoid sending undefined id when creating
-            const { id: formId, ...formDataWithoutId } = formData;
+            const { id: _formId, ...formDataWithoutId } = formData;
             const dataToSave = {
                 ...formDataWithoutId,
                 satisfies: calculated.satisfies,

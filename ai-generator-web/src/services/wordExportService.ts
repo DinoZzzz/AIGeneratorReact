@@ -116,7 +116,7 @@ export const generateWordDocument = async (reports: ReportForm[], metaData: Expo
             }
         }
 
-        let attachments: any[] = [];
+        const attachments: any[] = [];
         let contentTable = "";
         const imageMap: Record<string, ArrayBuffer> = {};
         const imageDimensions: Record<string, { width: number, height: number }> = {};
@@ -208,7 +208,7 @@ export const generateWordDocument = async (reports: ReportForm[], metaData: Expo
         }
 
         // 3b. Generate PDF reports if requested
-        let pdfReportImages: { path: string, description: string, image: string }[] = [];
+        const pdfReportImages: { path: string, description: string, image: string }[] = [];
         if (metaData.includePdfs) {
             try {
                 // Generate PDF for all reports

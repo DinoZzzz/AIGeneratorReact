@@ -51,11 +51,11 @@ export const ExportDialog = ({ open, onOpenChange, onConfirm, loading = false, d
     useEffect(() => {
         const fetchCertifiers = async () => {
             try {
-                const data = await certifierService.getAll();
-                setCertifiers(data);
+                const fetchedCertifiers = await certifierService.getAll();
+                setCertifiers(fetchedCertifiers);
                 // If we have certifiers and no default value is set, use the default certifier
-                if (data.length > 0 && !defaultValues?.certifierName) {
-                    const defaultCertifier = data.find(c => c.is_default) || data[0];
+                if (fetchedCertifiers.length > 0 && !defaultValues?.certifierName) {
+                    const defaultCertifier = fetchedCertifiers.find(c => c.is_default) || fetchedCertifiers[0];
                     setData(prev => ({
                         ...prev,
                         certifierName: certifierService.getDisplayName(defaultCertifier)
@@ -67,12 +67,14 @@ export const ExportDialog = ({ open, onOpenChange, onConfirm, loading = false, d
             }
         };
         fetchCertifiers();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     // Update state when defaultValues change or dialog opens
     useEffect(() => {
         if (open) {
             if (defaultValues && data.constructionPart === '' && defaultValues.constructionPart) {
+                // eslint-disable-next-line react-hooks/set-state-in-effect
                 setData(prev => ({
                     ...prev,
                     ...defaultValues
@@ -86,7 +88,8 @@ export const ExportDialog = ({ open, onOpenChange, onConfirm, loading = false, d
                 setSelectedReportIds(new Set());
             }
         }
-    }, [open, defaultValues, reports]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [open]);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();

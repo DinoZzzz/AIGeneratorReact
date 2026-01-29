@@ -36,7 +36,6 @@ export {
     type AirReportCalculations
 } from '../../features/air/calculations';
 
-import type { ReportForm } from '../../types';
 import { isWaterSatisfying } from '../../features/water/calculations';
 import { isAirSatisfying } from '../../features/air/calculations';
 

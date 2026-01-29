@@ -4,7 +4,6 @@ import { Button } from '../../components/ui/Button';
 import { cn } from '../../lib/utils';
 import type { ReportForm } from '../../types';
 import type { CalculatedResults } from './useWaterCalculations';
-import { ResultsPanel } from './MeasurementsStep';
 
 interface MobileResultsDrawerProps {
     formData: Partial<ReportForm>;

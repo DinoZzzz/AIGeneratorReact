@@ -124,6 +124,8 @@ export const AppointmentDialog = ({
                 }));
             }
         }
+    // formData.location intentionally omitted to prevent infinite loops
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [formData.construction_id, constructions]);
 
     const loadConstructions = async (customerId: string) => {

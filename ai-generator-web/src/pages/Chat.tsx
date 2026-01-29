@@ -142,15 +142,6 @@ export const Chat = () => {
         return fullName || u.email || 'Unknown';
     };
 
-    const getInitials = (msg: Message) => {
-        const u = msg.user;
-        if (!u) return '?';
-        if (u.name && u.last_name) return `${u.name[0]}${u.last_name[0]}`.toUpperCase();
-        if (u.name) return u.name[0].toUpperCase();
-        if (u.email) return u.email[0].toUpperCase();
-        return '?';
-    };
-
     return (
         <div className="h-[calc(100vh-10rem)] lg:h-[calc(100vh-4rem)] flex flex-col">
             {/* Header */}

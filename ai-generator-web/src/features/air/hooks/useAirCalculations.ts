@@ -4,7 +4,6 @@ import {
     getAirTestRequirements,
     getMethodFromProcedureId,
     getProcedureIdFromPressure,
-    type AirTestMethod,
     type PipeMaterial,
     type AirReportCalculations
 } from '../calculations';

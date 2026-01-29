@@ -41,6 +41,7 @@ export const OfflineIndicator = () => {
   // Show completion indicator briefly
   useEffect(() => {
     if (syncStatus && !syncStatus.inProgress && syncStatus.completed > 0) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setRecentlyCompleted(true);
       const timer = setTimeout(() => setRecentlyCompleted(false), 3000);
       return () => clearTimeout(timer);

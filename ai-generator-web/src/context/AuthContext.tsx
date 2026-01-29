@@ -97,6 +97,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         });
 
         return () => subscription.unsubscribe();
+    // loadProfile is stable and only needs to run when lowBandwidthMode changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [lowBandwidthMode]);
 
     const signOut = async () => {

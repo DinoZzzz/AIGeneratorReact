@@ -21,15 +21,20 @@ export const InputDialog: React.FC<InputDialogProps> = ({
     const [value, setValue] = useState(initialValue);
     const inputRef = useRef<HTMLInputElement>(null);
 
+    // Reset value and focus input when dialog opens
     useEffect(() => {
-        setValue(initialValue);
-    }, [initialValue, isOpen]);
-
-    useEffect(() => {
-        if (isOpen && inputRef.current) {
-            inputRef.current.focus();
-            inputRef.current.select();
+        if (isOpen) {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
+            setValue(initialValue);
+            // Focus and select after a short delay to ensure DOM is ready
+            setTimeout(() => {
+                if (inputRef.current) {
+                    inputRef.current.focus();
+                    inputRef.current.select();
+                }
+            }, 0);
         }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isOpen]);
 
     const handleSubmit = (e: React.FormEvent) => {

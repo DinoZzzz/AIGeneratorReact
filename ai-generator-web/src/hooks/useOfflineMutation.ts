@@ -176,7 +176,6 @@ export function useOfflineQuery<TData>({
   enabled?: boolean;
 }) {
   const { isOnline } = useOffline();
-  const queryClient = useQueryClient();
 
   return {
     queryKey,

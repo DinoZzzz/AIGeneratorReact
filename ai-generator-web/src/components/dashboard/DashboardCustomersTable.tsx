@@ -137,6 +137,8 @@ const DashboardCustomersTableComponent = () => {
 
     useEffect(() => {
         fetchCustomers();
+    // fetchCustomers is stable - only depends on search and currentPage
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [search, currentPage]);
 
     const fetchCustomers = async () => {

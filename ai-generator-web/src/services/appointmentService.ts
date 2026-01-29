@@ -44,7 +44,7 @@ export const appointmentService = {
     },
 
     async create(appointment: Partial<Appointment> & { assignee_ids?: string[] }) {
-        const { assignee_ids, assignees, ...apptData } = appointment;
+        const { assignee_ids, assignees: _assignees, ...apptData } = appointment;
 
         // Use assignee_ids if provided, otherwise empty array
         const examiner_ids = assignee_ids || [];
@@ -64,7 +64,7 @@ export const appointmentService = {
     },
 
     async update(id: string, appointment: Partial<Appointment> & { assignee_ids?: string[] }) {
-        const { assignee_ids, assignees, ...apptData } = appointment;
+        const { assignee_ids, assignees: _assignees, ...apptData } = appointment;
 
         // Prepare update data
         const updateData: any = { ...apptData };
