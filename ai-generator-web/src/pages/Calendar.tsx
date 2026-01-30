@@ -138,10 +138,10 @@ export const Calendar = () => {
     const handleSave = async (appointment: Partial<Appointment>) => {
         try {
             if (appointment.id) {
-                // @ts-ignore - appointmentService handles assignee_ids
+                // @ts-expect-error - appointmentService handles assignee_ids
                 await appointmentService.update(appointment.id, appointment);
             } else {
-                // @ts-ignore
+                // @ts-expect-error - appointmentService handles assignee_ids
                 await appointmentService.create(appointment);
             }
             await loadAppointments();

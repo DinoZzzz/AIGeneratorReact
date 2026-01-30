@@ -8,7 +8,7 @@ import {
 } from '../calculations';
 import type { ReportForm } from '../../../types';
 
-export interface CalculatedWaterResults extends WaterReportCalculations {}
+export type CalculatedWaterResults = WaterReportCalculations;
 
 /**
  * Hook to calculate water method report results.

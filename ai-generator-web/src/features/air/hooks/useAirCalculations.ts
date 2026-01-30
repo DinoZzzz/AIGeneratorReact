@@ -9,7 +9,7 @@ import {
 } from '../calculations';
 import type { ReportForm, ExaminationProcedure, Material } from '../../../types';
 
-export interface CalculatedAirResults extends AirReportCalculations {}
+export type CalculatedAirResults = AirReportCalculations;
 
 interface UseAirCalculationsParams {
     formData: Partial<ReportForm>;
