@@ -45,7 +45,7 @@ export const Settings = () => {
         checkAdminStatus();
         fetchMaterials();
         fetchCertifiers();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     const checkAdminStatus = async () => {
@@ -471,341 +471,357 @@ export const Settings = () => {
 
             {/* General Tab Content */}
             {activeTab === 'general' && (
-            <div className="space-y-6 sm:space-y-8">
-            {/* Language */}
-            <section className="bg-card rounded-lg border border-border p-4 sm:p-6">
-                <h2 className="text-lg sm:text-xl font-semibold mb-2 text-foreground">{t('settings.language')}</h2>
-                <p className="text-xs sm:text-sm text-muted-foreground mb-4">{t('settings.languageDescription')}</p>
-                <div className="flex gap-2 sm:gap-3">
-                    <button
-                        onClick={() => setLanguage('hr')}
-                        className={`flex-1 sm:flex-none px-3 sm:px-4 py-2 rounded-md border text-sm font-medium transition-colors ${language === 'hr'
-                            ? 'border-primary bg-primary/10 text-primary'
-                            : 'border-border bg-background text-foreground hover:border-primary/50'
-                            }`}
-                    >
-                        {t('language.croatian')}
-                    </button>
-                    <button
-                        onClick={() => setLanguage('en')}
-                        className={`flex-1 sm:flex-none px-3 sm:px-4 py-2 rounded-md border text-sm font-medium transition-colors ${language === 'en'
-                            ? 'border-primary bg-primary/10 text-primary'
-                            : 'border-border bg-background text-foreground hover:border-primary/50'
-                            }`}
-                    >
-                        {t('language.english')}
-                    </button>
-                </div>
-            </section>
-
-            {/* Cache Management Section */}
-            <section className="bg-card rounded-lg border border-border p-4 sm:p-6">
-                <h2 className="text-lg sm:text-xl font-semibold mb-2 text-foreground">{t('settings.cacheManagement')}</h2>
-                <p className="text-xs sm:text-sm text-muted-foreground mb-4">{t('settings.cacheDescription')}</p>
-                <button
-                    onClick={handleClearCache}
-                    disabled={isClearing}
-                    className="inline-flex items-center justify-center w-full sm:w-auto px-4 py-2 text-sm font-medium text-destructive bg-destructive/10 border border-destructive/20 rounded-md hover:bg-destructive/20 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                >
-                    <RefreshCw className={`h-4 w-4 mr-2 ${isClearing ? 'animate-spin' : ''}`} />
-                    {isClearing ? t('settings.clearing') : t('settings.clearCache')}
-                </button>
-                <p className="text-xs text-muted-foreground mt-3">
-                    {t('settings.cacheWarning')}
-                </p>
-            </section>
-
-            {/* Appearance Section */}
-            <section className="bg-card rounded-lg border border-border p-4 sm:p-6">
-                <h2 className="text-lg sm:text-xl font-semibold mb-4 text-foreground">{t('settings.appearance')}</h2>
-                <div className="space-y-4">
-                    <div>
-                        <p className="font-medium text-foreground mb-2 sm:mb-3">{t('settings.theme')}</p>
-                        <p className="text-xs sm:text-sm text-muted-foreground mb-3 sm:mb-4">{t('settings.themeDesc')}</p>
-                        <div className="grid grid-cols-3 gap-2 sm:gap-3">
+                <div className="space-y-6 sm:space-y-8">
+                    {/* Language */}
+                    <section className="bg-card rounded-lg border border-border p-4 sm:p-6">
+                        <h2 className="text-lg sm:text-xl font-semibold mb-2 text-foreground">{t('settings.language')}</h2>
+                        <p className="text-xs sm:text-sm text-muted-foreground mb-4">{t('settings.languageDescription')}</p>
+                        <div className="flex gap-2 sm:gap-3">
                             <button
-                                onClick={() => setTheme('light')}
-                                className={`p-2 sm:p-4 rounded-lg border-2 transition-all ${theme === 'light'
-                                    ? 'border-primary bg-primary/10'
-                                    : 'border-border bg-background hover:border-primary/50'
+                                onClick={() => setLanguage('hr')}
+                                className={`flex-1 sm:flex-none px-3 sm:px-4 py-2 rounded-md border text-sm font-medium transition-colors ${language === 'hr'
+                                    ? 'border-primary bg-primary/10 text-primary'
+                                    : 'border-border bg-background text-foreground hover:border-primary/50'
                                     }`}
                             >
-                                <div className="flex flex-col items-center gap-1 sm:gap-2">
-                                    <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-white border-2 border-gray-300 flex items-center justify-center">
-                                        <div className="w-3 h-3 sm:w-4 sm:h-4 rounded-full bg-yellow-400"></div>
-                                    </div>
-                                    <span className="text-xs sm:text-sm font-medium text-foreground">{t('settings.light')}</span>
-                                </div>
+                                {t('language.croatian')}
                             </button>
                             <button
-                                onClick={() => setTheme('dark')}
-                                className={`p-2 sm:p-4 rounded-lg border-2 transition-all ${theme === 'dark'
-                                    ? 'border-primary bg-primary/10'
-                                    : 'border-border bg-background hover:border-primary/50'
+                                onClick={() => setLanguage('en')}
+                                className={`flex-1 sm:flex-none px-3 sm:px-4 py-2 rounded-md border text-sm font-medium transition-colors ${language === 'en'
+                                    ? 'border-primary bg-primary/10 text-primary'
+                                    : 'border-border bg-background text-foreground hover:border-primary/50'
                                     }`}
                             >
-                                <div className="flex flex-col items-center gap-1 sm:gap-2">
-                                    <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-slate-900 border-2 border-slate-700 flex items-center justify-center">
-                                        <div className="w-2 h-2 sm:w-3 sm:h-3 rounded-full bg-slate-400"></div>
-                                    </div>
-                                    <span className="text-xs sm:text-sm font-medium text-foreground">{t('settings.dark')}</span>
-                                </div>
-                            </button>
-                            <button
-                                onClick={() => setTheme('system')}
-                                className={`p-2 sm:p-4 rounded-lg border-2 transition-all ${theme === 'system'
-                                    ? 'border-primary bg-primary/10'
-                                    : 'border-border bg-background hover:border-primary/50'
-                                    }`}
-                            >
-                                <div className="flex flex-col items-center gap-1 sm:gap-2">
-                                    <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-lg bg-gradient-to-br from-white to-slate-900 border-2 border-gray-400"></div>
-                                    <span className="text-xs sm:text-sm font-medium text-foreground">{t('settings.system')}</span>
-                                </div>
+                                {t('language.english')}
                             </button>
                         </div>
-                    </div>
+                    </section>
 
-                    <div className="pt-4 border-t border-border">
-                        <p className="font-medium text-foreground mb-2 sm:mb-3">{t('settings.primaryColor')}</p>
-                        <p className="text-xs sm:text-sm text-muted-foreground mb-3 sm:mb-4">{t('settings.primaryColorDesc')}</p>
-                        <div className="grid grid-cols-4 sm:grid-cols-8 gap-2 sm:gap-3">
-                            {primaryColors.map((color) => (
-                                <button
-                                    key={color.name}
-                                    onClick={() => setPrimaryColor(color)}
-                                    className={`group relative flex flex-col items-center gap-1 sm:gap-2 p-1.5 sm:p-2 rounded-lg border-2 transition-all ${primaryColor.name === color.name
-                                        ? 'border-primary bg-primary/10'
-                                        : 'border-transparent hover:bg-muted'
-                                        }`}
-                                    title={color.name}
-                                >
-                                    <div
-                                        className={`w-6 h-6 sm:w-8 sm:h-8 rounded-full ${color.class} shadow-sm ring-offset-background transition-transform group-hover:scale-110 ${primaryColor.name === color.name ? 'ring-2 ring-primary ring-offset-2' : ''
+                    {/* Cache Management Section */}
+                    <section className="bg-card rounded-lg border border-border p-4 sm:p-6">
+                        <h2 className="text-lg sm:text-xl font-semibold mb-2 text-foreground">{t('settings.cacheManagement')}</h2>
+                        <p className="text-xs sm:text-sm text-muted-foreground mb-4">{t('settings.cacheDescription')}</p>
+                        <button
+                            onClick={handleClearCache}
+                            disabled={isClearing}
+                            className="inline-flex items-center justify-center w-full sm:w-auto px-4 py-2 text-sm font-medium text-destructive bg-destructive/10 border border-destructive/20 rounded-md hover:bg-destructive/20 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        >
+                            <RefreshCw className={`h-4 w-4 mr-2 ${isClearing ? 'animate-spin' : ''}`} />
+                            {isClearing ? t('settings.clearing') : t('settings.clearCache')}
+                        </button>
+                        <p className="text-xs text-muted-foreground mt-3">
+                            {t('settings.cacheWarning')}
+                        </p>
+                    </section>
+
+                    {/* Appearance Section */}
+                    <section className="bg-card rounded-lg border border-border p-4 sm:p-6">
+                        <h2 className="text-lg sm:text-xl font-semibold mb-4 text-foreground">{t('settings.appearance')}</h2>
+                        <div className="space-y-4">
+                            <div>
+                                <p className="font-medium text-foreground mb-2 sm:mb-3">{t('settings.theme')}</p>
+                                <p className="text-xs sm:text-sm text-muted-foreground mb-3 sm:mb-4">{t('settings.themeDesc')}</p>
+                                <div className="grid grid-cols-3 gap-2 sm:gap-3">
+                                    <button
+                                        onClick={() => setTheme('light')}
+                                        className={`p-2 sm:p-4 rounded-lg border-2 transition-all ${theme === 'light'
+                                            ? 'border-primary bg-primary/10'
+                                            : 'border-border bg-background hover:border-primary/50'
                                             }`}
-                                    />
-                                    <span className="text-[10px] sm:text-xs font-medium text-muted-foreground group-hover:text-foreground truncate w-full text-center">
-                                        {color.name}
-                                    </span>
-                                </button>
-                            ))}
+                                    >
+                                        <div className="flex flex-col items-center gap-1 sm:gap-2">
+                                            <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-white border-2 border-gray-300 flex items-center justify-center">
+                                                <div className="w-3 h-3 sm:w-4 sm:h-4 rounded-full bg-yellow-400"></div>
+                                            </div>
+                                            <span className="text-xs sm:text-sm font-medium text-foreground">{t('settings.light')}</span>
+                                        </div>
+                                    </button>
+                                    <button
+                                        onClick={() => setTheme('dark')}
+                                        className={`p-2 sm:p-4 rounded-lg border-2 transition-all ${theme === 'dark'
+                                            ? 'border-primary bg-primary/10'
+                                            : 'border-border bg-background hover:border-primary/50'
+                                            }`}
+                                    >
+                                        <div className="flex flex-col items-center gap-1 sm:gap-2">
+                                            <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-slate-900 border-2 border-slate-700 flex items-center justify-center">
+                                                <div className="w-2 h-2 sm:w-3 sm:h-3 rounded-full bg-slate-400"></div>
+                                            </div>
+                                            <span className="text-xs sm:text-sm font-medium text-foreground">{t('settings.dark')}</span>
+                                        </div>
+                                    </button>
+                                    <button
+                                        onClick={() => setTheme('system')}
+                                        className={`p-2 sm:p-4 rounded-lg border-2 transition-all ${theme === 'system'
+                                            ? 'border-primary bg-primary/10'
+                                            : 'border-border bg-background hover:border-primary/50'
+                                            }`}
+                                    >
+                                        <div className="flex flex-col items-center gap-1 sm:gap-2">
+                                            <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-lg bg-gradient-to-br from-white to-slate-900 border-2 border-gray-400"></div>
+                                            <span className="text-xs sm:text-sm font-medium text-foreground">{t('settings.system')}</span>
+                                        </div>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div className="pt-4 border-t border-border">
+                                <p className="font-medium text-foreground mb-2 sm:mb-3">{t('settings.primaryColor')}</p>
+                                <p className="text-xs sm:text-sm text-muted-foreground mb-3 sm:mb-4">{t('settings.primaryColorDesc')}</p>
+                                <div className="grid grid-cols-4 sm:grid-cols-8 gap-2 sm:gap-3">
+                                    {primaryColors.map((color) => (
+                                        <button
+                                            key={color.name}
+                                            onClick={() => setPrimaryColor(color)}
+                                            className={`group relative flex flex-col items-center gap-1 sm:gap-2 p-1.5 sm:p-2 rounded-lg border-2 transition-all ${primaryColor.name === color.name
+                                                ? 'border-primary bg-primary/10'
+                                                : 'border-transparent hover:bg-muted'
+                                                }`}
+                                            title={color.name}
+                                        >
+                                            <div
+                                                className={`w-6 h-6 sm:w-8 sm:h-8 rounded-full ${color.class} shadow-sm ring-offset-background transition-transform group-hover:scale-110 ${primaryColor.name === color.name ? 'ring-2 ring-primary ring-offset-2' : ''
+                                                    }`}
+                                            />
+                                            <span className="text-[10px] sm:text-xs font-medium text-muted-foreground group-hover:text-foreground truncate w-full text-center">
+                                                {color.name}
+                                            </span>
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
                         </div>
-                    </div>
+                    </section>
                 </div>
-            </section>
-            </div>
             )}
 
             {/* Admin Tab Content */}
             {activeTab === 'admin' && isAdmin && (
-            <div className="space-y-6 sm:space-y-8">
-            {/* Certifiers Section - Admin Only */}
-            <section className="bg-card rounded-lg border border-border p-4 sm:p-6">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 sm:mb-6">
-                    <div>
-                        <h2 className="text-lg sm:text-xl font-semibold text-foreground">{t('certifiers.title')}</h2>
-                        <p className="text-xs sm:text-sm text-muted-foreground mt-1">{t('certifiers.description')}</p>
-                    </div>
-                    {isAdmin && (
-                        <button
-                            onClick={() => {
-                                setIsAddingCertifier(true);
-                                setCertifierForm({ name: '', title: '' });
-                                setEditingCertifier(null);
-                            }}
-                            className="inline-flex items-center justify-center px-3 py-2 text-sm font-medium text-primary-foreground bg-primary rounded-md hover:bg-primary/90 transition-colors w-full sm:w-auto"
-                        >
-                            <Plus className="h-4 w-4 mr-2" />
-                            {t('certifiers.add')}
-                        </button>
-                    )}
-                </div>
+                <div className="space-y-6 sm:space-y-8">
+                    {/* Certifiers Section - Admin Only */}
+                    <section className="bg-card rounded-lg border border-border p-4 sm:p-6">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 sm:mb-6">
+                            <div>
+                                <h2 className="text-lg sm:text-xl font-semibold text-foreground">{t('certifiers.title')}</h2>
+                                <p className="text-xs sm:text-sm text-muted-foreground mt-1">{t('certifiers.description')}</p>
+                            </div>
+                            {isAdmin && (
+                                <button
+                                    onClick={() => {
+                                        setIsAddingCertifier(true);
+                                        setCertifierForm({ name: '', title: '' });
+                                        setEditingCertifier(null);
+                                    }}
+                                    className="inline-flex items-center justify-center px-3 py-2 text-sm font-medium text-primary-foreground bg-primary rounded-md hover:bg-primary/90 transition-colors w-full sm:w-auto"
+                                >
+                                    <Plus className="h-4 w-4 mr-2" />
+                                    {t('certifiers.add')}
+                                </button>
+                            )}
+                        </div>
 
-                {!isAdmin ? (
-                    <div className="text-center py-8 bg-muted/30 rounded-lg border border-dashed border-border">
-                        <Lock className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
-                        <p className="text-muted-foreground font-medium">{t('materials.restricted')}</p>
-                    </div>
-                ) : certifiersLoading ? (
-                    <div className="flex justify-center py-8">
-                        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                    </div>
-                ) : (
-                    <div className="space-y-4">
-                        {(isAddingCertifier || editingCertifier) && (
-                            <form
-                                onSubmit={isAddingCertifier ? handleAddCertifier : handleUpdateCertifier}
-                                className="bg-muted/50 p-4 rounded-lg mb-4 border border-border"
-                            >
-                                <h3 className="font-medium mb-3 text-foreground">
-                                    {isAddingCertifier ? t('certifiers.new') : t('certifiers.edit')}
-                                </h3>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
-                                    <div>
-                                        <label className="block text-sm font-medium text-muted-foreground mb-1">
-                                            {t('certifiers.name')} *
-                                        </label>
-                                        <input
-                                            type="text"
-                                            value={certifierForm.name}
-                                            onChange={(e) => setCertifierForm({ ...certifierForm, name: e.target.value })}
-                                            placeholder={t('certifiers.namePlaceholder')}
-                                            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring"
-                                            autoFocus
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-muted-foreground mb-1">
-                                            {t('certifiers.titleLabel')}
-                                        </label>
-                                        <input
-                                            type="text"
-                                            value={certifierForm.title}
-                                            onChange={(e) => setCertifierForm({ ...certifierForm, title: e.target.value })}
-                                            placeholder={t('certifiers.titlePlaceholder')}
-                                            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring"
-                                        />
-                                    </div>
-                                </div>
-                                <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
-                                    <button
-                                        type="submit"
-                                        disabled={!certifierForm.name.trim()}
-                                        className="px-4 py-2 text-sm font-medium text-primary-foreground bg-primary rounded-md hover:bg-primary/90 disabled:opacity-50 w-full sm:w-auto"
-                                    >
-                                        {t('materials.save')}
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={() => {
-                                            setIsAddingCertifier(false);
-                                            setEditingCertifier(null);
-                                            setCertifierForm({ name: '', title: '' });
-                                        }}
-                                        className="px-4 py-2 text-sm font-medium text-muted-foreground bg-transparent border border-input rounded-md hover:bg-accent hover:text-accent-foreground w-full sm:w-auto"
-                                    >
-                                        {t('materials.cancel')}
-                                    </button>
-                                </div>
-                            </form>
-                        )}
-
-                        {certifiers.length === 0 ? (
-                            <div className="text-center py-12 bg-muted/30 rounded-lg border border-dashed border-border">
-                                <div className="flex flex-col items-center justify-center">
-                                    <Loader2 className="h-8 w-8 text-muted-foreground/50 mb-4" />
-                                    <p className="text-lg font-medium text-foreground">{t('certifiers.none')}</p>
-                                    <p className="text-sm text-muted-foreground mt-1">{t('certifiers.noneDesc')}</p>
-                                </div>
+                        {!isAdmin ? (
+                            <div className="text-center py-8 bg-muted/30 rounded-lg border border-dashed border-border">
+                                <Lock className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
+                                <p className="text-muted-foreground font-medium">{t('materials.restricted')}</p>
+                            </div>
+                        ) : certifiersLoading ? (
+                            <div className="flex justify-center py-8">
+                                <Loader2 className="h-8 w-8 animate-spin text-primary" />
                             </div>
                         ) : (
-                            <div className="border border-border rounded-md divide-y divide-border">
-                                {certifiers.map((certifier) => (
-                                    <div key={certifier.id} className="flex flex-col p-3 sm:p-4 gap-3 hover:bg-muted/50 transition-colors">
-                                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-0">
-                                            <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-                                                {certifier.is_default && (
-                                                    <Star className="h-4 w-4 text-yellow-500 fill-yellow-500 flex-shrink-0" />
-                                                )}
-                                                <div className="min-w-0">
-                                                    <span className="font-medium text-foreground text-sm sm:text-base block truncate">
-                                                        {certifierService.getDisplayName(certifier)}
+                            <div className="space-y-4">
+                                {(isAddingCertifier || editingCertifier) && (
+                                    <form
+                                        onSubmit={isAddingCertifier ? handleAddCertifier : handleUpdateCertifier}
+                                        className="bg-muted/50 p-4 rounded-lg mb-4 border border-border"
+                                    >
+                                        <h3 className="font-medium mb-3 text-foreground">
+                                            {isAddingCertifier ? t('certifiers.new') : t('certifiers.edit')}
+                                        </h3>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+                                            <div>
+                                                <label className="block text-sm font-medium text-muted-foreground mb-1">
+                                                    {t('certifiers.name')} *
+                                                </label>
+                                                <input
+                                                    type="text"
+                                                    value={certifierForm.name}
+                                                    onChange={(e) => setCertifierForm({ ...certifierForm, name: e.target.value })}
+                                                    placeholder={t('certifiers.namePlaceholder')}
+                                                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring"
+                                                    autoFocus
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-medium text-muted-foreground mb-1">
+                                                    {t('certifiers.titleLabel')}
+                                                </label>
+                                                <input
+                                                    type="text"
+                                                    value={certifierForm.title}
+                                                    onChange={(e) => setCertifierForm({ ...certifierForm, title: e.target.value })}
+                                                    placeholder={t('certifiers.titlePlaceholder')}
+                                                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring"
+                                                />
+                                            </div>
+                                        </div>
+                                        <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
+                                            <button
+                                                type="submit"
+                                                disabled={!certifierForm.name.trim()}
+                                                className="px-4 py-2 text-sm font-medium text-primary-foreground bg-primary rounded-md hover:bg-primary/90 disabled:opacity-50 w-full sm:w-auto"
+                                            >
+                                                {t('materials.save')}
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setIsAddingCertifier(false);
+                                                    setEditingCertifier(null);
+                                                    setCertifierForm({ name: '', title: '' });
+                                                }}
+                                                className="px-4 py-2 text-sm font-medium text-muted-foreground bg-transparent border border-input rounded-md hover:bg-accent hover:text-accent-foreground w-full sm:w-auto"
+                                            >
+                                                {t('materials.cancel')}
+                                            </button>
+                                        </div>
+                                    </form>
+                                )}
+
+                                {certifiers.length === 0 ? (
+                                    <div className="text-center py-12 bg-muted/30 rounded-lg border border-dashed border-border">
+                                        <div className="flex flex-col items-center justify-center">
+                                            <Loader2 className="h-8 w-8 text-muted-foreground/50 mb-4" />
+                                            <p className="text-lg font-medium text-foreground">{t('certifiers.none')}</p>
+                                            <p className="text-sm text-muted-foreground mt-1">{t('certifiers.noneDesc')}</p>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="border border-border rounded-md divide-y divide-border">
+                                        {certifiers.map((certifier) => (
+                                            <div key={certifier.id} className="flex flex-col p-3 sm:p-4 gap-3 hover:bg-muted/50 transition-colors">
+                                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-0">
+                                                    <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+                                                        {certifier.is_default && (
+                                                            <Star className="h-4 w-4 text-yellow-500 fill-yellow-500 flex-shrink-0" />
+                                                        )}
+                                                        <div className="min-w-0">
+                                                            <span className="font-medium text-foreground text-sm sm:text-base block truncate">
+                                                                {certifierService.getDisplayName(certifier)}
+                                                            </span>
+                                                            {certifier.is_default && (
+                                                                <span className="text-xs text-muted-foreground">
+                                                                    ({t('certifiers.default')})
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex items-center gap-1 sm:gap-2 self-end sm:self-auto">
+                                                        {!certifier.is_default && (
+                                                            <button
+                                                                onClick={() => handleSetDefaultCertifier(certifier.id)}
+                                                                className="p-2 text-muted-foreground hover:text-yellow-500 hover:bg-yellow-500/10 rounded-md transition-colors"
+                                                                title={t('certifiers.setDefault')}
+                                                            >
+                                                                <Star className="h-4 w-4" />
+                                                            </button>
+                                                        )}
+                                                        <button
+                                                            onClick={() => {
+                                                                setEditingCertifier(certifier);
+                                                                setCertifierForm({
+                                                                    name: certifier.name,
+                                                                    title: certifier.title || ''
+                                                                });
+                                                                setIsAddingCertifier(false);
+                                                            }}
+                                                            className="p-2 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-md transition-colors"
+                                                            title={t('materials.edit')}
+                                                        >
+                                                            <Edit className="h-4 w-4" />
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleDeleteCertifier(certifier.id)}
+                                                            className="p-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-md transition-colors"
+                                                            title={t('materials.remove')}
+                                                        >
+                                                            <Trash2 className="h-4 w-4" />
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                                {/* Signature Section */}
+                                                <div className="flex items-center gap-3 pl-0 sm:pl-7 border-t border-border/50 pt-3">
+                                                    <span className="text-xs text-muted-foreground min-w-[60px]">
+                                                        {t('certifiers.signature') || 'Potpis'}:
                                                     </span>
-                                                    {certifier.is_default && (
-                                                        <span className="text-xs text-muted-foreground">
-                                                            ({t('certifiers.default')})
-                                                        </span>
+                                                    {certifier.signature_url ? (
+                                                        <div className="flex items-center gap-2">
+                                                            <img
+                                                                src={certifier.signature_url}
+                                                                alt={t('certifiers.signature') || 'Potpis'}
+                                                                className="h-10 max-w-32 object-contain border border-border rounded bg-white"
+                                                            />
+                                                            <button
+                                                                onClick={() => handleDeleteSignature(certifier.id)}
+                                                                className="p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded transition-colors"
+                                                                title={t('certifiers.deleteSignature') || 'Obriši potpis'}
+                                                            >
+                                                                <X className="h-4 w-4" />
+                                                            </button>
+                                                        </div>
+                                                    ) : (
+                                                        <label className="flex items-center gap-2 cursor-pointer text-xs text-muted-foreground hover:text-primary transition-colors">
+                                                            <div className="flex items-center gap-1 px-2 py-1.5 border border-dashed border-border rounded hover:border-primary/50 hover:bg-primary/5 transition-colors">
+                                                                <Upload className="h-3.5 w-3.5" />
+                                                                <span>{t('certifiers.uploadSignature') || 'Učitaj potpis'}</span>
+                                                            </div>
+                                                            <input
+                                                                type="file"
+                                                                accept="image/*"
+                                                                className="hidden"
+                                                                onChange={(e) => handleSignatureUpload(certifier.id, e.target.files?.[0])}
+                                                            />
+                                                        </label>
                                                     )}
                                                 </div>
                                             </div>
-                                            <div className="flex items-center gap-1 sm:gap-2 self-end sm:self-auto">
-                                                {!certifier.is_default && (
-                                                    <button
-                                                        onClick={() => handleSetDefaultCertifier(certifier.id)}
-                                                        className="p-2 text-muted-foreground hover:text-yellow-500 hover:bg-yellow-500/10 rounded-md transition-colors"
-                                                        title={t('certifiers.setDefault')}
-                                                    >
-                                                        <Star className="h-4 w-4" />
-                                                    </button>
-                                                )}
-                                                <button
-                                                    onClick={() => {
-                                                        setEditingCertifier(certifier);
-                                                        setCertifierForm({
-                                                            name: certifier.name,
-                                                            title: certifier.title || ''
-                                                        });
-                                                        setIsAddingCertifier(false);
-                                                    }}
-                                                    className="p-2 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-md transition-colors"
-                                                    title={t('materials.edit')}
-                                                >
-                                                    <Edit className="h-4 w-4" />
-                                                </button>
-                                                <button
-                                                    onClick={() => handleDeleteCertifier(certifier.id)}
-                                                    className="p-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-md transition-colors"
-                                                    title={t('materials.remove')}
-                                                >
-                                                    <Trash2 className="h-4 w-4" />
-                                                </button>
-                                            </div>
-                                        </div>
-                                        {/* Signature Section */}
-                                        <div className="flex items-center gap-3 pl-0 sm:pl-7 border-t border-border/50 pt-3">
-                                            <span className="text-xs text-muted-foreground min-w-[60px]">
-                                                {t('certifiers.signature') || 'Potpis'}:
-                                            </span>
-                                            {certifier.signature_url ? (
-                                                <div className="flex items-center gap-2">
-                                                    <img
-                                                        src={certifier.signature_url}
-                                                        alt={t('certifiers.signature') || 'Potpis'}
-                                                        className="h-10 max-w-32 object-contain border border-border rounded bg-white"
-                                                    />
-                                                    <button
-                                                        onClick={() => handleDeleteSignature(certifier.id)}
-                                                        className="p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded transition-colors"
-                                                        title={t('certifiers.deleteSignature') || 'Obriši potpis'}
-                                                    >
-                                                        <X className="h-4 w-4" />
-                                                    </button>
-                                                </div>
-                                            ) : (
-                                                <label className="flex items-center gap-2 cursor-pointer text-xs text-muted-foreground hover:text-primary transition-colors">
-                                                    <div className="flex items-center gap-1 px-2 py-1.5 border border-dashed border-border rounded hover:border-primary/50 hover:bg-primary/5 transition-colors">
-                                                        <Upload className="h-3.5 w-3.5" />
-                                                        <span>{t('certifiers.uploadSignature') || 'Učitaj potpis'}</span>
-                                                    </div>
-                                                    <input
-                                                        type="file"
-                                                        accept="image/*"
-                                                        className="hidden"
-                                                        onChange={(e) => handleSignatureUpload(certifier.id, e.target.files?.[0])}
-                                                    />
-                                                </label>
-                                            )}
-                                        </div>
+                                        ))}
                                     </div>
-                                ))}
+                                )}
                             </div>
                         )}
-                    </div>
-                )}
-            </section>
+                    </section>
 
-            {/* Shaft Materials Section */}
-            {renderMaterialSection(shaftMaterials, 1)}
+                    {/* Shaft Materials Section */}
+                    {renderMaterialSection(shaftMaterials, 1)}
 
-            {/* Pipe Materials Section */}
-            {renderMaterialSection(pipeMaterials, 2)}
+                    {/* Pipe Materials Section */}
+                    {renderMaterialSection(pipeMaterials, 2)}
 
-            {/* Document Template Section */}
-            <TemplateEditor />
+                    {/* Document Template Section */}
+                    <TemplateEditor />
 
-            {/* Scheme Images Section */}
-            <SchemeManager />
-            </div>
+                    {/* Scheme Images Section */}
+                    <SchemeManager />
+
+                    {/* Sentry Test Section - Development/Debug Only */}
+                    <section className="bg-card rounded-lg border border-destructive/50 p-4 sm:p-6">
+                        <h2 className="text-lg sm:text-xl font-semibold mb-2 text-foreground">Sentry Error Testing</h2>
+                        <p className="text-xs sm:text-sm text-muted-foreground mb-4">
+                            Test Sentry error tracking by triggering a test error. This will appear in your Sentry dashboard.
+                        </p>
+                        <button
+                            onClick={() => {
+                                throw new Error('This is a Sentry test error!');
+                            }}
+                            className="inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-destructive-foreground bg-destructive rounded-md hover:bg-destructive/90 transition-colors"
+                        >
+                            🔥 Break the world
+                        </button>
+                    </section>
+                </div>
             )}
 
             {/* Delete Confirmation Dialog */}

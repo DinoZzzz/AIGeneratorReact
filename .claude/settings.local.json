@@ -18,7 +18,20 @@
       "Bash(git add:*)",
       "Bash(git commit:*)",
       "Bash(git push)",
-      "Bash(PGPASSWORD='Dinos.050298' psql:*)"
+      "Bash(PGPASSWORD='Dinos.050298' psql:*)",
+      "Bash(cd:*)",
+      "Bash(cd /Users/karlo/Documents/Product\\\\ generator/AIGeneratorReact/ai-generator-web && npm run lint:*)",
+      "Bash(npm run test -- --run)",
+      "Bash(npm run lint)",
+      "Bash(npm run lint:fix:*)",
+      "Bash(grep:*)",
+      "Bash(npm run lint:*)",
+      "Bash(1)",
+      "Bash(npx eslint:*)",
+      "Bash(npx tsc:*)",
+      "Bash(PGPASSWORD=\"Dinos.050298\" psql:*)",
+      "Bash(git push:*)",
+      "Bash(git stash:*)"
     ],
     "deny": [],
     "ask": []
