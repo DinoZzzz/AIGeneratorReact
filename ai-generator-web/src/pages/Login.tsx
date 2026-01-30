@@ -53,7 +53,7 @@ export const Login = () => {
 
             if (signInError) throw signInError;
             navigate('/');
-        } catch (err: unknown) {
+        } catch {
             // Use generic error message to prevent user enumeration attacks
             // Don't reveal whether username/email exists or if password is wrong
             setError('Invalid credentials. Please check your username/email and password.');

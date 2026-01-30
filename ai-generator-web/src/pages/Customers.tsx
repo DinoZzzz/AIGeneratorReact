@@ -12,6 +12,32 @@ import { formatDate } from '../utils/dateFormatter';
 type SortField = 'work_order' | 'name' | 'location' | 'address' | 'created_at' | 'last_activity';
 type SortOrder = 'asc' | 'desc';
 
+// Helper components moved outside to avoid creating during render
+const SortIcon = ({ field, sortBy, sortOrder }: { field: SortField; sortBy: SortField; sortOrder: SortOrder }) => {
+    if (sortBy !== field) return <ArrowUpDown className="h-4 w-4 ml-1 text-muted-foreground" />;
+    return sortOrder === 'asc'
+        ? <ArrowUp className="h-4 w-4 ml-1 text-primary" />
+        : <ArrowDown className="h-4 w-4 ml-1 text-primary" />;
+};
+
+const TableHeader = ({ field, label, sortBy, sortOrder, onSort }: {
+    field: SortField;
+    label: string;
+    sortBy: SortField;
+    sortOrder: SortOrder;
+    onSort: (field: SortField) => void;
+}) => (
+    <th
+        className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider cursor-pointer hover:bg-muted transition-colors"
+        onClick={() => onSort(field)}
+    >
+        <div className="flex items-center">
+            {label}
+            <SortIcon field={field} sortBy={sortBy} sortOrder={sortOrder} />
+        </div>
+    </th>
+);
+
 export const Customers = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -78,25 +104,6 @@ export const Customers = () => {
     }, [sortBy, sortOrder]);
 
     const totalPages = useMemo(() => Math.ceil(totalCount / pageSize), [totalCount, pageSize]);
-
-    const SortIcon = ({ field }: { field: SortField }) => {
-        if (sortBy !== field) return <ArrowUpDown className="h-4 w-4 ml-1 text-muted-foreground" />;
-        return sortOrder === 'asc'
-            ? <ArrowUp className="h-4 w-4 ml-1 text-primary" />
-            : <ArrowDown className="h-4 w-4 ml-1 text-primary" />;
-    };
-
-    const TableHeader = ({ field, label }: { field: SortField, label: string }) => (
-        <th
-            className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider cursor-pointer hover:bg-muted transition-colors"
-            onClick={() => handleSort(field)}
-        >
-            <div className="flex items-center">
-                {label}
-                <SortIcon field={field} />
-            </div>
-        </th>
-    );
 
     return (
         <div className="space-y-6">
@@ -235,11 +242,11 @@ export const Customers = () => {
                     <table className="min-w-full divide-y divide-border">
                         <thead className="bg-muted/50">
                             <tr>
-                                <TableHeader field="work_order" label={t('customers.workOrder')} />
-                                <TableHeader field="name" label={t('customers.name')} />
-                                <TableHeader field="location" label={t('customers.location')} />
-                                <TableHeader field="address" label={t('customers.address')} />
-                                <TableHeader field="created_at" label={t('customers.dateAdded')} />
+                                <TableHeader field="work_order" label={t('customers.workOrder')} sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />
+                                <TableHeader field="name" label={t('customers.name')} sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />
+                                <TableHeader field="location" label={t('customers.location')} sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />
+                                <TableHeader field="address" label={t('customers.address')} sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />
+                                <TableHeader field="created_at" label={t('customers.dateAdded')} sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />
                                 <th className="px-6 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">{t('customers.actions')}</th>
                             </tr>
                         </thead>

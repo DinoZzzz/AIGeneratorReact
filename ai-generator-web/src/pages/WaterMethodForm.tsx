@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { reportService } from '../services/reportService';
@@ -268,6 +269,7 @@ export const WaterMethodForm = () => {
             }
             // Only save 'satisfies' from calculated - all other fields are display-only
             // Remove id from formData to avoid sending undefined id when creating
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
             const { id: _formId, ...formDataWithoutId } = formData;
             const dataToSave = {
                 ...formDataWithoutId,

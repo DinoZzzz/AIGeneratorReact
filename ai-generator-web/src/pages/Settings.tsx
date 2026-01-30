@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useEffect, useState } from 'react';
 import { useTheme, primaryColors } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';

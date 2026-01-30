@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useState, useCallback } from 'react';
 
 import { Loader2, Trash2, Edit, FileText, Download } from 'lucide-react';

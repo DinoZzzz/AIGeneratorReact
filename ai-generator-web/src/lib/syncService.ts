@@ -105,8 +105,9 @@ const processSyncOperation = async (operation: SyncOperation): Promise<boolean> 
       case 'create': {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const createData = operation.data as any;
-        // Remove offline-only fields (prefixed with _ to indicate intentionally unused)
-        const { _offline_id: _, _is_offline: __, id: ___, ...cleanData } = createData;
+        // Remove offline-only fields
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { _offline_id, _is_offline, id: _tempId, ...cleanData } = createData;
 
         const { data, error } = await supabase
           .from(tableName)
@@ -138,8 +139,9 @@ const processSyncOperation = async (operation: SyncOperation): Promise<boolean> 
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const updateData = operation.data as any;
-        // Remove offline-only fields (prefixed with _ to indicate intentionally unused)
-        const { _offline_id: _a, _is_offline: _b, _synced: _c, id: _d, ...cleanData } = updateData;
+        // Remove offline-only fields
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { _offline_id, _is_offline, _synced, id: _entityId, ...cleanData } = updateData;
 
         const { data, error } = await supabase
           .from(tableName)

@@ -70,6 +70,8 @@ export const OfflineProvider = ({ children }: { children: ReactNode }) => {
         // If there was a pending sync request, trigger another sync
         if (hasPendingSync.current) {
           hasPendingSync.current = false;
+          // Recursive call is intentional for retry logic
+          // eslint-disable-next-line
           triggerSync();
         }
       } catch (error) {

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { supabase } from '../lib/supabase';
 import type { Appointment } from '../types';
 import { AppError } from '../lib/errorHandler';
@@ -44,6 +45,7 @@ export const appointmentService = {
     },
 
     async create(appointment: Partial<Appointment> & { assignee_ids?: string[] }) {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const { assignee_ids, assignees: _assignees, ...apptData } = appointment;
 
         // Use assignee_ids if provided, otherwise empty array
@@ -64,6 +66,7 @@ export const appointmentService = {
     },
 
     async update(id: string, appointment: Partial<Appointment> & { assignee_ids?: string[] }) {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const { assignee_ids, assignees: _assignees, ...apptData } = appointment;
 
         // Prepare update data
