@@ -28,6 +28,7 @@ export interface ExportMetaData {
     waterRemark: string;
     waterDeviation: string;
     certifierName: string;
+    certifierSignatureUrl?: string;
     includePdfs?: boolean;
 }
 
@@ -103,7 +104,17 @@ export const ExportDialog = ({ open, onOpenChange, onConfirm, loading = false, d
             selectedReports = reports.filter(r => r.id && selectedReportIds.has(r.id));
         }
 
-        onConfirm(data, selectedReports);
+        // Find selected certifier to get signature URL
+        const selectedCertifier = certifiers.find(c =>
+            certifierService.getDisplayName(c) === data.certifierName
+        );
+
+        const exportData: ExportMetaData = {
+            ...data,
+            certifierSignatureUrl: selectedCertifier?.signature_url
+        };
+
+        onConfirm(exportData, selectedReports);
 
         // Don't close immediately if loading, let parent handle it or close after success
         if (!loading) {

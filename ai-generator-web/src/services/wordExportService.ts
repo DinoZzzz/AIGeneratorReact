@@ -138,6 +138,36 @@ export const generateWordDocument = async (reports: ReportForm[], metaData: Expo
             });
         };
 
+        // Fetch certifier signature if available
+        if (metaData.certifierSignatureUrl) {
+            try {
+                const signatureResponse = await fetch(metaData.certifierSignatureUrl);
+                if (signatureResponse.ok) {
+                    const signatureBuffer = await signatureResponse.arrayBuffer();
+                    imageMap['certifierSignature'] = signatureBuffer;
+                    // Get actual dimensions, fallback to reasonable signature size
+                    try {
+                        const dims = await getImageDimensions(metaData.certifierSignatureUrl);
+                        // Scale signature to max width of 150px while maintaining aspect ratio
+                        const maxWidth = 150;
+                        if (dims.width > maxWidth) {
+                            const ratio = maxWidth / dims.width;
+                            imageDimensions['certifierSignature'] = {
+                                width: maxWidth,
+                                height: Math.round(dims.height * ratio)
+                            };
+                        } else {
+                            imageDimensions['certifierSignature'] = dims;
+                        }
+                    } catch {
+                        imageDimensions['certifierSignature'] = { width: 150, height: 50 };
+                    }
+                }
+            } catch (error) {
+                console.warn('Failed to fetch certifier signature:', error);
+            }
+        }
+
         if (constructionId) {
             const { data: files } = await supabase
                 .from('report_files')
@@ -547,7 +577,11 @@ export const generateWordDocument = async (reports: ReportForm[], metaData: Expo
 
             // Gender specific labels
             izradioLabel: userProfile?.gender === 'F' ? 'izradila' : 'izradio',
-            pregledaoLabel: userProfile?.gender === 'F' ? 'Pregledala i odobrila' : 'Pregledao i odobrio'
+            pregledaoLabel: userProfile?.gender === 'F' ? 'Pregledala i odobrila' : 'Pregledao i odobrio',
+
+            // Certifier signature
+            certifierSignature: metaData.certifierSignatureUrl ? 'certifierSignature' : null,
+            hasCertifierSignature: !!metaData.certifierSignatureUrl && !!imageMap['certifierSignature']
         });
 
         // 7. Output the document

@@ -5,7 +5,7 @@ import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
 import type { Material } from '../types';
-import { Loader2, Plus, Trash2, Edit, Lock, RefreshCw, Star, Settings2, Shield } from 'lucide-react';
+import { Loader2, Plus, Trash2, Edit, Lock, RefreshCw, Star, Settings2, Shield, Upload, X } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
 import { ConfirmDeleteMaterialDialog } from '../components/ConfirmDeleteMaterialDialog';
 import { useQueryClient } from '@tanstack/react-query';
@@ -148,6 +148,42 @@ export const Settings = () => {
         try {
             await certifierService.setDefault(id);
             addToast(t('certifiers.defaultSet'), 'success');
+            fetchCertifiers();
+        } catch (error: any) {
+            addToast(error.message, 'error');
+        }
+    };
+
+    const handleSignatureUpload = async (certifierId: string, file: File | undefined) => {
+        if (!file) return;
+
+        // Validate file type
+        if (!file.type.startsWith('image/')) {
+            addToast(t('certifiers.invalidFileType') || 'Please upload an image file', 'error');
+            return;
+        }
+
+        // Validate file size (max 2MB)
+        if (file.size > 2 * 1024 * 1024) {
+            addToast(t('certifiers.fileTooLarge') || 'File size must be less than 2MB', 'error');
+            return;
+        }
+
+        try {
+            await certifierService.uploadSignature(certifierId, file);
+            addToast(t('certifiers.signatureUploaded') || 'Signature uploaded successfully', 'success');
+            fetchCertifiers();
+        } catch (error: any) {
+            addToast(error.message, 'error');
+        }
+    };
+
+    const handleDeleteSignature = async (certifierId: string) => {
+        if (!window.confirm(t('certifiers.deleteSignatureConfirm') || 'Are you sure you want to delete this signature?')) return;
+
+        try {
+            await certifierService.deleteSignature(certifierId);
+            addToast(t('certifiers.signatureDeleted') || 'Signature deleted', 'success');
             fetchCertifiers();
         } catch (error: any) {
             addToast(error.message, 'error');
@@ -665,53 +701,90 @@ export const Settings = () => {
                         ) : (
                             <div className="border border-border rounded-md divide-y divide-border">
                                 {certifiers.map((certifier) => (
-                                    <div key={certifier.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-3 sm:p-4 gap-2 sm:gap-0 hover:bg-muted/50 transition-colors">
-                                        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-                                            {certifier.is_default && (
-                                                <Star className="h-4 w-4 text-yellow-500 fill-yellow-500 flex-shrink-0" />
-                                            )}
-                                            <div className="min-w-0">
-                                                <span className="font-medium text-foreground text-sm sm:text-base block truncate">
-                                                    {certifierService.getDisplayName(certifier)}
-                                                </span>
+                                    <div key={certifier.id} className="flex flex-col p-3 sm:p-4 gap-3 hover:bg-muted/50 transition-colors">
+                                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-0">
+                                            <div className="flex items-center gap-2 sm:gap-3 min-w-0">
                                                 {certifier.is_default && (
-                                                    <span className="text-xs text-muted-foreground">
-                                                        ({t('certifiers.default')})
-                                                    </span>
+                                                    <Star className="h-4 w-4 text-yellow-500 fill-yellow-500 flex-shrink-0" />
                                                 )}
+                                                <div className="min-w-0">
+                                                    <span className="font-medium text-foreground text-sm sm:text-base block truncate">
+                                                        {certifierService.getDisplayName(certifier)}
+                                                    </span>
+                                                    {certifier.is_default && (
+                                                        <span className="text-xs text-muted-foreground">
+                                                            ({t('certifiers.default')})
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center gap-1 sm:gap-2 self-end sm:self-auto">
+                                                {!certifier.is_default && (
+                                                    <button
+                                                        onClick={() => handleSetDefaultCertifier(certifier.id)}
+                                                        className="p-2 text-muted-foreground hover:text-yellow-500 hover:bg-yellow-500/10 rounded-md transition-colors"
+                                                        title={t('certifiers.setDefault')}
+                                                    >
+                                                        <Star className="h-4 w-4" />
+                                                    </button>
+                                                )}
+                                                <button
+                                                    onClick={() => {
+                                                        setEditingCertifier(certifier);
+                                                        setCertifierForm({
+                                                            name: certifier.name,
+                                                            title: certifier.title || ''
+                                                        });
+                                                        setIsAddingCertifier(false);
+                                                    }}
+                                                    className="p-2 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-md transition-colors"
+                                                    title={t('materials.edit')}
+                                                >
+                                                    <Edit className="h-4 w-4" />
+                                                </button>
+                                                <button
+                                                    onClick={() => handleDeleteCertifier(certifier.id)}
+                                                    className="p-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-md transition-colors"
+                                                    title={t('materials.remove')}
+                                                >
+                                                    <Trash2 className="h-4 w-4" />
+                                                </button>
                                             </div>
                                         </div>
-                                        <div className="flex items-center gap-1 sm:gap-2 self-end sm:self-auto">
-                                            {!certifier.is_default && (
-                                                <button
-                                                    onClick={() => handleSetDefaultCertifier(certifier.id)}
-                                                    className="p-2 text-muted-foreground hover:text-yellow-500 hover:bg-yellow-500/10 rounded-md transition-colors"
-                                                    title={t('certifiers.setDefault')}
-                                                >
-                                                    <Star className="h-4 w-4" />
-                                                </button>
+                                        {/* Signature Section */}
+                                        <div className="flex items-center gap-3 pl-0 sm:pl-7 border-t border-border/50 pt-3">
+                                            <span className="text-xs text-muted-foreground min-w-[60px]">
+                                                {t('certifiers.signature') || 'Potpis'}:
+                                            </span>
+                                            {certifier.signature_url ? (
+                                                <div className="flex items-center gap-2">
+                                                    <img
+                                                        src={certifier.signature_url}
+                                                        alt={t('certifiers.signature') || 'Potpis'}
+                                                        className="h-10 max-w-32 object-contain border border-border rounded bg-white"
+                                                    />
+                                                    <button
+                                                        onClick={() => handleDeleteSignature(certifier.id)}
+                                                        className="p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded transition-colors"
+                                                        title={t('certifiers.deleteSignature') || 'Obriši potpis'}
+                                                    >
+                                                        <X className="h-4 w-4" />
+                                                    </button>
+                                                </div>
+                                            ) : (
+                                                <label className="flex items-center gap-2 cursor-pointer text-xs text-muted-foreground hover:text-primary transition-colors">
+                                                    <div className="flex items-center gap-1 px-2 py-1.5 border border-dashed border-border rounded hover:border-primary/50 hover:bg-primary/5 transition-colors">
+                                                        <Upload className="h-3.5 w-3.5" />
+                                                        <span>{t('certifiers.uploadSignature') || 'Učitaj potpis'}</span>
+                                                    </div>
+                                                    <input
+                                                        type="file"
+                                                        accept="image/*"
+                                                        className="hidden"
+                                                        onChange={(e) => handleSignatureUpload(certifier.id, e.target.files?.[0])}
+                                                    />
+                                                </label>
                                             )}
-                                            <button
-                                                onClick={() => {
-                                                    setEditingCertifier(certifier);
-                                                    setCertifierForm({
-                                                        name: certifier.name,
-                                                        title: certifier.title || ''
-                                                    });
-                                                    setIsAddingCertifier(false);
-                                                }}
-                                                className="p-2 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-md transition-colors"
-                                                title={t('materials.edit')}
-                                            >
-                                                <Edit className="h-4 w-4" />
-                                            </button>
-                                            <button
-                                                onClick={() => handleDeleteCertifier(certifier.id)}
-                                                className="p-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-md transition-colors"
-                                                title={t('materials.remove')}
-                                            >
-                                                <Trash2 className="h-4 w-4" />
-                                            </button>
                                         </div>
                                     </div>
                                 ))}

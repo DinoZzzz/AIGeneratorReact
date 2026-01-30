@@ -32,9 +32,11 @@ const KNOWN_TAGS = [
     'waterMethodCriteria', 'isUnsatisfied', 'unsatisfiedStocks', 'tubeMaterials',
     'tubeDiameters', 'paneMaterials', 'paneDiameters', 'contentTable',
     'hasAttachments', 'attachments', 'Attachments', 'izradioLabel', 'pregledaoLabel',
+    'certifierSignature', 'hasCertifierSignature',
     '#airTests', '/airTests', '#waterTests', '/waterTests', '#attachments',
     '/attachments', '#hasAirTests', '/hasAirTests', '#hasWaterTests', '/hasWaterTests',
     '#hasAttachments', '/hasAttachments', '#isUnsatisfied', '/isUnsatisfied',
+    '#hasCertifierSignature', '/hasCertifierSignature',
     // Loop variables
     'ordinal', 'stock', 'pipeLength', 'procedureInfo', 'allowedLoss',
     'pressureLoss', 'uncertainty', 'waterVolumeLoss', 'result', 'isSection',
