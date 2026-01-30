@@ -1,5 +1,5 @@
-# Build stage
-FROM node:20-alpine AS builder
+# Build stage - using specific node version to bust Railway cache
+FROM node:20.18-alpine AS builder
 
 WORKDIR /app
 
