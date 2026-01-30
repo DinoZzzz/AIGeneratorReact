@@ -24,6 +24,7 @@ interface CustomerWithConstructions {
     work_order: string;
     name: string;
     updated_at: string;
+    created_at: string;
     constructions: {
         id: string;
         work_order: string | null;
@@ -32,6 +33,37 @@ interface CustomerWithConstructions {
         updated_at: string;
         created_at: string;
     }[] | null;
+}
+
+// Helper to batch queries with large ID arrays to avoid URL length limits
+async function batchedInQuery<T>(
+    table: string,
+    select: string,
+    column: string,
+    ids: string[],
+    batchSize = 50
+): Promise<T[]> {
+    if (ids.length === 0) return [];
+
+    const results: T[] = [];
+    const batches: string[][] = [];
+
+    for (let i = 0; i < ids.length; i += batchSize) {
+        batches.push(ids.slice(i, i + batchSize));
+    }
+
+    // Execute batches in parallel (but each batch is small enough)
+    const batchResults = await Promise.all(
+        batches.map(batch =>
+            supabase.from(table).select(select).in(column, batch)
+        )
+    );
+
+    for (const { data } of batchResults) {
+        if (data) results.push(...(data as T[]));
+    }
+
+    return results;
 }
 
 // Memoized table row component to prevent unnecessary re-renders
@@ -152,8 +184,8 @@ const DashboardCustomersTableComponent = () => {
 
     useEffect(() => {
         fetchCustomers();
-    // fetchCustomers is stable - only depends on search and currentPage
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        // fetchCustomers is stable - only depends on search and currentPage
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [search, currentPage]);
 
     const fetchCustomers = async () => {
@@ -195,15 +227,11 @@ const DashboardCustomersTableComponent = () => {
 
             const customerIds = (customersData as CustomerWithConstructions[]).map((c) => c.id);
 
-            // Get all related activities in parallel
-            const [
-                { data: reports },
-                { data: exports },
-                { data: appointments }
-            ] = await Promise.all([
-                supabase.from('report_forms').select('customer_id, updated_at').in('customer_id', customerIds),
-                supabase.from('report_exports').select('customer_id, updated_at').in('customer_id', customerIds),
-                supabase.from('appointments').select('customer_id, created_at').in('customer_id', customerIds)
+            // Get all related activities in parallel using batched queries to avoid URL length limits
+            const [reports, exports, appointments] = await Promise.all([
+                batchedInQuery<{ customer_id: string; updated_at: string }>('report_forms', 'customer_id, updated_at', 'customer_id', customerIds),
+                batchedInQuery<{ customer_id: string; updated_at: string }>('report_exports', 'customer_id, updated_at', 'customer_id', customerIds),
+                batchedInQuery<{ customer_id: string; created_at: string }>('appointments', 'customer_id, created_at', 'customer_id', customerIds)
             ]);
 
             // Format customers with activity calculation
