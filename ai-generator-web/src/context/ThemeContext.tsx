@@ -9,6 +9,7 @@ export type PrimaryColor = {
   class: string; // Tailwind class for preview
 };
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const primaryColors: PrimaryColor[] = [
   { name: 'Blue', value: '221 83% 53%', foreground: '210 40% 98%', class: 'bg-blue-600' },
   { name: 'Green', value: '142 71% 45%', foreground: '210 40% 98%', class: 'bg-green-600' },
@@ -121,6 +122,7 @@ export function ThemeProvider({
   );
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useTheme = () => {
   const context = useContext(ThemeContext);
 

@@ -1386,7 +1386,7 @@ export const LanguageProvider = ({ children }: { children: React.ReactNode }) =>
 
     const t = (key: string) => translations[language][key] || translations.hr[key] || key;
 
-    const value = useMemo(() => ({ language, setLanguage, t }), [language]);
+    const value = useMemo(() => ({ language, setLanguage, t }), [language, t]);
 
     return (
         <LanguageContext.Provider value={value}>
@@ -1395,6 +1395,7 @@ export const LanguageProvider = ({ children }: { children: React.ReactNode }) =>
     );
 };
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useLanguage = () => {
     const ctx = useContext(LanguageContext);
     if (!ctx) throw new Error('useLanguage must be used within LanguageProvider');

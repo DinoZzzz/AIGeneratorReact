@@ -179,6 +179,7 @@ export const OfflineProvider = ({ children }: { children: ReactNode }) => {
   );
 };
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useOffline = (): OfflineContextType => {
   const context = useContext(OfflineContext);
   if (!context) {

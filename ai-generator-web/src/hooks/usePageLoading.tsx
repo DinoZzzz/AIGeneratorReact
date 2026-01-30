@@ -74,6 +74,7 @@ export const PageSkeleton = ({
  * const loadingSkeleton = usePageLoading(isLoading, { showCards: true });
  * if (loadingSkeleton) return loadingSkeleton;
  */
+// eslint-disable-next-line react-refresh/only-export-components
 export const usePageLoading = (
     isLoading: boolean,
     options: PageSkeletonProps = {}
@@ -84,4 +85,5 @@ export const usePageLoading = (
     return null;
 };
 
+// eslint-disable-next-line react-refresh/only-export-components
 export default usePageLoading;
