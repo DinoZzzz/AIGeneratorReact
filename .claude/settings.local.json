@@ -31,7 +31,8 @@
       "Bash(npx tsc:*)",
       "Bash(PGPASSWORD=\"Dinos.050298\" psql:*)",
       "Bash(git push:*)",
-      "Bash(git stash:*)"
+      "Bash(git stash:*)",
+      "Bash(npm test:*)"
     ],
     "deny": [],
     "ask": []
