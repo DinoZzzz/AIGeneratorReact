@@ -1232,7 +1232,16 @@ Object.assign(translations.hr, {
     'certifiers.default': 'zadano',
     'certifiers.setDefault': 'Postavi kao zadano',
     'certifiers.defaultSet': 'Zadani certifikator postavljen.',
-    'certifiers.loadError': 'Greška pri učitavanju certifikatora'
+    'certifiers.loadError': 'Greška pri učitavanju certifikatora',
+    'certifiers.signature': 'Potpis',
+    'certifiers.noSignature': 'Nema potpisa',
+    'certifiers.uploadSignature': 'Učitaj potpis',
+    'certifiers.deleteSignature': 'Obriši potpis',
+    'certifiers.deleteSignatureConfirm': 'Jeste li sigurni da želite obrisati potpis ovog certifikatora?',
+    'certifiers.signatureUploaded': 'Potpis uspješno učitan.',
+    'certifiers.signatureDeleted': 'Potpis uspješno obrisan.',
+    'certifiers.invalidFileType': 'Neispravan tip datoteke. Podržani formati: PNG, JPG, JPEG, GIF, WEBP',
+    'certifiers.fileTooLarge': 'Datoteka je prevelika. Maksimalna veličina: 2MB'
 });
 
 Object.assign(translations.en, {
@@ -1254,7 +1263,16 @@ Object.assign(translations.en, {
     'certifiers.default': 'default',
     'certifiers.setDefault': 'Set as default',
     'certifiers.defaultSet': 'Default certifier set.',
-    'certifiers.loadError': 'Error loading certifiers'
+    'certifiers.loadError': 'Error loading certifiers',
+    'certifiers.signature': 'Signature',
+    'certifiers.noSignature': 'No signature',
+    'certifiers.uploadSignature': 'Upload signature',
+    'certifiers.deleteSignature': 'Delete signature',
+    'certifiers.deleteSignatureConfirm': 'Are you sure you want to delete this certifier\'s signature?',
+    'certifiers.signatureUploaded': 'Signature uploaded successfully.',
+    'certifiers.signatureDeleted': 'Signature deleted successfully.',
+    'certifiers.invalidFileType': 'Invalid file type. Supported formats: PNG, JPG, JPEG, GIF, WEBP',
+    'certifiers.fileTooLarge': 'File too large. Maximum size: 2MB'
 });
 
 // TemplateEditor translations (HR)
