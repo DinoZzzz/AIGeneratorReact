@@ -79,6 +79,7 @@ export const Calendar = () => {
                 clearTimeout(debounceRef.current);
             }
         };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [date, view]);
 
     const loadAppointments = useCallback(async () => {

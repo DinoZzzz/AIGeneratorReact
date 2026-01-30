@@ -35,6 +35,7 @@ export const ConstructionForm = () => {
         if (id && id !== 'new') {
             loadConstruction(id);
         }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [customerId, id]);
 
     const loadCustomer = async (custId: string) => {

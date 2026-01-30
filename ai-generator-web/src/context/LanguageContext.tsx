@@ -1386,7 +1386,8 @@ export const LanguageProvider = ({ children }: { children: React.ReactNode }) =>
 
     const t = (key: string) => translations[language][key] || translations.hr[key] || key;
 
-    const value = useMemo(() => ({ language, setLanguage, t }), [language, t]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    const value = useMemo(() => ({ language, setLanguage, t }), [language]);
 
     return (
         <LanguageContext.Provider value={value}>

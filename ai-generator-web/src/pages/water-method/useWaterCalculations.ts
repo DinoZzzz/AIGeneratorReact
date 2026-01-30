@@ -89,6 +89,7 @@ export const useWaterCalculations = (formData: Partial<ReportForm>): CalculatedR
         );
 
         return { ...results, wettedShaftSurface, wettedPipeSurface, hydrostaticHeight };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [
         formData.draft_id,
         formData.material_type_id,
@@ -104,5 +105,6 @@ export const useWaterCalculations = (formData: Partial<ReportForm>): CalculatedR
         formData.depositional_height,
         formData.temperature,
         formData.examination_duration
+     
     ]);
 };

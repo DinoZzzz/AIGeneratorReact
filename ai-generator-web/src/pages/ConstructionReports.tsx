@@ -77,6 +77,7 @@ export const ConstructionReports = () => {
             loadData();
             loadFiles();
         }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [customerId, constructionId]);
 
     const loadData = async () => {

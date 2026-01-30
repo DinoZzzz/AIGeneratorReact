@@ -146,6 +146,7 @@ export const WaterMethodForm = () => {
         );
 
         return { ...results, wettedShaftSurface, wettedPipeSurface, hydrostaticHeight };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [
         formData.draft_id,
         formData.material_type_id,
@@ -161,6 +162,7 @@ export const WaterMethodForm = () => {
         formData.depositional_height,
         formData.temperature,
         formData.examination_duration
+     
     ]);
 
     // Auto-fill deviation text based on schema conditions

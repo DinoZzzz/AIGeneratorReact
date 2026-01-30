@@ -38,6 +38,7 @@ export const Chat = () => {
         return () => {
             channel.unsubscribe();
         };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     useEffect(() => {

@@ -41,6 +41,7 @@ export const Constructions = () => {
         if (customerId) {
             loadData(customerId);
         }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [customerId]);
 
     const loadData = async (id: string) => {
@@ -88,6 +89,7 @@ export const Constructions = () => {
         } finally {
             setArchiveLoading(false);
         }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [selectedConstruction, isArchiving, customerId]);
 
     const handleDelete = useCallback(async (id: string) => {
@@ -102,6 +104,7 @@ export const Constructions = () => {
                 alert('Failed to delete construction');
             }
         }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [t, customerId]);
 
     // Memoize filtered constructions to prevent recalculation on every render

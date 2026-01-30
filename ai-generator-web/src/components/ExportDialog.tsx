@@ -74,7 +74,7 @@ export const ExportDialog = ({ open, onOpenChange, onConfirm, loading = false, d
     useEffect(() => {
         if (open) {
             if (defaultValues && data.constructionPart === '' && defaultValues.constructionPart) {
-                // eslint-disable-next-line react-hooks/set-state-in-effect
+                 
                 setData(prev => ({
                     ...prev,
                     ...defaultValues

@@ -24,7 +24,7 @@ export const InputDialog: React.FC<InputDialogProps> = ({
     // Reset value and focus input when dialog opens
     useEffect(() => {
         if (isOpen) {
-            // eslint-disable-next-line react-hooks/set-state-in-effect
+             
             setValue(initialValue);
             // Focus and select after a short delay to ensure DOM is ready
             setTimeout(() => {

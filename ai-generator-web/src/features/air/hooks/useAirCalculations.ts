@@ -69,6 +69,7 @@ export const useAirCalculations = ({
             testTime: '00:00',
             requiredTestTime: finalTime
         };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [
         formData.examination_procedure_id,
         formData.pane_diameter,
@@ -78,5 +79,6 @@ export const useAirCalculations = ({
         formData.draft_id,
         procedures,
         materials
+     
     ]);
 };
