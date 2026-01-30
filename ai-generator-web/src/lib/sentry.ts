@@ -3,6 +3,11 @@ import * as Sentry from '@sentry/react';
 export const initSentry = () => {
     const dsn = import.meta.env.VITE_SENTRY_DSN;
 
+    // Debug logging
+    console.log('[Sentry Debug] DSN:', dsn ? 'present' : 'missing');
+    console.log('[Sentry Debug] MODE:', import.meta.env.MODE);
+    console.log('[Sentry Debug] PROD:', import.meta.env.PROD);
+
     // Only initialize if DSN is provided
     if (!dsn) {
         console.log('Sentry DSN not configured - error tracking disabled');
