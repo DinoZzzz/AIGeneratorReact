@@ -803,24 +803,9 @@ export const Settings = () => {
                     {/* Document Template Section */}
                     <TemplateEditor />
 
+
                     {/* Scheme Images Section */}
                     <SchemeManager />
-
-                    {/* Sentry Test Section - Development/Debug Only */}
-                    <section className="bg-card rounded-lg border border-destructive/50 p-4 sm:p-6">
-                        <h2 className="text-lg sm:text-xl font-semibold mb-2 text-foreground">Sentry Error Testing</h2>
-                        <p className="text-xs sm:text-sm text-muted-foreground mb-4">
-                            Test Sentry error tracking by triggering a test error. This will appear in your Sentry dashboard.
-                        </p>
-                        <button
-                            onClick={() => {
-                                throw new Error('This is a Sentry test error!');
-                            }}
-                            className="inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-destructive-foreground bg-destructive rounded-md hover:bg-destructive/90 transition-colors"
-                        >
-                            🔥 Break the world
-                        </button>
-                    </section>
                 </div>
             )}
 
