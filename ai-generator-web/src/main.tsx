@@ -4,6 +4,10 @@ import './index.css'
 import './styles/animations.css'
 import App from './App.tsx'
 import { registerSW } from 'virtual:pwa-register'
+import { initSentry } from './lib/sentry'
+
+// Initialize Sentry error tracking (before app renders)
+initSentry()
 
 // Register service worker with automatic updates
 const updateSW = registerSW({

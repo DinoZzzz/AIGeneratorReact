@@ -98,10 +98,18 @@ export const errorHandler = {
       });
     }
 
-    // Send to error tracking service
-    if (sendToService && process.env.NODE_ENV === 'production') {
-      // TODO: Integrate with Sentry, LogRocket, etc.
-      // sendToSentry(appError, context);
+    // Send to error tracking service (Sentry)
+    if (sendToService) {
+      import('./sentry').then(({ captureError }) => {
+        captureError(appError, {
+          context,
+          code: appError.code,
+          statusCode: appError.statusCode,
+          errorContext: appError.context,
+        });
+      }).catch(() => {
+        // Sentry not available, ignore
+      });
     }
 
     return appError;

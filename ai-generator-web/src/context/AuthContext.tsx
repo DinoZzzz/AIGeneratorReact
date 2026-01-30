@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import type { Profile } from '../types';
+import { setUserContext, clearUserContext } from '../lib/sentry';
 
 type Session = Awaited<ReturnType<typeof supabase.auth.getSession>>['data']['session'];
 type User = NonNullable<Session>['user'];
@@ -90,8 +91,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             setUser(session?.user ?? null);
             if (session?.user && !lowBandwidthMode) {
                 loadProfile(session.user.id);
+                // Set Sentry user context for error tracking
+                setUserContext({
+                    id: session.user.id,
+                    email: session.user.email,
+                });
             } else {
                 setProfile(null);
+                // Clear Sentry user context on logout
+                clearUserContext();
             }
             setLoading(false);
         });
@@ -104,6 +112,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const signOut = async () => {
         await supabase.auth.signOut();
         setProfile(null);
+        // Clear Sentry user context
+        clearUserContext();
     };
 
     const value = {

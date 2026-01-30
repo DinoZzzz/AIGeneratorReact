@@ -1,5 +1,6 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react';
 import { AlertTriangle } from 'lucide-react';
+import { captureError } from '../lib/sentry';
 
 interface Props {
   children: ReactNode;
@@ -29,8 +30,11 @@ export class ErrorBoundary extends Component<Props, State> {
       errorInfo,
     });
 
-    // TODO: Send to error tracking service (Sentry, LogRocket, etc.)
-    // sendErrorToService(error, errorInfo);
+    // Send to Sentry error tracking
+    captureError(error, {
+      componentStack: errorInfo.componentStack,
+      source: 'ErrorBoundary',
+    });
   }
 
   handleReset = () => {
