@@ -4,7 +4,7 @@ import { VitePWA } from 'vite-plugin-pwa'
 import { visualizer } from 'rollup-plugin-visualizer'
 
 // https://vite.dev/config/
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   plugins: [
     react({
       jsxRuntime: 'automatic'
@@ -149,6 +149,7 @@ export default defineConfig({
     target: 'es2020',
     cssCodeSplit: true,
     sourcemap: false,
+    minify: 'esbuild',
     rollupOptions: {
       output: {
         manualChunks: {
@@ -163,4 +164,8 @@ export default defineConfig({
       },
     },
   },
-})
+  esbuild: {
+    // Strip console.log/warn/info and debugger statements in production builds
+    drop: mode === 'production' ? ['console', 'debugger'] : [],
+  },
+}))
