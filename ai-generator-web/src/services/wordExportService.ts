@@ -379,10 +379,10 @@ export const generateWordDocument = async (
                 if (materials) {
                     reportsWithJoins.forEach(r => {
                         if (r.pipe_material_id && !r.pipe_material) {
-                            r.pipe_material = materials.find((m: Material) => m.id === r.pipe_material_id);
+                            r.pipe_material = materials.find((m: MaterialPartial) => m.id === r.pipe_material_id) as Material | undefined;
                         }
                         if (r.pane_material_id && !r.pane_material) {
-                            r.pane_material = materials.find((m: Material) => m.id === r.pane_material_id);
+                            r.pane_material = materials.find((m: MaterialPartial) => m.id === r.pane_material_id) as Material | undefined;
                         }
                     });
                 }

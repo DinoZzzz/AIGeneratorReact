@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabase';
+import { captureError, traceAsync } from '../lib/sentry';
 
 export interface Certifier {
     id: string;
@@ -79,50 +80,60 @@ export const certifierService = {
 
     // Upload signature image for a certifier
     async uploadSignature(certifierId: string, file: File): Promise<string> {
-        const fileExt = file.name.split('.').pop()?.toLowerCase() || 'png';
-        const fileName = `signature-${certifierId}-${Date.now()}.${fileExt}`;
+        return traceAsync('uploadSignature', 'storage.upload', async () => {
+            try {
+                const fileExt = file.name.split('.').pop()?.toLowerCase() || 'png';
+                const fileName = `signature-${certifierId}-${Date.now()}.${fileExt}`;
 
-        // First, get current certifier to check for existing signature
-        const { data: certifier } = await supabase
-            .from('certifiers')
-            .select('signature_url')
-            .eq('id', certifierId)
-            .single();
+                // First, get current certifier to check for existing signature
+                const { data: certifier } = await supabase
+                    .from('certifiers')
+                    .select('signature_url')
+                    .eq('id', certifierId)
+                    .single();
 
-        // Delete old signature file if exists
-        if (certifier?.signature_url) {
-            const oldFileName = certifier.signature_url.split('/').pop();
-            if (oldFileName) {
-                await supabase.storage
+                // Delete old signature file if exists
+                if (certifier?.signature_url) {
+                    const oldFileName = certifier.signature_url.split('/').pop();
+                    if (oldFileName) {
+                        await supabase.storage
+                            .from('certifier-signatures')
+                            .remove([oldFileName]);
+                    }
+                }
+
+                // Upload new signature
+                const { error: uploadError } = await supabase.storage
                     .from('certifier-signatures')
-                    .remove([oldFileName]);
+                    .upload(fileName, file, {
+                        cacheControl: '3600',
+                        upsert: true
+                    });
+
+                if (uploadError) throw uploadError;
+
+                // Get public URL
+                const { data: urlData } = supabase.storage
+                    .from('certifier-signatures')
+                    .getPublicUrl(fileName);
+
+                // Update certifier record with new signature URL
+                const { error: updateError } = await supabase
+                    .from('certifiers')
+                    .update({ signature_url: urlData.publicUrl })
+                    .eq('id', certifierId);
+
+                if (updateError) throw updateError;
+
+                return urlData.publicUrl;
+            } catch (error) {
+                captureError(error instanceof Error ? error : new Error('Signature upload failed'), {
+                    certifierId,
+                    fileName: file.name
+                });
+                throw error;
             }
-        }
-
-        // Upload new signature
-        const { error: uploadError } = await supabase.storage
-            .from('certifier-signatures')
-            .upload(fileName, file, {
-                cacheControl: '3600',
-                upsert: true
-            });
-
-        if (uploadError) throw uploadError;
-
-        // Get public URL
-        const { data: urlData } = supabase.storage
-            .from('certifier-signatures')
-            .getPublicUrl(fileName);
-
-        // Update certifier record with new signature URL
-        const { error: updateError } = await supabase
-            .from('certifiers')
-            .update({ signature_url: urlData.publicUrl })
-            .eq('id', certifierId);
-
-        if (updateError) throw updateError;
-
-        return urlData.publicUrl;
+        }, { certifierId });
     },
 
     // Delete signature for a certifier
