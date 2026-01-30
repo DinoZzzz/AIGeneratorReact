@@ -20,6 +20,7 @@ ENV VITE_EMAILJS_TEMPLATE_ID=$VITE_EMAILJS_TEMPLATE_ID
 ENV VITE_EMAILJS_PUBLIC_KEY=$VITE_EMAILJS_PUBLIC_KEY
 
 # Copy package files from ai-generator-web
+# Cache bust: 2026-01-30-v2
 COPY ai-generator-web/package*.json ./
 
 # Install dependencies
