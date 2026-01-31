@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabase';
+import { captureError } from '../lib/sentry';
 import type { ReportExport, ReportExportForm } from '../types';
 
 interface ReportExportWithRelations {
@@ -37,7 +38,10 @@ export const historyService = {
 
         const { data, error, count } = await query;
 
-        if (error) throw error;
+        if (error) {
+            captureError(error, { service: 'historyService', method: 'getAll', search, sortBy, sortOrder });
+            throw error;
+        }
 
         // Map the count from report_export_forms to a flat property
         const mappedData = (data as ReportExportWithRelations[]).map((item) => ({
@@ -62,7 +66,10 @@ export const historyService = {
             .eq('id', id)
             .single();
 
-        if (error) throw error;
+        if (error) {
+            captureError(error, { service: 'historyService', method: 'getById', id });
+            throw error;
+        }
         return data as ReportExport;
     },
 
@@ -76,7 +83,10 @@ export const historyService = {
             .eq('export_id', exportId)
             .order('ordinal', { ascending: true });
 
-        if (error) throw error;
+        if (error) {
+            captureError(error, { service: 'historyService', method: 'getExportForms', exportId });
+            throw error;
+        }
         return data as ReportExportForm[];
     },
 
@@ -93,6 +103,9 @@ export const historyService = {
             .delete()
             .eq('id', id);
 
-        if (error) throw error;
+        if (error) {
+            captureError(error, { service: 'historyService', method: 'delete', id });
+            throw error;
+        }
     }
 };

@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabase';
+import { captureError } from '../lib/sentry';
 import type { SchemeImage } from '../types';
 
 const BUCKET_NAME = 'scheme-images';
@@ -15,11 +16,14 @@ export const getSchemeImages = async (): Promise<SchemeImage[]> => {
             .select('*')
             .order('scheme_number', { ascending: true });
 
-        if (error) throw error;
+        if (error) {
+            captureError(error, { service: 'schemeService', method: 'getSchemeImages' });
+            throw error;
+        }
 
         return data || [];
     } catch (error) {
-        console.error('Error fetching scheme images:', error);
+        captureError(error instanceof Error ? error : new Error('Error fetching scheme images'), { service: 'schemeService', method: 'getSchemeImages' });
         return [];
     }
 };
@@ -35,11 +39,14 @@ export const getSchemeImage = async (schemeNumber: number): Promise<SchemeImage 
             .eq('scheme_number', schemeNumber)
             .single();
 
-        if (error) throw error;
+        if (error) {
+            captureError(error, { service: 'schemeService', method: 'getSchemeImage', schemeNumber });
+            throw error;
+        }
 
         return data;
     } catch (error) {
-        console.error(`Error fetching scheme ${schemeNumber}:`, error);
+        captureError(error instanceof Error ? error : new Error(`Error fetching scheme ${schemeNumber}`), { service: 'schemeService', method: 'getSchemeImage', schemeNumber });
         return null;
     }
 };
@@ -65,7 +72,7 @@ export const getSchemeImageUrl = async (schemeNumber: number): Promise<string> =
         // Fallback to local asset
         return `/assets/Scheme${schemeNumber}.PNG`;
     } catch (error) {
-        console.error(`Error getting scheme ${schemeNumber} URL:`, error);
+        captureError(error instanceof Error ? error : new Error(`Error getting scheme ${schemeNumber} URL`), { service: 'schemeService', method: 'getSchemeImageUrl', schemeNumber });
         // Fallback to local asset
         return `/assets/Scheme${schemeNumber}.PNG`;
     }
@@ -146,6 +153,7 @@ export const uploadSchemeImage = async (
             });
 
         if (uploadError) {
+            captureError(uploadError, { service: 'schemeService', method: 'uploadSchemeImage', schemeNumber });
             return { success: false, error: uploadError.message };
         }
 
@@ -163,11 +171,13 @@ export const uploadSchemeImage = async (
         if (updateError) {
             // Rollback: delete uploaded file
             await supabase.storage.from(BUCKET_NAME).remove([fileName]);
+            captureError(updateError, { service: 'schemeService', method: 'uploadSchemeImage', schemeNumber, step: 'dbUpdate' });
             return { success: false, error: updateError.message };
         }
 
         return { success: true };
     } catch (error) {
+        captureError(error instanceof Error ? error : new Error('Scheme image upload failed'), { service: 'schemeService', method: 'uploadSchemeImage', schemeNumber });
         return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
     }
 };
@@ -208,11 +218,13 @@ export const updateSchemeMetadata = async (
             .eq('scheme_number', schemeNumber);
 
         if (error) {
+            captureError(error, { service: 'schemeService', method: 'updateSchemeMetadata', schemeNumber });
             return { success: false, error: error.message };
         }
 
         return { success: true };
     } catch (error) {
+        captureError(error instanceof Error ? error : new Error('Scheme metadata update failed'), { service: 'schemeService', method: 'updateSchemeMetadata', schemeNumber });
         return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
     }
 };
@@ -250,11 +262,13 @@ export const resetSchemeImage = async (
             .eq('scheme_number', schemeNumber);
 
         if (error) {
+            captureError(error, { service: 'schemeService', method: 'resetSchemeImage', schemeNumber });
             return { success: false, error: error.message };
         }
 
         return { success: true };
     } catch (error) {
+        captureError(error instanceof Error ? error : new Error('Scheme image reset failed'), { service: 'schemeService', method: 'resetSchemeImage', schemeNumber });
         return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
     }
 };

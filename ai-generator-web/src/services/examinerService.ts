@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabase';
+import { captureError } from '../lib/sentry';
 import type { Profile, ReportType } from '../types';
 
 interface ProfileFromDB {
@@ -21,7 +22,10 @@ export const examinerService = {
             .select('id, name, last_name, username, email, title, gender, avatar_url, role, accreditations')
             .order('name');
 
-        if (error) throw error;
+        if (error) {
+            captureError(error, { service: 'examinerService', method: 'getExaminers' });
+            throw error;
+        }
 
         // Map snake_case DB fields to camelCase TS interface if necessary,
         // or ensure Types/DB match.
@@ -42,7 +46,10 @@ export const examinerService = {
             .select('id, name')
             .order('id');
 
-        if (error) throw error;
+        if (error) {
+            captureError(error, { service: 'examinerService', method: 'getReportTypes' });
+            throw error;
+        }
         return data as ReportType[];
     },
 
@@ -51,7 +58,9 @@ export const examinerService = {
         if (!profile.id) {
             // First, create the auth user
             if (!profile.email || !profile.password) {
-                throw new Error('Email and password are required for new examiners');
+                const error = new Error('Email and password are required for new examiners');
+                captureError(error, { service: 'examinerService', method: 'saveExaminer', email: profile.email });
+                throw error;
             }
 
             // Save the current session to restore it after creating the new user
@@ -69,8 +78,15 @@ export const examinerService = {
                 }
             });
 
-            if (authError) throw authError;
-            if (!authData.user) throw new Error('Failed to create user');
+            if (authError) {
+                captureError(authError, { service: 'examinerService', method: 'saveExaminer', step: 'signUp' });
+                throw authError;
+            }
+            if (!authData.user) {
+                const error = new Error('Failed to create user');
+                captureError(error, { service: 'examinerService', method: 'saveExaminer' });
+                throw error;
+            }
 
             // Restore the original session to prevent auto-login as the new user
             if (currentSession) {
@@ -101,7 +117,10 @@ export const examinerService = {
                 .select()
                 .single();
 
-            if (error) throw error;
+            if (error) {
+                captureError(error, { service: 'examinerService', method: 'saveExaminer', step: 'upsert' });
+                throw error;
+            }
             return {
                 ...data,
                 lastName: data.last_name,
@@ -132,11 +151,12 @@ export const examinerService = {
             });
 
             if (passwordError || !data?.success) {
-                console.error('Password update error:', passwordError);
-                throw new Error(
+                const error = new Error(
                     passwordError?.message ||
                     'Unable to update password. Make sure the Edge Function is deployed.'
                 );
+                captureError(error, { service: 'examinerService', method: 'saveExaminer', step: 'passwordReset', userId: profile.id });
+                throw error;
             }
         }
 
@@ -147,7 +167,10 @@ export const examinerService = {
             .select()
             .single();
 
-        if (error) throw error;
+        if (error) {
+            captureError(error, { service: 'examinerService', method: 'saveExaminer', step: 'update', profileId: profile.id });
+            throw error;
+        }
         return {
             ...data,
             lastName: data.last_name,
@@ -167,7 +190,10 @@ export const examinerService = {
             .delete()
             .eq('id', id);
 
-        if (error) throw error;
+        if (error) {
+            captureError(error, { service: 'examinerService', method: 'deleteExaminer', id });
+            throw error;
+        }
     },
 
     async uploadAvatar(file: File, userId: string): Promise<string> {
@@ -180,6 +206,7 @@ export const examinerService = {
             .upload(filePath, file);
 
         if (uploadError) {
+            captureError(uploadError, { service: 'examinerService', method: 'uploadAvatar', userId });
             throw uploadError;
         }
 

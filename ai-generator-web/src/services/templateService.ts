@@ -1,6 +1,7 @@
 import PizZip from 'pizzip';
 import type { TemplateInfo, TemplateValidationResult } from '../types';
 import { supabase } from '../lib/supabase';
+import { captureError } from '../lib/sentry';
 
 // Required tags that must be in the template
 const REQUIRED_TAGS = [
@@ -52,7 +53,10 @@ export const getActiveTemplate = async (): Promise<TemplateInfo | null> => {
             .from('templates')
             .list('', { limit: 10, sortBy: { column: 'updated_at', order: 'desc' } });
 
-        if (error) throw error;
+        if (error) {
+            captureError(error, { service: 'templateService', method: 'getActiveTemplate' });
+            throw error;
+        }
 
         // Find the active template (method1610.docx)
         const activeFile = files?.find((f: { name: string }) => f.name === 'method1610.docx');
@@ -75,7 +79,7 @@ export const getActiveTemplate = async (): Promise<TemplateInfo | null> => {
             updatedBy: metadata?.uploaded_by_name
         };
     } catch (error) {
-        console.error('Error getting active template:', error);
+        captureError(error instanceof Error ? error : new Error('Error getting active template'), { service: 'templateService', method: 'getActiveTemplate' });
         return null;
     }
 };
@@ -189,6 +193,7 @@ export const validateTemplate = async (file: File): Promise<TemplateValidationRe
 
         return result;
     } catch (error) {
+        captureError(error instanceof Error ? error : new Error('Template validation error'), { service: 'templateService', method: 'validateTemplate', fileName: file.name });
         result.errors.push(`Validation error: ${error instanceof Error ? error.message : 'Unknown error'}`);
         return result;
     }
@@ -239,6 +244,7 @@ export const uploadTemplate = async (file: File): Promise<{ success: boolean; er
             .upload('method1610.docx', file, { upsert: true });
 
         if (uploadError) {
+            captureError(uploadError, { service: 'templateService', method: 'uploadTemplate' });
             return { success: false, error: uploadError.message };
         }
 
@@ -274,6 +280,7 @@ export const uploadTemplate = async (file: File): Promise<{ success: boolean; er
 
         return { success: true };
     } catch (error) {
+        captureError(error instanceof Error ? error : new Error('Template upload failed'), { service: 'templateService', method: 'uploadTemplate' });
         return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
     }
 };
@@ -287,7 +294,10 @@ export const listTemplateVersions = async (): Promise<TemplateInfo[]> => {
             .from('templates')
             .list('', { limit: 20, sortBy: { column: 'created_at', order: 'desc' } });
 
-        if (error) throw error;
+        if (error) {
+            captureError(error, { service: 'templateService', method: 'listTemplateVersions' });
+            throw error;
+        }
 
         // Filter for backup files only
         const backups = files
@@ -301,7 +311,7 @@ export const listTemplateVersions = async (): Promise<TemplateInfo[]> => {
 
         return backups;
     } catch (error) {
-        console.error('Error listing template versions:', error);
+        captureError(error instanceof Error ? error : new Error('Error listing template versions'), { service: 'templateService', method: 'listTemplateVersions' });
         return [];
     }
 };
@@ -317,6 +327,7 @@ export const rollbackTemplate = async (backupPath: string): Promise<{ success: b
             .download(backupPath);
 
         if (error || !data) {
+            if (error) captureError(error, { service: 'templateService', method: 'rollbackTemplate', backupPath });
             return { success: false, error: error?.message || 'Could not download backup' };
         }
 
@@ -348,11 +359,13 @@ export const rollbackTemplate = async (backupPath: string): Promise<{ success: b
             .upload('method1610.docx', data, { upsert: true });
 
         if (uploadError) {
+            captureError(uploadError, { service: 'templateService', method: 'rollbackTemplate', backupPath });
             return { success: false, error: uploadError.message };
         }
 
         return { success: true };
     } catch (error) {
+        captureError(error instanceof Error ? error : new Error('Template rollback failed'), { service: 'templateService', method: 'rollbackTemplate', backupPath });
         return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
     }
 };
@@ -372,11 +385,13 @@ export const deleteTemplateBackup = async (backupPath: string): Promise<{ succes
             .remove([backupPath]);
 
         if (error) {
+            captureError(error, { service: 'templateService', method: 'deleteTemplateBackup', backupPath });
             return { success: false, error: error.message };
         }
 
         return { success: true };
     } catch (error) {
+        captureError(error instanceof Error ? error : new Error('Template backup deletion failed'), { service: 'templateService', method: 'deleteTemplateBackup', backupPath });
         return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
     }
 };

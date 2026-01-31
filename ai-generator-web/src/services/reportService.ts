@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabase';
+import { captureError } from '../lib/sentry';
 import type { ReportForm } from '../types';
 import { AppError, NotFoundError } from '../lib/errorHandler';
 
@@ -13,7 +14,10 @@ export const reportService = {
       `)
             .order('created_at', { ascending: false });
 
-        if (error) throw new AppError(error.message, 'SUPABASE_ERROR', 500);
+        if (error) {
+            captureError(error, { service: 'reportService', method: 'getAll' });
+            throw new AppError(error.message, 'SUPABASE_ERROR', 500);
+        }
         return data as ReportForm[];
     },
 
@@ -31,7 +35,10 @@ export const reportService = {
             .order('created_at', { ascending: false })
             .range(from, to);
 
-        if (error) throw new AppError(error.message, 'SUPABASE_ERROR', 500);
+        if (error) {
+            captureError(error, { service: 'reportService', method: 'getPaginated', page, pageSize });
+            throw new AppError(error.message, 'SUPABASE_ERROR', 500);
+        }
         return { data: data as ReportForm[], count: count || 0 };
     },
 
@@ -46,7 +53,10 @@ export const reportService = {
             .eq('construction_id', constructionId)
             .order('ordinal', { ascending: true });
 
-        if (error) throw new AppError(error.message, 'SUPABASE_ERROR', 500);
+        if (error) {
+            captureError(error, { service: 'reportService', method: 'getByConstruction', constructionId });
+            throw new AppError(error.message, 'SUPABASE_ERROR', 500);
+        }
         return data as ReportForm[];
     },
 
@@ -59,8 +69,10 @@ export const reportService = {
 
         if (error) {
             if (error.code === 'PGRST116') {
+                captureError(error, { service: 'reportService', method: 'getById', id, errorType: 'NotFound' });
                 throw new NotFoundError('Report');
             }
+            captureError(error, { service: 'reportService', method: 'getById', id });
             throw new AppError(error.message, 'SUPABASE_ERROR', 500);
         }
         return data as ReportForm;
@@ -82,7 +94,10 @@ export const reportService = {
             .select()
             .single();
 
-        if (error) throw new AppError(error.message, 'SUPABASE_ERROR', 500);
+        if (error) {
+            captureError(error, { service: 'reportService', method: 'create' });
+            throw new AppError(error.message, 'SUPABASE_ERROR', 500);
+        }
         return data as ReportForm;
     },
 
@@ -94,7 +109,10 @@ export const reportService = {
             .select()
             .single();
 
-        if (error) throw new AppError(error.message, 'SUPABASE_ERROR', 500);
+        if (error) {
+            captureError(error, { service: 'reportService', method: 'update', id });
+            throw new AppError(error.message, 'SUPABASE_ERROR', 500);
+        }
         return data as ReportForm;
     },
 
@@ -104,7 +122,10 @@ export const reportService = {
             .delete()
             .eq('id', id);
 
-        if (error) throw new AppError(error.message, 'SUPABASE_ERROR', 500);
+        if (error) {
+            captureError(error, { service: 'reportService', method: 'delete', id });
+            throw new AppError(error.message, 'SUPABASE_ERROR', 500);
+        }
     },
 
     async updateOrder(reports: ReportForm[]) {
@@ -121,6 +142,7 @@ export const reportService = {
 
             await Promise.all(updates);
         } catch (error) {
+            captureError(error instanceof Error ? error : new Error('Failed to update report order'), { service: 'reportService', method: 'updateOrder' });
             throw new AppError(error instanceof Error ? error.message : 'Failed to update report order', 'SUPABASE_ERROR', 500);
         }
     },
@@ -135,7 +157,10 @@ export const reportService = {
             .limit(1)
             .maybeSingle();
 
-        if (error) throw new AppError(error.message, 'SUPABASE_ERROR', 500);
+        if (error) {
+            captureError(error, { service: 'reportService', method: 'getLastByConstructionAndType', constructionId, typeId });
+            throw new AppError(error.message, 'SUPABASE_ERROR', 500);
+        }
         return data as ReportForm | null;
     }
 };
