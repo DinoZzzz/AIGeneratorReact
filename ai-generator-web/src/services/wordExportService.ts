@@ -221,7 +221,7 @@ export const generateWordDocument = async (
                             imageDimensions['certifierSignature'] = { width: 150, height: 50 };
                         }
                     }
-                } catch (error) {
+                } catch {
                     // Non-critical: continue without signature
                 }
             }

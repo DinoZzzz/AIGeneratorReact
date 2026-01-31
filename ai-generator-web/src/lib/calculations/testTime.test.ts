@@ -2,49 +2,95 @@ import { describe, it, expect } from 'vitest';
 import { calculateRequiredTestTime } from './testTime';
 
 describe('Test Time Calculation (Air Method)', () => {
-    // Standard Diameters: [100, 200, 300, 400, 600, 800, 1000, 1100, 1200]
+    /**
+     * Default material is CONCRETE (isConcrete = true)
+     *
+     * CONCRETE times from AIR_TEST_STANDARDS:
+     * - Diameters: [100, 200, 300, 400, 600, 800, 1000]
+     * - LA (procedureId=1): { 100: 5, 200: 5, 300: 5, 400: 7, 600: 11, 800: 14, 1000: 18 }
+     * - LB (procedureId=2): { 100: 4, 200: 4, 300: 4, 400: 6, 600: 8, 800: 11, 1000: 14 }
+     * - LC (procedureId=3): { 100: 3, 200: 3, 300: 3, 400: 4, 600: 6, 800: 8, 1000: 10 }
+     * - LD (procedureId=4): { 100: 1.5, 200: 1.5, 300: 1.5, 400: 2, 600: 3, 800: 4, 1000: 5 }
+     *
+     * DraftId: 1 or 4 = Shaft (halves the time), 2 = Pipe (normal time)
+     */
 
-    // Method LA (1): [5, 5, 7, 10, 14, 19, 24, 27, 29]
-    // Note: We use Draft ID 2 (Pipe) for standard times.
-    // Draft ID 1 is Shaft (Halved).
+    describe('Method LA (procedureId=1) - Pipe', () => {
+        it('returns exact time for matching diameter', () => {
+            expect(calculateRequiredTestTime(1, 2, 100)).toBe(5);
+            expect(calculateRequiredTestTime(1, 2, 400)).toBe(7);
+            expect(calculateRequiredTestTime(1, 2, 1000)).toBe(18);
+        });
 
-    it('calculates correct times for Method LA (Proc 1) - Pipe', () => {
-        // Exact match (Start of list)
-        expect(calculateRequiredTestTime(1, 2, 100)).toBe(5);
-        // Exact match (Middle)
-        expect(calculateRequiredTestTime(1, 2, 400)).toBe(10);
-        // Exact match (Max)
-        expect(calculateRequiredTestTime(1, 2, 1200)).toBe(29);
-        // Over Max
-        expect(calculateRequiredTestTime(1, 2, 1500)).toBe(29);
+        it('returns max time for diameter above 1000mm', () => {
+            expect(calculateRequiredTestTime(1, 2, 1200)).toBe(18);
+            expect(calculateRequiredTestTime(1, 2, 1500)).toBe(18);
+        });
 
-        // Interpolation: 250mm (between 200[5] and 300[7])
-        // 5 + (7-5)*(250-200)/(300-200) = 5 + 2*50/100 = 6
-        expect(calculateRequiredTestTime(1, 2, 250)).toBe(6);
+        it('interpolates between diameters', () => {
+            // 250mm between 200[5] and 300[5] -> 5 (same values)
+            expect(calculateRequiredTestTime(1, 2, 250)).toBe(5);
 
-        // Interpolation: 500mm (between 400[10] and 600[14])
-        // 10 + (14-10)*(500-400)/(600-400) = 10 + 4*100/200 = 12
-        expect(calculateRequiredTestTime(1, 2, 500)).toBe(12);
+            // 500mm between 400[7] and 600[11]
+            // 7 + (11-7)*(500-400)/(600-400) = 7 + 4*0.5 = 9
+            expect(calculateRequiredTestTime(1, 2, 500)).toBe(9);
+
+            // 700mm between 600[11] and 800[14]
+            // 11 + (14-11)*(700-600)/(800-600) = 11 + 3*0.5 = 12.5
+            expect(calculateRequiredTestTime(1, 2, 700)).toBe(12.5);
+        });
     });
 
-    // Method LB (2): [4, 4, 6, 7, 11, 15, 19, 21, 22]
-    it('calculates correct times for Method LB (Proc 2) - Pipe', () => {
-         expect(calculateRequiredTestTime(2, 2, 300)).toBe(6);
+    describe('Method LB (procedureId=2) - Pipe', () => {
+        it('returns exact time for matching diameter', () => {
+            expect(calculateRequiredTestTime(2, 2, 100)).toBe(4);
+            expect(calculateRequiredTestTime(2, 2, 300)).toBe(4);
+            expect(calculateRequiredTestTime(2, 2, 400)).toBe(6);
+        });
 
-         // Interpolation: 350mm (between 300[6] and 400[7]) -> 6.5
-         expect(calculateRequiredTestTime(2, 2, 350)).toBe(6.5);
+        it('interpolates between diameters', () => {
+            // 350mm between 300[4] and 400[6]
+            // 4 + (6-4)*(350-300)/(400-300) = 4 + 2*0.5 = 5
+            expect(calculateRequiredTestTime(2, 2, 350)).toBe(5);
+
+            // 500mm between 400[6] and 600[8]
+            // 6 + (8-6)*(500-400)/(600-400) = 6 + 2*0.5 = 7
+            expect(calculateRequiredTestTime(2, 2, 500)).toBe(7);
+        });
     });
 
-    // Shaft Logic (DraftId 1 or 4)
-    it('halves the time for Shaft (Draft 1 or 4)', () => {
-        // Method LA, 400mm -> 10 mins normal -> 5 mins shaft
-        // Draft 4 (Database Shaft)
-        expect(calculateRequiredTestTime(1, 4, 400)).toBe(5);
+    describe('Shaft (draftId=1 or 4) - halves the time', () => {
+        it('halves time for draftId=4 (Database Shaft)', () => {
+            // LA at 400mm = 7 -> 3.5
+            expect(calculateRequiredTestTime(1, 4, 400)).toBe(3.5);
 
-        // Draft 1 (UI Shaft)
-        expect(calculateRequiredTestTime(1, 1, 400)).toBe(5);
+            // LA at 1000mm = 18 -> 9
+            expect(calculateRequiredTestTime(1, 4, 1000)).toBe(9);
+        });
 
-        // Method LA, 500mm -> 12 mins normal -> 6 mins shaft
-        expect(calculateRequiredTestTime(1, 4, 500)).toBe(6);
+        it('halves time for draftId=1 (UI Shaft)', () => {
+            // LA at 400mm = 7 -> 3.5
+            expect(calculateRequiredTestTime(1, 1, 400)).toBe(3.5);
+        });
+
+        it('halves interpolated time correctly', () => {
+            // LA at 500mm = 9 -> 4.5
+            expect(calculateRequiredTestTime(1, 4, 500)).toBe(4.5);
+
+            // LB at 350mm = 5 -> 2.5
+            expect(calculateRequiredTestTime(2, 1, 350)).toBe(2.5);
+        });
+    });
+
+    describe('Method LC and LD', () => {
+        it('calculates LC times correctly', () => {
+            expect(calculateRequiredTestTime(3, 2, 400)).toBe(4);
+            expect(calculateRequiredTestTime(3, 2, 1000)).toBe(10);
+        });
+
+        it('calculates LD times correctly', () => {
+            expect(calculateRequiredTestTime(4, 2, 400)).toBe(2);
+            expect(calculateRequiredTestTime(4, 2, 1000)).toBe(5);
+        });
     });
 });
