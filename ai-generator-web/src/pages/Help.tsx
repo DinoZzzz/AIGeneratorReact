@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useLanguage } from '../context/LanguageContext';
-import { ChevronDown, ChevronUp, FileText, Upload, Settings, Database, HelpCircle } from 'lucide-react';
+import { ChevronDown, ChevronUp, FileText, Upload, Settings, Database, HelpCircle, Calendar, LayoutDashboard, History } from 'lucide-react';
 import { SupportRequestForm } from '../components/help/SupportRequestForm';
 import { cn } from '../lib/utils';
 
@@ -161,6 +161,80 @@ export const Help = () => {
                     answer: "1. Na stranici prijave, kliknite 'Zaboravljena lozinka?'\n2. Unesite vašu email adresu\n3. Provjerite email za link za resetiranje\n4. Kliknite na link i unesite novu lozinku\n5. Prijavite se s novom lozinkom"
                 }
             ]
+        },
+        {
+            icon: <LayoutDashboard className="h-6 w-6" />,
+            title: "Dashboard i Analitika",
+            items: [
+                {
+                    question: "Što prikazuje Dashboard?",
+                    answer: "Dashboard prikazuje pregled aktivnosti:\\n\\n- Ukupan broj naručitelja, gradilišta i obrazaca\\n- Grafikon obrazaca po mjesecima\\n- Nedavna aktivnost (zadnjih 5 obrazaca)\\n- Status gradilišta (aktivna/neaktivna)\\n- Brzi pristup čestim radnjama"
+                },
+                {
+                    question: "Kako filtrirati podatke na Dashboardu?",
+                    answer: "1. Koristite padajući izbornik za odabir vremenskog raspona\\n2. Kliknite na grafikon za detaljniji prikaz\\n3. Koristite tablicu za sortiranje po stupcima\\n\\nDashboard se automatski osvježava pri svakom učitavanju."
+                },
+                {
+                    question: "Što znače boje u grafikonu?",
+                    answer: "Zelena: Obrasci koji zadovoljavaju kriterije\\nCrvena: Obrasci koji ne zadovoljavaju\\nPlava: Ukupan broj obrazaca\\n\\nGrafikon prikazuje trend kroz odabrano vremensko razdoblje."
+                },
+                {
+                    question: "Kako pristupiti detaljima iz Dashboarda?",
+                    answer: "Kliknite na:\\n- Broj naručitelja → otvara listu naručitelja\\n- Broj gradilišta → otvara listu gradilišta\\n- Obrazac u tablici → otvara detalje obrasca\\n- Ime naručitelja → otvara profile naručitelja"
+                }
+            ]
+        },
+        {
+            icon: <Calendar className="h-6 w-6" />,
+            title: "Kalendar i Termini",
+            items: [
+                {
+                    question: "Kako dodati novi termin u kalendar?",
+                    answer: "1. Otvorite stranicu 'Kalendar'\\n2. Kliknite na željeni datum ili '+' gumb\\n3. Ispunite podatke:\\n   - Naslov termina\\n   - Naručitelj i gradilište\\n   - Datum i vrijeme\\n   - Opis (opcionalno)\\n4. Kliknite 'Spremi'\\n\\nTermin će se pojaviti u kalendaru."
+                },
+                {
+                    question: "Kako urediti ili obrisati termin?",
+                    answer: "1. Kliknite na termin u kalendaru\\n2. U pop-up prozoru odaberite:\\n   - 'Uredi' za izmjenu podataka\\n   - 'Obriši' za brisanje termina\\n3. Potvrdite akciju\\n\\nNapomena: Obrisani termini se ne mogu vratiti."
+                },
+                {
+                    question: "Kako promijeniti prikaz kalendara?",
+                    answer: "Koristite gumbe u gornjem dijelu kalendara:\\n- 'Mjesec': Mjesečni prikaz\\n- 'Tjedan': Tjedni prikaz\\n- 'Dan': Dnevni prikaz\\n- 'Raspored': Lista termina\\n\\nStrelice lijevo/desno mijenjaju period."
+                },
+                {
+                    question: "Mogu li povezati termin s gradilištem?",
+                    answer: "Da! Prilikom stvaranja termina:\\n1. Odaberite naručitelja iz padajućeg izbornika\\n2. Odaberite gradilište\\n\\nTermin će biti povezan s gradilištem i vidljiv u detaljima gradilišta."
+                },
+                {
+                    question: "Kako vidjeti samo svoje termine?",
+                    answer: "Kalendar automatski prikazuje termine koje ste vi stvorili ili koji su vam dodijeljeni.\\n\\nAdministratori mogu vidjeti sve termine svih korisnika."
+                }
+            ]
+        },
+        {
+            icon: <History className="h-6 w-6" />,
+            title: "Povijest i Praćenje Promjena",
+            items: [
+                {
+                    question: "Gdje mogu vidjeti povijest promjena?",
+                    answer: "1. Otvorite stranicu 'Povijest'\\n2. Koristite filtere za pretragu:\\n   - Po korisniku\\n   - Po tipu akcije (kreiranje, uređivanje, brisanje)\\n   - Po datumu\\n3. Kliknite na stavku za detalje promjene"
+                },
+                {
+                    question: "Koje se akcije bilježe u povijesti?",
+                    answer: "Sustav bilježi:\\n- Kreiranje obrazaca, naručitelja, gradilišta\\n- Uređivanje postojećih zapisa\\n- Brisanje zapisa\\n- Generiranje izvještaja\\n- Promjene korisničkih postavki\\n\\nSvaka akcija uključuje vrijeme, korisnika i detalje promjene."
+                },
+                {
+                    question: "Mogu li vratiti obrisani zapis?",
+                    answer: "Ne, obrisani zapisi se ne mogu automatski vratiti.\\n\\nMeđutim, povijest čuva informacije o obrisanim zapisima, pa možete:\\n1. Pogledati detalje obrisanog zapisa\\n2. Ručno ponovno unijeti podatke\\n\\nPreporučamo redovito backup podataka."
+                },
+                {
+                    question: "Koliko dugo se čuva povijest?",
+                    answer: "Povijest se čuva trajno za sve akcije.\\n\\nMožete filtrirati po datumu za lakše pronalaženje starijih zapisa."
+                },
+                {
+                    question: "Kako izvesti povijest promjena?",
+                    answer: "Trenutno nije podržano automatsko izvoz povijesti.\\n\\nZa izvoz podataka kontaktirajte administratora sustava."
+                }
+            ]
         }
     ] : [
         // English version
@@ -279,6 +353,80 @@ export const Help = () => {
                 {
                     question: "How to reset a forgotten password?",
                     answer: "1. On the login page, click 'Forgot Password?'\n2. Enter your email address\n3. Check email for reset link\n4. Click the link and enter new password\n5. Log in with new password"
+                }
+            ]
+        },
+        {
+            icon: <LayoutDashboard className="h-6 w-6" />,
+            title: "Dashboard & Analytics",
+            items: [
+                {
+                    question: "What does the Dashboard show?",
+                    answer: "The Dashboard displays an activity overview:\\n\\n- Total number of customers, construction sites, and reports\\n- Monthly reports chart\\n- Recent activity (last 5 reports)\\n- Construction site status (active/inactive)\\n- Quick access to common actions"
+                },
+                {
+                    question: "How to filter data on the Dashboard?",
+                    answer: "1. Use the dropdown menu to select a time range\\n2. Click on the chart for a detailed view\\n3. Use the table to sort by columns\\n\\nThe Dashboard refreshes automatically on each page load."
+                },
+                {
+                    question: "What do the chart colors mean?",
+                    answer: "Green: Reports that satisfy criteria\\nRed: Reports that don't satisfy\\nBlue: Total number of reports\\n\\nThe chart shows trends over the selected time period."
+                },
+                {
+                    question: "How to access details from the Dashboard?",
+                    answer: "Click on:\\n- Customer count → opens customer list\\n- Construction site count → opens site list\\n- Report in table → opens report details\\n- Customer name → opens customer profile"
+                }
+            ]
+        },
+        {
+            icon: <Calendar className="h-6 w-6" />,
+            title: "Calendar & Appointments",
+            items: [
+                {
+                    question: "How to add a new appointment to the calendar?",
+                    answer: "1. Open the 'Calendar' page\\n2. Click on the desired date or '+' button\\n3. Fill in the details:\\n   - Appointment title\\n   - Customer and construction site\\n   - Date and time\\n   - Description (optional)\\n4. Click 'Save'\\n\\nThe appointment will appear in the calendar."
+                },
+                {
+                    question: "How to edit or delete an appointment?",
+                    answer: "1. Click on the appointment in the calendar\\n2. In the popup, select:\\n   - 'Edit' to modify details\\n   - 'Delete' to remove the appointment\\n3. Confirm the action\\n\\nNote: Deleted appointments cannot be restored."
+                },
+                {
+                    question: "How to change the calendar view?",
+                    answer: "Use the buttons at the top of the calendar:\\n- 'Month': Monthly view\\n- 'Week': Weekly view\\n- 'Day': Daily view\\n- 'Agenda': List of appointments\\n\\nLeft/right arrows change the period."
+                },
+                {
+                    question: "Can I link an appointment to a construction site?",
+                    answer: "Yes! When creating an appointment:\\n1. Select a customer from the dropdown\\n2. Select a construction site\\n\\nThe appointment will be linked to the site and visible in site details."
+                },
+                {
+                    question: "How to see only my appointments?",
+                    answer: "The calendar automatically shows appointments you created or that are assigned to you.\\n\\nAdministrators can see all appointments from all users."
+                }
+            ]
+        },
+        {
+            icon: <History className="h-6 w-6" />,
+            title: "History & Change Tracking",
+            items: [
+                {
+                    question: "Where can I see the change history?",
+                    answer: "1. Open the 'History' page\\n2. Use filters to search:\\n   - By user\\n   - By action type (create, edit, delete)\\n   - By date\\n3. Click on an item for change details"
+                },
+                {
+                    question: "What actions are recorded in history?",
+                    answer: "The system records:\\n- Creating reports, customers, construction sites\\n- Editing existing records\\n- Deleting records\\n- Generating reports\\n- User setting changes\\n\\nEach action includes time, user, and change details."
+                },
+                {
+                    question: "Can I restore a deleted record?",
+                    answer: "No, deleted records cannot be automatically restored.\\n\\nHowever, history keeps information about deleted records, so you can:\\n1. View details of the deleted record\\n2. Manually re-enter the data\\n\\nWe recommend regular data backups."
+                },
+                {
+                    question: "How long is history kept?",
+                    answer: "History is kept permanently for all actions.\\n\\nYou can filter by date to find older records more easily."
+                },
+                {
+                    question: "How to export change history?",
+                    answer: "Automatic history export is not currently supported.\\n\\nFor data export, contact the system administrator."
                 }
             ]
         }
