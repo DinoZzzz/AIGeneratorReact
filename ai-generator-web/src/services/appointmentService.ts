@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { supabase } from '../lib/supabase';
+import { captureError } from '../lib/sentry';
 import type { Appointment } from '../types';
 import { AppError } from '../lib/errorHandler';
 
@@ -15,7 +16,10 @@ export const appointmentService = {
             .gte('start', start.toISOString())
             .lte('end', end.toISOString());
 
-        if (error) throw new AppError(error.message, 'SUPABASE_ERROR', 500);
+        if (error) {
+            captureError(error, { service: 'appointmentService', method: 'getAll' });
+            throw new AppError(error.message, 'SUPABASE_ERROR', 500);
+        }
 
         // Collect all unique examiner IDs from all events (batch query instead of N+1)
         const allExaminerIds = [...new Set(
@@ -60,7 +64,10 @@ export const appointmentService = {
             .select()
             .single();
 
-        if (error) throw new AppError(error.message, 'SUPABASE_ERROR', 500);
+        if (error) {
+            captureError(error, { service: 'appointmentService', method: 'create' });
+            throw new AppError(error.message, 'SUPABASE_ERROR', 500);
+        }
 
         return newAppt as Appointment;
     },
@@ -84,7 +91,10 @@ export const appointmentService = {
             .select()
             .single();
 
-        if (error) throw new AppError(error.message, 'SUPABASE_ERROR', 500);
+        if (error) {
+            captureError(error, { service: 'appointmentService', method: 'update', id });
+            throw new AppError(error.message, 'SUPABASE_ERROR', 500);
+        }
 
         return data as Appointment;
     },
@@ -95,6 +105,9 @@ export const appointmentService = {
             .delete()
             .eq('id', id);
 
-        if (error) throw new AppError(error.message, 'SUPABASE_ERROR', 500);
+        if (error) {
+            captureError(error, { service: 'appointmentService', method: 'delete', id });
+            throw new AppError(error.message, 'SUPABASE_ERROR', 500);
+        }
     }
 };

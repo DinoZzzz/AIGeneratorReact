@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabase';
+import { captureError } from '../lib/sentry';
 import { AppError } from '../lib/errorHandler';
 
 export interface Message {
@@ -27,7 +28,10 @@ export const messageService = {
             .order('created_at', { ascending: false })
             .limit(limit);
 
-        if (error) throw new AppError(error.message, 'SUPABASE_ERROR', 500);
+        if (error) {
+            captureError(error, { service: 'messageService', method: 'getMessages' });
+            throw new AppError(error.message, 'SUPABASE_ERROR', 500);
+        }
 
         // Reverse to show oldest first
         return (data || []).reverse() as Message[];
@@ -43,7 +47,10 @@ export const messageService = {
             `)
             .single();
 
-        if (error) throw new AppError(error.message, 'SUPABASE_ERROR', 500);
+        if (error) {
+            captureError(error, { service: 'messageService', method: 'sendMessage' });
+            throw new AppError(error.message, 'SUPABASE_ERROR', 500);
+        }
         return data as Message;
     },
 
@@ -58,7 +65,10 @@ export const messageService = {
             `)
             .single();
 
-        if (error) throw new AppError(error.message, 'SUPABASE_ERROR', 500);
+        if (error) {
+            captureError(error, { service: 'messageService', method: 'updateMessage', id });
+            throw new AppError(error.message, 'SUPABASE_ERROR', 500);
+        }
         return data as Message;
     },
 
@@ -68,7 +78,10 @@ export const messageService = {
             .delete()
             .eq('id', id);
 
-        if (error) throw new AppError(error.message, 'SUPABASE_ERROR', 500);
+        if (error) {
+            captureError(error, { service: 'messageService', method: 'deleteMessage', id });
+            throw new AppError(error.message, 'SUPABASE_ERROR', 500);
+        }
     },
 
     subscribeToMessages(callback: (message: Message) => void) {

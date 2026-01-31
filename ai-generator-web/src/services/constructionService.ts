@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabase';
+import { captureError } from '../lib/sentry';
 import type { Construction } from '../types';
 import { AppError, NotFoundError } from '../lib/errorHandler';
 
@@ -15,7 +16,10 @@ export const constructionService = {
 
         const { data, error } = await query.order('created_at', { ascending: false });
 
-        if (error) throw new AppError(error.message, 'SUPABASE_ERROR', 500);
+        if (error) {
+            captureError(error, { service: 'constructionService', method: 'getByCustomerId', customerId });
+            throw new AppError(error.message, 'SUPABASE_ERROR', 500);
+        }
         return data as Construction[];
     },
 
@@ -27,6 +31,7 @@ export const constructionService = {
             .single();
 
         if (error) {
+            captureError(error, { service: 'constructionService', method: 'getById', id });
             if (error.code === 'PGRST116') {
                 throw new NotFoundError('Construction');
             }
@@ -42,7 +47,10 @@ export const constructionService = {
             .select()
             .single();
 
-        if (error) throw new AppError(error.message, 'SUPABASE_ERROR', 500);
+        if (error) {
+            captureError(error, { service: 'constructionService', method: 'create' });
+            throw new AppError(error.message, 'SUPABASE_ERROR', 500);
+        }
         return data as Construction;
     },
 
@@ -54,7 +62,10 @@ export const constructionService = {
             .select()
             .single();
 
-        if (error) throw new AppError(error.message, 'SUPABASE_ERROR', 500);
+        if (error) {
+            captureError(error, { service: 'constructionService', method: 'update', id });
+            throw new AppError(error.message, 'SUPABASE_ERROR', 500);
+        }
         return data as Construction;
     },
 
@@ -64,7 +75,10 @@ export const constructionService = {
             .delete()
             .eq('id', id);
 
-        if (error) throw new AppError(error.message, 'SUPABASE_ERROR', 500);
+        if (error) {
+            captureError(error, { service: 'constructionService', method: 'delete', id });
+            throw new AppError(error.message, 'SUPABASE_ERROR', 500);
+        }
     },
 
     async checkWorkOrderExists(workOrder: string, customerId: string, excludeId?: string) {
@@ -79,7 +93,10 @@ export const constructionService = {
         }
 
         const { data, error } = await query;
-        if (error) throw new AppError(error.message, 'SUPABASE_ERROR', 500);
+        if (error) {
+            captureError(error, { service: 'constructionService', method: 'checkWorkOrderExists', workOrder, customerId });
+            throw new AppError(error.message, 'SUPABASE_ERROR', 500);
+        }
         return data.length > 0;
     },
 
@@ -91,7 +108,10 @@ export const constructionService = {
             .select()
             .single();
 
-        if (error) throw new AppError(error.message, 'SUPABASE_ERROR', 500);
+        if (error) {
+            captureError(error, { service: 'constructionService', method: 'archive', id });
+            throw new AppError(error.message, 'SUPABASE_ERROR', 500);
+        }
         return data as Construction;
     },
 
@@ -103,7 +123,10 @@ export const constructionService = {
             .select()
             .single();
 
-        if (error) throw new AppError(error.message, 'SUPABASE_ERROR', 500);
+        if (error) {
+            captureError(error, { service: 'constructionService', method: 'unarchive', id });
+            throw new AppError(error.message, 'SUPABASE_ERROR', 500);
+        }
         return data as Construction;
     }
 };

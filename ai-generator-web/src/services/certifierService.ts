@@ -18,7 +18,10 @@ export const certifierService = {
             .order('is_default', { ascending: false })
             .order('name');
 
-        if (error) throw error;
+        if (error) {
+            captureError(error, { service: 'certifierService', method: 'getAll' });
+            throw error;
+        }
         return data || [];
     },
 
@@ -29,7 +32,10 @@ export const certifierService = {
             .select()
             .single();
 
-        if (error) throw error;
+        if (error) {
+            captureError(error, { service: 'certifierService', method: 'create', name: certifier.name });
+            throw error;
+        }
         return data;
     },
 
@@ -41,7 +47,10 @@ export const certifierService = {
             .select()
             .single();
 
-        if (error) throw error;
+        if (error) {
+            captureError(error, { service: 'certifierService', method: 'update', id });
+            throw error;
+        }
         return data;
     },
 
@@ -51,15 +60,23 @@ export const certifierService = {
             .delete()
             .eq('id', id);
 
-        if (error) throw error;
+        if (error) {
+            captureError(error, { service: 'certifierService', method: 'delete', id });
+            throw error;
+        }
     },
 
     async setDefault(id: string): Promise<void> {
         // First, unset all defaults
-        await supabase
+        const { error: unsetError } = await supabase
             .from('certifiers')
             .update({ is_default: false })
             .neq('id', id);
+
+        if (unsetError) {
+            captureError(unsetError, { service: 'certifierService', method: 'setDefault', step: 'unsetAll', id });
+            throw unsetError;
+        }
 
         // Then set the new default
         const { error } = await supabase
@@ -67,7 +84,10 @@ export const certifierService = {
             .update({ is_default: true })
             .eq('id', id);
 
-        if (error) throw error;
+        if (error) {
+            captureError(error, { service: 'certifierService', method: 'setDefault', step: 'setNew', id });
+            throw error;
+        }
     },
 
     // Get display name (name + title if exists)
@@ -128,6 +148,8 @@ export const certifierService = {
                 return urlData.publicUrl;
             } catch (error) {
                 captureError(error instanceof Error ? error : new Error('Signature upload failed'), {
+                    service: 'certifierService',
+                    method: 'uploadSignature',
                     certifierId,
                     fileName: file.name
                 });
@@ -138,30 +160,52 @@ export const certifierService = {
 
     // Delete signature for a certifier
     async deleteSignature(certifierId: string): Promise<void> {
-        // Get current certifier to find signature file
-        const { data: certifier } = await supabase
-            .from('certifiers')
-            .select('signature_url')
-            .eq('id', certifierId)
-            .single();
+        try {
+            // Get current certifier to find signature file
+            const { data: certifier, error: fetchError } = await supabase
+                .from('certifiers')
+                .select('signature_url')
+                .eq('id', certifierId)
+                .single();
 
-        if (certifier?.signature_url) {
-            // Extract filename from URL
-            const fileName = certifier.signature_url.split('/').pop();
-            if (fileName) {
-                // Delete from storage
-                await supabase.storage
-                    .from('certifier-signatures')
-                    .remove([fileName]);
+            if (fetchError) {
+                captureError(fetchError, { service: 'certifierService', method: 'deleteSignature', step: 'fetch', certifierId });
+                throw fetchError;
             }
+
+            if (certifier?.signature_url) {
+                // Extract filename from URL
+                const fileName = certifier.signature_url.split('/').pop();
+                if (fileName) {
+                    // Delete from storage
+                    const { error: storageError } = await supabase.storage
+                        .from('certifier-signatures')
+                        .remove([fileName]);
+
+                    if (storageError) {
+                        captureError(storageError, { service: 'certifierService', method: 'deleteSignature', step: 'storage', certifierId });
+                        // Continue to clear DB even if storage delete fails
+                    }
+                }
+            }
+
+            // Clear signature_url in database
+            const { error } = await supabase
+                .from('certifiers')
+                .update({ signature_url: null })
+                .eq('id', certifierId);
+
+            if (error) {
+                captureError(error, { service: 'certifierService', method: 'deleteSignature', step: 'dbUpdate', certifierId });
+                throw error;
+            }
+        } catch (error) {
+            captureError(error instanceof Error ? error : new Error('Signature deletion failed'), {
+                service: 'certifierService',
+                method: 'deleteSignature',
+                certifierId
+            });
+            throw error;
         }
-
-        // Clear signature_url in database
-        const { error } = await supabase
-            .from('certifiers')
-            .update({ signature_url: null })
-            .eq('id', certifierId);
-
-        if (error) throw error;
     }
 };

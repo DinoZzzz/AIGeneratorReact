@@ -14,7 +14,6 @@ import {
     calculateWettedPipeSurface
 } from '../lib/calculations/report';
 import { supabase } from '../lib/supabase';
-import { generateBulkPDFAsBlob } from '../lib/pdfGenerator';
 import { convertPdfToImages, dataUrlToArrayBuffer } from '../lib/pdfToImage';
 import { traceAsync, captureError } from '../lib/sentry';
 
@@ -278,6 +277,7 @@ export const generateWordDocument = async (
             const pdfReportImages: AttachmentItem[] = [];
             if (metaData.includePdfs) {
                 try {
+                    const { generateBulkPDFAsBlob } = await import('../lib/pdfGenerator');
                     const pdfBlob = await traceAsync('generatePDF', 'export.pdf', () =>
                         generateBulkPDFAsBlob(reports, userProfile as Profile | undefined)
                     );
