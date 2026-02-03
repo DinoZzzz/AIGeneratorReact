@@ -258,11 +258,11 @@ export const Reports = () => {
                 </div>
 
                 {/* Desktop Table View */}
-                <div className="hidden md:block overflow-x-auto">
-                    <table className="min-w-full divide-y divide-border">
+                <div className="hidden md:block">
+                    <table className="w-full divide-y divide-border table-fixed">
                         <thead className="bg-muted/50">
                             <tr>
-                                <th scope="col" className="px-6 py-3 text-left">
+                                <th scope="col" className="w-10 px-3 py-3 text-left">
                                     <input
                                         type="checkbox"
                                         className="rounded border-gray-300"
@@ -270,19 +270,19 @@ export const Reports = () => {
                                         onChange={toggleAll}
                                     />
                                 </th>
-                                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                                <th scope="col" className="w-24 px-3 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                                     {t('reports.date')}
                                 </th>
-                                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                                <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                                     Construction
                                 </th>
-                                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                                <th scope="col" className="w-40 px-3 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                                     {t('reports.type')}
                                 </th>
-                                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                                <th scope="col" className="w-24 px-3 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                                     {t('reports.status')}
                                 </th>
-                                <th scope="col" className="relative px-6 py-3">
+                                <th scope="col" className="w-24 relative px-3 py-3">
                                     <span className="sr-only">{t('reports.actions')}</span>
                                 </th>
                             </tr>
@@ -290,7 +290,7 @@ export const Reports = () => {
                         <tbody className="bg-card divide-y divide-border">
                             {reports.length === 0 ? (
                                 <tr>
-                                    <td colSpan={6} className="px-6 py-12 text-center text-muted-foreground">
+                                    <td colSpan={6} className="px-3 py-12 text-center text-muted-foreground">
                                         <div className="flex flex-col items-center justify-center">
                                             <FileText className="h-12 w-12 text-muted-foreground/50 mb-4" />
                                             <p className="text-lg font-medium text-foreground">{t('reports.noReports')}</p>
@@ -301,7 +301,7 @@ export const Reports = () => {
                             ) : (
                                 reports.map((report) => (
                                     <tr key={report.id} className="hover:bg-muted/50 transition-colors">
-                                        <td className="px-6 py-4 whitespace-nowrap">
+                                        <td className="px-3 py-4">
                                             <input
                                                 type="checkbox"
                                                 className="rounded border-gray-300"
@@ -309,21 +309,21 @@ export const Reports = () => {
                                                 onChange={() => toggleSelection(report.id)}
                                             />
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">
+                                        <td className="px-3 py-4 text-sm text-foreground">
                                             {new Date(report.examination_date).toLocaleDateString()}
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
-                                            <div className="flex flex-col">
-                                                <span className="font-medium text-foreground">{report.construction?.name || '-'}</span>
-                                                <span className="text-xs">{report.construction?.work_order}</span>
+                                        <td className="px-3 py-4 text-sm text-muted-foreground">
+                                            <div className="flex flex-col min-w-0">
+                                                <span className="font-medium text-foreground truncate">{report.construction?.name || '-'}</span>
+                                                <span className="text-xs truncate">{report.construction?.work_order}</span>
                                             </div>
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
-                                            {report.type_id === 1 ? t('reports.water') : t('reports.air')} - {report.draft?.name}
+                                        <td className="px-3 py-4 text-sm text-muted-foreground">
+                                            <span className="block truncate">{report.type_id === 1 ? t('reports.water') : t('reports.air')} - {report.draft?.name}</span>
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
+                                        <td className="px-3 py-4">
                                             <span className={cn(
-                                                "px-2.5 py-0.5 inline-flex text-xs font-medium rounded-full",
+                                                "px-2.5 py-0.5 inline-flex text-xs font-medium rounded-full whitespace-nowrap",
                                                 report.satisfies
                                                     ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
                                                     : "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400"
@@ -331,8 +331,8 @@ export const Reports = () => {
                                                 {report.satisfies ? t('reports.satisfies') : t('reports.failed')}
                                             </span>
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                            <div className="flex justify-end space-x-2">
+                                        <td className="px-3 py-4 text-right text-sm font-medium">
+                                            <div className="flex justify-end space-x-1">
                                                 <Button variant="ghost" size="icon" asChild>
                                                     <Link to={`/reports/${report.id}`}>
                                                         <Edit className="h-4 w-4 text-primary" />
