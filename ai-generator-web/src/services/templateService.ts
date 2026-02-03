@@ -199,8 +199,8 @@ export const validateTemplate = async (file: File): Promise<TemplateValidationRe
             }
         }
 
-        // Template is valid if no errors and no missing required tags
-        result.isValid = result.errors.length === 0 && result.missingTags.length === 0;
+        // Template is valid if there are no blocking errors
+        result.isValid = result.errors.length === 0;
 
         return result;
     } catch (error) {
@@ -220,9 +220,7 @@ export const uploadTemplate = async (file: File): Promise<{ success: boolean; er
         if (!validation.isValid) {
             return {
                 success: false,
-                error: validation.errors.length > 0
-                    ? validation.errors.join(', ')
-                    : `Missing required tags: ${validation.missingTags.join(', ')}`
+                error: validation.errors.join(', ')
             };
         }
 
