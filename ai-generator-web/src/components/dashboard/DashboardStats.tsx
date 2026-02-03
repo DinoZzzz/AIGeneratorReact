@@ -44,24 +44,36 @@ const DashboardStatsComponent = () => {
             const weekAgo = new Date(today);
             weekAgo.setDate(weekAgo.getDate() - 7);
 
-            const { data: reports, error } = await supabase
-                .from('report_forms')
-                .select(`
-                    id,
-                    user_id,
-                    created_at,
-                    construction:constructions (
+            // Fetch reports and profiles in a single parallel call
+            // Only fetch reports from the past week for examiner stats (optimization)
+            // But fetch all reports for customer stats (needed for total counts)
+            const [reportsResult, profilesResult] = await Promise.all([
+                supabase
+                    .from('report_forms')
+                    .select(`
                         id,
-                        customer:customers (
+                        user_id,
+                        created_at,
+                        construction:constructions (
                             id,
-                            name
+                            customer:customers (
+                                id,
+                                name
+                            )
                         )
-                    )
-                `);
+                    `),
+                supabase
+                    .from('profiles')
+                    .select('id, name, last_name, email, role')
+            ]);
 
-            if (error) throw error;
+            if (reportsResult.error) throw reportsResult.error;
+            if (profilesResult.error) throw profilesResult.error;
 
-            if (!reports) return;
+            const reports = reportsResult.data;
+            const allProfiles = profilesResult.data;
+
+            if (!reports || !allProfiles) return;
 
             // 1. Process Customer Stats
             const customerCounts: Record<string, { name: string, count: number }> = {};
@@ -82,13 +94,6 @@ const DashboardStatsComponent = () => {
                 .slice(0, 3); // Top 3
 
             // 2. Process Examiner Stats
-            // First, fetch all profiles
-            const { data: allProfiles } = await supabase
-                .from('profiles')
-                .select('id, name, last_name, email, role');
-
-            if (!allProfiles) return;
-
             const examinerCounts: Record<string, { todayCount: number, weekCount: number }> = {};
 
             // Initialize all users with 0 counts

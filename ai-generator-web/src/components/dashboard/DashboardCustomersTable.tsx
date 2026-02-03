@@ -35,35 +35,47 @@ interface CustomerWithConstructions {
     }[] | null;
 }
 
-// Helper to batch queries with large ID arrays to avoid URL length limits
-async function batchedInQuery<T>(
-    table: string,
-    select: string,
-    column: string,
-    ids: string[],
-    batchSize = 50
-): Promise<T[]> {
-    if (ids.length === 0) return [];
+// Helper to get the most recent activity date per customer from multiple tables
+// Optimized to run all table queries in parallel and only keep MAX date per customer
+async function getLatestActivityDates(
+    customerIds: string[]
+): Promise<Map<string, string>> {
+    if (customerIds.length === 0) return new Map();
 
-    const results: T[] = [];
+    const result = new Map<string, string>();
+    const batchSize = 50;
     const batches: string[][] = [];
 
-    for (let i = 0; i < ids.length; i += batchSize) {
-        batches.push(ids.slice(i, i + batchSize));
+    for (let i = 0; i < customerIds.length; i += batchSize) {
+        batches.push(customerIds.slice(i, i + batchSize));
     }
 
-    // Execute batches in parallel (but each batch is small enough)
-    const batchResults = await Promise.all(
-        batches.map(batch =>
-            supabase.from(table).select(select).in(column, batch)
-        )
-    );
+    // Query all three tables in parallel for all batches
+    const allQueries = batches.flatMap(batch => [
+        supabase.from('report_forms').select('customer_id, updated_at').in('customer_id', batch),
+        supabase.from('report_exports').select('customer_id, updated_at').in('customer_id', batch),
+        supabase.from('appointments').select('customer_id, created_at').in('customer_id', batch)
+    ]);
 
-    for (const { data } of batchResults) {
-        if (data) results.push(...(data as T[]));
+    const results = await Promise.all(allQueries);
+
+    // Process all results and keep only the latest date per customer
+    for (const { data } of results) {
+        if (data) {
+            for (const row of data as { customer_id: string; updated_at?: string; created_at?: string }[]) {
+                const customerId = row.customer_id;
+                const date = row.updated_at || row.created_at;
+                if (date) {
+                    const existing = result.get(customerId);
+                    if (!existing || new Date(date) > new Date(existing)) {
+                        result.set(customerId, date);
+                    }
+                }
+            }
+        }
     }
 
-    return results;
+    return result;
 }
 
 // Memoized table row component to prevent unnecessary re-renders
@@ -227,12 +239,8 @@ const DashboardCustomersTableComponent = () => {
 
             const customerIds = (customersData as CustomerWithConstructions[]).map((c) => c.id);
 
-            // Get all related activities in parallel using batched queries to avoid URL length limits
-            const [reports, exports, appointments] = await Promise.all([
-                batchedInQuery<{ customer_id: string; updated_at: string }>('report_forms', 'customer_id, updated_at', 'customer_id', customerIds),
-                batchedInQuery<{ customer_id: string; updated_at: string }>('report_exports', 'customer_id, updated_at', 'customer_id', customerIds),
-                batchedInQuery<{ customer_id: string; created_at: string }>('appointments', 'customer_id, created_at', 'customer_id', customerIds)
-            ]);
+            // Get latest activity dates from all related tables in a single optimized call
+            const activityDates = await getLatestActivityDates(customerIds);
 
             // Format customers with activity calculation
             const formatted: (CustomerTableItem & { last_activity_date: string })[] = (customersData as CustomerWithConstructions[]).map((c) => {
@@ -251,13 +259,11 @@ const DashboardCustomersTableComponent = () => {
                         return dateB - dateA;
                     }) || [];
 
-                // Calculate last activity date
+                // Calculate last activity date from customer, constructions, and related activities
                 const dates = [
                     c.updated_at,
                     ...(c.constructions?.map((con) => con.updated_at) || []),
-                    ...(reports?.filter(r => r.customer_id === c.id).map(r => r.updated_at) || []),
-                    ...(exports?.filter(e => e.customer_id === c.id).map(e => e.updated_at) || []),
-                    ...(appointments?.filter(a => a.customer_id === c.id).map(a => a.created_at) || [])
+                    activityDates.get(c.id) // Latest activity from reports, exports, appointments
                 ].filter(Boolean);
 
                 const lastActivityDate = dates.length > 0

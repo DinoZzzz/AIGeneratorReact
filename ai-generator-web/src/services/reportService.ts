@@ -129,18 +129,19 @@ export const reportService = {
     },
 
     async updateOrder(reports: ReportForm[]) {
-        // Ideally we would use a stored procedure or a single upsert,
-        // but for now we'll just loop through and update the ordinal.
-        // This is not atomic but sufficient for this scale.
+        // Use a single upsert call instead of N individual updates
+        // This reduces N API calls to just 1
         try {
-            const updates = reports.map((report, index) =>
-                supabase
-                    .from('report_forms')
-                    .update({ ordinal: index })
-                    .eq('id', report.id)
-            );
+            const updates = reports.map((report, index) => ({
+                id: report.id,
+                ordinal: index
+            }));
 
-            await Promise.all(updates);
+            const { error } = await supabase
+                .from('report_forms')
+                .upsert(updates, { onConflict: 'id', ignoreDuplicates: false });
+
+            if (error) throw error;
         } catch (error) {
             captureError(error instanceof Error ? error : new Error('Failed to update report order'), { service: 'reportService', method: 'updateOrder' });
             throw new AppError(error instanceof Error ? error.message : 'Failed to update report order', 'SUPABASE_ERROR', 500);
