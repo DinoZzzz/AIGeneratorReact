@@ -170,8 +170,8 @@ export const validateTemplate = async (file: File): Promise<TemplateValidationRe
         const rawTagIssues = findRawTagPlacementIssues(zip);
         if (rawTagIssues.length > 0) {
             rawTagIssues.forEach((issue) => {
-                result.warnings.push(
-                    `Raw tag "${issue.tag}" should be inside a paragraph in ${issue.file}.`
+                result.errors.push(
+                    `Raw tag "${issue.tag}" must be inside a paragraph in ${issue.file}.`
                 );
             });
         }
