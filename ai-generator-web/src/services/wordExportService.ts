@@ -16,6 +16,7 @@ import {
 import { supabase } from '../lib/supabase';
 import { convertPdfToImages, dataUrlToArrayBuffer } from '../lib/pdfToImage';
 import { traceAsync, captureError } from '../lib/sentry';
+import { findRawTagPlacementIssues } from '../utils/docxTemplate';
 
 // Type definitions for word export
 interface AirReportRow {
@@ -144,6 +145,16 @@ export const generateWordDocument = async (
             // Check for valid docx structure
             if (!zip.files['word/document.xml']) {
                 throw new Error("The uploaded template is not a valid Word (.docx) file. It is missing 'word/document.xml'.");
+            }
+
+            const rawTagIssues = findRawTagPlacementIssues(zip, ['image', 'certifierSignature']);
+            if (rawTagIssues.length > 0) {
+                const issueSummary = rawTagIssues
+                    .map((issue) => `${issue.tag} in ${issue.file}`)
+                    .join(', ');
+                throw new Error(
+                    `Template error: image tags must be placed inside a paragraph. Fix tags: ${issueSummary}.`
+                );
             }
 
             // 3. Fetch and Prepare Images (Attachments)

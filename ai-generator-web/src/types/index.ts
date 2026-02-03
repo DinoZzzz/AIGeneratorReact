@@ -217,6 +217,7 @@ export interface TemplateValidationResult {
     foundTags: string[];
     missingTags: string[];
     unrecognizedTags: string[];
+    warnings: string[];
     errors: string[];
 }
 
@@ -231,4 +232,3 @@ export interface SchemeImage {
     updated_by?: string;
     updated_by_name?: string;
 }
-

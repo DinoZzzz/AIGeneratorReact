@@ -2,6 +2,7 @@ import PizZip from 'pizzip';
 import type { TemplateInfo, TemplateValidationResult } from '../types';
 import { supabase } from '../lib/supabase';
 import { captureError } from '../lib/sentry';
+import { findRawTagPlacementIssues } from '../utils/docxTemplate';
 
 // Required tags that must be in the template
 const REQUIRED_TAGS = [
@@ -133,6 +134,7 @@ export const validateTemplate = async (file: File): Promise<TemplateValidationRe
         foundTags: [],
         missingTags: [],
         unrecognizedTags: [],
+        warnings: [],
         errors: []
     };
 
@@ -165,6 +167,15 @@ export const validateTemplate = async (file: File): Promise<TemplateValidationRe
         const foundTags = extractTagsFromDocx(zip);
         result.foundTags = foundTags;
 
+        const rawTagIssues = findRawTagPlacementIssues(zip);
+        if (rawTagIssues.length > 0) {
+            rawTagIssues.forEach((issue) => {
+                result.warnings.push(
+                    `Raw tag "${issue.tag}" should be inside a paragraph in ${issue.file}.`
+                );
+            });
+        }
+
         // Check for required tags
         for (const tag of REQUIRED_TAGS) {
             if (!foundTags.includes(tag)) {
@@ -188,8 +199,8 @@ export const validateTemplate = async (file: File): Promise<TemplateValidationRe
             }
         }
 
-        // Template is valid if no errors and no missing required tags
-        result.isValid = result.errors.length === 0 && result.missingTags.length === 0;
+        // Template is valid if there are no blocking errors
+        result.isValid = result.errors.length === 0;
 
         return result;
     } catch (error) {
@@ -209,9 +220,7 @@ export const uploadTemplate = async (file: File): Promise<{ success: boolean; er
         if (!validation.isValid) {
             return {
                 success: false,
-                error: validation.errors.length > 0
-                    ? validation.errors.join(', ')
-                    : `Missing required tags: ${validation.missingTags.join(', ')}`
+                error: validation.errors.join(', ')
             };
         }
 
