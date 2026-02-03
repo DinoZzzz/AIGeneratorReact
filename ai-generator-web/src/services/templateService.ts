@@ -134,6 +134,7 @@ export const validateTemplate = async (file: File): Promise<TemplateValidationRe
         foundTags: [],
         missingTags: [],
         unrecognizedTags: [],
+        warnings: [],
         errors: []
     };
 
