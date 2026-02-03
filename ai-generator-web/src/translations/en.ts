@@ -509,6 +509,7 @@ export const en: Record<string, string> = {
     'help.comingSoon': 'Help and documentation coming soon...',
     'help.tabs.faq': 'FAQ',
     'help.tabs.support': 'Support',
+    'help.tabs.version': 'Version History',
     'help.support.title': 'Support Request',
     'help.support.subtitle': 'Send us your change request, bug report, or feature suggestion',
     'help.support.requestType': 'Request Type',

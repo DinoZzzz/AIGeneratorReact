@@ -509,6 +509,7 @@ export const hr: Record<string, string> = {
     'help.comingSoon': 'Pomoć i dokumentacija stižu uskoro...',
     'help.tabs.faq': 'Najčešća pitanja',
     'help.tabs.support': 'Podrška',
+    'help.tabs.version': 'Povijest verzija',
     'help.support.title': 'Zahtjev za podršku',
     'help.support.subtitle': 'Pošaljite nam svoj zahtjev za promjenom, prijavu greške ili prijedlog nove značajke',
     'help.support.requestType': 'Tip zahtjeva',
