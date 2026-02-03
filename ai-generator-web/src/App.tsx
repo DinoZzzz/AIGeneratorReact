@@ -11,6 +11,7 @@ import { Loader2 } from 'lucide-react';
 import { ToastProvider } from './context/ToastContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { LanguageProvider } from './context/LanguageContext';
+import { KeyboardShortcutsProvider } from './context/KeyboardShortcutsContext';
 import { queryClient } from './lib/queryClient';
 import { Calendar } from './pages/Calendar';
 
@@ -76,6 +77,7 @@ function App() {
               <LanguageProvider>
                 <ToastProvider>
                   <Router>
+                    <KeyboardShortcutsProvider>
                   <Suspense fallback={<LoadingFallback />}>
                     <Routes>
                       <Route path="/login" element={<Login />} />
@@ -128,6 +130,7 @@ function App() {
                     </Routes>
                     </Suspense>
                     <OfflineIndicator />
+                    </KeyboardShortcutsProvider>
                   </Router>
                 </ToastProvider>
               </LanguageProvider>

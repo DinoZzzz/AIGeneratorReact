@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { useOffline } from '../context/OfflineContext';
+import { useRecentlyViewed } from '../hooks/useRecentlyViewed';
 import {
     LayoutDashboard,
     Users,
@@ -22,7 +23,10 @@ import {
     Wifi,
     WifiOff,
     RefreshCw,
-    CloudOff
+    CloudOff,
+    Clock,
+    Building2,
+    FileText
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { prefetchCommonRoutes } from '../lib/routePrefetch';
@@ -55,6 +59,7 @@ export const Layout = ({ children }: LayoutProps) => {
     const location = useLocation();
     const { t, language } = useLanguage();
     const { isOnline, pendingChanges, syncStatus, triggerSync } = useOffline();
+    const { items: recentItems } = useRecentlyViewed();
     const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
@@ -151,6 +156,29 @@ export const Layout = ({ children }: LayoutProps) => {
                                 </Link>
                             );
                         })}
+
+                        {/* Recently Viewed Section */}
+                        {!isSidebarCollapsed && recentItems.length > 0 && (
+                            <div className="pt-4 mt-4 border-t border-border">
+                                <div className="flex items-center gap-2 px-4 py-2 text-xs font-medium text-muted-foreground uppercase">
+                                    <Clock className="h-3 w-3" />
+                                    {t('nav.recent') || 'Recent'}
+                                </div>
+                                {recentItems.slice(0, 5).map((item) => {
+                                    const Icon = item.type === 'customer' ? Users : item.type === 'construction' ? Building2 : FileText;
+                                    return (
+                                        <Link
+                                            key={`${item.type}-${item.id}`}
+                                            to={item.path}
+                                            className="flex items-center px-4 py-2 text-sm rounded-lg transition-colors text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                                        >
+                                            <Icon className="h-4 w-4 mr-3 text-muted-foreground" />
+                                            <span className="truncate">{item.name}</span>
+                                        </Link>
+                                    );
+                                })}
+                            </div>
+                        )}
                     </nav>
 
                     {/* User Profile & Logout */}

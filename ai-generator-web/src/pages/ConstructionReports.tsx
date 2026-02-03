@@ -4,7 +4,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { reportService } from '../services/reportService';
 import { constructionService } from '../services/constructionService';
 import { customerService } from '../services/customerService';
-import { Loader2, Plus, FileText, Trash2, ArrowLeft, FileDown, Pencil, Type, GripVertical, Archive } from 'lucide-react';
+import { Loader2, Plus, FileText, Trash2, ArrowLeft, FileDown, Pencil, Type, GripVertical, Archive, Copy } from 'lucide-react';
 import type { ReportForm, Construction, Customer, ReportFile, Profile } from '../types';
 import clsx from 'clsx';
 import { ExportDialog } from '../components/ExportDialog';
@@ -28,6 +28,7 @@ import type { ExportMetaData } from '../components/ExportDialog';
 import { Breadcrumbs } from '../components/ui/Breadcrumbs';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
+import { useRecentlyViewed } from '../hooks/useRecentlyViewed';
 import { supabase } from '../lib/supabase';
 import { DndContext, closestCenter, PointerSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core';
 import type { DragEndEvent } from '@dnd-kit/core';
@@ -40,6 +41,7 @@ export const ConstructionReports = () => {
     const navigate = useNavigate();
     const { user, profile } = useAuth();
     const { t } = useLanguage();
+    const { addItem: addRecentItem } = useRecentlyViewed();
     const [reports, setReports] = useState<ReportForm[]>([]);
     const [construction, setConstruction] = useState<Construction | null>(null);
     const [customer, setCustomer] = useState<Customer | null>(null);
@@ -79,6 +81,20 @@ export const ConstructionReports = () => {
         }
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [customerId, constructionId]);
+
+    // Track construction in recently viewed
+    useEffect(() => {
+        if (construction && customerId && constructionId) {
+            addRecentItem({
+                id: constructionId,
+                type: 'construction',
+                name: construction.name,
+                subtext: construction.work_order || undefined,
+                path: `/customers/${customerId}/constructions/${constructionId}/reports`
+            });
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [construction?.id]);
 
     const loadData = async () => {
         try {
@@ -136,6 +152,15 @@ export const ConstructionReports = () => {
             console.error('Error deleting report:', error);
             alert('Failed to delete report');
         }
+    };
+
+    const handleDuplicate = (report: ReportForm) => {
+        // Navigate to new report form with duplicate parameter
+        const basePath = `/customers/${customerId}/constructions/${constructionId}/reports/new`;
+        const path = report.type_id === 1
+            ? `${basePath}/water?duplicate=${report.id}`
+            : `${basePath}/air?duplicate=${report.id}`;
+        navigate(path);
     };
 
     const handleExportPDF = (report: ReportForm) => {
@@ -771,6 +796,13 @@ export const ConstructionReports = () => {
                                             >
                                                 <Pencil className="h-4 w-4" />
                                             </Link>
+                                            <button
+                                                onClick={() => handleDuplicate(report)}
+                                                className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded-full transition-colors"
+                                                title={t('reports.duplicate') || 'Duplicate'}
+                                            >
+                                                <Copy className="h-4 w-4" />
+                                            </button>
                                             <button
                                                 onClick={() => report.id && handleDelete(report.id)}
                                                 className="p-2 text-destructive hover:bg-destructive/10 rounded-full transition-colors"

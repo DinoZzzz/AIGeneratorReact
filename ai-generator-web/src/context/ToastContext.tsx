@@ -8,6 +8,7 @@ interface ToastItem {
     message: string;
     type: ToastType;
     duration?: number;
+    onUndo?: () => void;
 }
 
 interface ToastContextType {
@@ -15,6 +16,7 @@ interface ToastContextType {
     success: (message: string, duration?: number) => void;
     error: (message: string, duration?: number) => void;
     info: (message: string, duration?: number) => void;
+    successWithUndo: (message: string, onUndo: () => void, duration?: number) => void;
 }
 
 const ToastContext = createContext<ToastContextType | undefined>(undefined);
@@ -87,8 +89,21 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const error = useCallback((message: string, duration?: number) => addToast(message, 'error', duration), [addToast]);
     const info = useCallback((message: string, duration?: number) => addToast(message, 'info', duration), [addToast]);
 
+    const successWithUndo = useCallback((message: string, onUndo: () => void, duration: number = 5000) => {
+        const id = Math.random().toString(36).substr(2, 9);
+        const newToast: ToastItem = { id, message, type: 'success', duration, onUndo };
+
+        setVisibleToasts(prev => {
+            if (prev.length < MAX_VISIBLE_TOASTS) {
+                return [...prev, newToast];
+            }
+            queueRef.current.push(newToast);
+            return prev;
+        });
+    }, []);
+
     return (
-        <ToastContext.Provider value={{ addToast, success, error, info }}>
+        <ToastContext.Provider value={{ addToast, success, error, info, successWithUndo }}>
             {children}
             <div className="fixed top-0 inset-x-0 sm:right-0 sm:left-auto p-4 sm:p-6 space-y-4 z-[100] flex flex-col items-center sm:items-end pointer-events-none">
                 {visibleToasts.map((toast) => (
@@ -99,6 +114,7 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
                         message={toast.message}
                         duration={toast.duration}
                         onClose={removeToast}
+                        onUndo={toast.onUndo}
                     />
                 ))}
             </div>

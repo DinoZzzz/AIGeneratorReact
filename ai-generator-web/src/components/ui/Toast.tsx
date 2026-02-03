@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { X, CheckCircle2, XCircle, Info } from 'lucide-react';
+import { X, CheckCircle2, XCircle, Info, Undo2 } from 'lucide-react';
 import { useSwipeable } from 'react-swipeable';
 import { cn } from '../../lib/utils';
 
@@ -11,9 +11,10 @@ export interface ToastProps {
     message: string;
     onClose: (id: string) => void;
     duration?: number;
+    onUndo?: () => void;
 }
 
-export const Toast: React.FC<ToastProps> = ({ id, type, message, onClose, duration = 3000 }) => {
+export const Toast: React.FC<ToastProps> = ({ id, type, message, onClose, duration = 3000, onUndo }) => {
     useEffect(() => {
         const timer = setTimeout(() => {
             onClose(id);
@@ -67,6 +68,18 @@ export const Toast: React.FC<ToastProps> = ({ id, type, message, onClose, durati
                         <p className="text-sm font-medium leading-relaxed">
                             {message}
                         </p>
+                        {onUndo && (
+                            <button
+                                onClick={() => {
+                                    onUndo();
+                                    onClose(id);
+                                }}
+                                className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-green-700 dark:text-green-300 hover:text-green-900 dark:hover:text-green-100 transition-colors"
+                            >
+                                <Undo2 className="h-3 w-3" />
+                                Undo
+                            </button>
+                        )}
                     </div>
                     <button
                         className="flex-shrink-0 rounded-md p-1 hover:bg-black/5 dark:hover:bg-white/10 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"

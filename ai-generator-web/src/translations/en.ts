@@ -11,6 +11,7 @@ export const en: Record<string, string> = {
     'nav.signOut': 'Sign Out',
     'nav.chat': 'Chat',
     'nav.calendar': 'Calendar',
+    'nav.recent': 'Recent',
 
     // Settings
     'settings.language': 'Language',
@@ -249,6 +250,7 @@ export const en: Record<string, string> = {
     'reports.exportPdf': 'Export PDF',
     'reports.edit': 'Edit',
     'reports.delete': 'Delete',
+    'reports.duplicate': 'Duplicate',
     'reports.draft': 'Draft',
     'reports.actions': 'Actions',
     'reports.manageViewReports': 'Manage and view all test reports.',
@@ -644,4 +646,14 @@ export const en: Record<string, string> = {
     'schemeManager.resetError': 'Error resetting scheme',
     'schemeManager.reset': 'Reset to Original',
     'schemeManager.updatedBy': 'Updated by',
+
+    // Command Palette
+    'commandPalette.searchPlaceholder': 'Search customers, constructions...',
+    'commandPalette.searching': 'Searching...',
+    'commandPalette.noResults': 'No results found',
+    'commandPalette.recent': 'Recently Viewed',
+    'commandPalette.navigate': 'Navigate',
+    'commandPalette.select': 'Select',
+    'commandPalette.close': 'Close',
+    'commandPalette.typeToSearch': 'Type to search...',
 };

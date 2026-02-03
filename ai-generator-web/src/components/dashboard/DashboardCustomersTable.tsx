@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Search, Plus } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useLanguage } from '../../context/LanguageContext';
+import { useDebounce } from '../../hooks/useDebounce';
 
 interface ActiveConstruction {
     id: string;
@@ -192,13 +193,16 @@ const DashboardCustomersTableComponent = () => {
     const [totalCount, setTotalCount] = useState(0);
     const { t } = useLanguage();
 
+    // Debounce search to reduce API calls while typing
+    const debouncedSearch = useDebounce(search, 300);
+
     const ITEMS_PER_PAGE = 8;
 
     useEffect(() => {
         fetchCustomers();
-        // fetchCustomers is stable - only depends on search and currentPage
+        // fetchCustomers is stable - only depends on debouncedSearch and currentPage
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [search, currentPage]);
+    }, [debouncedSearch, currentPage]);
 
     const fetchCustomers = async () => {
         setLoading(true);
@@ -222,8 +226,8 @@ const DashboardCustomersTableComponent = () => {
                     )
                 `);
 
-            if (search) {
-                const searchFilter = `name.ilike.%${search}%,work_order.ilike.%${search}%`;
+            if (debouncedSearch) {
+                const searchFilter = `name.ilike.%${debouncedSearch}%,work_order.ilike.%${debouncedSearch}%`;
                 customerQuery = customerQuery.or(searchFilter);
             }
 
@@ -304,7 +308,7 @@ const DashboardCustomersTableComponent = () => {
     // Reset to page 1 when search changes
     useEffect(() => {
         setCurrentPage(1);
-    }, [search]);
+    }, [debouncedSearch]);
 
     const totalPages = Math.ceil(totalCount / ITEMS_PER_PAGE);
     const startItem = (currentPage - 1) * ITEMS_PER_PAGE + 1;

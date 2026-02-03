@@ -11,6 +11,7 @@ export const hr: Record<string, string> = {
     'nav.signOut': 'Odjava',
     'nav.chat': 'Chat',
     'nav.calendar': 'Kalendar',
+    'nav.recent': 'Nedavno',
 
     // Settings
     'settings.language': 'Jezik',
@@ -249,6 +250,7 @@ export const hr: Record<string, string> = {
     'reports.exportPdf': 'Izvoz PDF',
     'reports.edit': 'Uredi',
     'reports.delete': 'Obriši',
+    'reports.duplicate': 'Dupliciraj',
     'reports.draft': 'Skica',
     'reports.actions': 'Akcije',
     'reports.manageViewReports': 'Upravljanje i pregled svih obrazaca.',
@@ -644,4 +646,14 @@ export const hr: Record<string, string> = {
     'schemeManager.resetError': 'Greška prilikom vraćanja sheme',
     'schemeManager.reset': 'Vrati izvorno',
     'schemeManager.updatedBy': 'Izmijenio',
+
+    // Command Palette
+    'commandPalette.searchPlaceholder': 'Pretraži kupce, gradilišta...',
+    'commandPalette.searching': 'Pretraživanje...',
+    'commandPalette.noResults': 'Nema rezultata',
+    'commandPalette.recent': 'Nedavno pregledano',
+    'commandPalette.navigate': 'Navigiraj',
+    'commandPalette.select': 'Odaberi',
+    'commandPalette.close': 'Zatvori',
+    'commandPalette.typeToSearch': 'Upišite za pretragu...',
 };

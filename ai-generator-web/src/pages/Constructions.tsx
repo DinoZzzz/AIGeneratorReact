@@ -7,6 +7,7 @@ import type { Construction, Customer } from '../types';
 import { Breadcrumbs } from '../components/ui/Breadcrumbs';
 import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../context/AuthContext';
+import { useRecentlyViewed } from '../hooks/useRecentlyViewed';
 import { ConfirmArchiveDialog } from '../components/constructions/ConfirmArchiveDialog';
 import { formatDate } from '../utils/dateFormatter';
 
@@ -22,6 +23,7 @@ export const Constructions = () => {
     const [currentPage, setCurrentPage] = useState(1);
     const { t } = useLanguage();
     const { profile } = useAuth();
+    const { addItem: addRecentItem } = useRecentlyViewed();
 
     // Archive state
     const [filter, setFilter] = useState<FilterType>(() => {
@@ -43,6 +45,20 @@ export const Constructions = () => {
         }
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [customerId]);
+
+    // Track customer in recently viewed
+    useEffect(() => {
+        if (customer && customerId) {
+            addRecentItem({
+                id: customerId,
+                type: 'customer',
+                name: customer.name,
+                subtext: customer.work_order || undefined,
+                path: `/customers/${customerId}/constructions`
+            });
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [customer?.id]);
 
     const loadData = async (id: string) => {
         setLoading(true);
