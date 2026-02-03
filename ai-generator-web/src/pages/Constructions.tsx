@@ -399,6 +399,7 @@ export const Constructions = () => {
                         </div>
                         <div className="flex gap-2">
                             <button
+                                type="button"
                                 onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                                 disabled={currentPage === 1}
                                 className="px-3 py-1 text-sm border border-border rounded-md hover:bg-accent disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
@@ -409,6 +410,7 @@ export const Constructions = () => {
                                 {t('history.page')} {currentPage} {t('history.of')} {totalPages}
                             </span>
                             <button
+                                type="button"
                                 onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                                 disabled={currentPage === totalPages}
                                 className="px-3 py-1 text-sm border border-border rounded-md hover:bg-accent disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
