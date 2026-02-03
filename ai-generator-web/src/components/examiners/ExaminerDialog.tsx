@@ -4,6 +4,7 @@ import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { Label } from '../ui/Label';
 import { Checkbox } from '../ui/Checkbox';
+import { AlertCircle } from 'lucide-react';
 import type { Profile, ReportType } from '../../types';
 import { examinerService } from '../../services/examinerService';
 import { useLanguage } from '../../context/LanguageContext';
@@ -15,9 +16,26 @@ interface ExaminerDialogProps {
     onSave: (examiner: Partial<Profile>) => Promise<void>;
 }
 
+interface WeakPasswordError extends Error {
+    __isAuthError?: boolean;
+    code?: string;
+    status?: number;
+}
+
+function isWeakPasswordError(error: unknown): boolean {
+    if (error && typeof error === 'object') {
+        const e = error as WeakPasswordError;
+        return e.code === 'weak_password' ||
+               e.message?.toLowerCase().includes('weak') ||
+               e.message?.toLowerCase().includes('password is known');
+    }
+    return false;
+}
+
 export const ExaminerDialog = ({ open, onOpenChange, examiner, onSave }: ExaminerDialogProps) => {
     const [loading, setLoading] = useState(false);
     const [reportTypes, setReportTypes] = useState<ReportType[]>([]);
+    const [error, setError] = useState<string | null>(null);
     const [formData, setFormData] = useState<Partial<Profile> & { password?: string }>({
         name: '',
         last_name: '',
@@ -37,6 +55,7 @@ export const ExaminerDialog = ({ open, onOpenChange, examiner, onSave }: Examine
 
     useEffect(() => {
         if (open) {
+            setError(null);
             if (examiner) {
                 setFormData({
                     id: examiner.id,
@@ -73,30 +92,31 @@ export const ExaminerDialog = ({ open, onOpenChange, examiner, onSave }: Examine
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        setError(null);
 
         if (!formData.name || !formData.last_name || !formData.username) {
-            alert(t('examiners.dialog.fillRequired'));
+            setError(t('examiners.dialog.fillRequired'));
             return;
         }
 
         if (!examiner && !formData.email) {
-            alert(t('examiners.dialog.emailRequired'));
+            setError(t('examiners.dialog.emailRequired'));
             return;
         }
 
         if (!examiner && !formData.password) {
-            alert(t('examiners.dialog.passwordRequired'));
+            setError(t('examiners.dialog.passwordRequired'));
             return;
         }
 
         // Validate password length for new users or when changing password
         if (formData.password && formData.password.trim().length > 0 && formData.password.length < 6) {
-            alert(t('examiners.dialog.passwordTooShort'));
+            setError(t('examiners.dialog.passwordTooShort'));
             return;
         }
 
         if (formData.accreditations?.length === 0) {
-            alert(t('examiners.dialog.accreditationRequired'));
+            setError(t('examiners.dialog.accreditationRequired'));
             return;
         }
 
@@ -104,9 +124,13 @@ export const ExaminerDialog = ({ open, onOpenChange, examiner, onSave }: Examine
         try {
             await onSave(formData);
             onOpenChange(false);
-        } catch (error) {
-            console.error(error);
-            alert(t('examiners.dialog.saveFailed'));
+        } catch (err) {
+            console.error(err);
+            if (isWeakPasswordError(err)) {
+                setError(t('examiners.dialog.weakPassword'));
+            } else {
+                setError(t('examiners.dialog.saveFailed'));
+            }
         } finally {
             setLoading(false);
         }
@@ -128,6 +152,24 @@ export const ExaminerDialog = ({ open, onOpenChange, examiner, onSave }: Examine
                     <DialogTitle>{examiner ? t('examiners.dialog.edit') : t('examiners.dialog.new')}</DialogTitle>
                 </DialogHeader>
                 <form onSubmit={handleSubmit} className="space-y-4 py-4">
+                    {error && (
+                        <div className="bg-destructive/10 border border-destructive/20 text-destructive px-4 py-3 rounded-md text-sm">
+                            <div className="flex items-start gap-2">
+                                <AlertCircle className="h-5 w-5 flex-shrink-0 mt-0.5" />
+                                <div className="flex-1">
+                                    <p className="font-medium">{error}</p>
+                                    {error === t('examiners.dialog.weakPassword') && (
+                                        <ul className="mt-2 list-disc list-inside text-xs space-y-1 text-muted-foreground">
+                                            <li>{t('examiners.dialog.passwordTip1')}</li>
+                                            <li>{t('examiners.dialog.passwordTip2')}</li>
+                                            <li>{t('examiners.dialog.passwordTip3')}</li>
+                                            <li>{t('examiners.dialog.passwordTip4')}</li>
+                                        </ul>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    )}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div className="space-y-2">
                             <Label htmlFor="name">{t('examiners.dialog.firstName')}</Label>

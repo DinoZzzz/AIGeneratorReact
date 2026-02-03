@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -13,6 +13,13 @@ export const Login = () => {
     const [error, setError] = useState<string | null>(null);
     const navigate = useNavigate();
     const { lowBandwidthMode, setLowBandwidthMode } = useAuth();
+    const isMountedRef = useRef(true);
+
+    useEffect(() => {
+        return () => {
+            isMountedRef.current = false;
+        };
+    }, []);
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -56,9 +63,13 @@ export const Login = () => {
         } catch {
             // Use generic error message to prevent user enumeration attacks
             // Don't reveal whether username/email exists or if password is wrong
-            setError('Invalid credentials. Please check your username/email and password.');
+            if (isMountedRef.current) {
+                setError('Invalid credentials. Please check your username/email and password.');
+            }
         } finally {
-            setLoading(false);
+            if (isMountedRef.current) {
+                setLoading(false);
+            }
         }
     };
 

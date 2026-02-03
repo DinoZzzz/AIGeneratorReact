@@ -29,6 +29,8 @@ export const useAnalytics = (userId?: string) => {
     });
 
     useEffect(() => {
+        let isMounted = true;
+
         const load = async () => {
             setLoading(true);
             setError(null);
@@ -44,6 +46,7 @@ export const useAnalytics = (userId?: string) => {
 
                 const { data: forms, error: formsError } = await query;
                 if (formsError) throw formsError;
+                if (!isMounted) return;
 
                 let pass = 0, fail = 0;
                 let waterDuration = 0, waterCount = 0;
@@ -98,18 +101,22 @@ export const useAnalytics = (userId?: string) => {
                         .from('customers')
                         .select('*', { count: 'exact', head: true });
                     if (customersError) throw customersError;
+                    if (!isMounted) return;
                     customersCount = custCount || 0;
 
                     const { count: constCount, error: constructionsError } = await supabase
                         .from('constructions')
                         .select('*', { count: 'exact', head: true });
                     if (constructionsError) throw constructionsError;
+                    if (!isMounted) return;
                     constructionsCount = constCount || 0;
                 } else {
                     // For personal analytics, we could try to count customers/constructions associated with user's reports?
                     // That's complex. Let's just leave them as 0 or handle in UI.
                     // Actually, let's just return 0 for now as the main focus is performance (pass/fail/duration).
                 }
+
+                if (!isMounted) return;
 
                 setStats({
                     pass,
@@ -122,14 +129,21 @@ export const useAnalytics = (userId?: string) => {
                     recentReports
                 });
             } catch (err: unknown) {
+                if (!isMounted) return;
                 console.error('Failed to load analytics', err);
                 setError(t('analytics.error'));
             } finally {
-                setLoading(false);
+                if (isMounted) {
+                    setLoading(false);
+                }
             }
         };
 
         load();
+
+        return () => {
+            isMounted = false;
+        };
     }, [userId, t]);
 
     return { stats, loading, error };
