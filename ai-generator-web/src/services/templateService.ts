@@ -2,6 +2,7 @@ import PizZip from 'pizzip';
 import type { TemplateInfo, TemplateValidationResult } from '../types';
 import { supabase } from '../lib/supabase';
 import { captureError } from '../lib/sentry';
+import { findRawTagPlacementIssues } from '../utils/docxTemplate';
 
 // Required tags that must be in the template
 const REQUIRED_TAGS = [
@@ -133,6 +134,7 @@ export const validateTemplate = async (file: File): Promise<TemplateValidationRe
         foundTags: [],
         missingTags: [],
         unrecognizedTags: [],
+        warnings: [],
         errors: []
     };
 
@@ -164,6 +166,15 @@ export const validateTemplate = async (file: File): Promise<TemplateValidationRe
         // Extract tags from document
         const foundTags = extractTagsFromDocx(zip);
         result.foundTags = foundTags;
+
+        const rawTagIssues = findRawTagPlacementIssues(zip);
+        if (rawTagIssues.length > 0) {
+            rawTagIssues.forEach((issue) => {
+                result.warnings.push(
+                    `Raw tag "${issue.tag}" should be inside a paragraph in ${issue.file}.`
+                );
+            });
+        }
 
         // Check for required tags
         for (const tag of REQUIRED_TAGS) {

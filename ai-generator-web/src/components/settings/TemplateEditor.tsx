@@ -340,6 +340,18 @@ export const TemplateEditor: React.FC = () => {
                                         </div>
                                     )}
 
+                                    {/* Warnings */}
+                                    {validation.warnings.length > 0 && (
+                                        <div className="space-y-1">
+                                            {validation.warnings.map((warning, i) => (
+                                                <div key={i} className="flex items-center gap-2 text-yellow-600 text-sm">
+                                                    <AlertTriangle className="h-4 w-4 flex-shrink-0" />
+                                                    <span>{warning}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+
                                     {/* Upload Button */}
                                     <div className="pt-3 border-t border-border">
                                         <button
