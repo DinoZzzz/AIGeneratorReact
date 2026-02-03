@@ -32,7 +32,7 @@ ENV SENTRY_PROJECT=$SENTRY_PROJECT
 RUN curl -sL https://sentry.io/get-cli/ | bash
 
 # Copy package files from ai-generator-web
-# Cache bust: 2026-01-30-v2
+# Cache bust: 2026-02-03-v1
 COPY ai-generator-web/package*.json ./
 
 # Install dependencies
