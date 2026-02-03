@@ -41,17 +41,13 @@ RUN npm ci
 # Copy source code from ai-generator-web
 COPY ai-generator-web/ ./
 
-# Copy .git for Sentry commit tracking (needed for set-commits)
-COPY .git ./.git
-
 # Build the app (will now have access to VITE_* env vars)
 RUN npm run build
 
-# Create Sentry release (only if SENTRY_AUTH_TOKEN is provided)
+# Create Sentry release using package.json version (no git required)
 RUN if [ -n "$SENTRY_AUTH_TOKEN" ]; then \
-    VERSION=$(sentry-cli releases propose-version) && \
+    VERSION=$(node -p "require('./package.json').version") && \
     sentry-cli releases new "$VERSION" && \
-    sentry-cli releases set-commits "$VERSION" --auto && \
     sentry-cli releases finalize "$VERSION" && \
     echo "Sentry release $VERSION created successfully"; \
     else echo "Skipping Sentry release (no auth token)"; fi
