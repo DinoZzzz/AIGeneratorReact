@@ -440,6 +440,17 @@ export const Help = () => {
 
     const versionHistory: VersionHistoryItem[] = language === 'hr' ? [
         {
+            version: '2.6.0',
+            date: '2026-02-04',
+            changes: [
+                'Ispravljen izračun dozvoljenog pada tlaka za metodu zraka (LB/LC/LD)',
+                'Ispravljen prikaz promjera u Word dokumentu (krive mjerne jedinice)',
+                'Ispravljen font u Word dokumentu - sada koristi Times New Roman',
+                'Dodana zaštita od dvostrukog klika pri spremanju obrasca',
+                'Poboljšano hvatanje Supabase grešaka u Sentry',
+            ]
+        },
+        {
             version: '2.5.0',
             date: '2026-02-03',
             changes: [
@@ -682,6 +693,17 @@ export const Help = () => {
         },
     ] : [
         // English version
+        {
+            version: '2.6.0',
+            date: '2026-02-04',
+            changes: [
+                'Fixed allowed pressure drop calculation for air method (LB/LC/LD)',
+                'Fixed diameter display in Word document (wrong measurement units)',
+                'Fixed font in Word document - now uses Times New Roman',
+                'Added double-click protection when saving forms',
+                'Improved Supabase error capture in Sentry',
+            ]
+        },
         {
             version: '2.5.0',
             date: '2026-02-03',
