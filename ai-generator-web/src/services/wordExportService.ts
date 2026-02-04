@@ -105,6 +105,48 @@ const formatDate = (dateStr: string): string => {
     return new Date(dateStr).toLocaleDateString('hr-HR');
 };
 
+// Custom module for soft line breaks (preserves font styling)
+// Standard linebreaks: true creates new paragraphs which lose font info
+const createSoftBreakModule = () => {
+    const softBreakPlaceholder = '___SOFT_BREAK___';
+
+    return {
+        name: 'SoftBreakModule',
+        // Transform data before rendering - replace \n with placeholder
+        set: function(options: { data: Record<string, unknown> }) {
+            if (options.data) {
+                const transformValue = (value: unknown): unknown => {
+                    if (typeof value === 'string') {
+                        return value.replace(/\n/g, softBreakPlaceholder);
+                    }
+                    if (Array.isArray(value)) {
+                        return value.map(transformValue);
+                    }
+                    if (value && typeof value === 'object') {
+                        const transformed: Record<string, unknown> = {};
+                        for (const key in value as Record<string, unknown>) {
+                            transformed[key] = transformValue((value as Record<string, unknown>)[key]);
+                        }
+                        return transformed;
+                    }
+                    return value;
+                };
+                options.data = transformValue(options.data) as Record<string, unknown>;
+            }
+        },
+        // Post-process the XML to replace placeholder with actual soft breaks
+        postparse: function(parsed: unknown) {
+            return parsed;
+        },
+        postrender: function(parts: string[]) {
+            // Replace placeholder with Word soft break XML
+            return parts.map(part =>
+                part.replace(new RegExp(softBreakPlaceholder, 'g'), '</w:t><w:br/><w:t>')
+            );
+        }
+    };
+};
+
 // Helper to format number
 const formatNum = (num: number | undefined | null, decimals = 2): string => {
     if (num === undefined || num === null) return '-';
@@ -345,10 +387,13 @@ export const generateWordDocument = async (
             });
 
             // 4. Create docxtemplater instance with modules
+            // Using custom soft break module instead of linebreaks: true
+            // to preserve font styling (paragraph breaks lose font info)
+            const softBreakModule = createSoftBreakModule();
             const doc = new Docxtemplater(zip, {
                 paragraphLoop: true,
-                linebreaks: true,
-                modules: [imageModule],
+                linebreaks: false, // Disabled - using soft breaks instead
+                modules: [imageModule, softBreakModule],
                 nullGetter: () => ""
             });
 
