@@ -93,14 +93,16 @@ export const AirMethodForm = () => {
             ? (selectedMaterial.name.toLowerCase().includes('beton') || selectedMaterial.name.toLowerCase().includes('concrete'))
             : true; // Default to concrete if not selected
 
-        // Map ID to Method
-        const methodMap: Record<number, AirTestMethod> = {
-            1: 'LA',
-            2: 'LB',
-            3: 'LC',
-            4: 'LD'
-        };
-        const method = methodMap[procedureId] || 'LA';
+        // Get method from procedure name instead of assuming ID order
+        // The procedure name should be 'LA', 'LB', 'LC', or 'LD'
+        let method: AirTestMethod = 'LA';
+        if (selectedProcedure?.name) {
+            const procName = selectedProcedure.name.toUpperCase().trim();
+            if (procName === 'LB' || procName.includes('LB')) method = 'LB';
+            else if (procName === 'LC' || procName.includes('LC')) method = 'LC';
+            else if (procName === 'LD' || procName.includes('LD')) method = 'LD';
+            else if (procName === 'LA' || procName.includes('LA')) method = 'LA';
+        }
         const materialKey: PipeMaterial = isConcrete ? 'CONCRETE' : 'OTHER';
 
         // Get requirements from table
@@ -227,6 +229,11 @@ export const AirMethodForm = () => {
     };
 
     const saveReport = async (shouldRedirect: boolean) => {
+        // Prevent double-click/duplicate submissions
+        if (loading) {
+            return;
+        }
+
         if (!formData.dionica) {
             alert(t('reports.form.dionicaRequired'));
             return;

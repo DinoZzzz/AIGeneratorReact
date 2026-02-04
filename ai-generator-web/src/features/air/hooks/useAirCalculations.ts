@@ -2,10 +2,11 @@ import { useMemo } from 'react';
 import {
     calculateAirReport,
     getAirTestRequirements,
-    getMethodFromProcedureId,
+    getMethodFromProcedureName,
     getProcedureIdFromPressure,
     type PipeMaterial,
-    type AirReportCalculations
+    type AirReportCalculations,
+    type AirTestMethod
 } from '../calculations';
 import type { ReportForm, ExaminationProcedure, Material } from '../../../types';
 
@@ -34,19 +35,22 @@ export const useAirCalculations = ({
         // Schema B (Draft 2/3): Shaft + Pipeline - full time
         const diameterMm = formData.pane_diameter || 0;
 
-        let procedureId = 1;
-        if (selectedProcedure) {
-            procedureId = selectedProcedure.id;
+        // Get method from procedure name (more reliable than ID-based mapping)
+        let method: AirTestMethod = 'LA';
+        if (selectedProcedure?.name) {
+            method = getMethodFromProcedureName(selectedProcedure.name);
         } else {
-            procedureId = getProcedureIdFromPressure(formData.pressure_start || 0);
+            // Fallback: determine method from pressure if no procedure selected
+            const pressure = formData.pressure_start || 0;
+            if (pressure >= 200) method = 'LD';
+            else if (pressure >= 100) method = 'LC';
+            else if (pressure >= 50) method = 'LB';
         }
 
         const selectedMaterial = materials.find(m => m.id === formData.pipe_material_id);
         const isConcrete = selectedMaterial
             ? (selectedMaterial.name.toLowerCase().includes('beton') || selectedMaterial.name.toLowerCase().includes('concrete'))
             : true; // Default to concrete if not selected
-
-        const method = getMethodFromProcedureId(procedureId);
         const materialKey: PipeMaterial = isConcrete ? 'CONCRETE' : 'OTHER';
 
         // Get requirements from table

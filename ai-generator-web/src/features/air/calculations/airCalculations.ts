@@ -156,6 +156,7 @@ export const getProcedureIdFromPressure = (pressure: number): number => {
 
 /**
  * Map procedure ID to method
+ * @deprecated Use getMethodFromProcedureName instead - ID order may not match method order
  */
 export const getMethodFromProcedureId = (procedureId: number): AirTestMethod => {
     const methodMap: Record<number, AirTestMethod> = {
@@ -165,4 +166,18 @@ export const getMethodFromProcedureId = (procedureId: number): AirTestMethod => 
         4: 'LD'
     };
     return methodMap[procedureId] || 'LA';
+};
+
+/**
+ * Get method from procedure name (e.g., 'LA', 'LB', 'LC', 'LD')
+ * This is more reliable than using procedure ID
+ */
+export const getMethodFromProcedureName = (procedureName: string | undefined): AirTestMethod => {
+    if (!procedureName) return 'LA';
+
+    const name = procedureName.toUpperCase().trim();
+    if (name === 'LB' || name.includes('LB')) return 'LB';
+    if (name === 'LC' || name.includes('LC')) return 'LC';
+    if (name === 'LD' || name.includes('LD')) return 'LD';
+    return 'LA';
 };

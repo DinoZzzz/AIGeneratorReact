@@ -65,8 +65,32 @@ export const initSentry = () => {
 export { Sentry };
 
 // Helper to capture errors with context
-export const captureError = (error: Error, context?: Record<string, unknown>) => {
-    Sentry.captureException(error, {
+// Handles both Error instances and plain objects (like Supabase PostgrestError)
+export const captureError = (error: unknown, context?: Record<string, unknown>) => {
+    let errorToCapture: Error;
+
+    if (error instanceof Error) {
+        errorToCapture = error;
+    } else if (typeof error === 'object' && error !== null && 'message' in error) {
+        // Handle Supabase PostgrestError and similar plain objects
+        const errorObj = error as { message: string; code?: string; details?: string; hint?: string };
+        errorToCapture = new Error(errorObj.message);
+        errorToCapture.name = errorObj.code || 'SupabaseError';
+        // Preserve original error details in context
+        context = {
+            ...context,
+            originalError: {
+                code: errorObj.code,
+                details: errorObj.details,
+                hint: errorObj.hint,
+            },
+        };
+    } else {
+        // Fallback for any other type
+        errorToCapture = new Error(String(error));
+    }
+
+    Sentry.captureException(errorToCapture, {
         extra: context,
     });
 };
