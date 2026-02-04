@@ -513,8 +513,9 @@ export const generateWordDocument = async (
 
             const uniquePipeMaterials = Array.from(new Set(pipeReports.map(r => r.pipe_material?.name || r.pipe_material_id))).filter(Boolean).join(', ');
             const uniquePaneMaterials = Array.from(new Set(reportsWithJoins.map(r => r.pane_material?.name || r.pane_material_id))).filter(Boolean).join(', ');
-            const uniquePipeDiameters = Array.from(new Set(pipeReports.map(r => `ø ${r.pipe_diameter * 1000}`))).join(', ');
-            const uniquePaneDiameters = Array.from(new Set(reportsWithJoins.map(r => `ø ${r.pane_diameter * 1000}`))).join(', ');
+            // Diameters are stored in mm, no conversion needed
+            const uniquePipeDiameters = Array.from(new Set(pipeReports.map(r => `ø ${r.pipe_diameter} mm`))).filter(d => d !== 'ø 0 mm' && d !== 'ø undefined mm').join(', ');
+            const uniquePaneDiameters = Array.from(new Set(reportsWithJoins.map(r => `ø ${r.pane_diameter} mm`))).filter(d => d !== 'ø 0 mm' && d !== 'ø undefined mm').join(', ');
 
             // Build WaterMethodCriteria
             const criteriaList: string[] = [];
