@@ -7,6 +7,16 @@ export interface VersionHistoryItem {
 export function getVersionHistory(language: string): VersionHistoryItem[] {
     return language === 'hr' ? [
         {
+            version: '2.8.0',
+            date: '2026-02-05',
+            changes: [
+                'Zamjena nativnih alert() dijaloga s toast notifikacijama',
+                'Zamjena nativnih confirm() dijaloga s custom modalnim dijalogom',
+                'Novi ConfirmDialog komponent s podrškom za tamni način rada',
+                'Poboljšan UX na mobilnim uređajima za potvrde i obavijesti',
+            ]
+        },
+        {
             version: '2.7.0',
             date: '2026-02-05',
             changes: [
@@ -270,6 +280,16 @@ export function getVersionHistory(language: string): VersionHistoryItem[] {
         },
     ] : [
         // English version
+        {
+            version: '2.8.0',
+            date: '2026-02-05',
+            changes: [
+                'Replaced native alert() dialogs with toast notifications',
+                'Replaced native confirm() dialogs with custom styled modal',
+                'New ConfirmDialog component with dark mode support',
+                'Improved mobile UX for confirmations and notifications',
+            ]
+        },
         {
             version: '2.7.0',
             date: '2026-02-05',
