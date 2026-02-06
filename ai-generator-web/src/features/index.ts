@@ -3,3 +3,4 @@
 
 export * as water from './water';
 export * as air from './air';
+export * as reports from './reports';

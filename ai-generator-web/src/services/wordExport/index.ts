@@ -1,0 +1,1 @@
+export { generateWordDocument } from './wordExportService';
