@@ -9,6 +9,7 @@ import { Loader2, Save, ArrowLeft } from 'lucide-react';
 import type { Construction, Customer } from '../types';
 import { useLanguage } from '../context/LanguageContext';
 import { getAllFromStore, getFromStore, STORES } from '../lib/offlineDb';
+import { useToast } from '../context/ToastContext';
 
 const initialState: Partial<Construction> = {
     name: '',
@@ -25,6 +26,7 @@ export const ConstructionForm = () => {
     const [errors, setErrors] = useState<Record<string, string>>({});
     const { t } = useLanguage();
     const { isOnline } = useOffline();
+    const { error: showError } = useToast();
     const createMutation = useCreateConstruction();
     const updateMutation = useUpdateConstruction();
 
@@ -87,11 +89,11 @@ export const ConstructionForm = () => {
                 if (data) {
                     setFormData(data);
                 } else {
-                    alert('Failed to load construction');
+                    showError('Failed to load construction');
                 }
             } catch (offlineError) {
                 console.error('Failed to load construction from offline cache', offlineError);
-                alert('Failed to load construction');
+                showError('Failed to load construction');
             }
         } finally {
             setLoading(false);
@@ -215,7 +217,7 @@ export const ConstructionForm = () => {
             navigate(`/customers/${customerId}/constructions`);
         } catch (error) {
             console.error('Failed to save construction', error);
-            alert('Failed to save construction');
+            showError('Failed to save construction');
             setLoading(false);
         }
     };

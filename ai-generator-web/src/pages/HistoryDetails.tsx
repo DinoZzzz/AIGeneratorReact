@@ -15,12 +15,14 @@ import { arrayMove } from '@dnd-kit/sortable';
 import { reportService } from '../services/reportService';
 import { ReportList } from '../components/history/ReportList';
 import { AttachmentsGallery } from '../components/history/AttachmentsGallery';
+import { useToast } from '../context/ToastContext';
 
 export const HistoryDetails = () => {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
     const { profile } = useAuth();
     const { t } = useLanguage();
+    const { error: showError } = useToast();
     const [exportData, setExportData] = useState<ReportExport | null>(null);
     const [forms, setForms] = useState<ReportExportForm[]>([]);
 
@@ -56,7 +58,7 @@ export const HistoryDetails = () => {
                 }
             } catch (error) {
                 console.error('Failed to load export details:', error);
-                alert('Failed to load details.');
+                showError('Failed to load details.');
                 navigate('/history');
             } finally {
                 setLoading(false);
@@ -266,7 +268,7 @@ export const HistoryDetails = () => {
             await reportService.updateOrder(reportsToUpdate);
         } catch (error) {
             console.error('Failed to update order', error);
-            alert('Failed to save new order. Please refresh.');
+            showError('Failed to save new order. Please refresh.');
         }
     };
 

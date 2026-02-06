@@ -2,11 +2,13 @@ import React, { useEffect, useState } from 'react';
 import { Loader2, Plus, Trash2, Edit, Star, Upload, X } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
 import { useToast } from '../../context/ToastContext';
+import { useConfirm } from '../../context/ConfirmDialogContext';
 import { certifierService, type Certifier } from '../../services/certifierService';
 
 export const CertifiersManager = () => {
     const { t } = useLanguage();
     const { addToast } = useToast();
+    const confirm = useConfirm();
 
     const [certifiers, setCertifiers] = useState<Certifier[]>([]);
     const [certifiersLoading, setCertifiersLoading] = useState(true);
@@ -66,7 +68,7 @@ export const CertifiersManager = () => {
     };
 
     const handleDeleteCertifier = async (id: string) => {
-        if (!window.confirm(t('certifiers.deleteConfirm'))) return;
+        if (!(await confirm({ title: t('certifiers.deleteConfirm'), variant: 'destructive' }))) return;
         try {
             await certifierService.delete(id);
             addToast(t('certifiers.deleted'), 'success');
@@ -106,7 +108,7 @@ export const CertifiersManager = () => {
     };
 
     const handleDeleteSignature = async (certifierId: string) => {
-        if (!window.confirm(t('certifiers.deleteSignatureConfirm') || 'Are you sure you want to delete this signature?')) return;
+        if (!(await confirm({ title: t('certifiers.deleteSignatureConfirm') || 'Are you sure you want to delete this signature?', variant: 'destructive' }))) return;
         try {
             await certifierService.deleteSignature(certifierId);
             addToast(t('certifiers.signatureDeleted') || 'Signature deleted', 'success');

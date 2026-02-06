@@ -6,6 +6,7 @@ import { useCustomers, useDeleteCustomer } from '../hooks/useCustomers';
 import { TableSkeleton } from '../components/skeletons';
 import { errorHandler } from '../lib/errorHandler';
 import { useToast } from '../context/ToastContext';
+import { useConfirm } from '../context/ConfirmDialogContext';
 import { formatDate } from '../utils/dateFormatter';
 
 
@@ -43,6 +44,7 @@ export const Customers = () => {
     const [debouncedSearch, setDebouncedSearch] = useState('');
     const { t } = useLanguage();
     const { success, error: showError } = useToast();
+    const confirm = useConfirm();
 
     // Pagination & Sorting state
     const [currentPage, setCurrentPage] = useState(1);
@@ -83,7 +85,7 @@ export const Customers = () => {
     }, [error, showError]);
 
     const handleDelete = useCallback(async (id: string) => {
-        if (window.confirm(t('customers.deleteConfirm'))) {
+        if (await confirm({ title: t('customers.deleteConfirm'), variant: 'destructive' })) {
             try {
                 await deleteMutation.mutateAsync(id);
                 success(t('customers.deleteSuccess') || 'Customer deleted successfully');

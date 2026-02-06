@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useLanguage } from '../../context/LanguageContext';
 import { useToast } from '../../context/ToastContext';
+import { useConfirm } from '../../context/ConfirmDialogContext';
 import {
     getActiveTemplate,
     validateTemplate,
@@ -16,6 +17,7 @@ import { supabase } from '../../lib/supabase';
 export const TemplateEditor: React.FC = () => {
     const { t } = useLanguage();
     const { addToast } = useToast();
+    const confirm = useConfirm();
 
     const [activeTemplate, setActiveTemplate] = useState<TemplateInfo | null>(null);
     const [versions, setVersions] = useState<TemplateInfo[]>([]);
@@ -109,7 +111,7 @@ export const TemplateEditor: React.FC = () => {
     };
 
     const handleRollback = async (version: TemplateInfo) => {
-        if (!confirm(t('templateEditor.rollbackConfirm'))) return;
+        if (!(await confirm({ title: t('templateEditor.rollbackConfirm') }))) return;
 
         setLoading(true);
         try {
@@ -128,7 +130,7 @@ export const TemplateEditor: React.FC = () => {
     };
 
     const handleDeleteBackup = async (version: TemplateInfo) => {
-        if (!confirm(t('templateEditor.deleteBackupConfirm'))) return;
+        if (!(await confirm({ title: t('templateEditor.deleteBackupConfirm'), variant: 'destructive' }))) return;
 
         try {
             const result = await deleteTemplateBackup(version.path);

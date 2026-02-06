@@ -5,10 +5,14 @@ import { examinerService } from '../services/examinerService';
 import type { ReportExport, Profile } from '../types';
 import { Loader2, Search, Trash2, ExternalLink, ChevronLeft, ChevronRight, User, Calendar, FileText, Users } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
+import { useToast } from '../context/ToastContext';
+import { useConfirm } from '../context/ConfirmDialogContext';
 
 export const History = () => {
     const navigate = useNavigate();
     const { t } = useLanguage();
+    const { error: showError } = useToast();
+    const confirm = useConfirm();
     const [exports, setExports] = useState<ReportExport[]>([]);
     const [users, setUsers] = useState<Profile[]>([]);
     const [loading, setLoading] = useState(true);
@@ -66,13 +70,13 @@ export const History = () => {
     }, [loadData]);
 
     const handleDelete = async (id: string) => {
-        if (!window.confirm('Are you sure you want to delete this report export?')) return;
+        if (!(await confirm({ title: 'Are you sure you want to delete this report export?', variant: 'destructive' }))) return;
         try {
             await historyService.delete(id);
             loadData();
         } catch (error) {
             console.error('Failed to delete export:', error);
-            alert('Failed to delete export.');
+            showError('Failed to delete export.');
         }
     };
 

@@ -13,6 +13,7 @@ import type { ReportForm, ReportDraft, MaterialType, Material } from '../types';
 import { cn } from '../lib/utils';
 import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 
 // Dynamic import for PDF generation to reduce initial bundle size
 const generatePDF = async (report: Partial<ReportForm>, userProfile?: any) => {
@@ -66,6 +67,7 @@ export const WaterMethodForm = () => {
     const navigate = useNavigate();
     const { t } = useLanguage();
     const { profile } = useAuth();
+    const { success: showSuccess, error: showError } = useToast();
     const [loading, setLoading] = useState(false);
     const [formData, setFormData] = useState<Partial<ReportForm>>(initialState);
     const [drafts, setDrafts] = useState<ReportDraft[]>([]);
@@ -203,7 +205,7 @@ export const WaterMethodForm = () => {
             setFormData(data);
         } catch (error) {
             console.error('Error loading report:', error);
-            alert(t('reports.form.loadError'));
+            showError(t('reports.form.loadError'));
         } finally {
             setLoading(false);
         }
@@ -296,7 +298,7 @@ export const WaterMethodForm = () => {
                 });
                 setStep(1);
                 navigate(`/customers/${customerId}/constructions/${constructionId}/reports/new/water`);
-                alert(t('reports.form.saveSuccess'));
+                showSuccess(t('reports.form.saveSuccess'));
             } else {
                 if (customerId && constructionId) {
                     navigate(`/customers/${customerId}/constructions/${constructionId}/reports`);
@@ -306,7 +308,7 @@ export const WaterMethodForm = () => {
             }
         } catch (error) {
             console.error('Error saving report:', error);
-            alert(t('reports.form.saveError'));
+            showError(t('reports.form.saveError'));
         } finally {
             setLoading(false);
         }

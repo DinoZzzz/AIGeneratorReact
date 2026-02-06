@@ -18,6 +18,8 @@ import { arrayMove } from '@dnd-kit/sortable';
 import { InputDialog } from '../components/InputDialog';
 import { ReportsTable, ReportsActionBar, ReportsFilterBar } from '../features/reports/components';
 import { useReportsFiltering } from '../features/reports/hooks';
+import { useToast } from '../context/ToastContext';
+import { useConfirm } from '../context/ConfirmDialogContext';
 
 // Dynamic imports for PDF/Word export to reduce initial bundle size
 const generatePDF = async (report: ReportForm, userProfile?: Profile) => {
@@ -41,6 +43,8 @@ export const ConstructionReports = () => {
     const { user, profile } = useAuth();
     const { t } = useLanguage();
     const { addItem: addRecentItem } = useRecentlyViewed();
+    const { success: showSuccess, error: showError } = useToast();
+    const confirm = useConfirm();
     const [reports, setReports] = useState<ReportForm[]>([]);
     const [construction, setConstruction] = useState<Construction | null>(null);
     const [customer, setCustomer] = useState<Customer | null>(null);
@@ -141,7 +145,7 @@ export const ConstructionReports = () => {
 
     // Report operations
     const handleDelete = async (id: string) => {
-        if (!window.confirm('Are you sure you want to delete this report?')) return;
+        if (!(await confirm({ title: 'Are you sure you want to delete this report?', variant: 'destructive' }))) return;
         try {
             await reportService.delete(id);
             setReports(reports.filter(r => r.id !== id));
@@ -152,7 +156,7 @@ export const ConstructionReports = () => {
             }
         } catch (error) {
             console.error('Error deleting report:', error);
-            alert('Failed to delete report');
+            showError('Failed to delete report');
         }
     };
 
@@ -224,15 +228,14 @@ export const ConstructionReports = () => {
 
     const handleDeleteSelected = async () => {
         const count = selectedIds.size;
-        if (!window.confirm(`Are you sure you want to delete ${count} selected report${count > 1 ? 's' : ''}?`)) return;
-        if (!window.confirm(`This action cannot be undone. Delete ${count} report${count > 1 ? 's' : ''} permanently?`)) return;
+        if (!(await confirm({ title: `Are you sure you want to delete ${count} selected report${count > 1 ? 's' : ''}?`, description: `This action cannot be undone. Delete ${count} report${count > 1 ? 's' : ''} permanently?`, variant: 'destructive' }))) return;
         try {
             await Promise.all(Array.from(selectedIds).map(id => reportService.delete(id)));
             setReports(reports.filter(r => !selectedIds.has(r.id)));
             setSelectedIds(new Set());
-            alert(`Successfully deleted ${count} report${count > 1 ? 's' : ''}`);
+            showSuccess(`Successfully deleted ${count} report${count > 1 ? 's' : ''}`);
         } catch (err: unknown) {
-            alert('Failed to delete reports: ' + (err as Error).message);
+            showError('Failed to delete reports: ' + (err as Error).message);
         }
     };
 
@@ -257,7 +260,7 @@ export const ConstructionReports = () => {
             setReports([...reports, newSection]);
         } catch (error) {
             console.error('Failed to create section:', error);
-            alert('Failed to create section');
+            showError('Failed to create section');
         }
     };
 
@@ -274,7 +277,7 @@ export const ConstructionReports = () => {
             setReports(reports.map(r => r.id === existingId ? { ...r, section_name: newName } : r));
         } catch (error) {
             console.error('Failed to update section name:', error);
-            alert('Failed to update section name');
+            showError('Failed to update section name');
         }
     };
 
@@ -299,7 +302,7 @@ export const ConstructionReports = () => {
             await reportService.updateOrder(newReports);
         } catch (error) {
             console.error('Failed to update order', error);
-            alert('Failed to save new order');
+            showError('Failed to save new order');
         }
     };
 

@@ -12,6 +12,7 @@ import { ToastProvider } from './context/ToastContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { LanguageProvider } from './context/LanguageContext';
 import { KeyboardShortcutsProvider } from './context/KeyboardShortcutsContext';
+import { ConfirmDialogProvider } from './context/ConfirmDialogContext';
 import { queryClient } from './lib/queryClient';
 import { Calendar } from './pages/Calendar';
 
@@ -76,6 +77,7 @@ function App() {
             <ThemeProvider>
               <LanguageProvider>
                 <ToastProvider>
+                  <ConfirmDialogProvider>
                   <Router>
                     <KeyboardShortcutsProvider>
                   <Suspense fallback={<LoadingFallback />}>
@@ -132,6 +134,7 @@ function App() {
                     <OfflineIndicator />
                     </KeyboardShortcutsProvider>
                   </Router>
+                </ConfirmDialogProvider>
                 </ToastProvider>
               </LanguageProvider>
             </ThemeProvider>

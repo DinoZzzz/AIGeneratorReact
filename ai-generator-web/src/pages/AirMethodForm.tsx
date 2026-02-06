@@ -15,6 +15,7 @@ import { formatTime } from '../lib/calculations/testTime';
 import { getAirTestRequirements, type AirTestMethod, type PipeMaterial } from '../lib/calculations/airTable';
 import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 
 // Dynamic import for PDF generation to reduce initial bundle size
 const generatePDF = async (report: Partial<ReportForm>, userProfile?: any) => {
@@ -59,6 +60,7 @@ export const AirMethodForm = () => {
     const navigate = useNavigate();
     const { t } = useLanguage();
     const { profile } = useAuth();
+    const { success: showSuccess, error: showError } = useToast();
     const [loading, setLoading] = useState(false);
     const [formData, setFormData] = useState<Partial<ReportForm>>(initialState);
     const [procedures, setProcedures] = useState<ExaminationProcedure[]>([]);
@@ -168,7 +170,7 @@ export const AirMethodForm = () => {
             setFormData(data);
         } catch (error) {
             console.error('Error loading report:', error);
-            alert(t('reports.form.loadError'));
+            showError(t('reports.form.loadError'));
         } finally {
             setLoading(false);
         }
@@ -235,7 +237,7 @@ export const AirMethodForm = () => {
         }
 
         if (!formData.dionica) {
-            alert(t('reports.form.dionicaRequired'));
+            showError(t('reports.form.dionicaRequired'));
             return;
         }
 
@@ -271,7 +273,7 @@ export const AirMethodForm = () => {
                 });
                 setStep(1);
                 navigate(`/customers/${customerId}/constructions/${constructionId}/reports/new/air`);
-                alert(t('reports.form.saveSuccess'));
+                showSuccess(t('reports.form.saveSuccess'));
             } else {
                 if (customerId && constructionId) {
                     navigate(`/customers/${customerId}/constructions/${constructionId}/reports`);
@@ -281,7 +283,7 @@ export const AirMethodForm = () => {
             }
         } catch (error) {
             console.error('Error saving report:', error);
-            alert(t('reports.form.saveError'));
+            showError(t('reports.form.saveError'));
         } finally {
             setLoading(false);
         }

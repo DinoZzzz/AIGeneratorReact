@@ -8,6 +8,7 @@ import { Loader2, Save, ArrowLeft } from 'lucide-react';
 import type { Customer } from '../types';
 import { useLanguage } from '../context/LanguageContext';
 import { getAllFromStore, STORES } from '../lib/offlineDb';
+import { useToast } from '../context/ToastContext';
 
 const initialState: Partial<Customer> = {
     name: '',
@@ -25,6 +26,7 @@ export const CustomerForm = () => {
     const [errors, setErrors] = useState<Record<string, string>>({});
     const { t } = useLanguage();
     const { isOnline } = useOffline();
+    const { error: showError } = useToast();
 
     useEffect(() => {
         if (id && id !== 'new') {
@@ -39,7 +41,7 @@ export const CustomerForm = () => {
             setFormData(data);
         } catch (error) {
             console.error('Failed to load customer', error);
-            alert('Failed to load customer');
+            showError('Failed to load customer');
         } finally {
             setLoading(false);
         }
@@ -203,7 +205,7 @@ export const CustomerForm = () => {
             navigate('/customers');
         } catch (error) {
             console.error('Failed to save customer', error);
-            alert('Failed to save customer');
+            showError('Failed to save customer');
             setLoading(false);
         }
     };

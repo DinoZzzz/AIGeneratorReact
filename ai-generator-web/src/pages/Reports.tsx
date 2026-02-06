@@ -12,6 +12,7 @@ import { useReports, useDeleteReport } from '../hooks/useReports';
 import { TableSkeleton } from '../components/skeletons';
 import { errorHandler } from '../lib/errorHandler';
 import { useToast } from '../context/ToastContext';
+import { useConfirm } from '../context/ConfirmDialogContext';
 import { useLanguage } from '../context/LanguageContext';
 
 // Dynamic import for Word export to reduce initial bundle size
@@ -24,6 +25,7 @@ export const Reports = () => {
     const { t } = useLanguage();
     const { user } = useAuth();
     const { success, error: showError } = useToast();
+    const confirm = useConfirm();
     const [selectedReports, setSelectedReports] = useState<Set<string>>(new Set());
     const [exportDialogOpen, setExportDialogOpen] = useState(false);
     const [isExporting, setIsExporting] = useState(false);
@@ -41,7 +43,7 @@ export const Reports = () => {
     }, [error, showError]);
 
     const handleDelete = useCallback(async (id: string) => {
-        if (!window.confirm(t('reports.deleteConfirm'))) return;
+        if (!(await confirm({ title: t('reports.deleteConfirm'), variant: 'destructive' }))) return;
         try {
             await deleteMutation.mutateAsync(id);
             // Remove from selection if it was selected
@@ -96,16 +98,10 @@ export const Reports = () => {
     const handleDeleteSelected = useCallback(async () => {
         const count = selectedReports.size;
 
-        // First confirmation
         const plural = count > 1 ? 's' : '';
         const confirmMsg = t('reports.deleteSelectedConfirm').replace('{count}', count.toString()).replace('{plural}', plural);
-        if (!window.confirm(confirmMsg)) {
-            return;
-        }
-
-        // Second confirmation
         const finalMsg = t('reports.deleteSelectedFinal').replace('{count}', count.toString()).replace('{plural}', plural);
-        if (!window.confirm(finalMsg)) {
+        if (!(await confirm({ title: confirmMsg, description: finalMsg, variant: 'destructive' }))) {
             return;
         }
 

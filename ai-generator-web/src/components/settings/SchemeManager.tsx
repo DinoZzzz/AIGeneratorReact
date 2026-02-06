@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useLanguage } from '../../context/LanguageContext';
 import { useToast } from '../../context/ToastContext';
+import { useConfirm } from '../../context/ConfirmDialogContext';
 import {
     getSchemeImages,
     uploadSchemeImage,
@@ -20,6 +21,7 @@ interface SchemeCardProps {
 const SchemeCard: React.FC<SchemeCardProps> = ({ scheme, onUpdate }) => {
     const { t } = useLanguage();
     const { addToast } = useToast();
+    const confirm = useConfirm();
 
     const [name, setName] = useState(scheme.name);
     const [description, setDescription] = useState(scheme.description || '');
@@ -123,7 +125,7 @@ const SchemeCard: React.FC<SchemeCardProps> = ({ scheme, onUpdate }) => {
     };
 
     const handleReset = async () => {
-        if (!confirm(t('schemeManager.resetConfirm'))) return;
+        if (!(await confirm({ title: t('schemeManager.resetConfirm'), variant: 'destructive' }))) return;
 
         setResetting(true);
         try {

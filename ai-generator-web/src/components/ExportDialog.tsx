@@ -5,6 +5,7 @@ import type { User, ReportForm, ReportFile } from '../types';
 import { FileUploader } from './FileUploader';
 import { useLanguage } from '../context/LanguageContext';
 import { certifierService, type Certifier } from '../services/certifierService';
+import { useToast } from '../context/ToastContext';
 
 interface ExportDialogProps {
     open: boolean;
@@ -34,6 +35,7 @@ export interface ExportMetaData {
 
 export const ExportDialog = ({ open, onOpenChange, onConfirm, loading = false, defaultValues, reports, constructionId, uploadedFiles = [], onFileUploaded, onFileDeleted }: ExportDialogProps) => {
     const { t } = useLanguage();
+    const { error: showError } = useToast();
     const [data, setData] = useState<ExportMetaData>({
         constructionPart: defaultValues?.constructionPart || '',
         drainage: defaultValues?.drainage || '',
@@ -98,7 +100,7 @@ export const ExportDialog = ({ open, onOpenChange, onConfirm, loading = false, d
         let selectedReports: ReportForm[] | undefined;
         if (reports && reports.length > 0) {
             if (selectedReportIds.size === 0) {
-                alert("Please select at least one report to export.");
+                showError("Please select at least one report to export.");
                 return;
             }
             selectedReports = reports.filter(r => r.id && selectedReportIds.has(r.id));

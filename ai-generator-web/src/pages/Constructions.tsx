@@ -10,12 +10,16 @@ import { useAuth } from '../context/AuthContext';
 import { useRecentlyViewed } from '../hooks/useRecentlyViewed';
 import { ConfirmArchiveDialog } from '../components/constructions/ConfirmArchiveDialog';
 import { formatDate } from '../utils/dateFormatter';
+import { useToast } from '../context/ToastContext';
+import { useConfirm } from '../context/ConfirmDialogContext';
 
 type FilterType = 'all' | 'active' | 'archived';
 
 export const Constructions = () => {
     const { customerId } = useParams();
     const navigate = useNavigate();
+    const { error: showError } = useToast();
+    const confirm = useConfirm();
     const [constructions, setConstructions] = useState<Construction[]>([]);
     const [customer, setCustomer] = useState<Customer | null>(null);
     const [loading, setLoading] = useState(true);
@@ -73,7 +77,7 @@ export const Constructions = () => {
             setConstructions(constructionsData);
         } catch (error) {
             console.error('Failed to load data', error);
-            alert('Failed to load data');
+            showError('Failed to load data');
         } finally {
             setLoading(false);
         }
@@ -101,7 +105,7 @@ export const Constructions = () => {
             }
         } catch (error) {
             console.error('Failed to archive/unarchive construction', error);
-            alert('Failed to archive/unarchive construction');
+            showError('Failed to archive/unarchive construction');
         } finally {
             setArchiveLoading(false);
         }
@@ -109,7 +113,7 @@ export const Constructions = () => {
     }, [selectedConstruction, isArchiving, customerId]);
 
     const handleDelete = useCallback(async (id: string) => {
-        if (window.confirm(t('constructions.deleteConfirm'))) {
+        if (await confirm({ title: t('constructions.deleteConfirm'), variant: 'destructive' })) {
             try {
                 await constructionService.delete(id);
                 if (customerId) {
@@ -117,7 +121,7 @@ export const Constructions = () => {
                 }
             } catch (error) {
                 console.error('Failed to delete construction', error);
-                alert('Failed to delete construction');
+                showError('Failed to delete construction');
             }
         }
     // eslint-disable-next-line react-hooks/exhaustive-deps

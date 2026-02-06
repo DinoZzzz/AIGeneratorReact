@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { Upload, X, Image as ImageIcon, FileText } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import type { ReportFile } from '../types';
+import { useToast } from '../context/ToastContext';
+import { useConfirm } from '../context/ConfirmDialogContext';
 
 interface FileUploaderProps {
   constructionId: string;
@@ -11,6 +13,8 @@ interface FileUploaderProps {
 }
 
 export function FileUploader({ constructionId, onUploadComplete, onDelete, files = [] }: FileUploaderProps) {
+  const { success: showSuccess, error: showError } = useToast();
+  const confirm = useConfirm();
   const [uploading, setUploading] = useState(false);
   const [dragActive, setDragActive] = useState(false);
   const [description, setDescription] = useState('');
@@ -24,7 +28,7 @@ export function FileUploader({ constructionId, onUploadComplete, onDelete, files
       const isPdf = file.type === 'application/pdf';
 
       if (!isImage && !isPdf) {
-        alert('Samo slike (JPG, PNG) i PDF datoteke su dozvoljene');
+        showError('Samo slike (JPG, PNG) i PDF datoteke su dozvoljene');
         return;
       }
 
@@ -63,17 +67,17 @@ export function FileUploader({ constructionId, onUploadComplete, onDelete, files
         onUploadComplete(fileRecord);
       }
 
-      alert('Datoteka uspješno učitana!');
+      showSuccess('Datoteka uspješno učitana!');
     } catch (error) {
       console.error('Upload error:', error);
-      alert(`Greška pri učitavanju: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      showError(`Greška pri učitavanju: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setUploading(false);
     }
   };
 
   const handleDelete = async (file: ReportFile) => {
-    if (!confirm(`Jeste li sigurni da želite obrisati ${file.file_name}?`)) {
+    if (!(await confirm({ title: `Jeste li sigurni da želite obrisati ${file.file_name}?`, variant: 'destructive' }))) {
       return;
     }
 
@@ -97,10 +101,10 @@ export function FileUploader({ constructionId, onUploadComplete, onDelete, files
         onDelete(file.id);
       }
 
-      alert('Datoteka obrisana!');
+      showSuccess('Datoteka obrisana!');
     } catch (error) {
       console.error('Delete error:', error);
-      alert(`Greška pri brisanju: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      showError(`Greška pri brisanju: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
 

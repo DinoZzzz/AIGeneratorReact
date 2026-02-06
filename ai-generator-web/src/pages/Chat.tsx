@@ -5,6 +5,7 @@ import { useLanguage } from '../context/LanguageContext';
 import { Send, Loader2, MessageSquare, Pencil, Trash2, X, Check } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { useToast } from '../context/ToastContext';
+import { useConfirm } from '../context/ConfirmDialogContext';
 import { UserAvatar } from '../components/ui/UserAvatar';
 
 export const Chat = () => {
@@ -18,6 +19,7 @@ export const Chat = () => {
     const { user } = useAuth();
     const { t } = useLanguage();
     const { success, error: showError } = useToast();
+    const confirm = useConfirm();
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -99,7 +101,7 @@ export const Chat = () => {
     };
 
     const handleDelete = async (id: string) => {
-        if (!window.confirm(t('chat.deleteConfirm'))) return;
+        if (!(await confirm({ title: t('chat.deleteConfirm'), variant: 'destructive' }))) return;
 
         try {
             await messageService.deleteMessage(id);
