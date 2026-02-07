@@ -7,6 +7,17 @@ export interface VersionHistoryItem {
 export function getVersionHistory(language: string): VersionHistoryItem[] {
     return language === 'hr' ? [
         {
+            version: '2.9.0',
+            date: '2026-02-05',
+            changes: [
+                'Konsolidirana 4 duplicirana dijaloga za potvrdu u generički ConfirmDialog',
+                'Poboljšana pristupačnost: aria-live, role="alertdialog", aria-label na gumbima',
+                'Ispravljeni hardkodirani stringovi — dodano 17+ novih prijevoda (HR/EN)',
+                'Ujednačeno upravljanje greškama s errorHandler u 12+ datoteka',
+                'Uklonjeni any tipovi u 8 datoteka, zamijenjeni konkretnim TypeScript tipovima',
+            ]
+        },
+        {
             version: '2.8.0',
             date: '2026-02-05',
             changes: [
@@ -280,6 +291,17 @@ export function getVersionHistory(language: string): VersionHistoryItem[] {
         },
     ] : [
         // English version
+        {
+            version: '2.9.0',
+            date: '2026-02-05',
+            changes: [
+                'Consolidated 4 duplicate confirm dialogs into generic ConfirmDialog',
+                'Improved accessibility: aria-live, role="alertdialog", aria-label on buttons',
+                'Fixed hardcoded strings — added 17+ new translations (HR/EN)',
+                'Consistent error handling with errorHandler across 12+ files',
+                'Eliminated any types in 8 files, replaced with concrete TypeScript types',
+            ]
+        },
         {
             version: '2.8.0',
             date: '2026-02-05',

@@ -10,6 +10,7 @@ import type { Construction, Customer } from '../types';
 import { useLanguage } from '../context/LanguageContext';
 import { getAllFromStore, getFromStore, STORES } from '../lib/offlineDb';
 import { useToast } from '../context/ToastContext';
+import { errorHandler } from '../lib/errorHandler';
 
 const initialState: Partial<Construction> = {
     name: '',
@@ -82,7 +83,7 @@ export const ConstructionForm = () => {
                 }
             }
         } catch (error) {
-            console.error('Failed to load construction', error);
+            errorHandler.handle(error, 'ConstructionForm');
             // Try offline fallback
             try {
                 const data = await getFromStore<Construction>(STORES.CONSTRUCTIONS, constId);
@@ -92,8 +93,8 @@ export const ConstructionForm = () => {
                     showError('Failed to load construction');
                 }
             } catch (offlineError) {
-                console.error('Failed to load construction from offline cache', offlineError);
-                showError('Failed to load construction');
+                const appError = errorHandler.handle(offlineError, 'ConstructionForm');
+                showError(errorHandler.getUserMessage(appError));
             }
         } finally {
             setLoading(false);
@@ -216,8 +217,8 @@ export const ConstructionForm = () => {
             }
             navigate(`/customers/${customerId}/constructions`);
         } catch (error) {
-            console.error('Failed to save construction', error);
-            showError('Failed to save construction');
+            const appError = errorHandler.handle(error, 'ConstructionForm');
+            showError(errorHandler.getUserMessage(appError));
             setLoading(false);
         }
     };

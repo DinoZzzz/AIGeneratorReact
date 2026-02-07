@@ -1,6 +1,7 @@
 import React from 'react';
 import { cn } from '../../lib/utils';
 import { ChevronDown } from 'lucide-react';
+import { useLanguage } from '../../context/LanguageContext';
 
 interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
     label?: string;
@@ -10,6 +11,7 @@ interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
 
 export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
     ({ label, options, error, className, children, ...props }, ref) => {
+        const { t } = useLanguage();
         return (
             <div className="space-y-2">
                 {label && (
@@ -29,7 +31,7 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
                     >
                         {options ? (
                             <>
-                                <option value="">Select...</option>
+                                <option value="">{t('common.selectPlaceholder')}</option>
                                 {options.map((option) => (
                                     <option key={option.value} value={option.value}>
                                         {option.label}

@@ -16,6 +16,7 @@ import { reportService } from '../services/reportService';
 import { ReportList } from '../components/history/ReportList';
 import { AttachmentsGallery } from '../components/history/AttachmentsGallery';
 import { useToast } from '../context/ToastContext';
+import { errorHandler } from '../lib/errorHandler';
 
 export const HistoryDetails = () => {
     const { id } = useParams<{ id: string }>();
@@ -57,8 +58,8 @@ export const HistoryDetails = () => {
                     }
                 }
             } catch (error) {
-                console.error('Failed to load export details:', error);
-                showError('Failed to load details.');
+                const appError = errorHandler.handle(error, 'HistoryDetails');
+                showError(errorHandler.getUserMessage(appError));
                 navigate('/history');
             } finally {
                 setLoading(false);
@@ -87,8 +88,8 @@ export const HistoryDetails = () => {
             generatePDF(reportData, profile || undefined);
             setActionMessage(null);
         } catch (error) {
-            console.error('Failed to download report:', error);
-            setActionMessage({ text: t('exportDetails.downloadFailed'), type: 'error' });
+            const appError = errorHandler.handle(error, 'HistoryDetails');
+            setActionMessage({ text: errorHandler.getUserMessage(appError), type: 'error' });
         } finally {
             setDownloadingFormId(null);
         }
@@ -124,8 +125,8 @@ export const HistoryDetails = () => {
             generateBulkPDF(orderedReports, `${exportData.construction_part}_Reports.pdf`, profile || undefined);
             setActionMessage(null);
         } catch (error) {
-            console.error('Failed to export reports:', error);
-            setActionMessage({ text: t('exportDetails.exportFailed'), type: 'error' });
+            const appError = errorHandler.handle(error, 'HistoryDetails');
+            setActionMessage({ text: errorHandler.getUserMessage(appError), type: 'error' });
         } finally {
             setIsExporting(false);
         }
@@ -174,8 +175,8 @@ export const HistoryDetails = () => {
             await generateWordDocument(orderedReports, metaData);
             setActionMessage(null);
         } catch (error) {
-            console.error('Failed to export Word document:', error);
-            setActionMessage({ text: t('exportDetails.wordFailed'), type: 'error' });
+            const appError = errorHandler.handle(error, 'HistoryDetails');
+            setActionMessage({ text: errorHandler.getUserMessage(appError), type: 'error' });
         } finally {
             setIsExporting(false);
         }
@@ -267,8 +268,8 @@ export const HistoryDetails = () => {
 
             await reportService.updateOrder(reportsToUpdate);
         } catch (error) {
-            console.error('Failed to update order', error);
-            showError('Failed to save new order. Please refresh.');
+            const appError = errorHandler.handle(error, 'HistoryDetails');
+            showError(errorHandler.getUserMessage(appError));
         }
     };
 

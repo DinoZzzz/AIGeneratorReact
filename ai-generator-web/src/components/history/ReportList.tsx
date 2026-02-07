@@ -1,9 +1,8 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import React from 'react';
 import { Loader2, Download, GripVertical, Pencil } from 'lucide-react';
 import clsx from 'clsx';
 import { DndContext, closestCenter, PointerSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core';
-import type { DragEndEvent } from '@dnd-kit/core';
+import type { DragEndEvent, DraggableAttributes, DraggableSyntheticListeners } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import type { ReportExportForm } from '../../types';
@@ -22,7 +21,7 @@ interface ReportListProps {
     t: (key: string) => string;
 }
 
-const SortableRow = ({ item, children }: { item: ReportExportForm; children: (props: { attributes: any; listeners: any }) => React.ReactNode }) => {
+const SortableRow = ({ item, children }: { item: ReportExportForm; children: (props: { attributes: DraggableAttributes; listeners: DraggableSyntheticListeners }) => React.ReactNode }) => {
     const id = item.form_id || item.report_form?.id || item.id;
     const {
         attributes,

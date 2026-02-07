@@ -4,6 +4,7 @@ import { useTheme, primaryColors } from '../../context/ThemeContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { useToast } from '../../context/ToastContext';
 import { useQueryClient } from '@tanstack/react-query';
+import { errorHandler } from '../../lib/errorHandler';
 
 export const GeneralSettings = () => {
     const { theme, setTheme, primaryColor, setPrimaryColor } = useTheme();
@@ -47,8 +48,8 @@ export const GeneralSettings = () => {
                 window.location.reload();
             }, 500);
         } catch (error) {
-            console.error('Error clearing cache:', error);
-            addToast('Failed to clear cache', 'error');
+            const appError = errorHandler.handle(error, 'GeneralSettings');
+            addToast(errorHandler.getUserMessage(appError), 'error');
         } finally {
             setIsClearing(false);
         }

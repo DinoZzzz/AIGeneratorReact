@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { ChevronRight, Home } from 'lucide-react';
+import { useLanguage } from '../../context/LanguageContext';
 
 interface BreadcrumbItem {
     label: string;
@@ -12,6 +13,7 @@ interface BreadcrumbsProps {
 }
 
 export const Breadcrumbs: React.FC<BreadcrumbsProps> = ({ items }) => {
+    const { t } = useLanguage();
     return (
         <nav className="flex mb-4" aria-label="Breadcrumb">
             <ol className="flex items-center space-x-2">
@@ -19,7 +21,7 @@ export const Breadcrumbs: React.FC<BreadcrumbsProps> = ({ items }) => {
                     <div>
                         <Link to="/" className="text-gray-400 hover:text-gray-500">
                             <Home className="flex-shrink-0 h-5 w-5" aria-hidden="true" />
-                            <span className="sr-only">Home</span>
+                            <span className="sr-only">{t('common.home')}</span>
                         </Link>
                     </div>
                 </li>

@@ -7,6 +7,7 @@ import { Loader2, Search, Trash2, ExternalLink, ChevronLeft, ChevronRight, User,
 import { useLanguage } from '../context/LanguageContext';
 import { useToast } from '../context/ToastContext';
 import { useConfirm } from '../context/ConfirmDialogContext';
+import { errorHandler } from '../lib/errorHandler';
 
 export const History = () => {
     const navigate = useNavigate();
@@ -47,7 +48,7 @@ export const History = () => {
             setExports(result.data);
             setTotalCount(result.count);
         } catch (error) {
-            console.error('Failed to load history:', error);
+            errorHandler.handle(error, 'History');
         } finally {
             setLoading(false);
         }
@@ -59,7 +60,7 @@ export const History = () => {
                 const usersData = await examinerService.getExaminers();
                 setUsers(usersData);
             } catch (error) {
-                console.error('Failed to load users:', error);
+                errorHandler.handle(error, 'History');
             }
         };
         loadUsers();
@@ -75,8 +76,8 @@ export const History = () => {
             await historyService.delete(id);
             loadData();
         } catch (error) {
-            console.error('Failed to delete export:', error);
-            showError('Failed to delete export.');
+            const appError = errorHandler.handle(error, 'History');
+            showError(errorHandler.getUserMessage(appError));
         }
     };
 

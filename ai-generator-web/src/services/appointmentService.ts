@@ -1,8 +1,15 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { supabase } from '../lib/supabase';
 import { captureError } from '../lib/sentry';
 import type { Appointment } from '../types';
 import { AppError } from '../lib/errorHandler';
+
+interface ExaminerProfile {
+    id: string;
+    name: string;
+    last_name: string;
+    avatar_url: string;
+    title: string;
+}
 
 export const appointmentService = {
     async getAll(start: Date, end: Date) {
@@ -23,11 +30,11 @@ export const appointmentService = {
 
         // Collect all unique examiner IDs from all events (batch query instead of N+1)
         const allExaminerIds = [...new Set(
-            (data || []).flatMap((event: any) => event.examiner_ids || [])
+            (data || []).flatMap((event) => (event as Record<string, unknown>).examiner_ids as string[] || [])
         )];
 
         // Single query to fetch all examiner profiles
-        let profileMap = new Map<string, any>();
+        let profileMap = new Map<string, ExaminerProfile>();
         if (allExaminerIds.length > 0) {
             const { data: profiles } = await supabase
                 .from('profiles')
@@ -38,9 +45,9 @@ export const appointmentService = {
         }
 
         // Map examiner profiles to each event
-        const eventsWithAssignees = (data || []).map((event: any) => ({
+        const eventsWithAssignees = (data || []).map((event) => ({
             ...event,
-            assignees: (event.examiner_ids || [])
+            assignees: (((event as Record<string, unknown>).examiner_ids as string[]) || [])
                 .map((id: string) => profileMap.get(id))
                 .filter(Boolean)
         }));
@@ -77,7 +84,7 @@ export const appointmentService = {
         const { assignee_ids, assignees: _assignees, ...apptData } = appointment;
 
         // Prepare update data
-        const updateData: any = { ...apptData };
+        const updateData: Record<string, unknown> = { ...apptData };
 
         // Update examiner_ids if provided
         if (assignee_ids !== undefined) {

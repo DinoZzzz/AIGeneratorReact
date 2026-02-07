@@ -4,6 +4,8 @@ import { supabase } from '../lib/supabase';
 import type { ReportFile } from '../types';
 import { useToast } from '../context/ToastContext';
 import { useConfirm } from '../context/ConfirmDialogContext';
+import { useLanguage } from '../context/LanguageContext';
+import { errorHandler } from '../lib/errorHandler';
 
 interface FileUploaderProps {
   constructionId: string;
@@ -13,6 +15,7 @@ interface FileUploaderProps {
 }
 
 export function FileUploader({ constructionId, onUploadComplete, onDelete, files = [] }: FileUploaderProps) {
+  const { t } = useLanguage();
   const { success: showSuccess, error: showError } = useToast();
   const confirm = useConfirm();
   const [uploading, setUploading] = useState(false);
@@ -28,7 +31,7 @@ export function FileUploader({ constructionId, onUploadComplete, onDelete, files
       const isPdf = file.type === 'application/pdf';
 
       if (!isImage && !isPdf) {
-        showError('Samo slike (JPG, PNG) i PDF datoteke su dozvoljene');
+        showError(t('fileUploader.invalidFileType'));
         return;
       }
 
@@ -67,17 +70,17 @@ export function FileUploader({ constructionId, onUploadComplete, onDelete, files
         onUploadComplete(fileRecord);
       }
 
-      showSuccess('Datoteka uspješno učitana!');
+      showSuccess(t('fileUploader.uploadSuccess'));
     } catch (error) {
-      console.error('Upload error:', error);
-      showError(`Greška pri učitavanju: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      const appError = errorHandler.handle(error, 'FileUploader');
+      showError(errorHandler.getUserMessage(appError));
     } finally {
       setUploading(false);
     }
   };
 
   const handleDelete = async (file: ReportFile) => {
-    if (!(await confirm({ title: `Jeste li sigurni da želite obrisati ${file.file_name}?`, variant: 'destructive' }))) {
+    if (!(await confirm({ title: t('fileUploader.deleteConfirm').replace('{name}', file.file_name), variant: 'destructive' }))) {
       return;
     }
 
@@ -101,10 +104,10 @@ export function FileUploader({ constructionId, onUploadComplete, onDelete, files
         onDelete(file.id);
       }
 
-      showSuccess('Datoteka obrisana!');
+      showSuccess(t('fileUploader.deleteSuccess'));
     } catch (error) {
-      console.error('Delete error:', error);
-      showError(`Greška pri brisanju: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      const appError = errorHandler.handle(error, 'FileUploader');
+      showError(errorHandler.getUserMessage(appError));
     }
   };
 
@@ -148,16 +151,16 @@ export function FileUploader({ constructionId, onUploadComplete, onDelete, files
       >
         <Upload className="mx-auto h-12 w-12 text-gray-400" />
         <p className="mt-2 text-sm text-gray-600">
-          Povucite datoteku ovdje ili kliknite za odabir
+          {t('fileUploader.dragDrop')}
         </p>
         <p className="text-xs text-gray-500 mt-1">
-          Podržane datoteke: JPG, PNG, PDF
+          {t('fileUploader.supportedFiles')}
         </p>
 
         <div className="mt-4 space-y-2">
           <input
             type="text"
-            placeholder="Opis datoteke (opcionalno)"
+            placeholder={t('fileUploader.fileDescription')}
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             className="w-full px-3 py-2 border rounded-md text-sm"
@@ -173,7 +176,7 @@ export function FileUploader({ constructionId, onUploadComplete, onDelete, files
               disabled={uploading}
             />
             <span className="cursor-pointer inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50">
-              {uploading ? 'Učitavanje...' : 'Odaberi datoteku'}
+              {uploading ? t('fileUploader.uploading') : t('fileUploader.selectFile')}
             </span>
           </label>
         </div>
@@ -182,7 +185,7 @@ export function FileUploader({ constructionId, onUploadComplete, onDelete, files
       {/* File List */}
       {files.length > 0 && (
         <div className="space-y-2">
-          <h4 className="text-sm font-medium text-gray-700">Učitane datoteke</h4>
+          <h4 className="text-sm font-medium text-gray-700">{t('fileUploader.uploadedFiles')}</h4>
           <div className="space-y-2">
             {files.map((file) => (
               <div
@@ -205,7 +208,8 @@ export function FileUploader({ constructionId, onUploadComplete, onDelete, files
                 <button
                   onClick={() => handleDelete(file)}
                   className="text-red-600 hover:text-red-800"
-                  title="Obriši datoteku"
+                  title={t('fileUploader.deleteFile')}
+                  aria-label={t('fileUploader.deleteFile')}
                 >
                   <X className="h-5 w-5" />
                 </button>

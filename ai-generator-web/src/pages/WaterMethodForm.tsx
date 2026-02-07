@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { reportService } from '../services/reportService';
@@ -9,14 +8,15 @@ import { Button } from '../components/ui/Button';
 import { Loader2, Save, ArrowLeft, FileDown, Plus, ArrowRight, ChevronLeft, Check, X, ChevronUp, Copy } from 'lucide-react';
 import { Stepper } from '../components/ui/Stepper';
 import * as calc from '../lib/calculations/report';
-import type { ReportForm, ReportDraft, MaterialType, Material } from '../types';
+import type { ReportForm, ReportDraft, MaterialType, Material, Profile } from '../types';
 import { cn } from '../lib/utils';
 import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
+import { errorHandler } from '../lib/errorHandler';
 
 // Dynamic import for PDF generation to reduce initial bundle size
-const generatePDF = async (report: Partial<ReportForm>, userProfile?: any) => {
+const generatePDF = async (report: Partial<ReportForm>, userProfile?: Profile) => {
     const { generatePDF: gen } = await import('../lib/pdfGenerator');
     return gen(report, userProfile);
 };
@@ -204,8 +204,8 @@ export const WaterMethodForm = () => {
             const data = await reportService.getById(reportId);
             setFormData(data);
         } catch (error) {
-            console.error('Error loading report:', error);
-            showError(t('reports.form.loadError'));
+            const appError = errorHandler.handle(error, 'WaterMethodForm');
+            showError(errorHandler.getUserMessage(appError));
         } finally {
             setLoading(false);
         }
@@ -228,7 +228,7 @@ export const WaterMethodForm = () => {
                     }));
                 }
             } catch (error) {
-                console.error('Error loading previous report:', error);
+                errorHandler.handle(error, 'WaterMethodForm');
             }
         }
     }, [constructionId, id]);
@@ -307,8 +307,8 @@ export const WaterMethodForm = () => {
                 }
             }
         } catch (error) {
-            console.error('Error saving report:', error);
-            showError(t('reports.form.saveError'));
+            const appError = errorHandler.handle(error, 'WaterMethodForm');
+            showError(errorHandler.getUserMessage(appError));
         } finally {
             setLoading(false);
         }

@@ -57,7 +57,7 @@ export const TemplateEditor: React.FC = () => {
             const result = await validateTemplate(file);
             setValidation(result);
         } catch (error) {
-            addToast(error instanceof Error ? error.message : 'Unknown error', 'error');
+            addToast(error instanceof Error ? error.message : t('common.unknownError'), 'error');
         } finally {
             setValidating(false);
         }
@@ -104,7 +104,7 @@ export const TemplateEditor: React.FC = () => {
                 addToast(result.error || t('templateEditor.uploadError'), 'error');
             }
         } catch (error) {
-            addToast(error instanceof Error ? error.message : 'Unknown error', 'error');
+            addToast(error instanceof Error ? error.message : t('common.unknownError'), 'error');
         } finally {
             setUploading(false);
         }
@@ -123,7 +123,7 @@ export const TemplateEditor: React.FC = () => {
                 addToast(result.error || t('templateEditor.rollbackError'), 'error');
             }
         } catch (error) {
-            addToast(error instanceof Error ? error.message : 'Unknown error', 'error');
+            addToast(error instanceof Error ? error.message : t('common.unknownError'), 'error');
         } finally {
             setLoading(false);
         }
@@ -141,7 +141,7 @@ export const TemplateEditor: React.FC = () => {
                 addToast(result.error || t('templateEditor.deleteBackupError'), 'error');
             }
         } catch (error) {
-            addToast(error instanceof Error ? error.message : 'Unknown error', 'error');
+            addToast(error instanceof Error ? error.message : t('common.unknownError'), 'error');
         }
     };
 
@@ -273,6 +273,7 @@ export const TemplateEditor: React.FC = () => {
                                 <button
                                     onClick={handleCancelUpload}
                                     className="p-1 text-muted-foreground hover:text-destructive transition-colors"
+                                    aria-label={t('common.cancel')}
                                 >
                                     <X className="h-5 w-5" />
                                 </button>
@@ -411,6 +412,7 @@ export const TemplateEditor: React.FC = () => {
                                             <button
                                                 onClick={() => handleDeleteBackup(version)}
                                                 className="p-1 text-muted-foreground hover:text-destructive transition-colors"
+                                                aria-label={t('common.delete')}
                                             >
                                                 <Trash2 className="h-4 w-4" />
                                             </button>

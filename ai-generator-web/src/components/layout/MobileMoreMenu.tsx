@@ -2,6 +2,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { X, LogOut, User as UserIcon } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { OfflineStatusBar } from './OfflineStatusBar';
+import { useLanguage } from '../../context/LanguageContext';
 
 interface NavItem {
     name: string;
@@ -48,6 +49,7 @@ export const MobileMoreMenu = ({
     triggerSync,
     offlineTranslations
 }: MobileMoreMenuProps) => {
+    const { t } = useLanguage();
     const location = useLocation();
 
     if (!isOpen) return null;
@@ -135,7 +137,7 @@ export const MobileMoreMenu = ({
                                     ? `${profile.name} ${profile.last_name}`
                                     : user?.email}
                             </p>
-                            <p className="text-xs text-muted-foreground">View Profile</p>
+                            <p className="text-xs text-muted-foreground">{t('common.viewProfile')}</p>
                         </div>
                         <UserIcon className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
                     </Link>

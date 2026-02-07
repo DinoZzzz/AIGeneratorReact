@@ -10,7 +10,7 @@ import { customerService } from '../../services/customerService';
 import { constructionService } from '../../services/constructionService';
 import type { Appointment, Profile, Customer, Construction } from '../../types';
 import { Loader2, Plus, Trash2 } from 'lucide-react';
-import { ConfirmDeleteAppointmentDialog } from './ConfirmDeleteAppointmentDialog';
+import { ConfirmDialog } from '../ui/ConfirmDialog';
 
 interface AppointmentDialogProps {
     open: boolean;
@@ -436,6 +436,7 @@ export const AppointmentDialog = ({
                                                     size="icon"
                                                     onClick={() => removeReminder(index)}
                                                     className="h-8 w-8 text-destructive"
+                                                    aria-label={t('common.delete')}
                                                 >
                                                     <Trash2 className="h-4 w-4" />
                                                 </Button>
@@ -491,12 +492,30 @@ export const AppointmentDialog = ({
                 </DialogContent>
             </Dialog>
 
-            <ConfirmDeleteAppointmentDialog
-                open={deleteDialogOpen}
-                onOpenChange={setDeleteDialogOpen}
-                onConfirm={handleDeleteConfirm}
-                appointment={appointment}
-            />
+            {appointment && (
+                <ConfirmDialog
+                    open={deleteDialogOpen}
+                    onConfirm={() => { handleDeleteConfirm(); setDeleteDialogOpen(false); }}
+                    onCancel={() => setDeleteDialogOpen(false)}
+                    title={t('calendar.deleteDialogTitle') || 'Confirm Deletion'}
+                    description={t('calendar.deleteDialogMessage') || 'Are you sure you want to delete this appointment?'}
+                    confirmLabel={t('common.delete')}
+                    cancelLabel={t('common.cancel')}
+                    variant="destructive"
+                >
+                    <div className="bg-muted/50 p-3 rounded-lg border border-border">
+                        <p className="text-xs text-muted-foreground mb-1">{t('calendar.eventTitle')}:</p>
+                        <p className="font-semibold text-foreground">{appointment.title}</p>
+                        {appointment.start_time && (
+                            <>
+                                <p className="text-xs text-muted-foreground mt-2 mb-1">{t('calendar.start')}:</p>
+                                <p className="font-semibold text-foreground">{new Date(appointment.start_time).toLocaleString()}</p>
+                            </>
+                        )}
+                    </div>
+                    <p className="text-destructive font-medium mt-3">{t('calendar.deleteWarning') || 'This action cannot be undone.'}</p>
+                </ConfirmDialog>
+            )}
         </>
     );
 };

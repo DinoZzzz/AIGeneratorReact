@@ -137,7 +137,12 @@ export const en: Record<string, string> = {
     'common.previous': 'Previous',
     'common.deleteConfirm': 'Are you sure you want to delete?',
     'common.select': 'Select',
+    'common.selectPlaceholder': 'Select...',
     'common.optional': '(optional)',
+    'common.viewProfile': 'View Profile',
+    'common.undo': 'Undo',
+    'common.unknownError': 'An unknown error occurred',
+    'common.home': 'Home',
 
     // Examiners
     'examiners.title': 'Examiners',
@@ -443,6 +448,22 @@ export const en: Record<string, string> = {
     'export.cancel': 'Cancel',
     'export.exporting': 'Exporting...',
     'export.exportReport': 'Export Report',
+    'export.selectAtLeastOneReport': 'Please select at least one report to export.',
+
+    // File Uploader
+    'fileUploader.invalidFileType': 'Only images (JPG, PNG) and PDF files are allowed',
+    'fileUploader.uploadSuccess': 'File uploaded successfully!',
+    'fileUploader.uploadError': 'Upload error',
+    'fileUploader.deleteConfirm': 'Are you sure you want to delete {name}?',
+    'fileUploader.deleteSuccess': 'File deleted!',
+    'fileUploader.deleteError': 'Delete error',
+    'fileUploader.dragDrop': 'Drag a file here or click to select',
+    'fileUploader.supportedFiles': 'Supported files: JPG, PNG, PDF',
+    'fileUploader.fileDescription': 'File description (optional)',
+    'fileUploader.uploading': 'Uploading...',
+    'fileUploader.selectFile': 'Select file',
+    'fileUploader.uploadedFiles': 'Uploaded files',
+    'fileUploader.deleteFile': 'Delete file',
 
     // Materials
     'materials.shaftTitle': 'Shaft Materials',

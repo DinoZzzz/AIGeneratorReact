@@ -11,6 +11,7 @@ import { Camera, Loader2, FileText, PieChart, TrendingUp } from 'lucide-react';
 import type { Profile, ReportType } from '../types';
 import { useAnalytics } from '../hooks/useAnalytics';
 import { UserAvatar } from '../components/ui/UserAvatar';
+import { errorHandler } from '../lib/errorHandler';
 
 export const ProfilePage = () => {
     const { profile, user, refreshProfile } = useAuth();
@@ -74,8 +75,8 @@ export const ProfilePage = () => {
             setFormData(prev => ({ ...prev, avatar_url: publicUrl }));
             toast.success(t('profile.avatarUploaded'));
         } catch (error) {
-            console.error('Error uploading avatar:', error);
-            toast.error(t('profile.avatarUploadFailed'));
+            const appError = errorHandler.handle(error, 'Profile');
+            toast.error(errorHandler.getUserMessage(appError));
         } finally {
             setUploading(false);
         }
@@ -95,8 +96,8 @@ export const ProfilePage = () => {
             await refreshProfile(); // Refresh context to update sidebar
             toast.success(t('profile.saved'));
         } catch (error) {
-            console.error(error);
-            toast.error(t('profile.saveFailed'));
+            const appError = errorHandler.handle(error, 'Profile');
+            toast.error(errorHandler.getUserMessage(appError));
         } finally {
             setLoading(false);
         }

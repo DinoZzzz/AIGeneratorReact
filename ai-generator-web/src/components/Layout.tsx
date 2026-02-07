@@ -449,7 +449,7 @@ export const Layout = ({ children }: LayoutProps) => {
                                             ? `${profile.name} ${profile.last_name}`
                                             : user?.email}
                                     </p>
-                                    <p className="text-xs text-muted-foreground">View Profile</p>
+                                    <p className="text-xs text-muted-foreground">{t('common.viewProfile')}</p>
                                 </div>
                                 <UserIcon className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
                             </Link>

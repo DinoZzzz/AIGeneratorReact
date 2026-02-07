@@ -137,7 +137,12 @@ export const hr: Record<string, string> = {
     'common.previous': 'Prethodni',
     'common.deleteConfirm': 'Jeste li sigurni da želite obrisati?',
     'common.select': 'Odaberi',
+    'common.selectPlaceholder': 'Odaberi...',
     'common.optional': '(neobavezno)',
+    'common.viewProfile': 'Pogledaj profil',
+    'common.undo': 'Poništi',
+    'common.unknownError': 'Došlo je do nepoznate greške',
+    'common.home': 'Početna',
 
     // Examiners
     'examiners.title': 'Ispitivači',
@@ -443,6 +448,22 @@ export const hr: Record<string, string> = {
     'export.cancel': 'Odustani',
     'export.exporting': 'Izvoz u tijeku...',
     'export.exportReport': 'Izvezi',
+    'export.selectAtLeastOneReport': 'Molimo odaberite barem jedan izvještaj za izvoz.',
+
+    // File Uploader
+    'fileUploader.invalidFileType': 'Samo slike (JPG, PNG) i PDF datoteke su dozvoljene',
+    'fileUploader.uploadSuccess': 'Datoteka uspješno učitana!',
+    'fileUploader.uploadError': 'Greška pri učitavanju',
+    'fileUploader.deleteConfirm': 'Jeste li sigurni da želite obrisati {name}?',
+    'fileUploader.deleteSuccess': 'Datoteka obrisana!',
+    'fileUploader.deleteError': 'Greška pri brisanju',
+    'fileUploader.dragDrop': 'Povucite datoteku ovdje ili kliknite za odabir',
+    'fileUploader.supportedFiles': 'Podržane datoteke: JPG, PNG, PDF',
+    'fileUploader.fileDescription': 'Opis datoteke (opcionalno)',
+    'fileUploader.uploading': 'Učitavanje...',
+    'fileUploader.selectFile': 'Odaberi datoteku',
+    'fileUploader.uploadedFiles': 'Učitane datoteke',
+    'fileUploader.deleteFile': 'Obriši datoteku',
 
     // Materials
     'materials.shaftTitle': 'Materijali za okna',

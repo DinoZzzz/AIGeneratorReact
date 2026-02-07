@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useState, useCallback } from 'react';
 
 import { Loader2, Trash2, Edit, FileText, Download } from 'lucide-react';
@@ -7,6 +6,7 @@ import { cn } from '../lib/utils';
 import { Button } from '../components/ui/Button';
 import { ExportDialog } from '../components/ExportDialog';
 import type { ExportMetaData } from '../components/ExportDialog';
+import type { ReportForm } from '../types';
 import { useAuth } from '../context/AuthContext';
 import { useReports, useDeleteReport } from '../hooks/useReports';
 import { TableSkeleton } from '../components/skeletons';
@@ -16,7 +16,7 @@ import { useConfirm } from '../context/ConfirmDialogContext';
 import { useLanguage } from '../context/LanguageContext';
 
 // Dynamic import for Word export to reduce initial bundle size
-const generateWordDocument = async (reports: any[], metaData: any, userId?: string) => {
+const generateWordDocument = async (reports: ReportForm[], metaData: ExportMetaData, userId?: string) => {
     const { generateWordDocument: gen } = await import('../services/wordExportService');
     return gen(reports, metaData, userId);
 };

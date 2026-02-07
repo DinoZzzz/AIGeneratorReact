@@ -8,10 +8,11 @@ import { Breadcrumbs } from '../components/ui/Breadcrumbs';
 import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../context/AuthContext';
 import { useRecentlyViewed } from '../hooks/useRecentlyViewed';
-import { ConfirmArchiveDialog } from '../components/constructions/ConfirmArchiveDialog';
+import { ConfirmDialog } from '../components/ui/ConfirmDialog';
 import { formatDate } from '../utils/dateFormatter';
 import { useToast } from '../context/ToastContext';
 import { useConfirm } from '../context/ConfirmDialogContext';
+import { errorHandler } from '../lib/errorHandler';
 
 type FilterType = 'all' | 'active' | 'archived';
 
@@ -76,8 +77,8 @@ export const Constructions = () => {
             setCustomer(customerData);
             setConstructions(constructionsData);
         } catch (error) {
-            console.error('Failed to load data', error);
-            showError('Failed to load data');
+            const appError = errorHandler.handle(error, 'Constructions');
+            showError(errorHandler.getUserMessage(appError));
         } finally {
             setLoading(false);
         }
@@ -104,8 +105,8 @@ export const Constructions = () => {
                 loadData(customerId);
             }
         } catch (error) {
-            console.error('Failed to archive/unarchive construction', error);
-            showError('Failed to archive/unarchive construction');
+            const appError = errorHandler.handle(error, 'Constructions');
+            showError(errorHandler.getUserMessage(appError));
         } finally {
             setArchiveLoading(false);
         }
@@ -120,8 +121,8 @@ export const Constructions = () => {
                     loadData(customerId);
                 }
             } catch (error) {
-                console.error('Failed to delete construction', error);
-                showError('Failed to delete construction');
+                const appError = errorHandler.handle(error, 'Constructions');
+                showError(errorHandler.getUserMessage(appError));
             }
         }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -443,14 +444,41 @@ export const Constructions = () => {
             </div>
 
             {/* Archive Confirmation Dialog */}
-            <ConfirmArchiveDialog
-                open={archiveDialogOpen}
-                onOpenChange={setArchiveDialogOpen}
-                onConfirm={handleArchiveConfirm}
-                construction={selectedConstruction}
-                isArchiving={isArchiving}
-                loading={archiveLoading}
-            />
+            {selectedConstruction && (
+                <ConfirmDialog
+                    open={archiveDialogOpen}
+                    onConfirm={handleArchiveConfirm}
+                    onCancel={() => setArchiveDialogOpen(false)}
+                    title={isArchiving ? t('constructions.archiveConfirmTitle') : t('constructions.unarchiveConfirmTitle')}
+                    description={isArchiving ? t('constructions.archiveConfirmMessage') : t('constructions.unarchiveConfirmMessage')}
+                    confirmLabel={isArchiving ? t('constructions.archive') : t('constructions.unarchive')}
+                    cancelLabel={t('common.cancel')}
+                    variant="default"
+                    icon={isArchiving
+                        ? <Archive className="h-6 w-6 text-amber-600 dark:text-amber-400" />
+                        : <ArchiveRestore className="h-6 w-6 text-green-600 dark:text-green-400" />
+                    }
+                    confirmClassName={isArchiving ? 'bg-amber-600 hover:bg-amber-700 text-white' : 'bg-green-600 hover:bg-green-700 text-white'}
+                    loading={archiveLoading}
+                >
+                    <div className="bg-muted/50 p-3 rounded-lg border border-border">
+                        <p className="text-xs text-muted-foreground mb-1">{t('constructions.name')}:</p>
+                        <p className="font-semibold text-foreground">{selectedConstruction.name}</p>
+                        {selectedConstruction.work_order && (
+                            <>
+                                <p className="text-xs text-muted-foreground mt-2 mb-1">{t('constructions.workOrder')}:</p>
+                                <p className="font-semibold text-foreground">{selectedConstruction.work_order}</p>
+                            </>
+                        )}
+                        {selectedConstruction.location && (
+                            <>
+                                <p className="text-xs text-muted-foreground mt-2 mb-1">{t('constructions.location')}:</p>
+                                <p className="font-semibold text-foreground">{selectedConstruction.location}</p>
+                            </>
+                        )}
+                    </div>
+                </ConfirmDialog>
+            )}
         </div>
     );
 };

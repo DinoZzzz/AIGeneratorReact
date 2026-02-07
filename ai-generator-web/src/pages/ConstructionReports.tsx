@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { reportService } from '../services/reportService';
@@ -20,6 +19,7 @@ import { ReportsTable, ReportsActionBar, ReportsFilterBar } from '../features/re
 import { useReportsFiltering } from '../features/reports/hooks';
 import { useToast } from '../context/ToastContext';
 import { useConfirm } from '../context/ConfirmDialogContext';
+import { errorHandler } from '../lib/errorHandler';
 
 // Dynamic imports for PDF/Word export to reduce initial bundle size
 const generatePDF = async (report: ReportForm, userProfile?: Profile) => {
@@ -32,7 +32,7 @@ const generateBulkPDF = async (reports: ReportForm[], filename: string, userProf
     return gen(reports, filename, userProfile);
 };
 
-const generateWordDocument = async (reports: ReportForm[], metaData: any, userId?: string) => {
+const generateWordDocument = async (reports: ReportForm[], metaData: ExportMetaData, userId?: string) => {
     const { generateWordDocument: gen } = await import('../services/wordExportService');
     return gen(reports, metaData, userId);
 };
@@ -114,7 +114,7 @@ export const ConstructionReports = () => {
             setCustomer(customerData);
             setReports(reportsData);
         } catch (error) {
-            console.error('Error loading data:', error);
+            errorHandler.handle(error, 'ConstructionReports');
         } finally {
             setLoading(false);
         }
@@ -131,7 +131,7 @@ export const ConstructionReports = () => {
             if (error) throw error;
             setUploadedFiles(data || []);
         } catch (error) {
-            console.error('Error loading files:', error);
+            errorHandler.handle(error, 'ConstructionReports');
         }
     };
 
@@ -155,8 +155,8 @@ export const ConstructionReports = () => {
                 setSelectedIds(newSelected);
             }
         } catch (error) {
-            console.error('Error deleting report:', error);
-            showError('Failed to delete report');
+            const appError = errorHandler.handle(error, 'ConstructionReports');
+            showError(errorHandler.getUserMessage(appError));
         }
     };
 
@@ -174,8 +174,8 @@ export const ConstructionReports = () => {
             generatePDF(report, profile || undefined);
             setActionMessage(null);
         } catch (error) {
-            console.error('Failed to export PDF:', error);
-            setActionMessage({ text: 'Failed to export PDF. Please try again.', type: 'error' });
+            const appError = errorHandler.handle(error, 'ConstructionReports');
+            setActionMessage({ text: errorHandler.getUserMessage(appError), type: 'error' });
         }
     };
 
@@ -189,8 +189,8 @@ export const ConstructionReports = () => {
             generateBulkPDF(reportsToExport, `Reports_${construction?.work_order || 'bundle'}.pdf`, profile || undefined);
             setActionMessage(null);
         } catch (error) {
-            console.error('Failed to export PDFs:', error);
-            setActionMessage({ text: 'Failed to export PDFs. Please try again.', type: 'error' });
+            const appError = errorHandler.handle(error, 'ConstructionReports');
+            setActionMessage({ text: errorHandler.getUserMessage(appError), type: 'error' });
         }
     };
 
@@ -209,8 +209,8 @@ export const ConstructionReports = () => {
             await generateWordDocument(reportsToExport, metaData, user?.id);
             setActionMessage(null);
         } catch (error) {
-            console.error(error);
-            setActionMessage({ text: 'Failed to generate report. Please try again.', type: 'error' });
+            const appError = errorHandler.handle(error, 'ConstructionReports');
+            setActionMessage({ text: errorHandler.getUserMessage(appError), type: 'error' });
         } finally {
             setIsExporting(false);
         }
@@ -235,7 +235,8 @@ export const ConstructionReports = () => {
             setSelectedIds(new Set());
             showSuccess(`Successfully deleted ${count} report${count > 1 ? 's' : ''}`);
         } catch (err: unknown) {
-            showError('Failed to delete reports: ' + (err as Error).message);
+            const appError = errorHandler.handle(err, 'ConstructionReports');
+            showError(errorHandler.getUserMessage(appError));
         }
     };
 
@@ -259,8 +260,8 @@ export const ConstructionReports = () => {
             const newSection = await reportService.create(sectionPayload);
             setReports([...reports, newSection]);
         } catch (error) {
-            console.error('Failed to create section:', error);
-            showError('Failed to create section');
+            const appError = errorHandler.handle(error, 'ConstructionReports');
+            showError(errorHandler.getUserMessage(appError));
         }
     };
 
@@ -276,8 +277,8 @@ export const ConstructionReports = () => {
             await reportService.update(existingId, { section_name: newName });
             setReports(reports.map(r => r.id === existingId ? { ...r, section_name: newName } : r));
         } catch (error) {
-            console.error('Failed to update section name:', error);
-            showError('Failed to update section name');
+            const appError = errorHandler.handle(error, 'ConstructionReports');
+            showError(errorHandler.getUserMessage(appError));
         }
     };
 
@@ -301,8 +302,8 @@ export const ConstructionReports = () => {
         try {
             await reportService.updateOrder(newReports);
         } catch (error) {
-            console.error('Failed to update order', error);
-            showError('Failed to save new order');
+            const appError = errorHandler.handle(error, 'ConstructionReports');
+            showError(errorHandler.getUserMessage(appError));
         }
     };
 

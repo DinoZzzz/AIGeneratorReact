@@ -6,6 +6,7 @@ import { Send, Loader2, MessageSquare, Pencil, Trash2, X, Check } from 'lucide-r
 import { Button } from '../components/ui/Button';
 import { useToast } from '../context/ToastContext';
 import { useConfirm } from '../context/ConfirmDialogContext';
+import { errorHandler } from '../lib/errorHandler';
 import { UserAvatar } from '../components/ui/UserAvatar';
 
 export const Chat = () => {
@@ -53,8 +54,8 @@ export const Chat = () => {
             const data = await messageService.getMessages(200);
             setMessages(data);
         } catch (err) {
-            console.error('Failed to load messages:', err);
-            showError('Failed to load messages');
+            const appError = errorHandler.handle(err, 'Chat');
+            showError(errorHandler.getUserMessage(appError));
         } finally {
             setLoading(false);
         }
@@ -72,8 +73,8 @@ export const Chat = () => {
             setNewMessage('');
             setTimeout(scrollToBottom, 100);
         } catch (err) {
-            console.error('Failed to send message:', err);
-            showError('Failed to send message');
+            const appError = errorHandler.handle(err, 'Chat');
+            showError(errorHandler.getUserMessage(appError));
         } finally {
             setSending(false);
         }
@@ -95,8 +96,8 @@ export const Chat = () => {
             setEditContent('');
             success('Message updated');
         } catch (err) {
-            console.error('Failed to edit message:', err);
-            showError('Failed to edit message');
+            const appError = errorHandler.handle(err, 'Chat');
+            showError(errorHandler.getUserMessage(appError));
         }
     };
 
@@ -108,8 +109,8 @@ export const Chat = () => {
             setMessages(prev => prev.filter(msg => msg.id !== id));
             success('Message deleted');
         } catch (err) {
-            console.error('Failed to delete message:', err);
-            showError('Failed to delete message');
+            const appError = errorHandler.handle(err, 'Chat');
+            showError(errorHandler.getUserMessage(appError));
         }
     };
 

@@ -92,7 +92,7 @@ const SchemeCard: React.FC<SchemeCardProps> = ({ scheme, onUpdate }) => {
                 addToast(result.error || t('schemeManager.uploadError'), 'error');
             }
         } catch (error) {
-            addToast(error instanceof Error ? error.message : 'Unknown error', 'error');
+            addToast(error instanceof Error ? error.message : t('common.unknownError'), 'error');
         } finally {
             setUploading(false);
         }
@@ -118,7 +118,7 @@ const SchemeCard: React.FC<SchemeCardProps> = ({ scheme, onUpdate }) => {
                 addToast(result.error || t('schemeManager.saveError'), 'error');
             }
         } catch (error) {
-            addToast(error instanceof Error ? error.message : 'Unknown error', 'error');
+            addToast(error instanceof Error ? error.message : t('common.unknownError'), 'error');
         } finally {
             setSaving(false);
         }
@@ -137,7 +137,7 @@ const SchemeCard: React.FC<SchemeCardProps> = ({ scheme, onUpdate }) => {
                 addToast(result.error || t('schemeManager.resetError'), 'error');
             }
         } catch (error) {
-            addToast(error instanceof Error ? error.message : 'Unknown error', 'error');
+            addToast(error instanceof Error ? error.message : t('common.unknownError'), 'error');
         } finally {
             setResetting(false);
         }
@@ -228,6 +228,7 @@ const SchemeCard: React.FC<SchemeCardProps> = ({ scheme, onUpdate }) => {
                     <button
                         onClick={handleCancelUpload}
                         className="p-1 text-muted-foreground hover:text-destructive transition-colors"
+                        aria-label={t('common.cancel')}
                     >
                         <X className="h-4 w-4" />
                     </button>

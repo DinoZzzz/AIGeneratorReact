@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { X, CheckCircle2, XCircle, Info, Undo2 } from 'lucide-react';
 import { useSwipeable } from 'react-swipeable';
 import { cn } from '../../lib/utils';
+import { useLanguage } from '../../context/LanguageContext';
 
 export type ToastType = 'success' | 'error' | 'info';
 
@@ -15,6 +16,7 @@ export interface ToastProps {
 }
 
 export const Toast: React.FC<ToastProps> = ({ id, type, message, onClose, duration = 3000, onUndo }) => {
+    const { t } = useLanguage();
     useEffect(() => {
         const timer = setTimeout(() => {
             onClose(id);
@@ -77,7 +79,7 @@ export const Toast: React.FC<ToastProps> = ({ id, type, message, onClose, durati
                                 className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-green-700 dark:text-green-300 hover:text-green-900 dark:hover:text-green-100 transition-colors"
                             >
                                 <Undo2 className="h-3 w-3" />
-                                Undo
+                                {t('common.undo')}
                             </button>
                         )}
                     </div>

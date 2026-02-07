@@ -3,7 +3,7 @@ import { Plus, Search, Pencil, Trash2, UserCheck, Lock, ChevronLeft, ChevronRigh
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { ExaminerDialog } from '../components/examiners/ExaminerDialog';
-import { ConfirmDeleteExaminerDialog } from '../components/examiners/ConfirmDeleteExaminerDialog';
+import { ConfirmDialog } from '../components/ui/ConfirmDialog';
 import { examinerService } from '../services/examinerService';
 import type { Profile, ReportType } from '../types';
 import { useAuth } from '../context/AuthContext';
@@ -365,12 +365,28 @@ export const Examiners = () => {
                 onSave={handleSave}
             />
 
-            <ConfirmDeleteExaminerDialog
-                open={deleteDialogOpen}
-                onOpenChange={setDeleteDialogOpen}
-                onConfirm={handleDeleteConfirm}
-                examiner={examinerToDelete}
-            />
+            {examinerToDelete && (
+                <ConfirmDialog
+                    open={deleteDialogOpen}
+                    onConfirm={() => { handleDeleteConfirm(); setDeleteDialogOpen(false); }}
+                    onCancel={() => setDeleteDialogOpen(false)}
+                    title={t('examiners.deleteDialogTitle') || 'Confirm Deletion'}
+                    description={t('examiners.deleteDialogMessage') || 'Are you sure you want to delete this examiner?'}
+                    confirmLabel={t('common.delete')}
+                    cancelLabel={t('common.cancel')}
+                    variant="destructive"
+                >
+                    <div className="bg-muted/50 p-3 rounded-lg border border-border">
+                        <p className="text-xs text-muted-foreground mb-1">{t('examiners.fullName')}:</p>
+                        <p className="font-semibold text-foreground">{examinerToDelete.name} {examinerToDelete.last_name} {examinerToDelete.title}</p>
+                        <p className="text-xs text-muted-foreground mt-2 mb-1">{t('examiners.username')}:</p>
+                        <p className="font-semibold text-foreground">@{examinerToDelete.username}</p>
+                        <p className="text-xs text-muted-foreground mt-2 mb-1">{t('examiners.email')}:</p>
+                        <p className="font-semibold text-foreground">{examinerToDelete.email}</p>
+                    </div>
+                    <p className="text-destructive font-medium mt-3">{t('examiners.deleteWarning') || 'This action cannot be undone.'}</p>
+                </ConfirmDialog>
+            )}
         </div>
     );
 };

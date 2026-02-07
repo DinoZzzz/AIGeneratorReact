@@ -9,6 +9,7 @@ import type { Customer } from '../types';
 import { useLanguage } from '../context/LanguageContext';
 import { getAllFromStore, STORES } from '../lib/offlineDb';
 import { useToast } from '../context/ToastContext';
+import { errorHandler } from '../lib/errorHandler';
 
 const initialState: Partial<Customer> = {
     name: '',
@@ -40,8 +41,8 @@ export const CustomerForm = () => {
             const data = await customerService.getById(customerId);
             setFormData(data);
         } catch (error) {
-            console.error('Failed to load customer', error);
-            showError('Failed to load customer');
+            const appError = errorHandler.handle(error, 'CustomerForm');
+            showError(errorHandler.getUserMessage(appError));
         } finally {
             setLoading(false);
         }
@@ -204,8 +205,8 @@ export const CustomerForm = () => {
             }
             navigate('/customers');
         } catch (error) {
-            console.error('Failed to save customer', error);
-            showError('Failed to save customer');
+            const appError = errorHandler.handle(error, 'CustomerForm');
+            showError(errorHandler.getUserMessage(appError));
             setLoading(false);
         }
     };

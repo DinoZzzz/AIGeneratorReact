@@ -43,7 +43,7 @@ export const ExportDialog = ({ open, onOpenChange, onConfirm, loading = false, d
         airDeviation: defaultValues?.airDeviation || '',
         waterRemark: defaultValues?.waterRemark || '',
         waterDeviation: defaultValues?.waterDeviation || '',
-        certifierName: defaultValues?.certifierName || 'Nikola Brečić bacc.ing.secc.',
+        certifierName: defaultValues?.certifierName || '',
         includePdfs: defaultValues?.includePdfs || false,
     });
 
@@ -100,7 +100,7 @@ export const ExportDialog = ({ open, onOpenChange, onConfirm, loading = false, d
         let selectedReports: ReportForm[] | undefined;
         if (reports && reports.length > 0) {
             if (selectedReportIds.size === 0) {
-                showError("Please select at least one report to export.");
+                showError(t('export.selectAtLeastOneReport'));
                 return;
             }
             selectedReports = reports.filter(r => r.id && selectedReportIds.has(r.id));
@@ -174,7 +174,7 @@ export const ExportDialog = ({ open, onOpenChange, onConfirm, loading = false, d
                                 {waterReports.length > 0 && (
                                     <div className="border-2 border-blue-200 dark:border-blue-800 rounded-lg p-3 bg-blue-50/50 dark:bg-blue-950/20">
                                         <h4 className="font-bold text-sm text-blue-700 dark:text-blue-300 uppercase tracking-wider mb-3 flex items-center gap-2">
-                                            💧 {t('reports.water')} Reports
+                                            💧 {t('reports.water')} {t('reports.title')}
                                         </h4>
                                         <div className="max-h-60 overflow-y-auto space-y-2">
                                             {waterReports.map((report) => {
@@ -214,7 +214,7 @@ export const ExportDialog = ({ open, onOpenChange, onConfirm, loading = false, d
                                 {airReports.length > 0 && (
                                     <div className="border-2 border-purple-200 dark:border-purple-800 rounded-lg p-3 bg-purple-50/50 dark:bg-purple-950/20">
                                         <h4 className="font-bold text-sm text-purple-700 dark:text-purple-300 uppercase tracking-wider mb-3 flex items-center gap-2">
-                                            💨 {t('reports.air')} Reports
+                                            💨 {t('reports.air')} {t('reports.title')}
                                         </h4>
                                         <div className="max-h-60 overflow-y-auto space-y-2">
                                             {airReports.map((report) => {
@@ -348,10 +348,7 @@ export const ExportDialog = ({ open, onOpenChange, onConfirm, loading = false, d
                                     </option>
                                 ))
                             ) : (
-                                <>
-                                    <option value="Nikola Brečić bacc.ing.secc.">Nikola Brečić bacc.ing.secc.</option>
-                                    <option value="Ante Milas">Ante Milas</option>
-                                </>
+                                <option value="">{t('common.selectPlaceholder')}</option>
                             )}
                         </select>
                     </div>

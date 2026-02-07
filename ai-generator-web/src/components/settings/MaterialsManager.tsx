@@ -1,11 +1,10 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useEffect, useState } from 'react';
 import { Loader2, Plus, Trash2, Edit, Lock } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
 import { useToast } from '../../context/ToastContext';
 import { supabase } from '../../lib/supabase';
 import type { Material } from '../../types';
-import { ConfirmDeleteMaterialDialog } from '../ConfirmDeleteMaterialDialog';
+import { ConfirmDialog } from '../ui/ConfirmDialog';
 
 interface MaterialsManagerProps {
     isAdmin: boolean;
@@ -39,8 +38,8 @@ export const MaterialsManager = ({ isAdmin }: MaterialsManagerProps) => {
 
             if (error) throw error;
             setMaterials(data || []);
-        } catch (error: any) {
-            addToast(error.message, 'error');
+        } catch (error) {
+            addToast(error instanceof Error ? error.message : String(error), 'error');
         } finally {
             setLoading(false);
         }
@@ -59,8 +58,8 @@ export const MaterialsManager = ({ isAdmin }: MaterialsManagerProps) => {
             setAddingType(null);
             setFormData({ name: '', material_type_id: 1 });
             fetchMaterials();
-        } catch (error: any) {
-            addToast(error.message, 'error');
+        } catch (error) {
+            addToast(error instanceof Error ? error.message : String(error), 'error');
         }
     };
 
@@ -78,8 +77,8 @@ export const MaterialsManager = ({ isAdmin }: MaterialsManagerProps) => {
             setIsEditing(null);
             setFormData({ name: '', material_type_id: 1 });
             fetchMaterials();
-        } catch (error: any) {
-            addToast(error.message, 'error');
+        } catch (error) {
+            addToast(error instanceof Error ? error.message : String(error), 'error');
         }
     };
 
@@ -116,8 +115,8 @@ export const MaterialsManager = ({ isAdmin }: MaterialsManagerProps) => {
             fetchMaterials();
             setDeleteDialogOpen(false);
             setMaterialToDelete(null);
-        } catch (error: any) {
-            addToast(error.message, 'error');
+        } catch (error) {
+            addToast(error instanceof Error ? error.message : String(error), 'error');
             setDeleteDialogOpen(false);
             setMaterialToDelete(null);
         }
@@ -247,13 +246,28 @@ export const MaterialsManager = ({ isAdmin }: MaterialsManagerProps) => {
             {renderMaterialSection(shaftMaterials, 1)}
             {renderMaterialSection(pipeMaterials, 2)}
 
-            <ConfirmDeleteMaterialDialog
+            <ConfirmDialog
                 open={deleteDialogOpen}
-                onOpenChange={setDeleteDialogOpen}
-                onConfirm={handleDeleteConfirm}
-                materialName={materialToDelete?.name || ''}
-                materialType={materialToDelete?.material_type_id === 1 ? 'shaft' : 'pipe'}
-            />
+                onConfirm={() => { handleDeleteConfirm(); setDeleteDialogOpen(false); }}
+                onCancel={() => setDeleteDialogOpen(false)}
+                title={t('materials.deleteDialogTitle') || 'Confirm Deletion'}
+                description={t('materials.deleteDialogMessage') || 'Are you sure you want to delete this material?'}
+                confirmLabel={t('materials.confirmDelete') || 'Delete Material'}
+                cancelLabel={t('materials.cancel') || 'Cancel'}
+                variant="destructive"
+            >
+                <div className="bg-muted/50 p-3 rounded-lg border border-border">
+                    <p className="text-xs text-muted-foreground mb-1">{t('materials.materialType') || 'Material type'}:</p>
+                    <p className="font-semibold text-foreground">
+                        {materialToDelete?.material_type_id === 1
+                            ? t('materials.shaftSingular') || 'material for shaft'
+                            : t('materials.pipeSingular') || 'material for pipe'}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-2 mb-1">{t('materials.materialName') || 'Material name'}:</p>
+                    <p className="font-semibold text-foreground">{materialToDelete?.name || ''}</p>
+                </div>
+                <p className="text-destructive font-medium mt-3">{t('materials.deleteWarning') || 'This action cannot be undone.'}</p>
+            </ConfirmDialog>
         </>
     );
 };
