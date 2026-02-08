@@ -7,6 +7,17 @@ export interface VersionHistoryItem {
 export function getVersionHistory(language: string): VersionHistoryItem[] {
     return language === 'hr' ? [
         {
+            version: '2.17.0',
+            date: '2026-02-08',
+            changes: [
+                'Uklonjeni build warningi za miješanje statičkih i dinamičkih importa (Calendar i Sentry)',
+                'Calendar stranica prebačena na lazy import radi konzistentnijeg chunkanja',
+                'Refaktoriran analytics izračun u testabilan utility modul (lib/analytics.ts)',
+                'Dodan novi test paket za analitiku s više scenarija i rubnih slučajeva',
+                'Povećana ukupna test pokrivenost kroz dodatne unit testove',
+            ]
+        },
+        {
             version: '2.16.0',
             date: '2026-02-08',
             changes: [
@@ -367,6 +378,17 @@ export function getVersionHistory(language: string): VersionHistoryItem[] {
         },
     ] : [
         // English version
+        {
+            version: '2.17.0',
+            date: '2026-02-08',
+            changes: [
+                'Removed build warnings caused by mixed static and dynamic imports (Calendar and Sentry)',
+                'Migrated Calendar page to lazy import for consistent chunking behavior',
+                'Refactored analytics calculations into a testable utility module (lib/analytics.ts)',
+                'Added a dedicated analytics test suite with multiple scenarios and edge cases',
+                'Improved overall test coverage through additional unit tests',
+            ]
+        },
         {
             version: '2.16.0',
             date: '2026-02-08',

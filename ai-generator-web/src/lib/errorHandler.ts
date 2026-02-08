@@ -1,3 +1,5 @@
+import { captureError } from './sentry';
+
 export class AppError extends Error {
   public code: string;
   public statusCode?: number;
@@ -128,15 +130,11 @@ export const errorHandler = {
 
     // Send to error tracking service (Sentry)
     if (sendToService) {
-      import('./sentry').then(({ captureError }) => {
-        captureError(appError, {
-          context,
-          code: appError.code,
-          statusCode: appError.statusCode,
-          errorContext: appError.context,
-        });
-      }).catch(() => {
-        // Sentry not available, ignore
+      captureError(appError, {
+        context,
+        code: appError.code,
+        statusCode: appError.statusCode,
+        errorContext: appError.context,
       });
     }
 

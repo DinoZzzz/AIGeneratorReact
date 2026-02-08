@@ -14,7 +14,6 @@ import { LanguageProvider } from './context/LanguageContext';
 import { KeyboardShortcutsProvider } from './context/KeyboardShortcutsContext';
 import { ConfirmDialogProvider } from './context/ConfirmDialogContext';
 import { queryClient } from './lib/queryClient';
-import { Calendar } from './pages/Calendar';
 
 // Lazy load all page components
 const Login = lazy(() => import('./pages/Login').then(m => ({ default: m.Login })));
@@ -35,6 +34,7 @@ const Settings = lazy(() => import('./pages/Settings').then(m => ({ default: m.S
 const Analytics = lazy(() => import('./pages/Analytics').then(m => ({ default: m.Analytics })));
 const Profile = lazy(() => import('./pages/Profile').then(m => ({ default: m.ProfilePage })));
 const Chat = lazy(() => import('./pages/Chat').then(m => ({ default: m.Chat })));
+const Calendar = lazy(() => import('./pages/Calendar').then(m => ({ default: m.Calendar })));
 
 // Loading fallback component
 const LoadingFallback = () => (
