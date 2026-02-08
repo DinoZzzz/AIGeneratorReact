@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { Loader2, Plus, Trash2, Edit, Lock } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
 import { useToast } from '../../context/ToastContext';
@@ -25,11 +25,7 @@ export const MaterialsManager = ({ isAdmin }: MaterialsManagerProps) => {
     const shaftMaterials = materials.filter(m => m.material_type_id === 1);
     const pipeMaterials = materials.filter(m => m.material_type_id === 2);
 
-    useEffect(() => {
-        fetchMaterials();
-    }, []);
-
-    const fetchMaterials = async () => {
+    const fetchMaterials = useCallback(async () => {
         try {
             const { data, error } = await supabase
                 .from('materials')
@@ -43,7 +39,11 @@ export const MaterialsManager = ({ isAdmin }: MaterialsManagerProps) => {
         } finally {
             setLoading(false);
         }
-    };
+    }, [addToast]);
+
+    useEffect(() => {
+        fetchMaterials();
+    }, [fetchMaterials]);
 
     const handleAdd = async (e: React.FormEvent) => {
         e.preventDefault();

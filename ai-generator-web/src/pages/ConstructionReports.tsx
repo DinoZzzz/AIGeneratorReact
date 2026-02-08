@@ -18,7 +18,7 @@ import { InputDialog } from '../components/InputDialog';
 import { ReportsTable, ReportsActionBar, ReportsFilterBar } from '../features/reports/components';
 import { useReportsFiltering } from '../features/reports/hooks';
 import { useToast } from '../context/ToastContext';
-import { useConfirm } from '../context/ConfirmDialogContext';
+import { useConfirm } from '../context/useConfirm';
 import { useHandleError } from '../hooks/useHandleError';
 import { errorHandler } from '../lib/errorHandler';
 

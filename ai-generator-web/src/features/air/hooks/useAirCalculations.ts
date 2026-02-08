@@ -3,7 +3,6 @@ import {
     calculateAirReport,
     getAirTestRequirements,
     getMethodFromProcedureName,
-    getProcedureIdFromPressure,
     type PipeMaterial,
     type AirReportCalculations,
     type AirTestMethod

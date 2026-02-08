@@ -80,16 +80,6 @@ export const AirMethodForm = () => {
         // Schema B (Draft 2/3): Shaft + Pipeline - full time
         const diameterMm = formData.pane_diameter || 0;
 
-        let procedureId = 1;
-        if (selectedProcedure) {
-            procedureId = selectedProcedure.id;
-        } else {
-            const p = formData.pressure_start || 0;
-            if (p >= 200) procedureId = 4;
-            else if (p >= 100) procedureId = 3;
-            else if (p >= 50) procedureId = 2;
-        }
-
         const selectedMaterial = materials.find(m => m.id === formData.pipe_material_id);
         const isConcrete = selectedMaterial
             ? (selectedMaterial.name.toLowerCase().includes('beton') || selectedMaterial.name.toLowerCase().includes('concrete'))
@@ -174,7 +164,7 @@ export const AirMethodForm = () => {
         } finally {
             setLoading(false);
         }
-    }, [t]);
+    }, [showError]);
 
     // Load previous report for copying data
     const loadPreviousReport = useCallback(async () => {

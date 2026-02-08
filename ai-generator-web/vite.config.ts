@@ -44,6 +44,9 @@ export default defineConfig(({ mode }) => ({
         ]
       },
       workbox: {
+        // Work around Workbox terser renderChunk crashes in production SW generation.
+        // Keeps app build in production mode while generating a stable (non-minified) SW.
+        mode: 'development',
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2,json}'],
         globIgnores: ['**/stats.html'], // Exclude bundle stats from service worker cache
         // Skip waiting and claim clients immediately for faster updates

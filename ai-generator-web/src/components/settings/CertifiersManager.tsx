@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Loader2, Plus, Trash2, Edit, Star, Upload, X } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
 import { useToast } from '../../context/ToastContext';
-import { useConfirm } from '../../context/ConfirmDialogContext';
+import { useConfirm } from '../../context/useConfirm';
 import { certifierService, type Certifier } from '../../services/certifierService';
 
 export const CertifiersManager = () => {

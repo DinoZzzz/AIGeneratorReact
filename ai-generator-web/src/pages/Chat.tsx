@@ -5,7 +5,7 @@ import { useLanguage } from '../context/LanguageContext';
 import { Send, Loader2, MessageSquare, Pencil, Trash2, X, Check } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { useToast } from '../context/ToastContext';
-import { useConfirm } from '../context/ConfirmDialogContext';
+import { useConfirm } from '../context/useConfirm';
 import { errorHandler } from '../lib/errorHandler';
 import { UserAvatar } from '../components/ui/UserAvatar';
 

@@ -7,6 +7,17 @@ export interface VersionHistoryItem {
 export function getVersionHistory(language: string): VersionHistoryItem[] {
     return language === 'hr' ? [
         {
+            version: '2.15.0',
+            date: '2026-02-08',
+            changes: [
+                'Ispravljene sve ESLint greške i upozorenja u kritičnim stranicama i komponentama',
+                'Refaktoriran ConfirmDialog kontekst: izdvojen store i useConfirm hook radi Fast Refresh kompatibilnosti',
+                'Stabiliziran produkcijski PWA build (Workbox service worker više ne ruši build)',
+                'Ispravljen type-only import za RecentItem u CommandPalette',
+                'Usklađene React hook dependencije i uklonjeni neiskorišteni importi/varijable',
+            ]
+        },
+        {
             version: '2.14.0',
             date: '2026-02-05',
             changes: [
@@ -345,6 +356,17 @@ export function getVersionHistory(language: string): VersionHistoryItem[] {
         },
     ] : [
         // English version
+        {
+            version: '2.15.0',
+            date: '2026-02-08',
+            changes: [
+                'Fixed all ESLint errors and warnings across critical pages and components',
+                'Refactored ConfirmDialog context: extracted store and useConfirm hook for Fast Refresh compatibility',
+                'Stabilized production PWA build (Workbox service worker no longer crashes the build)',
+                'Fixed type-only import for RecentItem in CommandPalette',
+                'Aligned React hook dependencies and removed unused imports/variables',
+            ]
+        },
         {
             version: '2.14.0',
             date: '2026-02-05',

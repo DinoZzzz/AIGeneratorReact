@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useState } from 'react';
 
 import { useParams, useNavigate } from 'react-router-dom';
@@ -58,8 +57,7 @@ export const HistoryDetails = () => {
                     }
                 }
             } catch (error) {
-                const appError = errorHandler.handle(error, 'HistoryDetails');
-                showError(errorHandler.getUserMessage(appError));
+                handleError(error, 'HistoryDetails');
                 navigate('/history');
             } finally {
                 setLoading(false);
@@ -67,7 +65,7 @@ export const HistoryDetails = () => {
 
         };
         loadData();
-    }, [id, navigate]);
+    }, [handleError, id, navigate]);
 
     const handleDownloadReport = async (formId: string) => {
         if (!exportData) return;

@@ -209,7 +209,7 @@ export const WaterMethodForm = () => {
         } finally {
             setLoading(false);
         }
-    }, [t]);
+    }, [showError]);
 
     // Load previous report for copying data
     const loadPreviousReport = useCallback(async () => {

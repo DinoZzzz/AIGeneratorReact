@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useLanguage } from '../../context/LanguageContext';
 import { useToast } from '../../context/ToastContext';
-import { useConfirm } from '../../context/ConfirmDialogContext';
+import { useConfirm } from '../../context/useConfirm';
 import {
     getActiveTemplate,
     validateTemplate,

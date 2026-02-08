@@ -5,7 +5,7 @@ import { examinerService } from '../services/examinerService';
 import type { ReportExport, Profile } from '../types';
 import { Loader2, Search, Trash2, ExternalLink, ChevronLeft, ChevronRight, User, Calendar, FileText, Users } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
-import { useConfirm } from '../context/ConfirmDialogContext';
+import { useConfirm } from '../context/useConfirm';
 import { useHandleError } from '../hooks/useHandleError';
 import { errorHandler } from '../lib/errorHandler';
 

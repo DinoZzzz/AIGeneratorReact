@@ -12,7 +12,7 @@ import { useReports, useDeleteReport } from '../hooks/useReports';
 import { TableSkeleton } from '../components/skeletons';
 import { errorHandler } from '../lib/errorHandler';
 import { useToast } from '../context/ToastContext';
-import { useConfirm } from '../context/ConfirmDialogContext';
+import { useConfirm } from '../context/useConfirm';
 import { useLanguage } from '../context/LanguageContext';
 
 // Dynamic import for Word export to reduce initial bundle size
@@ -57,7 +57,7 @@ export const Reports = () => {
             const appError = errorHandler.handle(err, 'ReportDelete');
             showError(errorHandler.getUserMessage(appError));
         }
-    }, [t, deleteMutation, success, showError]);
+    }, [confirm, t, deleteMutation, success, showError]);
 
     const toggleSelection = useCallback((id: string) => {
         setSelectedReports(prev => {
@@ -120,7 +120,7 @@ export const Reports = () => {
             const appError = errorHandler.handle(err, 'ReportBulkDelete');
             showError(errorHandler.getUserMessage(appError));
         }
-    }, [selectedReports, t, deleteMutation, success, showError]);
+    }, [confirm, selectedReports, t, deleteMutation, success, showError]);
 
     if (loading) {
         return (

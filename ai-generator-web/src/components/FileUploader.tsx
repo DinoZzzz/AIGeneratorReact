@@ -3,7 +3,7 @@ import { Upload, X, Image as ImageIcon, FileText } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import type { ReportFile } from '../types';
 import { useToast } from '../context/ToastContext';
-import { useConfirm } from '../context/ConfirmDialogContext';
+import { useConfirm } from '../context/useConfirm';
 import { useLanguage } from '../context/LanguageContext';
 import { errorHandler } from '../lib/errorHandler';
 

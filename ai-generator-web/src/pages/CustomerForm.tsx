@@ -30,13 +30,7 @@ export const CustomerForm = () => {
     const { isOnline } = useOffline();
     const { error: showError } = useToast();
 
-    useEffect(() => {
-        if (id && id !== 'new') {
-            loadCustomer(id);
-        }
-    }, [id]);
-
-    const loadCustomer = async (customerId: string) => {
+    const loadCustomer = useCallback(async (customerId: string) => {
         setLoading(true);
         try {
             const data = await customerService.getById(customerId);
@@ -47,7 +41,13 @@ export const CustomerForm = () => {
         } finally {
             setLoading(false);
         }
-    };
+    }, [showError]);
+
+    useEffect(() => {
+        if (id && id !== 'new') {
+            loadCustomer(id);
+        }
+    }, [id, loadCustomer]);
 
     // Debounced uniqueness check for name field
     const validateNameUniqueness = useCallback(async (name: string) => {

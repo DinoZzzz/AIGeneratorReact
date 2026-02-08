@@ -6,7 +6,7 @@ import { useCustomers, useDeleteCustomer } from '../hooks/useCustomers';
 import { TableSkeleton } from '../components/skeletons';
 import { errorHandler } from '../lib/errorHandler';
 import { useToast } from '../context/ToastContext';
-import { useConfirm } from '../context/ConfirmDialogContext';
+import { useConfirm } from '../context/useConfirm';
 import { formatDate } from '../utils/dateFormatter';
 
 
@@ -94,7 +94,7 @@ export const Customers = () => {
                 showError(errorHandler.getUserMessage(appError));
             }
         }
-    }, [t, deleteMutation, success, showError]);
+    }, [confirm, t, deleteMutation, success, showError]);
 
     const handleSort = useCallback((field: SortField) => {
         if (sortBy === field) {

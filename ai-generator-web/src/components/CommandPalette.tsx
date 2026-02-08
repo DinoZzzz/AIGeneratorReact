@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { Search, Users, Building2, FileText, X, ArrowRight, Clock } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useDebounce } from '../hooks/useDebounce';
-import { useRecentlyViewed, RecentItem } from '../hooks/useRecentlyViewed';
+import { useRecentlyViewed } from '../hooks/useRecentlyViewed';
+import type { RecentItem } from '../hooks/useRecentlyViewed';
 import { useLanguage } from '../context/LanguageContext';
 import { cn } from '../lib/utils';
 

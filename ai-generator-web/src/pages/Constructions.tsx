@@ -10,7 +10,7 @@ import { useAuth } from '../context/AuthContext';
 import { useRecentlyViewed } from '../hooks/useRecentlyViewed';
 import { ConfirmDialog } from '../components/ui/ConfirmDialog';
 import { formatDate } from '../utils/dateFormatter';
-import { useConfirm } from '../context/ConfirmDialogContext';
+import { useConfirm } from '../context/useConfirm';
 import { useHandleError } from '../hooks/useHandleError';
 
 type FilterType = 'all' | 'active' | 'archived';
