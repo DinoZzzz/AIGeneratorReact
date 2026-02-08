@@ -8,7 +8,7 @@ import { useAuth } from '../../context/AuthContext';
 import { examinerService } from '../../services/examinerService';
 import { customerService } from '../../services/customerService';
 import { constructionService } from '../../services/constructionService';
-import type { Appointment, Profile, Customer, Construction } from '../../types';
+import type { Appointment, AppointmentPayload, Profile, Customer, Construction } from '../../types';
 import { Loader2, Plus, Trash2 } from 'lucide-react';
 import { ConfirmDialog } from '../ui/ConfirmDialog';
 
@@ -17,7 +17,7 @@ interface AppointmentDialogProps {
     onOpenChange: (open: boolean) => void;
     appointment: Partial<Appointment> | null;
     selectedSlot?: { start: Date; end: Date } | null;
-    onSave: (appointment: Partial<Appointment>) => Promise<void>;
+    onSave: (appointment: AppointmentPayload) => Promise<void>;
     onDelete?: (id: string) => Promise<void>;
 }
 

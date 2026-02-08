@@ -11,7 +11,7 @@ import { useAuth } from '../context/AuthContext';
 import { appointmentService } from '../services/appointmentService';
 import { AppointmentDialog } from '../components/calendar/AppointmentDialog';
 import { CalendarSkeleton } from '../components/skeletons/CalendarSkeleton';
-import type { Appointment } from '../types';
+import type { Appointment, AppointmentPayload } from '../types';
 import { Loader2, Plus } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 
@@ -136,13 +136,11 @@ export const Calendar = () => {
         setDialogOpen(true);
     };
 
-    const handleSave = async (appointment: Partial<Appointment>) => {
+    const handleSave = async (appointment: AppointmentPayload) => {
         try {
             if (appointment.id) {
-                // @ts-expect-error - appointmentService handles assignee_ids
                 await appointmentService.update(appointment.id, appointment);
             } else {
-                // @ts-expect-error - appointmentService handles assignee_ids
                 await appointmentService.create(appointment);
             }
             await loadAppointments();

@@ -7,6 +7,25 @@ export interface VersionHistoryItem {
 export function getVersionHistory(language: string): VersionHistoryItem[] {
     return language === 'hr' ? [
         {
+            version: '2.11.0',
+            date: '2026-02-05',
+            changes: [
+                'Poboljšana pristupačnost dijaloga: Escape tipka, zaključavanje fokusa, aria atributi',
+                'Ispravljeni TypeScript tipovi za kalendarske termine (uklonjeni @ts-expect-error)',
+                'Lazy-loading Word export biblioteka — smanjeno inicijalno učitavanje',
+            ]
+        },
+        {
+            version: '2.10.0',
+            date: '2026-02-05',
+            changes: [
+                'Konsolidirana detekcija mrežnih grešaka u errorHandler.ts',
+                'Zamijenjene hardkodirane boje s theme tokenima u 13 datoteka',
+                'Dodano useMemo/useCallback u useReportsFiltering za bolje performanse',
+                'API cache s React Query za certifikatore (30 min) i dashboard statistiku (5 min)',
+            ]
+        },
+        {
             version: '2.9.0',
             date: '2026-02-05',
             changes: [
@@ -291,6 +310,25 @@ export function getVersionHistory(language: string): VersionHistoryItem[] {
         },
     ] : [
         // English version
+        {
+            version: '2.11.0',
+            date: '2026-02-05',
+            changes: [
+                'Improved dialog accessibility: Escape key, focus trap, aria attributes',
+                'Fixed TypeScript types for calendar appointments (removed @ts-expect-error)',
+                'Lazy-loaded Word export libraries — reduced initial bundle size',
+            ]
+        },
+        {
+            version: '2.10.0',
+            date: '2026-02-05',
+            changes: [
+                'Consolidated network error detection into errorHandler.ts',
+                'Replaced hardcoded colors with theme tokens across 13 files',
+                'Added useMemo/useCallback to useReportsFiltering for better performance',
+                'API caching with React Query for certifiers (30 min) and dashboard stats (5 min)',
+            ]
+        },
         {
             version: '2.9.0',
             date: '2026-02-05',

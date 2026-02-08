@@ -204,6 +204,9 @@ export interface Appointment {
     construction?: Construction;
 }
 
+/** Payload type for creating/updating appointments via the service. */
+export type AppointmentPayload = Partial<Appointment> & { assignee_ids?: string[] };
+
 export interface TemplateInfo {
     name: string;
     path: string;

@@ -1,4 +1,5 @@
 import * as React from "react";
+import { useEffect, useRef, useCallback } from "react";
 import { cn } from "../../lib/utils";
 import { X } from "lucide-react";
 
@@ -9,19 +10,74 @@ interface DialogProps {
 }
 
 export const Dialog = ({ open, onOpenChange, children }: DialogProps) => {
+    const overlayRef = useRef<HTMLDivElement>(null);
+    const previousFocusRef = useRef<HTMLElement | null>(null);
+
+    useEffect(() => {
+        if (open) {
+            previousFocusRef.current = document.activeElement as HTMLElement;
+
+            const handleKeyDown = (e: KeyboardEvent) => {
+                if (e.key === 'Escape') {
+                    onOpenChange(false);
+                }
+
+                // Focus trap
+                if (e.key === 'Tab' && overlayRef.current) {
+                    const focusable = overlayRef.current.querySelectorAll<HTMLElement>(
+                        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+                    );
+                    if (focusable.length === 0) return;
+
+                    const first = focusable[0];
+                    const last = focusable[focusable.length - 1];
+
+                    if (e.shiftKey && document.activeElement === first) {
+                        e.preventDefault();
+                        last.focus();
+                    } else if (!e.shiftKey && document.activeElement === last) {
+                        e.preventDefault();
+                        first.focus();
+                    }
+                }
+            };
+
+            document.addEventListener('keydown', handleKeyDown);
+            return () => document.removeEventListener('keydown', handleKeyDown);
+        } else if (previousFocusRef.current) {
+            previousFocusRef.current.focus();
+            previousFocusRef.current = null;
+        }
+    }, [open, onOpenChange]);
+
     if (!open) return null;
 
     return (
-        <div className="fixed inset-0 z-50 bg-black/50 flex items-end sm:items-center justify-center sm:p-4">
-            <div className="absolute inset-0" onClick={() => onOpenChange(false)} />
+        <div ref={overlayRef} className="fixed inset-0 z-50 bg-black/50 flex items-end sm:items-center justify-center sm:p-4">
+            <div className="absolute inset-0" onClick={() => onOpenChange(false)} aria-hidden="true" />
             {children}
         </div>
     );
 };
 
 export const DialogContent = ({ className, children, ...props }: React.HTMLAttributes<HTMLDivElement>) => {
+    const contentRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        // Auto-focus first focusable element inside dialog
+        if (contentRef.current) {
+            const focusable = contentRef.current.querySelector<HTMLElement>(
+                'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+            );
+            focusable?.focus();
+        }
+    }, []);
+
     return (
         <div
+            ref={contentRef}
+            role="dialog"
+            aria-modal="true"
             className={cn(
                 "relative z-50 grid w-full max-w-lg gap-4 border bg-background p-6 shadow-lg duration-200 sm:rounded-lg h-full sm:h-auto overflow-y-auto rounded-t-xl sm:rounded-t-lg animate-scale-in",
                 className

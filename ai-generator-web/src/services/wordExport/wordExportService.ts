@@ -1,7 +1,3 @@
-import PizZip from 'pizzip';
-import Docxtemplater from 'docxtemplater';
-import { saveAs } from 'file-saver';
-import ImageModule from 'docxtemplater-image-module-free';
 import type { ReportForm } from '../../types';
 import type { ExportMetaData } from '../../components/ExportDialog';
 import type { DocxTemplaterError, ReportFormWithJoins } from './types';
@@ -22,6 +18,14 @@ export const generateWordDocument = async (
     return traceAsync('generateWordDocument', 'export.word', async () => {
         try {
             if (reports.length === 0) throw new Error("No reports selected");
+
+            // Lazy-load heavy document libraries (only needed at export time)
+            const [{ default: PizZip }, { default: Docxtemplater }, { saveAs }, { default: ImageModule }] = await Promise.all([
+                import('pizzip'),
+                import('docxtemplater'),
+                import('file-saver'),
+                import('docxtemplater-image-module-free'),
+            ]);
 
             // 1. Load the template from Supabase Storage
             const templateContent = await traceAsync('loadTemplate', 'storage.download', () =>

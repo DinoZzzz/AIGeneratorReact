@@ -1,6 +1,6 @@
 import { supabase } from '../lib/supabase';
 import { captureError } from '../lib/sentry';
-import type { Appointment } from '../types';
+import type { Appointment, AppointmentPayload } from '../types';
 import { AppError } from '../lib/errorHandler';
 
 interface ExaminerProfile {
@@ -55,7 +55,7 @@ export const appointmentService = {
         return eventsWithAssignees as Appointment[];
     },
 
-    async create(appointment: Partial<Appointment> & { assignee_ids?: string[] }) {
+    async create(appointment: AppointmentPayload) {
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const { assignee_ids, assignees: _assignees, ...apptData } = appointment;
 
@@ -79,7 +79,7 @@ export const appointmentService = {
         return newAppt as Appointment;
     },
 
-    async update(id: string, appointment: Partial<Appointment> & { assignee_ids?: string[] }) {
+    async update(id: string, appointment: AppointmentPayload) {
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const { assignee_ids, assignees: _assignees, ...apptData } = appointment;
 
