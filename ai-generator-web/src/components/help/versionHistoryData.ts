@@ -7,6 +7,17 @@ export interface VersionHistoryItem {
 export function getVersionHistory(language: string): VersionHistoryItem[] {
     return language === 'hr' ? [
         {
+            version: '2.16.0',
+            date: '2026-02-08',
+            changes: [
+                'Redizajnirana Analitika stranica s novim KPI rasporedom i modernijim vizualnim prikazom',
+                'Dodani novi grafovi: 30-dnevni trend prolaza/pada, raspodjela metoda, raspodjela trajanja i aktivnost po danima',
+                'Proširen useAnalytics hook s naprednim metrikama (weekly momentum, pass/fail rate, prosjek po danu)',
+                'Dodano više novih prijevoda za Analitika sekciju (HR/EN)',
+                'Dodano prazno stanje za analitiku kada nema dostupnih obrazaca',
+            ]
+        },
+        {
             version: '2.15.0',
             date: '2026-02-08',
             changes: [
@@ -356,6 +367,17 @@ export function getVersionHistory(language: string): VersionHistoryItem[] {
         },
     ] : [
         // English version
+        {
+            version: '2.16.0',
+            date: '2026-02-08',
+            changes: [
+                'Redesigned Analytics page with a new KPI layout and improved visual hierarchy',
+                'Added new charts: 30-day pass/fail trend, method mix, duration distribution, and weekday activity',
+                'Extended useAnalytics hook with richer metrics (weekly momentum, pass/fail rates, daily average volume)',
+                'Added multiple new translations for the Analytics section (HR/EN)',
+                'Added an empty-state experience when no reports are available',
+            ]
+        },
         {
             version: '2.15.0',
             date: '2026-02-08',
