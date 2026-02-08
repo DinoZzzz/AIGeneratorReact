@@ -286,21 +286,21 @@ export const Customers = () => {
                                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-3">
                                             <Link
                                                 to={`/customers/${customer.id}/constructions`}
-                                                className="text-muted-foreground hover:text-foreground inline-flex items-center transition-colors"
+                                                className="text-muted-foreground hover:text-foreground inline-flex items-center transition-colors action-link"
                                                 title={t('customers.viewConstructions')}
                                             >
                                                 <Building2 className="h-4 w-4" />
                                             </Link>
                                             <Link
                                                 to={`/customers/${customer.id}`}
-                                                className="text-primary hover:text-primary/80 inline-flex items-center transition-colors"
+                                                className="text-primary hover:text-primary/80 inline-flex items-center transition-colors action-link"
                                                 title={t('customers.edit')}
                                             >
                                                 <Pencil className="h-4 w-4" />
                                             </Link>
                                             <button
                                                 onClick={() => handleDelete(customer.id)}
-                                                className="text-destructive hover:text-destructive/80 inline-flex items-center transition-colors"
+                                                className="text-destructive hover:text-destructive/80 inline-flex items-center transition-colors action-link"
                                                 title={t('customers.actions')}
                                             >
                                                 <Trash2 className="h-4 w-4" />

@@ -31,7 +31,7 @@ export const Reports = () => {
     const [isExporting, setIsExporting] = useState(false);
 
     // React Query hooks
-    const { data: reports = [], isLoading: loading, error } = useReports();
+    const { data: reports = [], isLoading: loading, isFetching, error } = useReports();
     const deleteMutation = useDeleteReport();
 
     // Handle query errors
@@ -256,7 +256,7 @@ export const Reports = () => {
                 {/* Desktop Table View */}
                 <div className="hidden md:block">
                     <table className="w-full divide-y divide-border table-fixed">
-                        <thead className="bg-muted/50">
+                        <thead className="bg-muted/50 sticky top-0 z-10">
                             <tr>
                                 <th scope="col" className="w-10 px-3 py-3 text-left">
                                     <input
@@ -264,6 +264,7 @@ export const Reports = () => {
                                         className="rounded border-gray-300"
                                         checked={reports.length > 0 && selectedReports.size === reports.length}
                                         onChange={toggleAll}
+                                        aria-label="Select all reports"
                                     />
                                 </th>
                                 <th scope="col" className="w-24 px-3 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
@@ -283,7 +284,7 @@ export const Reports = () => {
                                 </th>
                             </tr>
                         </thead>
-                        <tbody className="bg-card divide-y divide-border">
+                        <tbody className={cn("bg-card divide-y divide-border transition-opacity duration-200", isFetching && !loading && "opacity-50")}>
                             {reports.length === 0 ? (
                                 <tr>
                                     <td colSpan={6} className="px-3 py-12 text-center text-muted-foreground">
@@ -303,6 +304,7 @@ export const Reports = () => {
                                                 className="rounded border-gray-300"
                                                 checked={selectedReports.has(report.id)}
                                                 onChange={() => toggleSelection(report.id)}
+                                                aria-label={`Select report ${report.construction?.name || ''} - ${new Date(report.examination_date).toLocaleDateString()}`}
                                             />
                                         </td>
                                         <td className="px-3 py-4 text-sm text-foreground">
@@ -310,12 +312,12 @@ export const Reports = () => {
                                         </td>
                                         <td className="px-3 py-4 text-sm text-muted-foreground">
                                             <div className="flex flex-col min-w-0">
-                                                <span className="font-medium text-foreground truncate">{report.construction?.name || '-'}</span>
-                                                <span className="text-xs truncate">{report.construction?.work_order}</span>
+                                                <span className="font-medium text-foreground truncate" title={report.construction?.name || '-'}>{report.construction?.name || '-'}</span>
+                                                <span className="text-xs truncate" title={report.construction?.work_order}>{report.construction?.work_order}</span>
                                             </div>
                                         </td>
                                         <td className="px-3 py-4 text-sm text-muted-foreground">
-                                            <span className="block truncate">{report.type_id === 1 ? t('reports.water') : t('reports.air')} - {report.draft?.name}</span>
+                                            <span className="block truncate" title={`${report.type_id === 1 ? 'Water' : 'Air'} - ${report.draft?.name || ''}`}>{report.type_id === 1 ? t('reports.water') : t('reports.air')} - {report.draft?.name}</span>
                                         </td>
                                         <td className="px-3 py-4">
                                             <span className={cn(
@@ -329,7 +331,7 @@ export const Reports = () => {
                                         </td>
                                         <td className="px-3 py-4 text-right text-sm font-medium">
                                             <div className="flex justify-end space-x-1">
-                                                <Button variant="ghost" size="icon" asChild>
+                                                <Button variant="ghost" size="icon" asChild className="action-link">
                                                     <Link to={`/reports/${report.id}`}>
                                                         <Edit className="h-4 w-4 text-primary" />
                                                     </Link>
@@ -338,7 +340,7 @@ export const Reports = () => {
                                                     variant="ghost"
                                                     size="icon"
                                                     onClick={() => handleDelete(report.id)}
-                                                    className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                                                    className="text-destructive hover:text-destructive hover:bg-destructive/10 action-link"
                                                 >
                                                     <Trash2 className="h-4 w-4" />
                                                 </Button>

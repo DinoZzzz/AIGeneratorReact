@@ -7,6 +7,19 @@ export interface VersionHistoryItem {
 export function getVersionHistory(language: string): VersionHistoryItem[] {
     return language === 'hr' ? [
         {
+            version: '2.13.0',
+            date: '2026-02-05',
+            changes: [
+                'Ljepljivi zaglavlja tablica — zaglavlja ostaju vidljiva pri skrolanju',
+                'Skraćeni dugački tekstovi u stupcima s tooltip prikazom punog teksta',
+                'Fade-in animacija za overlay dijaloga',
+                'Tranzicija prozirnosti tablice tijekom pozadinskog osvježavanja podataka',
+                'Aria-label na svim checkboxovima za bolju pristupačnost',
+                'Oznaka aria-disabled na arhiviranim građevinama',
+                'Focus-visible prstenovi na akcijskim gumbima i linkovima u tablicama',
+            ]
+        },
+        {
             version: '2.12.0',
             date: '2026-02-05',
             changes: [
@@ -321,6 +334,19 @@ export function getVersionHistory(language: string): VersionHistoryItem[] {
         },
     ] : [
         // English version
+        {
+            version: '2.13.0',
+            date: '2026-02-05',
+            changes: [
+                'Sticky table headers — headers stay visible when scrolling',
+                'Truncated long text in table columns with full-text tooltip on hover',
+                'Fade-in animation for dialog overlays',
+                'Table opacity transition during background data refetch',
+                'Aria-labels on all report checkboxes for better accessibility',
+                'aria-disabled attribute on archived construction links',
+                'Focus-visible rings on table action buttons and links',
+            ]
+        },
         {
             version: '2.12.0',
             date: '2026-02-05',

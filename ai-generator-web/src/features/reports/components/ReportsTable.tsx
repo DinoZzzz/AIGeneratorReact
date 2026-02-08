@@ -230,7 +230,7 @@ export const ReportsTable = ({
             <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
                 <div className="hidden md:block overflow-x-auto">
                     <table className="min-w-full divide-y divide-border">
-                        <thead className="bg-muted/50">
+                        <thead className="bg-muted/50 sticky top-0 z-10">
                             <tr>
                                 <th className="w-10 px-6 py-3">
                                     <input
@@ -238,6 +238,7 @@ export const ReportsTable = ({
                                         className="rounded border-input text-primary focus:ring-ring"
                                         checked={allNonSectionsSelected}
                                         onChange={handleSelectAll}
+                                        aria-label={`Select all ${title} reports`}
                                     />
                                 </th>
                                 <th className="w-10 px-6 py-3"></th>
@@ -297,6 +298,7 @@ export const ReportsTable = ({
                                                             className="rounded border-input text-primary focus:ring-ring"
                                                             checked={report.id ? selectedIds.has(report.id) : false}
                                                             onChange={() => report.id && onToggleSelect(report.id)}
+                                                            aria-label={`Select report ${report.draft?.name || ''} - ${new Date(report.examination_date).toLocaleDateString()}`}
                                                         />
                                                     </td>
                                                     <td className="px-6 py-4 whitespace-nowrap text-muted-foreground cursor-grab active:cursor-grabbing" {...attributes} {...listeners}>
@@ -324,28 +326,28 @@ export const ReportsTable = ({
                                                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-3">
                                                         <button
                                                             onClick={() => onExportPDF(report)}
-                                                            className="text-muted-foreground hover:text-foreground inline-flex items-center"
+                                                            className="text-muted-foreground hover:text-foreground inline-flex items-center action-link"
                                                             title={t('reports.exportPdf')}
                                                         >
                                                             <FileDown className="h-4 w-4" />
                                                         </button>
                                                         <Link
                                                             to={getReportEditPath(report)}
-                                                            className="text-primary hover:text-primary/80 inline-flex items-center"
+                                                            className="text-primary hover:text-primary/80 inline-flex items-center action-link"
                                                             title={t('reports.edit')}
                                                         >
                                                             <Pencil className="h-4 w-4" />
                                                         </Link>
                                                         <button
                                                             onClick={() => onDuplicate(report)}
-                                                            className="text-muted-foreground hover:text-foreground inline-flex items-center"
+                                                            className="text-muted-foreground hover:text-foreground inline-flex items-center action-link"
                                                             title={t('reports.duplicate') || 'Duplicate'}
                                                         >
                                                             <Copy className="h-4 w-4" />
                                                         </button>
                                                         <button
                                                             onClick={() => report.id && onDelete(report.id)}
-                                                            className="text-destructive hover:text-destructive/80 inline-flex items-center"
+                                                            className="text-destructive hover:text-destructive/80 inline-flex items-center action-link"
                                                             title={t('reports.delete')}
                                                         >
                                                             <Trash2 className="h-4 w-4" />

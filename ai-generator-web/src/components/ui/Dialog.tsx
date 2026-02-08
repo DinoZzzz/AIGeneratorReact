@@ -53,7 +53,7 @@ export const Dialog = ({ open, onOpenChange, children }: DialogProps) => {
     if (!open) return null;
 
     return (
-        <div ref={overlayRef} className="fixed inset-0 z-50 bg-black/50 flex items-end sm:items-center justify-center sm:p-4">
+        <div ref={overlayRef} className="fixed inset-0 z-50 bg-black/50 animate-overlay-in flex items-end sm:items-center justify-center sm:p-4">
             <div className="absolute inset-0" onClick={() => onOpenChange(false)} aria-hidden="true" />
             {children}
         </div>

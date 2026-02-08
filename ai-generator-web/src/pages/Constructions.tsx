@@ -329,7 +329,7 @@ export const Constructions = () => {
                 {/* Desktop Table View */}
                 <div className="hidden md:block overflow-x-auto">
                     <table className="min-w-full divide-y divide-border">
-                        <thead className="bg-muted/50">
+                        <thead className="bg-muted/50 sticky top-0 z-10">
                             <tr>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">{t('constructions.workOrder')}</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">{t('constructions.name')}</th>
@@ -365,20 +365,20 @@ export const Constructions = () => {
                                         {!construction.is_archived ? (
                                             <Link
                                                 to={`/customers/${customerId}/constructions/${construction.id}/reports`}
-                                                className="text-green-600 hover:text-green-700 inline-flex items-center"
+                                                className="text-green-600 hover:text-green-700 inline-flex items-center action-link"
                                                 title={t('constructions.viewReports')}
                                             >
                                                 <FileText className="h-4 w-4" />
                                             </Link>
                                         ) : (
-                                            <span className="text-muted-foreground/50 inline-flex items-center cursor-not-allowed" title={t('constructions.archived')}>
+                                            <span className="text-muted-foreground/50 inline-flex items-center cursor-not-allowed" aria-disabled="true" title={t('constructions.archived')}>
                                                 <FileText className="h-4 w-4" />
                                             </span>
                                         )}
                                         {isAdmin && (
                                             <button
                                                 onClick={() => handleArchiveClick(construction)}
-                                                className={`inline-flex items-center ${construction.is_archived ? 'text-green-600 hover:text-green-700' : 'text-amber-600 hover:text-amber-700'}`}
+                                                className={`inline-flex items-center action-link ${construction.is_archived ? 'text-green-600 hover:text-green-700' : 'text-amber-600 hover:text-amber-700'}`}
                                                 title={construction.is_archived ? t('constructions.unarchive') : t('constructions.archive')}
                                             >
                                                 {construction.is_archived ? <ArchiveRestore className="h-4 w-4" /> : <Archive className="h-4 w-4" />}
@@ -386,14 +386,14 @@ export const Constructions = () => {
                                         )}
                                         <Link
                                             to={`/customers/${customerId}/constructions/${construction.id}`}
-                                            className="text-primary hover:text-primary/80 inline-flex items-center"
+                                            className="text-primary hover:text-primary/80 inline-flex items-center action-link"
                                             title={t('constructions.edit')}
                                         >
                                             <Pencil className="h-4 w-4" />
                                         </Link>
                                         <button
                                             onClick={() => handleDelete(construction.id)}
-                                            className="text-destructive hover:text-destructive/80 inline-flex items-center"
+                                            className="text-destructive hover:text-destructive/80 inline-flex items-center action-link"
                                             title={t('constructions.delete')}
                                         >
                                             <Trash2 className="h-4 w-4" />
