@@ -7,6 +7,17 @@ export interface VersionHistoryItem {
 export function getVersionHistory(language: string): VersionHistoryItem[] {
     return language === 'hr' ? [
         {
+            version: '2.12.0',
+            date: '2026-02-05',
+            changes: [
+                'Generički useOnlineQuery hook — eliminiran duplicirani online/offline kod u 3 hooka',
+                'Novi useDebouncedCallback hook za validaciju formi (CustomerForm, ConstructionForm)',
+                'Dodana zaštita od zastarjelih ažuriranja stanja u AppointmentDialog (cancelled flag)',
+                'Uklonjeni console.log iz produkcijskog koda',
+                'Ekstrahirani magični brojevi u imenovane konstante (debounce, sync timeout)',
+            ]
+        },
+        {
             version: '2.11.0',
             date: '2026-02-05',
             changes: [
@@ -310,6 +321,17 @@ export function getVersionHistory(language: string): VersionHistoryItem[] {
         },
     ] : [
         // English version
+        {
+            version: '2.12.0',
+            date: '2026-02-05',
+            changes: [
+                'Generic useOnlineQuery hook — eliminated duplicate online/offline code across 3 hooks',
+                'New useDebouncedCallback hook for form validation (CustomerForm, ConstructionForm)',
+                'Added stale state update protection in AppointmentDialog (cancelled flag)',
+                'Removed console.log from production code',
+                'Extracted magic numbers into named constants (debounce, sync timeout)',
+            ]
+        },
         {
             version: '2.11.0',
             date: '2026-02-05',

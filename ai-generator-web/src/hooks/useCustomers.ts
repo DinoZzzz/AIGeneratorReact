@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { customerService } from '../services/customerService';
 import type { Customer } from '../types';
 import { useOffline } from '../context/OfflineContext';
@@ -12,6 +12,7 @@ import {
   addToSyncQueue,
   STORES,
 } from '../lib/offlineDb';
+import { useOnlineQuery } from '../lib/offlineQueryFn';
 
 // Query keys
 export const customerKeys = {
@@ -21,41 +22,6 @@ export const customerKeys = {
     [...customerKeys.lists(), { page, pageSize, sortBy, sortOrder, search, year }] as const,
   details: () => [...customerKeys.all, 'detail'] as const,
   detail: (id: string) => [...customerKeys.details(), id] as const,
-};
-
-// Query hooks with offline support
-export const useCustomers = (
-  page: number = 1,
-  pageSize: number = 10,
-  sortBy: string = 'name',
-  sortOrder: 'asc' | 'desc' = 'asc',
-  search: string = '',
-  year?: string | null
-) => {
-  const { isOnline } = useOffline();
-
-  return useQuery({
-    queryKey: customerKeys.list(page, pageSize, sortBy, sortOrder, search, year),
-    queryFn: async () => {
-      if (isOnline) {
-        try {
-          const result = await customerService.getCustomers(page, pageSize, sortBy, sortOrder, search, year);
-          // Cache customers locally for offline use
-          if (result.data) {
-            await saveManyToStore(STORES.CUSTOMERS, result.data);
-          }
-          return result;
-        } catch (error) {
-          // Fall back to offline data on network error
-          console.warn('Online query failed, using offline data:', error);
-          return getOfflineCustomers(page, pageSize, sortBy, sortOrder, search, year);
-        }
-      } else {
-        return getOfflineCustomers(page, pageSize, sortBy, sortOrder, search, year);
-      }
-    },
-    staleTime: isOnline ? 5 * 60 * 1000 : Infinity,
-  });
 };
 
 // Helper function to get customers from offline storage with filtering/sorting
@@ -69,7 +35,6 @@ async function getOfflineCustomers(
 ): Promise<{ data: Customer[]; count: number }> {
   let customers = await getAllFromStore<Customer>(STORES.CUSTOMERS);
 
-  // Apply search filter
   if (search) {
     const searchLower = search.toLowerCase();
     customers = customers.filter(
@@ -81,16 +46,11 @@ async function getOfflineCustomers(
     );
   }
 
-  // Apply year filter
   if (year) {
     const yearNum = parseInt(year, 10);
-    customers = customers.filter((c) => {
-      const createdYear = new Date(c.created_at).getFullYear();
-      return createdYear === yearNum;
-    });
+    customers = customers.filter((c) => new Date(c.created_at).getFullYear() === yearNum);
   }
 
-  // Apply sorting
   customers.sort((a, b) => {
     const aVal = (a[sortBy as keyof Customer] as string) || '';
     const bVal = (b[sortBy as keyof Customer] as string) || '';
@@ -100,66 +60,53 @@ async function getOfflineCustomers(
 
   const total = customers.length;
   const start = (page - 1) * pageSize;
-  const paginatedData = customers.slice(start, start + pageSize);
-
-  return { data: paginatedData, count: total };
+  return { data: customers.slice(start, start + pageSize), count: total };
 }
 
-export const useAllCustomers = () => {
-  const { isOnline } = useOffline();
-
-  return useQuery({
-    queryKey: customerKeys.all,
-    queryFn: async () => {
-      if (isOnline) {
-        try {
-          const data = await customerService.getAll();
-          // Cache for offline use
-          if (data) {
-            await saveManyToStore(STORES.CUSTOMERS, data);
-          }
-          return data;
-        } catch (error) {
-          console.warn('Online query failed, using offline data:', error);
-          return getAllFromStore<Customer>(STORES.CUSTOMERS);
-        }
-      } else {
-        return getAllFromStore<Customer>(STORES.CUSTOMERS);
-      }
+// Query hooks with offline support
+export const useCustomers = (
+  page: number = 1,
+  pageSize: number = 10,
+  sortBy: string = 'name',
+  sortOrder: 'asc' | 'desc' = 'asc',
+  search: string = '',
+  year?: string | null
+) =>
+  useOnlineQuery<{ data: Customer[]; count: number }>(
+    customerKeys.list(page, pageSize, sortBy, sortOrder, search, year),
+    () => customerService.getCustomers(page, pageSize, sortBy, sortOrder, search, year),
+    () => getOfflineCustomers(page, pageSize, sortBy, sortOrder, search, year),
+    {
+      cacheFn: (result) => saveManyToStore(STORES.CUSTOMERS, result.data),
+      staleTime: 5 * 60 * 1000,
     },
-    staleTime: isOnline ? 5 * 60 * 1000 : Infinity,
-  });
-};
+  );
 
-export const useCustomer = (id: string) => {
-  const { isOnline } = useOffline();
-
-  return useQuery({
-    queryKey: customerKeys.detail(id),
-    queryFn: async () => {
-      if (isOnline) {
-        try {
-          const data = await customerService.getById(id);
-          // Cache for offline use
-          if (data) {
-            await saveToStore(STORES.CUSTOMERS, data);
-          }
-          return data;
-        } catch (error) {
-          console.warn('Online query failed, using offline data:', error);
-          const offlineData = await getFromStore<Customer>(STORES.CUSTOMERS, id);
-          if (!offlineData) throw new Error('Customer not found offline');
-          return offlineData;
-        }
-      } else {
-        const offlineData = await getFromStore<Customer>(STORES.CUSTOMERS, id);
-        if (!offlineData) throw new Error('Customer not found offline');
-        return offlineData;
-      }
+export const useAllCustomers = () =>
+  useOnlineQuery<Customer[]>(
+    customerKeys.all,
+    () => customerService.getAll(),
+    () => getAllFromStore<Customer>(STORES.CUSTOMERS),
+    {
+      cacheFn: (data) => saveManyToStore(STORES.CUSTOMERS, data),
+      staleTime: 5 * 60 * 1000,
     },
-    enabled: !!id,
-  });
-};
+  );
+
+export const useCustomer = (id: string) =>
+  useOnlineQuery<Customer>(
+    customerKeys.detail(id),
+    () => customerService.getById(id),
+    async () => {
+      const offlineData = await getFromStore<Customer>(STORES.CUSTOMERS, id);
+      if (!offlineData) throw new Error('Customer not found offline');
+      return offlineData;
+    },
+    {
+      cacheFn: (data) => saveToStore(STORES.CUSTOMERS, data),
+      enabled: !!id,
+    },
+  );
 
 // Mutation hooks with offline support
 export const useCreateCustomer = () => {
@@ -171,7 +118,6 @@ export const useCreateCustomer = () => {
       if (isOnline) {
         try {
           const result = await customerService.create(customer);
-          // Cache the new customer
           await saveToStore(STORES.CUSTOMERS, result);
           return result;
         } catch (error) {
@@ -187,7 +133,6 @@ export const useCreateCustomer = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: customerKeys.lists() });
       queryClient.invalidateQueries({ queryKey: customerKeys.all });
-      // Trigger sync when back online
       if (isOnline) {
         triggerSync();
       }
@@ -204,13 +149,8 @@ async function createCustomerOffline(customer: Partial<Customer>): Promise<Custo
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } as any;
 
-  // Mark as offline-created
   (offlineCustomer as Customer & { _is_offline: boolean })._is_offline = true;
-
-  // Save to local store
   await saveToStore(STORES.CUSTOMERS, offlineCustomer);
-
-  // Add to sync queue - include temp ID so sync service knows which record to update
   await addToSyncQueue(STORES.CUSTOMERS, 'create', customer, tempId);
 
   return offlineCustomer;
@@ -225,7 +165,6 @@ export const useUpdateCustomer = () => {
       if (isOnline) {
         try {
           const result = await customerService.update(id, customer);
-          // Update cache
           await saveToStore(STORES.CUSTOMERS, result);
           return result;
         } catch (error) {
@@ -250,7 +189,6 @@ export const useUpdateCustomer = () => {
 };
 
 async function updateCustomerOffline(id: string, customer: Partial<Customer>): Promise<Customer> {
-  // Get existing customer
   const existing = await getFromStore<Customer>(STORES.CUSTOMERS, id);
   const updated: Customer = {
     ...existing,
@@ -259,13 +197,8 @@ async function updateCustomerOffline(id: string, customer: Partial<Customer>): P
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } as any;
 
-  // Mark as having offline changes
   (updated as Customer & { _is_offline: boolean })._is_offline = true;
-
-  // Save to local store
   await saveToStore(STORES.CUSTOMERS, updated);
-
-  // Add to sync queue
   await addToSyncQueue(STORES.CUSTOMERS, 'update', customer, id);
 
   return updated;
@@ -280,7 +213,6 @@ export const useDeleteCustomer = () => {
       if (isOnline) {
         try {
           await customerService.delete(id);
-          // Remove from local cache
           await deleteFromStore(STORES.CUSTOMERS, id);
         } catch (error) {
           if (isNetworkError(error)) {
@@ -303,10 +235,7 @@ export const useDeleteCustomer = () => {
 };
 
 async function deleteCustomerOffline(id: string): Promise<void> {
-  // Remove from local store
   await deleteFromStore(STORES.CUSTOMERS, id);
-
-  // Add to sync queue (only if not a temp/offline-created item)
   if (!id.startsWith('temp_')) {
     await addToSyncQueue(STORES.CUSTOMERS, 'delete', null, id);
   }

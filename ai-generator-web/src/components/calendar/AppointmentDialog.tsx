@@ -54,63 +54,84 @@ export const AppointmentDialog = ({
     const isAdmin = profile?.role === 'admin';
 
     useEffect(() => {
-        if (open) {
-            loadData();
-            if (appointment) {
-                // Existing appointment: Start in view mode
-                setIsEditing(false);
-                setFormData({
-                    ...appointment,
-                    start: appointment.start ? new Date(appointment.start).toISOString().slice(0, 16) : '',
-                    end: appointment.end ? new Date(appointment.end).toISOString().slice(0, 16) : '',
-                    assignee_ids: appointment.examiner_ids || [],
-                    location: appointment.location || '',
-                    reminder_enabled: appointment.reminder_enabled || false,
-                    reminder_times: appointment.reminder_times || []
-                });
-            } else {
-                // New appointment: Start in edit mode
-                setIsEditing(true);
+        if (!open) return;
 
-                // Default new appointment - STRICT 30 minute duration
-                // We ignore selectedSlot.end to enforce the 30min rule requested by user
-                const startTime = selectedSlot ? selectedSlot.start : new Date();
-                const endTime = new Date(startTime.getTime() + 30 * 60 * 1000);
+        let cancelled = false;
 
-                setFormData({
-                    title: '',
-                    description: '',
-                    start: startTime.toISOString().slice(0, 16),
-                    end: endTime.toISOString().slice(0, 16),
-                    assignee_ids: profile ? [profile.id] : [],
-                    location: '',
-                    reminder_enabled: false,
-                    reminder_times: []
-                });
+        const loadData = async () => {
+            try {
+                const [examinersData, customersData] = await Promise.all([
+                    examinerService.getExaminers(),
+                    customerService.getAll()
+                ]);
+                if (!cancelled) {
+                    setExaminers(examinersData);
+                    setCustomers(customersData);
+                }
+            } catch (error) {
+                if (!cancelled) console.error('Failed to load data', error);
             }
-        }
-    }, [open, appointment, selectedSlot, profile]);
+        };
 
-    const loadData = async () => {
-        try {
-            const [examinersData, customersData] = await Promise.all([
-                examinerService.getExaminers(),
-                customerService.getAll()
-            ]);
-            setExaminers(examinersData);
-            setCustomers(customersData);
-        } catch (error) {
-            console.error('Failed to load data', error);
+        loadData();
+
+        if (appointment) {
+            // Existing appointment: Start in view mode
+            setIsEditing(false);
+            setFormData({
+                ...appointment,
+                start: appointment.start ? new Date(appointment.start).toISOString().slice(0, 16) : '',
+                end: appointment.end ? new Date(appointment.end).toISOString().slice(0, 16) : '',
+                assignee_ids: appointment.examiner_ids || [],
+                location: appointment.location || '',
+                reminder_enabled: appointment.reminder_enabled || false,
+                reminder_times: appointment.reminder_times || []
+            });
+        } else {
+            // New appointment: Start in edit mode
+            setIsEditing(true);
+
+            // Default new appointment - STRICT 30 minute duration
+            // We ignore selectedSlot.end to enforce the 30min rule requested by user
+            const startTime = selectedSlot ? selectedSlot.start : new Date();
+            const endTime = new Date(startTime.getTime() + 30 * 60 * 1000);
+
+            setFormData({
+                title: '',
+                description: '',
+                start: startTime.toISOString().slice(0, 16),
+                end: endTime.toISOString().slice(0, 16),
+                assignee_ids: profile ? [profile.id] : [],
+                location: '',
+                reminder_enabled: false,
+                reminder_times: []
+            });
         }
-    };
+
+        return () => { cancelled = true; };
+    }, [open, appointment, selectedSlot, profile]);
 
     // Load constructions when customer changes
     useEffect(() => {
-        if (formData.customer_id) {
-            loadConstructions(formData.customer_id);
-        } else {
+        if (!formData.customer_id) {
             setConstructions([]);
+            return;
         }
+
+        let cancelled = false;
+
+        const loadConstructions = async () => {
+            try {
+                const data = await constructionService.getByCustomerId(formData.customer_id!);
+                if (!cancelled) setConstructions(data);
+            } catch (error) {
+                if (!cancelled) console.error('Failed to load constructions', error);
+            }
+        };
+
+        loadConstructions();
+
+        return () => { cancelled = true; };
     }, [formData.customer_id]);
 
     // Auto-fill location when construction changes
@@ -127,15 +148,6 @@ export const AppointmentDialog = ({
     // formData.location intentionally omitted to prevent infinite loops
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [formData.construction_id, constructions]);
-
-    const loadConstructions = async (customerId: string) => {
-        try {
-            const data = await constructionService.getByCustomerId(customerId);
-            setConstructions(data);
-        } catch (error) {
-            console.error('Failed to load constructions', error);
-        }
-    };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();

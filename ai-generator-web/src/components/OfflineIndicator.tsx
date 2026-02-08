@@ -30,6 +30,8 @@ const translations = {
   },
 };
 
+const COMPLETION_DISPLAY_MS = 3000;
+
 export const OfflineIndicator = () => {
   const { isOnline, pendingChanges, syncStatus, triggerSync, lastSyncTime } = useOffline();
   const { language } = useLanguage();
@@ -43,7 +45,7 @@ export const OfflineIndicator = () => {
     if (syncStatus && !syncStatus.inProgress && syncStatus.completed > 0) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setRecentlyCompleted(true);
-      const timer = setTimeout(() => setRecentlyCompleted(false), 3000);
+      const timer = setTimeout(() => setRecentlyCompleted(false), COMPLETION_DISPLAY_MS);
       return () => clearTimeout(timer);
     }
   }, [syncStatus]);

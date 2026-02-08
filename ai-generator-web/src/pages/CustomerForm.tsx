@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef, useCallback } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { customerService } from '../services/customerService';
 import { useCreateCustomer, useUpdateCustomer } from '../hooks/useCustomers';
@@ -10,6 +10,7 @@ import { useLanguage } from '../context/LanguageContext';
 import { getAllFromStore, STORES } from '../lib/offlineDb';
 import { useToast } from '../context/ToastContext';
 import { errorHandler } from '../lib/errorHandler';
+import { useDebouncedCallback, DEBOUNCE_VALIDATION_MS } from '../hooks/useDebouncedCallback';
 
 const initialState: Partial<Customer> = {
     name: '',
@@ -48,10 +49,6 @@ export const CustomerForm = () => {
         }
     };
 
-    // Debounce refs for uniqueness validation
-    const nameDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-    const workOrderDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
     // Debounced uniqueness check for name field
     const validateNameUniqueness = useCallback(async (name: string) => {
         if (!name?.trim() || !isOnline) return;
@@ -78,6 +75,9 @@ export const CustomerForm = () => {
         }
     }, [id, isOnline, t]);
 
+    const debouncedValidateName = useDebouncedCallback(validateNameUniqueness, DEBOUNCE_VALIDATION_MS);
+    const debouncedValidateWorkOrder = useDebouncedCallback(validateWorkOrderUniqueness, DEBOUNCE_VALIDATION_MS);
+
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
@@ -88,12 +88,10 @@ export const CustomerForm = () => {
 
         // Debounced uniqueness validation for specific fields
         if (name === 'name' && value.trim()) {
-            if (nameDebounceRef.current) clearTimeout(nameDebounceRef.current);
-            nameDebounceRef.current = setTimeout(() => validateNameUniqueness(value), 500);
+            debouncedValidateName(value);
         }
         if (name === 'work_order' && value.trim()) {
-            if (workOrderDebounceRef.current) clearTimeout(workOrderDebounceRef.current);
-            workOrderDebounceRef.current = setTimeout(() => validateWorkOrderUniqueness(value), 500);
+            debouncedValidateWorkOrder(value);
         }
     };
 

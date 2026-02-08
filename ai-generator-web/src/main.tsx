@@ -16,7 +16,7 @@ const updateSW = registerSW({
     updateSW(true)
   },
   onOfflineReady() {
-    console.log('App ready to work offline')
+    // App is ready to work offline
   },
   // Check for updates immediately and periodically
   immediate: true,

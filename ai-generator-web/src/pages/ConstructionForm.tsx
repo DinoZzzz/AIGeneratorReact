@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef, useCallback } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { constructionService } from '../services/constructionService';
 import { customerService } from '../services/customerService';
@@ -11,6 +11,7 @@ import { useLanguage } from '../context/LanguageContext';
 import { getAllFromStore, getFromStore, STORES } from '../lib/offlineDb';
 import { useToast } from '../context/ToastContext';
 import { errorHandler } from '../lib/errorHandler';
+import { useDebouncedCallback, DEBOUNCE_VALIDATION_MS } from '../hooks/useDebouncedCallback';
 
 const initialState: Partial<Construction> = {
     name: '',
@@ -101,9 +102,6 @@ export const ConstructionForm = () => {
         }
     };
 
-    // Debounce ref for work order uniqueness validation
-    const workOrderDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
     // Debounced uniqueness check for work order field
     const validateWorkOrderUniqueness = useCallback(async (workOrder: string) => {
         if (!workOrder?.trim() || !isOnline || !customerId) return;
@@ -121,6 +119,8 @@ export const ConstructionForm = () => {
         }
     }, [customerId, id, isOnline, t]);
 
+    const debouncedValidateWorkOrder = useDebouncedCallback(validateWorkOrderUniqueness, DEBOUNCE_VALIDATION_MS);
+
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
@@ -130,8 +130,7 @@ export const ConstructionForm = () => {
 
         // Debounced uniqueness validation for work_order field
         if (name === 'work_order' && value.trim()) {
-            if (workOrderDebounceRef.current) clearTimeout(workOrderDebounceRef.current);
-            workOrderDebounceRef.current = setTimeout(() => validateWorkOrderUniqueness(value), 500);
+            debouncedValidateWorkOrder(value);
         }
     };
 

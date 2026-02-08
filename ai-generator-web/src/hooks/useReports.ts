@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { reportService } from '../services/reportService';
 import type { ReportForm } from '../types';
 import { useOffline } from '../context/OfflineContext';
@@ -13,6 +13,7 @@ import {
   getByIndex,
   STORES,
 } from '../lib/offlineDb';
+import { useOnlineQuery } from '../lib/offlineQueryFn';
 
 // Query keys
 export const reportKeys = {
@@ -26,143 +27,63 @@ export const reportKeys = {
 };
 
 // Query hooks with offline support
-export const useReports = () => {
-  const { isOnline } = useOffline();
-
-  return useQuery({
-    queryKey: reportKeys.list(),
-    queryFn: async () => {
-      if (isOnline) {
-        try {
-          const data = await reportService.getAll();
-          // Cache for offline use
-          if (data) {
-            await saveManyToStore(STORES.REPORTS, data);
-          }
-          return data;
-        } catch (error) {
-          console.warn('Online query failed, using offline data:', error);
-          return getOfflineReports();
-        }
-      } else {
-        return getOfflineReports();
-      }
+export const useReports = () =>
+  useOnlineQuery<ReportForm[]>(
+    reportKeys.list(),
+    () => reportService.getAll(),
+    async () => {
+      const reports = await getAllFromStore<ReportForm>(STORES.REPORTS);
+      return reports.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
     },
-    staleTime: isOnline ? 3 * 60 * 1000 : Infinity,
-  });
-};
-
-async function getOfflineReports(): Promise<ReportForm[]> {
-  const reports = await getAllFromStore<ReportForm>(STORES.REPORTS);
-  // Sort by created_at descending
-  return reports.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-}
+    { cacheFn: (data) => saveManyToStore(STORES.REPORTS, data) },
+  );
 
 // Paginated reports hook for better performance with large datasets
-export const useReportsPaginated = (page: number = 1, pageSize: number = 15) => {
-  const { isOnline } = useOffline();
-
-  return useQuery({
-    queryKey: reportKeys.paginated(page, pageSize),
-    queryFn: async () => {
-      if (isOnline) {
-        try {
-          const data = await reportService.getPaginated(page, pageSize);
-          // Cache for offline use
-          if (data.data) {
-            await saveManyToStore(STORES.REPORTS, data.data);
-          }
-          return data;
-        } catch (error) {
-          console.warn('Online query failed, using offline data:', error);
-          return getOfflineReportsPaginated(page, pageSize);
-        }
-      } else {
-        return getOfflineReportsPaginated(page, pageSize);
-      }
+export const useReportsPaginated = (page: number = 1, pageSize: number = 15) =>
+  useOnlineQuery<{ data: ReportForm[]; count: number }>(
+    reportKeys.paginated(page, pageSize),
+    () => reportService.getPaginated(page, pageSize),
+    async () => {
+      const allReports = await getAllFromStore<ReportForm>(STORES.REPORTS);
+      const sorted = allReports.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+      const startIndex = (page - 1) * pageSize;
+      return { data: sorted.slice(startIndex, startIndex + pageSize), count: sorted.length };
     },
-    staleTime: isOnline ? 3 * 60 * 1000 : Infinity,
-    placeholderData: (previousData) => previousData, // Keep previous data while fetching
-  });
-};
-
-async function getOfflineReportsPaginated(page: number, pageSize: number): Promise<{ data: ReportForm[]; count: number }> {
-  const allReports = await getAllFromStore<ReportForm>(STORES.REPORTS);
-  // Sort by created_at descending
-  const sorted = allReports.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-
-  const startIndex = (page - 1) * pageSize;
-  const endIndex = startIndex + pageSize;
-
-  return {
-    data: sorted.slice(startIndex, endIndex),
-    count: sorted.length,
-  };
-}
-
-export const useReportsByConstruction = (constructionId: string) => {
-  const { isOnline } = useOffline();
-
-  return useQuery({
-    queryKey: reportKeys.byConstruction(constructionId),
-    queryFn: async () => {
-      if (isOnline) {
-        try {
-          const data = await reportService.getByConstruction(constructionId);
-          // Cache for offline use
-          if (data) {
-            await saveManyToStore(STORES.REPORTS, data);
-          }
-          return data;
-        } catch (error) {
-          console.warn('Online query failed, using offline data:', error);
-          return getOfflineReportsByConstruction(constructionId);
-        }
-      } else {
-        return getOfflineReportsByConstruction(constructionId);
-      }
+    {
+      cacheFn: (data) => saveManyToStore(STORES.REPORTS, data.data),
+      placeholderData: (previousData) => previousData,
     },
-    enabled: !!constructionId,
-    staleTime: isOnline ? 3 * 60 * 1000 : Infinity,
-  });
-};
+  );
 
-async function getOfflineReportsByConstruction(constructionId: string): Promise<ReportForm[]> {
-  const reports = await getByIndex<ReportForm>(STORES.REPORTS, 'construction_id', constructionId);
-  // Sort by ordinal ascending
-  return reports.sort((a, b) => (a.ordinal || 0) - (b.ordinal || 0));
-}
-
-export const useReport = (id: string) => {
-  const { isOnline } = useOffline();
-
-  return useQuery({
-    queryKey: reportKeys.detail(id),
-    queryFn: async () => {
-      if (isOnline) {
-        try {
-          const data = await reportService.getById(id);
-          // Cache for offline use
-          if (data) {
-            await saveToStore(STORES.REPORTS, data);
-          }
-          return data;
-        } catch (error) {
-          console.warn('Online query failed, using offline data:', error);
-          const offlineData = await getFromStore<ReportForm>(STORES.REPORTS, id);
-          if (!offlineData) throw new Error('Report not found offline');
-          return offlineData;
-        }
-      } else {
-        const offlineData = await getFromStore<ReportForm>(STORES.REPORTS, id);
-        if (!offlineData) throw new Error('Report not found offline');
-        return offlineData;
-      }
+export const useReportsByConstruction = (constructionId: string) =>
+  useOnlineQuery<ReportForm[]>(
+    reportKeys.byConstruction(constructionId),
+    () => reportService.getByConstruction(constructionId),
+    async () => {
+      const reports = await getByIndex<ReportForm>(STORES.REPORTS, 'construction_id', constructionId);
+      return reports.sort((a, b) => (a.ordinal || 0) - (b.ordinal || 0));
     },
-    enabled: !!id,
-    staleTime: isOnline ? 5 * 60 * 1000 : Infinity,
-  });
-};
+    {
+      cacheFn: (data) => saveManyToStore(STORES.REPORTS, data),
+      enabled: !!constructionId,
+    },
+  );
+
+export const useReport = (id: string) =>
+  useOnlineQuery<ReportForm>(
+    reportKeys.detail(id),
+    () => reportService.getById(id),
+    async () => {
+      const offlineData = await getFromStore<ReportForm>(STORES.REPORTS, id);
+      if (!offlineData) throw new Error('Report not found offline');
+      return offlineData;
+    },
+    {
+      cacheFn: (data) => saveToStore(STORES.REPORTS, data),
+      enabled: !!id,
+      staleTime: 5 * 60 * 1000,
+    },
+  );
 
 // Mutation hooks with offline support
 export const useCreateReport = () => {

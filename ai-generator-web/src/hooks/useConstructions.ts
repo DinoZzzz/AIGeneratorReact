@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { constructionService } from '../services/constructionService';
 import type { Construction } from '../types';
 import { useOffline } from '../context/OfflineContext';
@@ -12,6 +12,7 @@ import {
   getByIndex,
   STORES,
 } from '../lib/offlineDb';
+import { useOnlineQuery } from '../lib/offlineQueryFn';
 
 // Query keys
 export const constructionKeys = {
@@ -23,71 +24,40 @@ export const constructionKeys = {
 };
 
 // Query hooks with offline support
-export const useConstructionsByCustomer = (customerId: string) => {
-  const { isOnline } = useOffline();
-
-  return useQuery({
-    queryKey: constructionKeys.byCustomer(customerId),
-    queryFn: async () => {
-      if (isOnline) {
-        try {
-          const data = await constructionService.getByCustomerId(customerId);
-          // Cache for offline use
-          if (data) {
-            await saveManyToStore(STORES.CONSTRUCTIONS, data);
-          }
-          return data;
-        } catch (error) {
-          console.warn('Online query failed, using offline data:', error);
-          return getOfflineConstructionsByCustomer(customerId);
-        }
-      } else {
-        return getOfflineConstructionsByCustomer(customerId);
-      }
+export const useConstructionsByCustomer = (customerId: string) =>
+  useOnlineQuery<Construction[]>(
+    constructionKeys.byCustomer(customerId),
+    () => constructionService.getByCustomerId(customerId),
+    () => getOfflineConstructionsByCustomer(customerId),
+    {
+      cacheFn: (data) => saveManyToStore(STORES.CONSTRUCTIONS, data),
+      enabled: !!customerId,
+      staleTime: 5 * 60 * 1000,
     },
-    enabled: !!customerId,
-    staleTime: isOnline ? 5 * 60 * 1000 : Infinity,
-  });
-};
+  );
 
 async function getOfflineConstructionsByCustomer(customerId: string): Promise<Construction[]> {
   const constructions = await getByIndex<Construction>(STORES.CONSTRUCTIONS, 'customer_id', customerId);
-  // Filter out archived and sort by created_at descending
   return constructions
     .filter(c => !c.is_archived)
     .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 }
 
-export const useConstruction = (id: string) => {
-  const { isOnline } = useOffline();
-
-  return useQuery({
-    queryKey: constructionKeys.detail(id),
-    queryFn: async () => {
-      if (isOnline) {
-        try {
-          const data = await constructionService.getById(id);
-          // Cache for offline use
-          if (data) {
-            await saveToStore(STORES.CONSTRUCTIONS, data);
-          }
-          return data;
-        } catch (error) {
-          console.warn('Online query failed, using offline data:', error);
-          const offlineData = await getFromStore<Construction>(STORES.CONSTRUCTIONS, id);
-          if (!offlineData) throw new Error('Construction not found offline');
-          return offlineData;
-        }
-      } else {
-        const offlineData = await getFromStore<Construction>(STORES.CONSTRUCTIONS, id);
-        if (!offlineData) throw new Error('Construction not found offline');
-        return offlineData;
-      }
+export const useConstruction = (id: string) =>
+  useOnlineQuery<Construction>(
+    constructionKeys.detail(id),
+    () => constructionService.getById(id),
+    async () => {
+      const offlineData = await getFromStore<Construction>(STORES.CONSTRUCTIONS, id);
+      if (!offlineData) throw new Error('Construction not found offline');
+      return offlineData;
     },
-    enabled: !!id,
-    staleTime: isOnline ? 5 * 60 * 1000 : Infinity,
-  });
-};
+    {
+      cacheFn: (data) => saveToStore(STORES.CONSTRUCTIONS, data),
+      enabled: !!id,
+      staleTime: 5 * 60 * 1000,
+    },
+  );
 
 // Mutation hooks with offline support
 export const useCreateConstruction = () => {

@@ -23,6 +23,8 @@ const OfflineContext = createContext<OfflineContextType | undefined>(undefined);
 const SYNC_DEBOUNCE_MS = 2000;
 // Check for pending changes periodically
 const PENDING_CHECK_INTERVAL_MS = 10000;
+// How long to display sync status after completion
+const SYNC_STATUS_CLEAR_MS = 3000;
 
 export const OfflineProvider = ({ children }: { children: ReactNode }) => {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
@@ -130,7 +132,7 @@ export const OfflineProvider = ({ children }: { children: ReactNode }) => {
             inProgress: false,
           });
           // Clear sync status after a delay
-          setTimeout(() => setSyncStatus(null), 3000);
+          setTimeout(() => setSyncStatus(null), SYNC_STATUS_CLEAR_MS);
           break;
         case 'sync_error':
           setSyncStatus((prev) =>
