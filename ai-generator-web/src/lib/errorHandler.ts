@@ -46,6 +46,34 @@ export class NetworkError extends AppError {
   }
 }
 
+/**
+ * Detect network errors from fetch failures, CORS issues, and offline scenarios.
+ * Checks TypeError (common for fetch failures), error.cause chain, and error.name.
+ */
+export function isNetworkError(error: unknown): boolean {
+  if (error instanceof TypeError) {
+    return true;
+  }
+
+  if (error instanceof Error && error.cause) {
+    if (error.cause instanceof TypeError) {
+      return true;
+    }
+    if (isNetworkError(error.cause)) {
+      return true;
+    }
+  }
+
+  if (error instanceof Error) {
+    const networkErrorNames = ['NetworkError', 'AbortError', 'TimeoutError'];
+    if (networkErrorNames.includes(error.name)) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
 interface ErrorHandlerOptions {
   showToast?: boolean;
   logToConsole?: boolean;

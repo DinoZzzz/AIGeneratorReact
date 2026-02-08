@@ -116,7 +116,7 @@ export const GeneralSettings = () => {
                                     }`}
                             >
                                 <div className="flex flex-col items-center gap-1 sm:gap-2">
-                                    <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-white border-2 border-gray-300 flex items-center justify-center">
+                                    <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-card border-2 border-border flex items-center justify-center">
                                         <div className="w-3 h-3 sm:w-4 sm:h-4 rounded-full bg-yellow-400"></div>
                                     </div>
                                     <span className="text-xs sm:text-sm font-medium text-foreground">{t('settings.light')}</span>
@@ -144,7 +144,7 @@ export const GeneralSettings = () => {
                                     }`}
                             >
                                 <div className="flex flex-col items-center gap-1 sm:gap-2">
-                                    <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-lg bg-gradient-to-br from-white to-slate-900 border-2 border-gray-400"></div>
+                                    <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-lg bg-gradient-to-br from-white to-slate-900 border-2 border-border"></div>
                                     <span className="text-xs sm:text-sm font-medium text-foreground">{t('settings.system')}</span>
                                 </div>
                             </button>

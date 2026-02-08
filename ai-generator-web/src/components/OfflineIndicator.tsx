@@ -118,27 +118,27 @@ export const OfflineIndicator = () => {
         className={`flex items-center gap-2 px-3 py-2 rounded-lg border shadow-lg transition-all duration-200 hover:scale-105 ${getBackgroundColor()}`}
       >
         {getStatusIcon()}
-        <span className="text-sm font-medium text-gray-700 dark:text-gray-200">
+        <span className="text-sm font-medium text-foreground">
           {getStatusText()}
         </span>
       </button>
 
       {/* Details popup */}
       {showDetails && (
-        <div className="absolute bottom-full right-0 mb-2 w-72 p-4 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700">
+        <div className="absolute bottom-full right-0 mb-2 w-72 p-4 bg-card rounded-lg shadow-xl border border-border">
           <div className="flex items-center gap-2 mb-3">
             {isOnline ? (
               <Wifi className="h-5 w-5 text-green-500" />
             ) : (
               <WifiOff className="h-5 w-5 text-orange-500" />
             )}
-            <span className="font-semibold text-gray-900 dark:text-white">
+            <span className="font-semibold text-foreground">
               {isOnline ? t.online : t.noConnection}
             </span>
           </div>
 
           {!isOnline && (
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+            <p className="text-sm text-muted-foreground mb-3">
               {t.workingOffline}
             </p>
           )}
@@ -153,7 +153,7 @@ export const OfflineIndicator = () => {
           )}
 
           {lastSyncTime && (
-            <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
+            <p className="text-xs text-muted-foreground mb-3">
               {t.lastSync}: {lastSyncTime.toLocaleTimeString()}
             </p>
           )}

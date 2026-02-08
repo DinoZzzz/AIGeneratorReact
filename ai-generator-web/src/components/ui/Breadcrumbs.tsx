@@ -19,7 +19,7 @@ export const Breadcrumbs: React.FC<BreadcrumbsProps> = ({ items }) => {
             <ol className="flex items-center space-x-2">
                 <li>
                     <div>
-                        <Link to="/" className="text-gray-400 hover:text-gray-500">
+                        <Link to="/" className="text-muted-foreground hover:text-muted-foreground">
                             <Home className="flex-shrink-0 h-5 w-5" aria-hidden="true" />
                             <span className="sr-only">{t('common.home')}</span>
                         </Link>
@@ -28,16 +28,16 @@ export const Breadcrumbs: React.FC<BreadcrumbsProps> = ({ items }) => {
                 {items.map((item, index) => (
                     <li key={index}>
                         <div className="flex items-center">
-                            <ChevronRight className="flex-shrink-0 h-5 w-5 text-gray-400" aria-hidden="true" />
+                            <ChevronRight className="flex-shrink-0 h-5 w-5 text-muted-foreground" aria-hidden="true" />
                             {item.path ? (
                                 <Link
                                     to={item.path}
-                                    className="ml-2 text-sm font-medium text-gray-500 hover:text-gray-700"
+                                    className="ml-2 text-sm font-medium text-muted-foreground hover:text-foreground"
                                 >
                                     {item.label}
                                 </Link>
                             ) : (
-                                <span className="ml-2 text-sm font-medium text-gray-700">
+                                <span className="ml-2 text-sm font-medium text-foreground">
                                     {item.label}
                                 </span>
                             )}

@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { customerService } from '../services/customerService';
 import type { Customer } from '../types';
 import { useOffline } from '../context/OfflineContext';
+import { isNetworkError } from '../lib/errorHandler';
 import {
   getAllFromStore,
   getFromStore,
@@ -174,9 +175,7 @@ export const useCreateCustomer = () => {
           await saveToStore(STORES.CUSTOMERS, result);
           return result;
         } catch (error) {
-          // Fall back to offline mode on network error
-          const errorMessage = error instanceof Error ? error.message.toLowerCase() : String(error).toLowerCase();
-          if (errorMessage.includes('network') || errorMessage.includes('fetch') || errorMessage.includes('cors') || errorMessage.includes('failed to fetch')) {
+          if (isNetworkError(error)) {
             return createCustomerOffline(customer);
           }
           throw error;
@@ -230,8 +229,7 @@ export const useUpdateCustomer = () => {
           await saveToStore(STORES.CUSTOMERS, result);
           return result;
         } catch (error) {
-          const errorMessage = error instanceof Error ? error.message.toLowerCase() : String(error).toLowerCase();
-          if (errorMessage.includes('network') || errorMessage.includes('fetch') || errorMessage.includes('cors') || errorMessage.includes('failed to fetch')) {
+          if (isNetworkError(error)) {
             return updateCustomerOffline(id, customer);
           }
           throw error;
@@ -285,8 +283,7 @@ export const useDeleteCustomer = () => {
           // Remove from local cache
           await deleteFromStore(STORES.CUSTOMERS, id);
         } catch (error) {
-          const errorMessage = error instanceof Error ? error.message.toLowerCase() : String(error).toLowerCase();
-          if (errorMessage.includes('network') || errorMessage.includes('fetch') || errorMessage.includes('cors') || errorMessage.includes('failed to fetch')) {
+          if (isNetworkError(error)) {
             return deleteCustomerOffline(id);
           }
           throw error;

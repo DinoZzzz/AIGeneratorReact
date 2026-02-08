@@ -142,18 +142,18 @@ export function FileUploader({ constructionId, onUploadComplete, onDelete, files
       {/* Upload Area */}
       <div
         className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
-          dragActive ? 'border-blue-500 bg-blue-50' : 'border-gray-300 hover:border-gray-400'
+          dragActive ? 'border-blue-500 bg-blue-50' : 'border-input hover:border-input'
         }`}
         onDragEnter={handleDrag}
         onDragLeave={handleDrag}
         onDragOver={handleDrag}
         onDrop={handleDrop}
       >
-        <Upload className="mx-auto h-12 w-12 text-gray-400" />
-        <p className="mt-2 text-sm text-gray-600">
+        <Upload className="mx-auto h-12 w-12 text-muted-foreground" />
+        <p className="mt-2 text-sm text-muted-foreground">
           {t('fileUploader.dragDrop')}
         </p>
-        <p className="text-xs text-gray-500 mt-1">
+        <p className="text-xs text-muted-foreground mt-1">
           {t('fileUploader.supportedFiles')}
         </p>
 
@@ -175,7 +175,7 @@ export function FileUploader({ constructionId, onUploadComplete, onDelete, files
               onChange={handleFileInput}
               disabled={uploading}
             />
-            <span className="cursor-pointer inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50">
+            <span className="cursor-pointer inline-flex items-center px-4 py-2 border border-input rounded-md shadow-sm text-sm font-medium text-foreground bg-card hover:bg-muted disabled:opacity-50">
               {uploading ? t('fileUploader.uploading') : t('fileUploader.selectFile')}
             </span>
           </label>
@@ -185,12 +185,12 @@ export function FileUploader({ constructionId, onUploadComplete, onDelete, files
       {/* File List */}
       {files.length > 0 && (
         <div className="space-y-2">
-          <h4 className="text-sm font-medium text-gray-700">{t('fileUploader.uploadedFiles')}</h4>
+          <h4 className="text-sm font-medium text-foreground">{t('fileUploader.uploadedFiles')}</h4>
           <div className="space-y-2">
             {files.map((file) => (
               <div
                 key={file.id}
-                className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                className="flex items-center justify-between p-3 bg-muted rounded-lg"
               >
                 <div className="flex items-center space-x-3">
                   {(file.file_type ?? file.type) === 'image' ? (
@@ -199,9 +199,9 @@ export function FileUploader({ constructionId, onUploadComplete, onDelete, files
                     <FileText className="h-5 w-5 text-red-500" />
                   )}
                   <div>
-                    <p className="text-sm font-medium text-gray-900">{file.file_name}</p>
+                    <p className="text-sm font-medium text-foreground">{file.file_name}</p>
                     {file.description && (
-                      <p className="text-xs text-gray-500">{file.description}</p>
+                      <p className="text-xs text-muted-foreground">{file.description}</p>
                     )}
                   </div>
                 </div>

@@ -273,7 +273,7 @@ export const CertifiersManager = () => {
                                                 <img
                                                     src={certifier.signature_url}
                                                     alt={t('certifiers.signature') || 'Potpis'}
-                                                    className="h-10 max-w-32 object-contain border border-border rounded bg-white"
+                                                    className="h-10 max-w-32 object-contain border border-border rounded bg-card"
                                                 />
                                                 <button
                                                     onClick={() => handleDeleteSignature(certifier.id)}

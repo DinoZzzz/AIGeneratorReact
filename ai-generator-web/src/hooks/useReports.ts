@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { reportService } from '../services/reportService';
 import type { ReportForm } from '../types';
 import { useOffline } from '../context/OfflineContext';
+import { isNetworkError } from '../lib/errorHandler';
 import {
   getAllFromStore,
   getFromStore,
@@ -12,35 +13,6 @@ import {
   getByIndex,
   STORES,
 } from '../lib/offlineDb';
-
-// Helper to detect network errors properly using error.cause and instanceof
-function isNetworkError(error: unknown): boolean {
-  // Check if it's a TypeError (common for fetch failures)
-  if (error instanceof TypeError) {
-    return true;
-  }
-
-  // Check error.cause for nested network errors
-  if (error instanceof Error && error.cause) {
-    if (error.cause instanceof TypeError) {
-      return true;
-    }
-    // Recursively check cause chain
-    if (isNetworkError(error.cause)) {
-      return true;
-    }
-  }
-
-  // Fallback: check error name for common network error types
-  if (error instanceof Error) {
-    const networkErrorNames = ['NetworkError', 'AbortError', 'TimeoutError'];
-    if (networkErrorNames.includes(error.name)) {
-      return true;
-    }
-  }
-
-  return false;
-}
 
 // Query keys
 export const reportKeys = {

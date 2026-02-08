@@ -350,7 +350,7 @@ export const AppointmentDialog = ({
                                                 checked={formData.assignee_ids?.includes(ex.id)}
                                                 onChange={() => toggleAssignee(ex.id)}
                                                 disabled={!isAdmin && ex.id !== profile?.id}
-                                                className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                                                className="h-4 w-4 rounded border-input text-primary focus:ring-primary"
                                             />
                                             <label htmlFor={`examiner-${ex.id}`} className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
                                                 {ex.name} {ex.last_name}
@@ -413,7 +413,7 @@ export const AppointmentDialog = ({
                                         id="reminder_enabled"
                                         checked={formData.reminder_enabled}
                                         onChange={e => setFormData({ ...formData, reminder_enabled: e.target.checked })}
-                                        className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                                        className="h-4 w-4 rounded border-input text-primary focus:ring-primary"
                                     />
                                     <Label htmlFor="reminder_enabled">{t('calendar.enableReminders')}</Label>
                                 </div>

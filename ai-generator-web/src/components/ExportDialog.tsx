@@ -4,7 +4,8 @@ import { Button } from './ui/Button';
 import type { User, ReportForm, ReportFile } from '../types';
 import { FileUploader } from './FileUploader';
 import { useLanguage } from '../context/LanguageContext';
-import { certifierService, type Certifier } from '../services/certifierService';
+import { certifierService } from '../services/certifierService';
+import { useCertifiers } from '../hooks/useCertifiers';
 import { useToast } from '../context/ToastContext';
 
 interface ExportDialogProps {
@@ -48,30 +49,19 @@ export const ExportDialog = ({ open, onOpenChange, onConfirm, loading = false, d
     });
 
     const [selectedReportIds, setSelectedReportIds] = useState<Set<string>>(new Set());
-    const [certifiers, setCertifiers] = useState<Certifier[]>([]);
+    const { data: certifiers = [] } = useCertifiers();
 
-    // Fetch certifiers on mount
+    // Set default certifier when certifiers load
     useEffect(() => {
-        const fetchCertifiers = async () => {
-            try {
-                const fetchedCertifiers = await certifierService.getAll();
-                setCertifiers(fetchedCertifiers);
-                // If we have certifiers and no default value is set, use the default certifier
-                if (fetchedCertifiers.length > 0 && !defaultValues?.certifierName) {
-                    const defaultCertifier = fetchedCertifiers.find(c => c.is_default) || fetchedCertifiers[0];
-                    setData(prev => ({
-                        ...prev,
-                        certifierName: certifierService.getDisplayName(defaultCertifier)
-                    }));
-                }
-            } catch (error) {
-                console.warn('Error fetching certifiers:', error);
-                // Keep fallback values if fetch fails
-            }
-        };
-        fetchCertifiers();
+        if (certifiers.length > 0 && !defaultValues?.certifierName && !data.certifierName) {
+            const defaultCertifier = certifiers.find(c => c.is_default) || certifiers[0];
+            setData(prev => ({
+                ...prev,
+                certifierName: certifierService.getDisplayName(defaultCertifier)
+            }));
+        }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+    }, [certifiers]);
 
     // Update state when defaultValues change or dialog opens
     useEffect(() => {
@@ -180,7 +170,7 @@ export const ExportDialog = ({ open, onOpenChange, onConfirm, loading = false, d
                                             {waterReports.map((report) => {
                                                 const isSection = report.section_name && !report.draft_id;
                                                 return (
-                                                    <div key={report.id} className={`flex items-center space-x-2 ${isSection ? 'bg-blue-100 dark:bg-blue-900/40 py-2 px-2 rounded border-l-4 border-blue-600' : 'bg-white dark:bg-slate-900 py-1.5 px-2 rounded'}`}>
+                                                    <div key={report.id} className={`flex items-center space-x-2 ${isSection ? 'bg-blue-100 dark:bg-blue-900/40 py-2 px-2 rounded border-l-4 border-blue-600' : 'bg-card py-1.5 px-2 rounded'}`}>
                                                         <input
                                                             type="checkbox"
                                                             id={`report-${report.id}`}
@@ -220,7 +210,7 @@ export const ExportDialog = ({ open, onOpenChange, onConfirm, loading = false, d
                                             {airReports.map((report) => {
                                                 const isSection = report.section_name && !report.draft_id;
                                                 return (
-                                                    <div key={report.id} className={`flex items-center space-x-2 ${isSection ? 'bg-purple-100 dark:bg-purple-900/40 py-2 px-2 rounded border-l-4 border-purple-600' : 'bg-white dark:bg-slate-900 py-1.5 px-2 rounded'}`}>
+                                                    <div key={report.id} className={`flex items-center space-x-2 ${isSection ? 'bg-purple-100 dark:bg-purple-900/40 py-2 px-2 rounded border-l-4 border-purple-600' : 'bg-card py-1.5 px-2 rounded'}`}>
                                                         <input
                                                             type="checkbox"
                                                             id={`report-${report.id}`}
