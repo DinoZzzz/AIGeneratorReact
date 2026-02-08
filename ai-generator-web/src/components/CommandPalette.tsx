@@ -38,7 +38,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose 
             setQuery('');
             setResults([]);
             setSelectedIndex(0);
-            setTimeout(() => inputRef.current?.focus(), 50);
+            requestAnimationFrame(() => inputRef.current?.focus());
         }
     }, [isOpen]);
 

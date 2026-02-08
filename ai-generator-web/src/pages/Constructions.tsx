@@ -10,16 +10,15 @@ import { useAuth } from '../context/AuthContext';
 import { useRecentlyViewed } from '../hooks/useRecentlyViewed';
 import { ConfirmDialog } from '../components/ui/ConfirmDialog';
 import { formatDate } from '../utils/dateFormatter';
-import { useToast } from '../context/ToastContext';
 import { useConfirm } from '../context/ConfirmDialogContext';
-import { errorHandler } from '../lib/errorHandler';
+import { useHandleError } from '../hooks/useHandleError';
 
 type FilterType = 'all' | 'active' | 'archived';
 
 export const Constructions = () => {
     const { customerId } = useParams();
     const navigate = useNavigate();
-    const { error: showError } = useToast();
+    const handleError = useHandleError();
     const confirm = useConfirm();
     const [constructions, setConstructions] = useState<Construction[]>([]);
     const [customer, setCustomer] = useState<Customer | null>(null);
@@ -77,8 +76,7 @@ export const Constructions = () => {
             setCustomer(customerData);
             setConstructions(constructionsData);
         } catch (error) {
-            const appError = errorHandler.handle(error, 'Constructions');
-            showError(errorHandler.getUserMessage(appError));
+            handleError(error, 'Constructions');
         } finally {
             setLoading(false);
         }
@@ -105,8 +103,7 @@ export const Constructions = () => {
                 loadData(customerId);
             }
         } catch (error) {
-            const appError = errorHandler.handle(error, 'Constructions');
-            showError(errorHandler.getUserMessage(appError));
+            handleError(error, 'Constructions');
         } finally {
             setArchiveLoading(false);
         }
@@ -121,8 +118,7 @@ export const Constructions = () => {
                     loadData(customerId);
                 }
             } catch (error) {
-                const appError = errorHandler.handle(error, 'Constructions');
-                showError(errorHandler.getUserMessage(appError));
+                handleError(error, 'Constructions');
             }
         }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -245,8 +241,12 @@ export const Constructions = () => {
                 {/* Mobile Card View */}
                 <div className="block md:hidden divide-y divide-border">
                     {paginatedConstructions.length === 0 ? (
-                        <div className="p-4 text-center text-sm text-muted-foreground">
-                            {t('constructions.none')}
+                        <div className="p-8 text-center text-muted-foreground">
+                            <div className="flex flex-col items-center justify-center">
+                                <HardHat className="h-12 w-12 text-muted-foreground/50 mb-4" />
+                                <p className="text-lg font-medium text-foreground">{t('constructions.none')}</p>
+                                <p className="text-sm text-muted-foreground mt-1">{t('constructions.noneDesc')}</p>
+                            </div>
                         </div>
                     ) : (
                         paginatedConstructions.map((construction) => (
@@ -403,8 +403,12 @@ export const Constructions = () => {
                             ))}
                             {paginatedConstructions.length === 0 && (
                                 <tr>
-                                    <td colSpan={5} className="px-6 py-4 text-center text-sm text-muted-foreground">
-                                        {t('constructions.none')}
+                                    <td colSpan={5} className="px-6 py-12 text-center text-muted-foreground">
+                                        <div className="flex flex-col items-center justify-center">
+                                            <HardHat className="h-12 w-12 text-muted-foreground/50 mb-4" />
+                                            <p className="text-lg font-medium text-foreground">{t('constructions.none')}</p>
+                                            <p className="text-sm text-muted-foreground mt-1">{t('constructions.noneDesc')}</p>
+                                        </div>
                                     </td>
                                 </tr>
                             )}

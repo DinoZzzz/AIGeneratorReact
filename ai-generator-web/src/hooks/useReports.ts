@@ -35,7 +35,10 @@ export const useReports = () =>
       const reports = await getAllFromStore<ReportForm>(STORES.REPORTS);
       return reports.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
     },
-    { cacheFn: (data) => saveManyToStore(STORES.REPORTS, data) },
+    {
+      cacheFn: (data) => saveManyToStore(STORES.REPORTS, data),
+      staleTime: 5 * 60 * 1000,
+    },
   );
 
 // Paginated reports hook for better performance with large datasets

@@ -301,7 +301,7 @@ export const ReportsTable = ({
                                                             aria-label={`Select report ${report.draft?.name || ''} - ${new Date(report.examination_date).toLocaleDateString()}`}
                                                         />
                                                     </td>
-                                                    <td className="px-6 py-4 whitespace-nowrap text-muted-foreground cursor-grab active:cursor-grabbing" {...attributes} {...listeners}>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-muted-foreground cursor-grab active:cursor-grabbing" {...attributes} {...listeners} aria-label={t('reports.dragToReorder')}>
                                                         <GripVertical className="h-5 w-5" />
                                                     </td>
                                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">

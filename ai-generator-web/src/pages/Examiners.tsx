@@ -306,7 +306,7 @@ export const Examiners = () => {
                                         {isAdmin && (
                                             <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                                 <div className="flex justify-end space-x-2">
-                                                    <Button variant="ghost" size="icon" onClick={() => openEdit(examiner)}>
+                                                    <Button variant="ghost" size="icon" onClick={() => openEdit(examiner)} aria-label={t('examiners.edit')}>
                                                         <Pencil className="h-4 w-4 text-primary" />
                                                     </Button>
                                                     <Button
@@ -314,6 +314,7 @@ export const Examiners = () => {
                                                         size="icon"
                                                         onClick={() => handleDeleteClick(examiner)}
                                                         className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                                                        aria-label={t('examiners.delete')}
                                                     >
                                                         <Trash2 className="h-4 w-4" />
                                                     </Button>

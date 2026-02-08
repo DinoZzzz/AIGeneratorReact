@@ -120,6 +120,7 @@ export const Layout = ({ children }: LayoutProps) => {
                             onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
                             className="p-1.5 hover:bg-accent rounded-lg transition-colors text-muted-foreground hover:text-foreground"
                             title={isSidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+                            aria-label={isSidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
                         >
                             {isSidebarCollapsed ? (
                                 <ChevronRight className="h-5 w-5" />

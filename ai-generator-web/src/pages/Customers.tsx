@@ -178,8 +178,12 @@ export const Customers = () => {
                             <TableSkeleton rows={3} />
                         </div>
                     ) : customers.length === 0 ? (
-                        <div className="p-4 text-center text-sm text-muted-foreground">
-                            {t('customers.none')}
+                        <div className="p-8 text-center text-muted-foreground">
+                            <div className="flex flex-col items-center justify-center">
+                                <Search className="h-12 w-12 text-muted-foreground/50 mb-4" />
+                                <p className="text-lg font-medium text-foreground">{t('customers.none')}</p>
+                                <p className="text-sm text-muted-foreground mt-1">{t('customers.noneDesc')}</p>
+                            </div>
                         </div>
                     ) : (
                         customers.map((customer) => (
@@ -261,8 +265,12 @@ export const Customers = () => {
                                 </tr>
                             ) : customers.length === 0 ? (
                                 <tr>
-                                    <td colSpan={5} className="px-6 py-4 text-center text-sm text-muted-foreground">
-                                        {t('customers.none')}
+                                    <td colSpan={6} className="px-6 py-12 text-center text-muted-foreground">
+                                        <div className="flex flex-col items-center justify-center">
+                                            <Search className="h-12 w-12 text-muted-foreground/50 mb-4" />
+                                            <p className="text-lg font-medium text-foreground">{t('customers.none')}</p>
+                                            <p className="text-sm text-muted-foreground mt-1">{t('customers.noneDesc')}</p>
+                                        </div>
                                     </td>
                                 </tr>
                             ) : (

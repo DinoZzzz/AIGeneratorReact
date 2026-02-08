@@ -19,6 +19,7 @@ import { ReportsTable, ReportsActionBar, ReportsFilterBar } from '../features/re
 import { useReportsFiltering } from '../features/reports/hooks';
 import { useToast } from '../context/ToastContext';
 import { useConfirm } from '../context/ConfirmDialogContext';
+import { useHandleError } from '../hooks/useHandleError';
 import { errorHandler } from '../lib/errorHandler';
 
 // Dynamic imports for PDF/Word export to reduce initial bundle size
@@ -43,7 +44,8 @@ export const ConstructionReports = () => {
     const { user, profile } = useAuth();
     const { t } = useLanguage();
     const { addItem: addRecentItem } = useRecentlyViewed();
-    const { success: showSuccess, error: showError } = useToast();
+    const { success: showSuccess } = useToast();
+    const handleError = useHandleError();
     const confirm = useConfirm();
     const [reports, setReports] = useState<ReportForm[]>([]);
     const [construction, setConstruction] = useState<Construction | null>(null);
@@ -155,8 +157,7 @@ export const ConstructionReports = () => {
                 setSelectedIds(newSelected);
             }
         } catch (error) {
-            const appError = errorHandler.handle(error, 'ConstructionReports');
-            showError(errorHandler.getUserMessage(appError));
+            handleError(error, 'ConstructionReports');
         }
     };
 
@@ -235,8 +236,7 @@ export const ConstructionReports = () => {
             setSelectedIds(new Set());
             showSuccess(`Successfully deleted ${count} report${count > 1 ? 's' : ''}`);
         } catch (err: unknown) {
-            const appError = errorHandler.handle(err, 'ConstructionReports');
-            showError(errorHandler.getUserMessage(appError));
+            handleError(err, 'ConstructionReports');
         }
     };
 
@@ -260,8 +260,7 @@ export const ConstructionReports = () => {
             const newSection = await reportService.create(sectionPayload);
             setReports([...reports, newSection]);
         } catch (error) {
-            const appError = errorHandler.handle(error, 'ConstructionReports');
-            showError(errorHandler.getUserMessage(appError));
+            handleError(error, 'ConstructionReports');
         }
     };
 
@@ -277,8 +276,7 @@ export const ConstructionReports = () => {
             await reportService.update(existingId, { section_name: newName });
             setReports(reports.map(r => r.id === existingId ? { ...r, section_name: newName } : r));
         } catch (error) {
-            const appError = errorHandler.handle(error, 'ConstructionReports');
-            showError(errorHandler.getUserMessage(appError));
+            handleError(error, 'ConstructionReports');
         }
     };
 
@@ -302,8 +300,7 @@ export const ConstructionReports = () => {
         try {
             await reportService.updateOrder(newReports);
         } catch (error) {
-            const appError = errorHandler.handle(error, 'ConstructionReports');
-            showError(errorHandler.getUserMessage(appError));
+            handleError(error, 'ConstructionReports');
         }
     };
 

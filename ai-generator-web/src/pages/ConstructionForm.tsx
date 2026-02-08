@@ -9,8 +9,7 @@ import { Loader2, Save, ArrowLeft } from 'lucide-react';
 import type { Construction, Customer } from '../types';
 import { useLanguage } from '../context/LanguageContext';
 import { getAllFromStore, getFromStore, STORES } from '../lib/offlineDb';
-import { useToast } from '../context/ToastContext';
-import { errorHandler } from '../lib/errorHandler';
+import { useHandleError } from '../hooks/useHandleError';
 import { useDebouncedCallback, DEBOUNCE_VALIDATION_MS } from '../hooks/useDebouncedCallback';
 
 const initialState: Partial<Construction> = {
@@ -28,7 +27,7 @@ export const ConstructionForm = () => {
     const [errors, setErrors] = useState<Record<string, string>>({});
     const { t } = useLanguage();
     const { isOnline } = useOffline();
-    const { error: showError } = useToast();
+    const handleError = useHandleError();
     const createMutation = useCreateConstruction();
     const updateMutation = useUpdateConstruction();
 
@@ -55,7 +54,7 @@ export const ConstructionForm = () => {
                 }
             }
         } catch (error) {
-            console.error('Failed to load customer', error);
+            handleError(error, 'ConstructionForm');
             // Try offline fallback
             try {
                 const data = await getFromStore<Customer>(STORES.CUSTOMERS, custId);
@@ -63,7 +62,7 @@ export const ConstructionForm = () => {
                     setCustomer(data);
                 }
             } catch (offlineError) {
-                console.error('Failed to load customer from offline cache', offlineError);
+                handleError(offlineError, 'ConstructionForm');
             }
         }
     };
@@ -84,18 +83,17 @@ export const ConstructionForm = () => {
                 }
             }
         } catch (error) {
-            errorHandler.handle(error, 'ConstructionForm');
+            handleError(error, 'ConstructionForm');
             // Try offline fallback
             try {
                 const data = await getFromStore<Construction>(STORES.CONSTRUCTIONS, constId);
                 if (data) {
                     setFormData(data);
                 } else {
-                    showError('Failed to load construction');
+                    handleError(new Error('Failed to load construction'), 'ConstructionForm');
                 }
             } catch (offlineError) {
-                const appError = errorHandler.handle(offlineError, 'ConstructionForm');
-                showError(errorHandler.getUserMessage(appError));
+                handleError(offlineError, 'ConstructionForm');
             }
         } finally {
             setLoading(false);
@@ -216,8 +214,7 @@ export const ConstructionForm = () => {
             }
             navigate(`/customers/${customerId}/constructions`);
         } catch (error) {
-            const appError = errorHandler.handle(error, 'ConstructionForm');
-            showError(errorHandler.getUserMessage(appError));
+            handleError(error, 'ConstructionForm');
             setLoading(false);
         }
     };

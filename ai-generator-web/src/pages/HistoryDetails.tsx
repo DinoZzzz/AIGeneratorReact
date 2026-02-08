@@ -15,7 +15,7 @@ import { arrayMove } from '@dnd-kit/sortable';
 import { reportService } from '../services/reportService';
 import { ReportList } from '../components/history/ReportList';
 import { AttachmentsGallery } from '../components/history/AttachmentsGallery';
-import { useToast } from '../context/ToastContext';
+import { useHandleError } from '../hooks/useHandleError';
 import { errorHandler } from '../lib/errorHandler';
 
 export const HistoryDetails = () => {
@@ -23,7 +23,7 @@ export const HistoryDetails = () => {
     const navigate = useNavigate();
     const { profile } = useAuth();
     const { t } = useLanguage();
-    const { error: showError } = useToast();
+    const handleError = useHandleError();
     const [exportData, setExportData] = useState<ReportExport | null>(null);
     const [forms, setForms] = useState<ReportExportForm[]>([]);
 
@@ -88,8 +88,7 @@ export const HistoryDetails = () => {
             generatePDF(reportData, profile || undefined);
             setActionMessage(null);
         } catch (error) {
-            const appError = errorHandler.handle(error, 'HistoryDetails');
-            setActionMessage({ text: errorHandler.getUserMessage(appError), type: 'error' });
+            setActionMessage({ text: errorHandler.getUserMessage(errorHandler.handle(error, 'HistoryDetails')), type: 'error' });
         } finally {
             setDownloadingFormId(null);
         }
@@ -125,8 +124,7 @@ export const HistoryDetails = () => {
             generateBulkPDF(orderedReports, `${exportData.construction_part}_Reports.pdf`, profile || undefined);
             setActionMessage(null);
         } catch (error) {
-            const appError = errorHandler.handle(error, 'HistoryDetails');
-            setActionMessage({ text: errorHandler.getUserMessage(appError), type: 'error' });
+            setActionMessage({ text: errorHandler.getUserMessage(errorHandler.handle(error, 'HistoryDetails')), type: 'error' });
         } finally {
             setIsExporting(false);
         }
@@ -175,8 +173,7 @@ export const HistoryDetails = () => {
             await generateWordDocument(orderedReports, metaData);
             setActionMessage(null);
         } catch (error) {
-            const appError = errorHandler.handle(error, 'HistoryDetails');
-            setActionMessage({ text: errorHandler.getUserMessage(appError), type: 'error' });
+            setActionMessage({ text: errorHandler.getUserMessage(errorHandler.handle(error, 'HistoryDetails')), type: 'error' });
         } finally {
             setIsExporting(false);
         }
@@ -268,8 +265,7 @@ export const HistoryDetails = () => {
 
             await reportService.updateOrder(reportsToUpdate);
         } catch (error) {
-            const appError = errorHandler.handle(error, 'HistoryDetails');
-            showError(errorHandler.getUserMessage(appError));
+            handleError(error, 'HistoryDetails');
         }
     };
 

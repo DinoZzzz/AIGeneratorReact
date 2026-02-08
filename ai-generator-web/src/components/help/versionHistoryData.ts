@@ -7,6 +7,17 @@ export interface VersionHistoryItem {
 export function getVersionHistory(language: string): VersionHistoryItem[] {
     return language === 'hr' ? [
         {
+            version: '2.14.0',
+            date: '2026-02-05',
+            changes: [
+                'Novi useHandleError hook — konsolidirana obrada grešaka u 5 stranica',
+                'Aria-label na gumbu za sažimanje bočne trake, gumbima ispitivača i ručki za povlačenje',
+                'Poboljšani prazni prikazi za građevine i naručitelje s ikonama i opisima',
+                'Zamjena console.error s toast obavijestima u ConstructionForm',
+                'Dodano 8 novih prijevoda (HR/EN) za pristupačnost i prazna stanja',
+            ]
+        },
+        {
             version: '2.13.0',
             date: '2026-02-05',
             changes: [
@@ -334,6 +345,17 @@ export function getVersionHistory(language: string): VersionHistoryItem[] {
         },
     ] : [
         // English version
+        {
+            version: '2.14.0',
+            date: '2026-02-05',
+            changes: [
+                'New useHandleError hook — consolidated error handling across 5 pages',
+                'Aria-labels on sidebar collapse button, examiner buttons, and drag handle',
+                'Improved empty states for constructions and customers with icons and descriptions',
+                'Replaced console.error with toast notifications in ConstructionForm',
+                'Added 8 new translations (HR/EN) for accessibility and empty states',
+            ]
+        },
         {
             version: '2.13.0',
             date: '2026-02-05',

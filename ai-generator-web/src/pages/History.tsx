@@ -1,18 +1,18 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { historyService } from '../services/historyService';
 import { examinerService } from '../services/examinerService';
 import type { ReportExport, Profile } from '../types';
 import { Loader2, Search, Trash2, ExternalLink, ChevronLeft, ChevronRight, User, Calendar, FileText, Users } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
-import { useToast } from '../context/ToastContext';
 import { useConfirm } from '../context/ConfirmDialogContext';
+import { useHandleError } from '../hooks/useHandleError';
 import { errorHandler } from '../lib/errorHandler';
 
 export const History = () => {
     const navigate = useNavigate();
     const { t } = useLanguage();
-    const { error: showError } = useToast();
+    const handleError = useHandleError();
     const confirm = useConfirm();
     const [exports, setExports] = useState<ReportExport[]>([]);
     const [users, setUsers] = useState<Profile[]>([]);
@@ -71,13 +71,12 @@ export const History = () => {
     }, [loadData]);
 
     const handleDelete = async (id: string) => {
-        if (!(await confirm({ title: 'Are you sure you want to delete this report export?', variant: 'destructive' }))) return;
+        if (!(await confirm({ title: t('history.deleteConfirm') || 'Are you sure you want to delete this report export?', variant: 'destructive' }))) return;
         try {
             await historyService.delete(id);
             loadData();
         } catch (error) {
-            const appError = errorHandler.handle(error, 'History');
-            showError(errorHandler.getUserMessage(appError));
+            handleError(error, 'History');
         }
     };
 
@@ -94,7 +93,7 @@ export const History = () => {
         }
     };
 
-    const totalPages = totalCount ? Math.ceil(totalCount / pageSize) : 0;
+    const totalPages = useMemo(() => totalCount ? Math.ceil(totalCount / pageSize) : 0, [totalCount, pageSize]);
 
     const formatName = (p?: { name?: string; last_name?: string; email?: string }) => {
         if (!p) return '-';
@@ -120,6 +119,7 @@ export const History = () => {
                             className="block w-full pl-10 pr-3 py-2 border border-input rounded-md leading-5 bg-background text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-input sm:text-sm"
                             value={search}
                             onChange={handleSearchChange}
+                            aria-label={t('history.searchPlaceholder')}
                         />
                     </div>
 
