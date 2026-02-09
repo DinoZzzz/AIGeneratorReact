@@ -15,6 +15,7 @@ import {
 import type { SchemeImage } from '../../types';
 import { Image, Upload, Save, RotateCcw, Loader2, X, Check, Edit2 } from 'lucide-react';
 import { isNetworkError } from '../../lib/errorHandler';
+import { createQueuedUploadPreviewUrlMap, revokePreviewUrls } from '../../lib/offlineUploadPreview';
 import {
     STORES,
     addToSyncQueue,
@@ -120,7 +121,7 @@ const SchemeCard: React.FC<SchemeCardProps> = ({ scheme, isOnline, onSaveMetadat
             }
 
             await onQueueUploadOffline(scheme, pendingFile);
-            addToast(t('schemeManager.uploadQueued') || 'Image saved offline and queued for sync', 'success');
+            addToast(t('schemeManager.uploadQueued'), 'success');
             setPendingFile(null);
             setPreviewUrl(null);
             onUpdate();
@@ -167,7 +168,7 @@ const SchemeCard: React.FC<SchemeCardProps> = ({ scheme, isOnline, onSaveMetadat
     const handleReset = async () => {
         if (!(await confirm({ title: t('schemeManager.resetConfirm'), variant: 'destructive' }))) return;
         if (!isOnline) {
-            addToast(t('schemeManager.onlineRequired') || 'Reset requires an internet connection', 'error');
+            addToast(t('schemeManager.onlineRequired'), 'error');
             return;
         }
 
@@ -386,6 +387,27 @@ export const SchemeManager: React.FC = () => {
 
     const [schemes, setSchemes] = useState<SchemeImage[]>([]);
     const [loading, setLoading] = useState(true);
+    const queuedPreviewUrlsRef = useRef<string[]>([]);
+
+    const hydrateQueuedSchemePreviews = useCallback(async (
+        rows: SchemeImage[]
+    ): Promise<SchemeImage[]> => {
+        const previewMap = await createQueuedUploadPreviewUrlMap('scheme_image_upload');
+        revokePreviewUrls(queuedPreviewUrlsRef.current);
+        queuedPreviewUrlsRef.current = Array.from(previewMap.values());
+
+        return rows.map((scheme) => {
+            const previewUrl = previewMap.get(scheme.id);
+            if (!previewUrl) {
+                return scheme;
+            }
+
+            return {
+                ...scheme,
+                file_path: previewUrl,
+            };
+        });
+    }, []);
 
     const loadSchemes = useCallback(async () => {
         setLoading(true);
@@ -393,34 +415,45 @@ export const SchemeManager: React.FC = () => {
             if (isOnline) {
                 const data = await getSchemeImages();
                 if (data.length > 0) {
-                    setSchemes(data);
+                    setSchemes(await hydrateQueuedSchemePreviews(data));
                     await saveManyToStore(STORES.SCHEME_IMAGES, data);
                     return;
                 }
 
                 const fallbackSchemes = await getAllFromStore<SchemeImage>(STORES.SCHEME_IMAGES);
                 if (fallbackSchemes.length > 0) {
-                    setSchemes(fallbackSchemes.sort((left, right) => left.scheme_number - right.scheme_number));
+                    const sortedFallbackSchemes = fallbackSchemes
+                        .sort((left, right) => left.scheme_number - right.scheme_number);
+                    setSchemes(await hydrateQueuedSchemePreviews(sortedFallbackSchemes));
                     return;
                 }
 
-                setSchemes(data);
+                setSchemes(await hydrateQueuedSchemePreviews(data));
                 await saveManyToStore(STORES.SCHEME_IMAGES, data);
                 return;
             }
 
             const offlineSchemes = await getAllFromStore<SchemeImage>(STORES.SCHEME_IMAGES);
-            setSchemes(offlineSchemes.sort((left, right) => left.scheme_number - right.scheme_number));
+            const sortedOfflineSchemes = offlineSchemes
+                .sort((left, right) => left.scheme_number - right.scheme_number);
+            setSchemes(await hydrateQueuedSchemePreviews(sortedOfflineSchemes));
         } catch (error) {
             console.error('Error loading schemes:', error);
         } finally {
             setLoading(false);
         }
-    }, [isOnline]);
+    }, [hydrateQueuedSchemePreviews, isOnline]);
 
     useEffect(() => {
         void loadSchemes();
     }, [loadSchemes]);
+
+    useEffect(() => {
+        return () => {
+            revokePreviewUrls(queuedPreviewUrlsRef.current);
+            queuedPreviewUrlsRef.current = [];
+        };
+    }, []);
 
     const saveMetadataOffline = useCallback(async (
         scheme: SchemeImage,

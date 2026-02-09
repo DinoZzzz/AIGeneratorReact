@@ -14,7 +14,7 @@ interface ExaminerDialogProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     examiner: Profile | null;
-    onSave: (examiner: Partial<Profile>) => Promise<void>;
+    onSave: (examiner: Partial<Profile> & { password?: string }) => Promise<void>;
     reportTypes?: ReportType[];
 }
 
@@ -129,8 +129,6 @@ export const ExaminerDialog = ({ open, onOpenChange, examiner, onSave, reportTyp
         } catch (err) {
             if (isWeakPasswordAuthError(err)) {
                 setError(t('examiners.dialog.weakPassword'));
-            } else if (err instanceof Error && err.message === t('examiners.createOnlineOnly')) {
-                setError(err.message);
             } else {
                 setError(t('examiners.dialog.saveFailed'));
             }

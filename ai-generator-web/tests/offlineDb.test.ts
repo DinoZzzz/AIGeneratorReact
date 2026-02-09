@@ -3,10 +3,13 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import {
   STORES,
   addToSyncQueue,
+  cleanupStaleUploadOperations,
   clearStore,
   compactPendingSyncOperations,
+  getFromStore,
   getPendingSyncOperations,
   resetStuckSyncOperations,
+  saveToStore,
   updateSyncOperationStatus,
 } from '../src/lib/offlineDb';
 
@@ -26,6 +29,7 @@ const clearAllOfflineStores = async () => {
     clearStore(STORES.EXPORT_HISTORY_FORMS),
     clearStore(STORES.REPORT_FILES),
     clearStore(STORES.TEMPLATE_CACHE),
+    clearStore(STORES.UPLOADS),
     clearStore(STORES.SYNC_QUEUE),
     clearStore(STORES.METADATA),
   ]);
@@ -104,5 +108,67 @@ describe('offlineDb sync queue', () => {
     const pendingOps = await getPendingSyncOperations();
 
     expect(pendingOps).toHaveLength(0);
+  });
+
+  it('cleans up stale/overflow upload operations and removes orphaned temp report files', async () => {
+    await saveToStore(STORES.REPORT_FILES, {
+      id: 'temp_file_old',
+      construction_id: 'construction-1',
+      file_path: 'blob:old',
+      file_name: 'old.png',
+      file_type: 'image',
+      created_at: new Date().toISOString(),
+    });
+    await saveToStore(STORES.REPORT_FILES, {
+      id: 'temp_file_new',
+      construction_id: 'construction-1',
+      file_path: 'blob:new',
+      file_name: 'new.png',
+      file_type: 'image',
+      created_at: new Date().toISOString(),
+    });
+
+    await addToSyncQueue(
+      STORES.UPLOADS,
+      'create',
+      {
+        kind: 'report_file_upload',
+        construction_id: 'construction-1',
+        file_name: 'old.png',
+        file_type: 'image',
+        blob: new Blob(['old-payload']),
+      },
+      'temp_file_old',
+    );
+    await new Promise((resolve) => setTimeout(resolve, 5));
+    await addToSyncQueue(
+      STORES.UPLOADS,
+      'create',
+      {
+        kind: 'report_file_upload',
+        construction_id: 'construction-1',
+        file_name: 'new.png',
+        file_type: 'image',
+        blob: new Blob(['new-payload']),
+      },
+      'temp_file_new',
+    );
+
+    const cleanupResult = await cleanupStaleUploadOperations({
+      maxUploadOperations: 1,
+      maxTotalBytes: 1024 * 1024,
+      maxAgeMs: 1000 * 60 * 60,
+    });
+
+    const pendingOps = await getPendingSyncOperations();
+    const oldTempRecord = await getFromStore(STORES.REPORT_FILES, 'temp_file_old');
+    const newTempRecord = await getFromStore(STORES.REPORT_FILES, 'temp_file_new');
+
+    expect(cleanupResult.removed).toBe(1);
+    expect(cleanupResult.remainingUploads).toBe(1);
+    expect(pendingOps).toHaveLength(1);
+    expect(pendingOps[0].entityId).toBe('temp_file_new');
+    expect(oldTempRecord).toBeUndefined();
+    expect(newTempRecord).toBeDefined();
   });
 });

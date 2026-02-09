@@ -69,7 +69,7 @@ export function FileUploader({ constructionId, onUploadComplete, onDelete, files
     if (onUploadComplete) {
       onUploadComplete(offlineRecord);
     }
-    showSuccess(t('fileUploader.uploadQueued') || 'File saved offline and queued for sync');
+    showSuccess(t('fileUploader.uploadQueued'));
   };
 
   const handleUpload = async (file: File) => {
@@ -186,7 +186,7 @@ export function FileUploader({ constructionId, onUploadComplete, onDelete, files
         if (onDelete) {
           onDelete(file.id);
         }
-        showSuccess(t('fileUploader.deleteQueued') || 'Delete queued and will sync when online');
+        showSuccess(t('fileUploader.deleteQueued'));
         return;
       }
 
@@ -236,7 +236,7 @@ export function FileUploader({ constructionId, onUploadComplete, onDelete, files
           if (onDelete) {
             onDelete(file.id);
           }
-          showSuccess(t('fileUploader.deleteQueued') || 'Delete queued and will sync when online');
+          showSuccess(t('fileUploader.deleteQueued'));
           return;
         } catch (queueError) {
           const queueAppError = errorHandler.handle(queueError, 'FileUploader.queueDelete');

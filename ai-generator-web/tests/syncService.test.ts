@@ -74,6 +74,14 @@ const fromMock = vi.hoisted(() =>
         }),
       }),
     }),
+    upsert: (row: Record<string, unknown>) => ({
+      select: () => ({
+        single: async () => ({
+          data: { id: String(row.id || `server-${table}-id`), ...row },
+          error: null,
+        }),
+      }),
+    }),
     update: (data: Record<string, unknown>) => ({
       eq: (_field: string, id: string) => ({
         select: () => ({
@@ -127,6 +135,7 @@ vi.mock('../src/lib/supabase', () => ({
       setSession: vi.fn(async () => ({ data: { session: null }, error: null })),
       getUser: vi.fn(async () => ({ data: { user: null }, error: null })),
       signUp: vi.fn(async () => ({ data: { user: { id: 'new-user-id' } }, error: null })),
+      resetPasswordForEmail: vi.fn(async () => ({ data: {}, error: null })),
     },
     storage: {
       from: vi.fn(() => ({
@@ -328,5 +337,41 @@ describe('syncService offline flows', () => {
     expect(result.total).toBe(1);
     expect(result.success).toBe(1);
     expect(offlineDbMock.removeSyncOperation).toHaveBeenCalledWith('op-export-history');
+  });
+
+  it('creates queued examiner without storing plaintext password and requests password reset email', async () => {
+    testState.pendingOps = [{
+      id: 'op-examiner-create',
+      store: 'examiners',
+      operation: 'create',
+      data: {
+        email: 'offline-new@example.com',
+        password_mode: 'reset_link',
+        name: 'Offline',
+        last_name: 'Examiner',
+        username: 'offline.examiner',
+        role: 'user',
+        accreditations: [1],
+      },
+      entityId: 'temp_examiner_1',
+      timestamp: 1,
+      retryCount: 0,
+      status: 'pending',
+    }];
+
+    const result = await syncPendingOperations();
+    const supabaseModule = await import('../src/lib/supabase');
+    const auth = supabaseModule.supabase.auth as {
+      signUp: ReturnType<typeof vi.fn>;
+      resetPasswordForEmail: ReturnType<typeof vi.fn>;
+    };
+
+    expect(result.success).toBe(1);
+    expect(auth.signUp).toHaveBeenCalledTimes(1);
+    expect(auth.resetPasswordForEmail).toHaveBeenCalledWith('offline-new@example.com');
+    const signUpArgs = auth.signUp.mock.calls[0][0];
+    expect(typeof signUpArgs.password).toBe('string');
+    expect(signUpArgs.password.length).toBeGreaterThanOrEqual(8);
+    expect(offlineDbMock.removeSyncOperation).toHaveBeenCalledWith('op-examiner-create');
   });
 });

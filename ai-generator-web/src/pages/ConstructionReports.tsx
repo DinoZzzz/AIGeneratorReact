@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Loader2, ArrowLeft, Archive } from 'lucide-react';
 import type { ReportForm, ReportFile, Profile } from '../types';
@@ -22,6 +22,7 @@ import { useOffline } from '../context/OfflineContext';
 import { useCustomer } from '../hooks/useCustomers';
 import { useConstruction } from '../hooks/useConstructions';
 import { getByIndex, saveManyToStore, STORES } from '../lib/offlineDb';
+import { createQueuedUploadPreviewUrlMap, revokePreviewUrls } from '../lib/offlineUploadPreview';
 import {
     useCreateReport,
     useDeleteReport,
@@ -77,6 +78,7 @@ export const ConstructionReports = () => {
     const [isExporting, setIsExporting] = useState(false);
     const [actionMessage, setActionMessage] = useState<{ text: string; type: 'info' | 'error' } | null>(null);
     const [uploadedFiles, setUploadedFiles] = useState<ReportFile[]>([]);
+    const queuedUploadPreviewUrlsRef = useRef<string[]>([]);
 
     // Section name dialog state
     const [sectionDialogOpen, setSectionDialogOpen] = useState(false);
@@ -139,33 +141,91 @@ export const ConstructionReports = () => {
     }, [construction?.id]);
 
     const loadFiles = async () => {
+        const clearQueuedUploadPreviews = () => {
+            revokePreviewUrls(queuedUploadPreviewUrlsRef.current);
+            queuedUploadPreviewUrlsRef.current = [];
+        };
+        const hydrateQueuedPreviewUrls = (
+            files: ReportFile[],
+            queuedPreviewUrls: Map<string, string>
+        ): ReportFile[] => {
+            return files.map((file) => {
+                const previewUrl = queuedPreviewUrls.get(file.id);
+                if (!previewUrl) {
+                    return file;
+                }
+
+                return {
+                    ...file,
+                    file_path: previewUrl
+                };
+            });
+        };
+
         try {
             if (isOnline) {
                 try {
-                    const { data, error } = await supabase
-                        .from('report_files')
-                        .select('*')
-                        .eq('construction_id', constructionId!)
-                        .order('created_at', { ascending: false });
+                    const [{ data, error }, offlineFiles, queuedPreviewUrls] = await Promise.all([
+                        supabase
+                            .from('report_files')
+                            .select('*')
+                            .eq('construction_id', constructionId!)
+                            .order('created_at', { ascending: false }),
+                        getByIndex<ReportFile>(STORES.REPORT_FILES, 'construction_id', constructionId!),
+                        createQueuedUploadPreviewUrlMap('report_file_upload')
+                    ]);
 
-                    if (error) throw error;
-                    setUploadedFiles((data || []) as ReportFile[]);
-                    await saveManyToStore(STORES.REPORT_FILES, (data || []) as ReportFile[]);
+                    if (error) {
+                        revokePreviewUrls(queuedPreviewUrls.values());
+                        throw error;
+                    }
+
+                    const remoteFiles = (data || []) as ReportFile[];
+                    const hydratedOfflineFiles = hydrateQueuedPreviewUrls(offlineFiles, queuedPreviewUrls);
+                    const pendingLocalFiles = hydratedOfflineFiles.filter((file) => file.id.startsWith('temp_file_'));
+                    const mergedFiles = [...remoteFiles];
+                    for (const pendingFile of pendingLocalFiles) {
+                        if (!mergedFiles.some((remoteFile) => remoteFile.id === pendingFile.id)) {
+                            mergedFiles.push(pendingFile);
+                        }
+                    }
+
+                    clearQueuedUploadPreviews();
+                    queuedUploadPreviewUrlsRef.current = Array.from(queuedPreviewUrls.values());
+                    setUploadedFiles(
+                        mergedFiles.sort(
+                            (left, right) => new Date(right.created_at).getTime() - new Date(left.created_at).getTime()
+                        )
+                    );
+                    await saveManyToStore(STORES.REPORT_FILES, remoteFiles);
                     return;
                 } catch (error) {
                     if (!isNetworkError(error)) throw error;
                 }
             }
 
-            const offlineFiles = await getByIndex<ReportFile>(STORES.REPORT_FILES, 'construction_id', constructionId!);
-            const sortedOfflineFiles = offlineFiles.sort(
+            const [offlineFiles, queuedPreviewUrls] = await Promise.all([
+                getByIndex<ReportFile>(STORES.REPORT_FILES, 'construction_id', constructionId!),
+                createQueuedUploadPreviewUrlMap('report_file_upload')
+            ]);
+            clearQueuedUploadPreviews();
+            queuedUploadPreviewUrlsRef.current = Array.from(queuedPreviewUrls.values());
+            const hydratedOfflineFiles = hydrateQueuedPreviewUrls(offlineFiles, queuedPreviewUrls);
+            const sortedHydratedOfflineFiles = hydratedOfflineFiles.sort(
                 (left, right) => new Date(right.created_at).getTime() - new Date(left.created_at).getTime()
             );
-            setUploadedFiles(sortedOfflineFiles);
+            setUploadedFiles(sortedHydratedOfflineFiles);
         } catch (error) {
             errorHandler.handle(error, 'ConstructionReports');
         }
     };
+
+    useEffect(() => {
+        return () => {
+            revokePreviewUrls(queuedUploadPreviewUrlsRef.current);
+            queuedUploadPreviewUrlsRef.current = [];
+        };
+    }, []);
 
     const handleFileUploaded = (file: ReportFile) => {
         setUploadedFiles([file, ...uploadedFiles]);

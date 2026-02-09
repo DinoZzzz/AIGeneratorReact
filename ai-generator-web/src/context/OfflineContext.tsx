@@ -14,9 +14,11 @@ import {
   getDiscardedSyncOperations,
   getFailedSyncOperations,
   getSyncQueueSummary,
+  cleanupStaleUploadOperations,
   resetStuckSyncOperations,
   type SyncOperation
 } from '../lib/offlineDb';
+import { captureError, logger } from '../lib/sentry';
 
 interface SyncStatus {
   total: number;
@@ -53,6 +55,8 @@ const PENDING_CHECK_INTERVAL_MS = 10000;
 const AUTO_SYNC_INTERVAL_MS = 60000;
 // How long to display sync status after completion
 const SYNC_STATUS_CLEAR_MS = 3000;
+// Queue cleanup interval to bound offline upload blob storage.
+const UPLOAD_CLEANUP_INTERVAL_MS = 5 * 60 * 1000;
 
 export const OfflineProvider = ({ children }: { children: ReactNode }) => {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
@@ -66,10 +70,24 @@ export const OfflineProvider = ({ children }: { children: ReactNode }) => {
 
   const syncTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const hasPendingSync = useRef(false);
+  const lastUploadCleanupAtRef = useRef(0);
+
+  const runUploadQueueCleanup = useCallback(async (force = false) => {
+    if (!force && Date.now() - lastUploadCleanupAtRef.current < UPLOAD_CLEANUP_INTERVAL_MS) {
+      return;
+    }
+
+    lastUploadCleanupAtRef.current = Date.now();
+    const cleanupResult = await cleanupStaleUploadOperations();
+    if (cleanupResult.removed > 0) {
+      logger.warn('Offline upload queue cleanup removed stale items', cleanupResult);
+    }
+  }, []);
 
   // Update pending changes count
   const updatePendingCount = useCallback(async () => {
     try {
+      await runUploadQueueCleanup();
       const [summary, failedOps, discardedOps] = await Promise.all([
         getSyncQueueSummary(),
         getFailedSyncOperations(),
@@ -83,7 +101,7 @@ export const OfflineProvider = ({ children }: { children: ReactNode }) => {
     } catch (error) {
       console.error('Failed to get pending sync count:', error);
     }
-  }, []);
+  }, [runUploadQueueCleanup]);
 
   // Trigger sync with debouncing
   const triggerSync = useCallback(async () => {
@@ -255,6 +273,38 @@ export const OfflineProvider = ({ children }: { children: ReactNode }) => {
           );
           void updatePendingCount();
           break;
+        case 'sync_operation':
+          if (event.outcome === 'failure') {
+            logger.error('Offline sync operation failed', {
+              scope: event.scope,
+              store: event.store,
+              operation: event.operation,
+              entityId: event.entityId,
+              kind: event.kind,
+              error: event.error,
+            });
+            if (event.error) {
+              captureError(new Error(event.error), {
+                scope: event.scope,
+                store: event.store,
+                operation: event.operation,
+                entityId: event.entityId,
+                kind: event.kind,
+                telemetry: 'offline_sync',
+              });
+            }
+            break;
+          }
+
+          logger.info('Offline sync operation telemetry', {
+            scope: event.scope,
+            outcome: event.outcome,
+            store: event.store,
+            operation: event.operation,
+            entityId: event.entityId,
+            kind: event.kind,
+          });
+          break;
       }
     });
 
@@ -272,6 +322,7 @@ export const OfflineProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     const initializeOfflineSync = async () => {
       try {
+        await runUploadQueueCleanup(true);
         const recoveredCount = await resetStuckSyncOperations();
         if (recoveredCount > 0) {
           await updatePendingCount();
@@ -286,7 +337,7 @@ export const OfflineProvider = ({ children }: { children: ReactNode }) => {
     };
 
     void initializeOfflineSync();
-  }, [triggerSync, updatePendingCount]);
+  }, [runUploadQueueCleanup, triggerSync, updatePendingCount]);
 
   // Best-effort periodic sync while the app remains open.
   useEffect(() => {

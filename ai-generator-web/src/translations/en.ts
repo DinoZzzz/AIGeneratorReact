@@ -196,7 +196,6 @@ export const en: Record<string, string> = {
     'examiners.deleteWarning': 'This action cannot be undone.',
     'examiners.edit': 'Edit examiner',
     'examiners.delete': 'Delete examiner',
-    'examiners.createOnlineOnly': 'New examiner creation requires an internet connection.',
 
     // Customers
     'customers.title': 'Customers',
@@ -462,9 +461,11 @@ export const en: Record<string, string> = {
     // File Uploader
     'fileUploader.invalidFileType': 'Only images (JPG, PNG) and PDF files are allowed',
     'fileUploader.uploadSuccess': 'File uploaded successfully!',
+    'fileUploader.uploadQueued': 'File saved offline and queued for sync.',
     'fileUploader.uploadError': 'Upload error',
     'fileUploader.deleteConfirm': 'Are you sure you want to delete {name}?',
     'fileUploader.deleteSuccess': 'File deleted!',
+    'fileUploader.deleteQueued': 'Delete queued and will sync when online.',
     'fileUploader.deleteError': 'Delete error',
     'fileUploader.dragDrop': 'Drag a file here or click to select',
     'fileUploader.supportedFiles': 'Supported files: JPG, PNG, PDF',
@@ -505,7 +506,6 @@ export const en: Record<string, string> = {
     'materials.confirmDelete': 'Delete Material',
     'materials.shaftSingular': 'Shaft material',
     'materials.pipeSingular': 'Pipe material',
-    'materials.createOnlineOnly': 'Creating materials requires an internet connection.',
 
     // Analytics
     'analytics.title': 'Analytics',
@@ -555,6 +555,7 @@ export const en: Record<string, string> = {
     'profile.avatarUploaded': 'Profile picture updated successfully',
     'profile.avatarUploadFailed': 'Failed to upload image',
     'profile.avatarUploadOnlineOnly': 'Avatar upload requires an internet connection.',
+    'profile.avatarUploadQueued': 'Avatar saved offline and queued for sync.',
     'profile.saved': 'Profile saved successfully',
     'profile.saveFailed': 'Failed to save profile',
     'profile.emailReadOnly': 'Email address cannot be changed. Contact administrator for changes.',
@@ -651,6 +652,8 @@ export const en: Record<string, string> = {
     'certifiers.deleteSignatureConfirm': 'Are you sure you want to delete this certifier\'s signature?',
     'certifiers.signatureUploaded': 'Signature uploaded successfully.',
     'certifiers.signatureDeleted': 'Signature deleted successfully.',
+    'certifiers.signatureQueued': 'Signature saved offline and queued for sync.',
+    'certifiers.signatureDeleteQueued': 'Signature delete queued for sync.',
     'certifiers.signatureOfflineUnsupported': 'Signature changes require an internet connection.',
     'certifiers.invalidFileType': 'Invalid file type. Supported formats: PNG, JPG, JPEG, GIF, WEBP',
     'certifiers.fileTooLarge': 'File too large. Maximum size: 2MB',
@@ -675,6 +678,7 @@ export const en: Record<string, string> = {
     'templateEditor.previousVersions': 'Previous Versions',
     'templateEditor.restore': 'Restore',
     'templateEditor.uploadSuccess': 'Template uploaded successfully',
+    'templateEditor.uploadQueued': 'Template upload queued for sync.',
     'templateEditor.uploadError': 'Error uploading template',
     'templateEditor.rollbackConfirm': 'Are you sure you want to restore this template version?',
     'templateEditor.rollbackSuccess': 'Template restored successfully',
@@ -682,6 +686,7 @@ export const en: Record<string, string> = {
     'templateEditor.deleteBackupConfirm': 'Are you sure you want to delete this backup?',
     'templateEditor.deleteBackupSuccess': 'Backup deleted successfully',
     'templateEditor.deleteBackupError': 'Error deleting backup',
+    'templateEditor.pendingSync': 'Pending sync',
     'templateEditor.onlineRequired': 'Template actions require an internet connection.',
 
     // Scheme Manager
@@ -693,6 +698,7 @@ export const en: Record<string, string> = {
     'schemeManager.dragDrop': 'Drag and drop or click to upload',
     'schemeManager.upload': 'Upload',
     'schemeManager.uploadSuccess': 'Scheme image uploaded successfully',
+    'schemeManager.uploadQueued': 'Image saved offline and queued for sync.',
     'schemeManager.uploadError': 'Error uploading image',
     'schemeManager.name': 'Name',
     'schemeManager.description': 'Description',

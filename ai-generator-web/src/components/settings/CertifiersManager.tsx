@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Loader2, Plus, Trash2, Edit, Star, Upload, X } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
 import { useToast } from '../../context/ToastContext';
@@ -6,6 +6,7 @@ import { useConfirm } from '../../context/useConfirm';
 import { useOffline } from '../../context/OfflineContext';
 import { certifierService, type Certifier } from '../../services/certifierService';
 import { isNetworkError } from '../../lib/errorHandler';
+import { createQueuedUploadPreviewUrlMap, revokePreviewUrls } from '../../lib/offlineUploadPreview';
 import {
     STORES,
     addToSyncQueue,
@@ -22,6 +23,7 @@ export const CertifiersManager = () => {
     const { addToast } = useToast();
     const confirm = useConfirm();
     const { isOnline, triggerSync } = useOffline();
+    const signaturePreviewUrlsRef = useRef<string[]>([]);
 
     const [certifiers, setCertifiers] = useState<Certifier[]>([]);
     const [certifiersLoading, setCertifiersLoading] = useState(true);
@@ -29,13 +31,33 @@ export const CertifiersManager = () => {
     const [editingCertifier, setEditingCertifier] = useState<Certifier | null>(null);
     const [certifierForm, setCertifierForm] = useState({ name: '', title: '' });
 
-    const loadOfflineCertifiers = async (): Promise<Certifier[]> => {
-        const cached = await getAllFromStore<Certifier>(STORES.CERTIFIERS);
-        return cached.sort((left, right) => {
+    const hydrateQueuedSignaturePreviews = async (rows: Certifier[]): Promise<Certifier[]> => {
+        const previewMap = await createQueuedUploadPreviewUrlMap('certifier_signature_upload');
+        revokePreviewUrls(signaturePreviewUrlsRef.current);
+        signaturePreviewUrlsRef.current = Array.from(previewMap.values());
+
+        const hydrated = rows.map((certifier) => {
+            const previewUrl = previewMap.get(certifier.id);
+            if (!previewUrl) {
+                return certifier;
+            }
+
+            return {
+                ...certifier,
+                signature_url: previewUrl,
+            };
+        });
+
+        return hydrated.sort((left, right) => {
             if (left.is_default && !right.is_default) return -1;
             if (!left.is_default && right.is_default) return 1;
             return (left.name || '').localeCompare(right.name || '');
         });
+    };
+
+    const loadOfflineCertifiers = async (): Promise<Certifier[]> => {
+        const cached = await getAllFromStore<Certifier>(STORES.CERTIFIERS);
+        return hydrateQueuedSignaturePreviews(cached);
     };
 
     const createCertifierOffline = async (payload: Omit<Certifier, 'id' | 'created_at'>): Promise<Certifier> => {
@@ -89,7 +111,7 @@ export const CertifiersManager = () => {
             if (isOnline) {
                 const data = await certifierService.getAll();
                 await saveManyToStore(STORES.CERTIFIERS, data);
-                setCertifiers(data);
+                setCertifiers(await hydrateQueuedSignaturePreviews(data));
                 return;
             }
 
@@ -106,6 +128,13 @@ export const CertifiersManager = () => {
             setCertifiersLoading(false);
         }
     };
+
+    useEffect(() => {
+        return () => {
+            revokePreviewUrls(signaturePreviewUrlsRef.current);
+            signaturePreviewUrlsRef.current = [];
+        };
+    }, []);
 
     const handleAddCertifier = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -241,11 +270,11 @@ export const CertifiersManager = () => {
     const handleSignatureUpload = async (certifierId: string, file: File | undefined) => {
         if (!file) return;
         if (!file.type.startsWith('image/')) {
-            addToast(t('certifiers.invalidFileType') || 'Please upload an image file', 'error');
+            addToast(t('certifiers.invalidFileType'), 'error');
             return;
         }
         if (file.size > 2 * 1024 * 1024) {
-            addToast(t('certifiers.fileTooLarge') || 'File size must be less than 2MB', 'error');
+            addToast(t('certifiers.fileTooLarge'), 'error');
             return;
         }
 
@@ -275,14 +304,14 @@ export const CertifiersManager = () => {
                 },
                 certifierId
             );
-            addToast(t('certifiers.signatureQueued') || 'Signature saved offline and queued for sync', 'success');
+            addToast(t('certifiers.signatureQueued'), 'success');
         };
 
         try {
             if (isOnline) {
                 try {
                     await certifierService.uploadSignature(certifierId, file);
-                    addToast(t('certifiers.signatureUploaded') || 'Signature uploaded successfully', 'success');
+                    addToast(t('certifiers.signatureUploaded'), 'success');
                     await fetchCertifiers();
                     return;
                 } catch (error) {
@@ -298,7 +327,7 @@ export const CertifiersManager = () => {
     };
 
     const handleDeleteSignature = async (certifierId: string) => {
-        if (!(await confirm({ title: t('certifiers.deleteSignatureConfirm') || 'Are you sure you want to delete this signature?', variant: 'destructive' }))) return;
+        if (!(await confirm({ title: t('certifiers.deleteSignatureConfirm'), variant: 'destructive' }))) return;
 
         const queueSignatureDeleteOffline = async () => {
             const certifier = await getFromStore<Certifier>(STORES.CERTIFIERS, certifierId);
@@ -326,14 +355,14 @@ export const CertifiersManager = () => {
                 },
                 certifierId
             );
-            addToast(t('certifiers.signatureDeleteQueued') || 'Signature delete queued for sync', 'success');
+            addToast(t('certifiers.signatureDeleteQueued'), 'success');
         };
 
         try {
             if (isOnline) {
                 try {
                     await certifierService.deleteSignature(certifierId);
-                    addToast(t('certifiers.signatureDeleted') || 'Signature deleted', 'success');
+                    addToast(t('certifiers.signatureDeleted'), 'success');
                     await fetchCertifiers();
                     return;
                 } catch (error) {
@@ -496,19 +525,19 @@ export const CertifiersManager = () => {
                                     {/* Signature Section */}
                                     <div className="flex items-center gap-3 pl-0 sm:pl-7 border-t border-border/50 pt-3">
                                         <span className="text-xs text-muted-foreground min-w-[60px]">
-                                            {t('certifiers.signature') || 'Potpis'}:
+                                            {t('certifiers.signature')}:
                                         </span>
                                         {certifier.signature_url ? (
                                             <div className="flex items-center gap-2">
                                                 <img
                                                     src={certifier.signature_url}
-                                                    alt={t('certifiers.signature') || 'Potpis'}
+                                                    alt={t('certifiers.signature')}
                                                     className="h-10 max-w-32 object-contain border border-border rounded bg-card"
                                                 />
                                                 <button
                                                     onClick={() => handleDeleteSignature(certifier.id)}
                                                     className="p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded transition-colors"
-                                                    title={t('certifiers.deleteSignature') || 'Obriši potpis'}
+                                                    title={t('certifiers.deleteSignature')}
                                                 >
                                                     <X className="h-4 w-4" />
                                                 </button>
@@ -517,7 +546,7 @@ export const CertifiersManager = () => {
                                             <label className="flex items-center gap-2 cursor-pointer text-xs text-muted-foreground hover:text-primary transition-colors">
                                                 <div className="flex items-center gap-1 px-2 py-1.5 border border-dashed border-border rounded hover:border-primary/50 hover:bg-primary/5 transition-colors">
                                                     <Upload className="h-3.5 w-3.5" />
-                                                    <span>{t('certifiers.uploadSignature') || 'Učitaj potpis'}</span>
+                                                    <span>{t('certifiers.uploadSignature')}</span>
                                                 </div>
                                                 <input
                                                     type="file"

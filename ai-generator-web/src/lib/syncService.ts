@@ -64,13 +64,27 @@ const getRetryDelay = (retryCount: number): number => {
  */
 const delay = (ms: number): Promise<void> => new Promise(resolve => setTimeout(resolve, ms));
 
-type SyncEventCallback = (event: {
+type SyncLifecycleEvent = {
   type: 'sync_start' | 'sync_complete' | 'sync_error' | 'sync_progress';
   total?: number;
   completed?: number;
   failed?: number;
   error?: string;
-}) => void;
+};
+
+type SyncOperationTelemetryEvent = {
+  type: 'sync_operation';
+  scope: 'upload' | 'conflict';
+  outcome: 'success' | 'failure' | 'resolved_server' | 'resolved_local' | 'queued_retry';
+  store: SyncOperation['store'];
+  operation: SyncOperation['operation'];
+  entityId?: string;
+  kind?: string;
+  error?: string;
+};
+
+type SyncEvent = SyncLifecycleEvent | SyncOperationTelemetryEvent;
+type SyncEventCallback = (event: SyncEvent) => void;
 
 let syncInProgress = false;
 const syncListeners: Set<SyncEventCallback> = new Set();
@@ -178,7 +192,8 @@ type UploadOperationData =
 
 interface ExaminerCreateOperationData {
   email: string;
-  password: string;
+  password?: string;
+  password_mode?: 'direct' | 'reset_link';
   name: string;
   last_name: string;
   username: string;
@@ -210,6 +225,62 @@ const ensureBlob = (value: unknown, label: string): Blob => {
     return value;
   }
   throw new Error(`Missing binary payload for ${label}`);
+};
+
+const isWeakPasswordError = (error: unknown): boolean => {
+  if (!error || typeof error !== 'object') {
+    return false;
+  }
+
+  const code = (error as { code?: unknown }).code;
+  if (typeof code === 'string' && code.toLowerCase() === 'weak_password') {
+    return true;
+  }
+
+  const message = (error as { message?: unknown }).message;
+  return typeof message === 'string' && message.toLowerCase().includes('weak');
+};
+
+const getUploadOperationKind = (data: unknown): UploadOperationData['kind'] | undefined => {
+  if (!data || typeof data !== 'object' || Array.isArray(data)) {
+    return undefined;
+  }
+
+  const kind = (data as { kind?: unknown }).kind;
+  return typeof kind === 'string'
+    ? kind as UploadOperationData['kind']
+    : undefined;
+};
+
+const randomChar = (pool: string): string => {
+  const random = crypto.getRandomValues(new Uint32Array(1))[0];
+  return pool[random % pool.length];
+};
+
+const generateStrongTemporaryPassword = (): string => {
+  const upper = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+  const lower = 'abcdefghijkmnopqrstuvwxyz';
+  const digits = '23456789';
+  const symbols = '!@#$%^&*()-_=+';
+  const allChars = `${upper}${lower}${digits}${symbols}`;
+
+  const chars = [
+    randomChar(upper),
+    randomChar(lower),
+    randomChar(digits),
+    randomChar(symbols),
+  ];
+
+  while (chars.length < 18) {
+    chars.push(randomChar(allChars));
+  }
+
+  for (let index = chars.length - 1; index > 0; index--) {
+    const swapIndex = crypto.getRandomValues(new Uint32Array(1))[0] % (index + 1);
+    [chars[index], chars[swapIndex]] = [chars[swapIndex], chars[index]];
+  }
+
+  return chars.join('');
 };
 
 const getFileExtension = (fileName: string, fallback: string): string => {
@@ -552,23 +623,35 @@ const syncCreateExaminer = async (
   }
 
   const payload = mappedData as ExaminerCreateOperationData;
-  if (!payload.email || !payload.password || !payload.name || !payload.last_name || !payload.username) {
+  if (!payload.email || !payload.name || !payload.last_name || !payload.username) {
     throw new Error('Invalid examiner create payload: missing required fields');
   }
 
   const { data: { session: currentSession } } = await supabase.auth.getSession();
 
-  const { data: authData, error: authError } = await supabase.auth.signUp({
-    email: payload.email,
-    password: payload.password,
-    options: {
-      data: {
-        name: payload.name,
-        last_name: payload.last_name,
-        username: payload.username,
+  const signUpWithPassword = async (password: string) => {
+    return supabase.auth.signUp({
+      email: payload.email,
+      password,
+      options: {
+        data: {
+          name: payload.name,
+          last_name: payload.last_name,
+          username: payload.username,
+        },
       },
-    },
-  });
+    });
+  };
+
+  let passwordForSignup = payload.password?.trim();
+  if (!passwordForSignup || passwordForSignup.length < 8 || payload.password_mode === 'reset_link') {
+    passwordForSignup = generateStrongTemporaryPassword();
+  }
+
+  let { data: authData, error: authError } = await signUpWithPassword(passwordForSignup);
+  if (authError && payload.password && isWeakPasswordError(authError)) {
+    ({ data: authData, error: authError } = await signUpWithPassword(generateStrongTemporaryPassword()));
+  }
 
   if (authError) {
     throw authError;
@@ -582,6 +665,14 @@ const syncCreateExaminer = async (
       access_token: currentSession.access_token,
       refresh_token: currentSession.refresh_token,
     });
+  }
+
+  if (!payload.password || payload.password_mode === 'reset_link') {
+    try {
+      await supabase.auth.resetPasswordForEmail(payload.email);
+    } catch (resetError) {
+      console.warn('Could not send examiner password setup email after offline sync', resetError);
+    }
   }
 
   const profilePayload = {
@@ -927,13 +1018,27 @@ const processUploadOperation = async (
     default:
       throw new Error(`Unsupported upload sync payload: ${(payload as { kind?: string }).kind || 'unknown'}`);
   }
+
+  emitSyncEvent({
+    type: 'sync_operation',
+    scope: 'upload',
+    outcome: 'success',
+    store: operation.store,
+    operation: operation.operation,
+    entityId: operation.entityId,
+    kind: payload.kind,
+  });
 };
 
 const handleOperationFailure = async (operation: SyncOperation, error: unknown): Promise<boolean> => {
   const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-  const normalizedError = isConflictErrorMessage(errorMessage) ? `Conflict: ${errorMessage}` : errorMessage;
+  const isConflictError = isConflictErrorMessage(errorMessage);
+  const normalizedError = isConflictError ? `Conflict: ${errorMessage}` : errorMessage;
   const isNetwork = isNetworkError(error);
   const nextRetryCount = operation.retryCount + 1;
+  const uploadKind = operation.store === STORES.UPLOADS
+    ? getUploadOperationKind(operation.data)
+    : undefined;
 
   console.error('Sync operation failed:', {
     operation: operation.operation,
@@ -943,6 +1048,31 @@ const handleOperationFailure = async (operation: SyncOperation, error: unknown):
     isNetworkError: isNetwork,
     error: normalizedError,
   });
+
+  if (operation.store === STORES.UPLOADS) {
+    emitSyncEvent({
+      type: 'sync_operation',
+      scope: 'upload',
+      outcome: 'failure',
+      store: operation.store,
+      operation: operation.operation,
+      entityId: operation.entityId,
+      kind: uploadKind,
+      error: normalizedError,
+    });
+  }
+
+  if (isConflictError) {
+    emitSyncEvent({
+      type: 'sync_operation',
+      scope: 'conflict',
+      outcome: 'failure',
+      store: operation.store,
+      operation: operation.operation,
+      entityId: operation.entityId,
+      error: normalizedError,
+    });
+  }
 
   if (nextRetryCount >= MAX_RETRY_COUNT) {
     await updateSyncOperationStatus(operation.id, 'failed', normalizedError);
@@ -1350,6 +1480,14 @@ export const resolveConflictUseServerById = async (operationId: string): Promise
         await deleteFromStore(STORES.EXPORT_HISTORY, targetOperation.entityId);
       }
       await removeSyncOperation(targetOperation.id);
+      emitSyncEvent({
+        type: 'sync_operation',
+        scope: 'conflict',
+        outcome: 'resolved_server',
+        store: targetOperation.store,
+        operation: targetOperation.operation,
+        entityId: targetOperation.entityId,
+      });
       return true;
     }
 
@@ -1370,9 +1508,26 @@ export const resolveConflictUseServerById = async (operationId: string): Promise
     }
 
     await removeSyncOperation(targetOperation.id);
+    emitSyncEvent({
+      type: 'sync_operation',
+      scope: 'conflict',
+      outcome: 'resolved_server',
+      store: targetOperation.store,
+      operation: targetOperation.operation,
+      entityId: targetOperation.entityId,
+    });
     return true;
   } catch (error) {
     console.error('Failed to resolve conflict using server version', error);
+    emitSyncEvent({
+      type: 'sync_operation',
+      scope: 'conflict',
+      outcome: 'failure',
+      store: targetOperation.store,
+      operation: targetOperation.operation,
+      entityId: targetOperation.entityId,
+      error: error instanceof Error ? error.message : 'Unknown conflict resolution error',
+    });
     return false;
   }
 };
@@ -1397,12 +1552,28 @@ export const resolveConflictPreferLocalById = async (operationId: string): Promi
 
     if (targetOperation.store === STORES.EXPORT_HISTORY || targetOperation.store === STORES.UPLOADS) {
       await resetSyncOperationForRetry(targetOperation.id);
+      emitSyncEvent({
+        type: 'sync_operation',
+        scope: 'conflict',
+        outcome: 'queued_retry',
+        store: targetOperation.store,
+        operation: targetOperation.operation,
+        entityId: targetOperation.entityId,
+      });
       return true;
     }
 
     const tableName = storeToTable[targetOperation.store];
     if (!tableName) {
       await resetSyncOperationForRetry(targetOperation.id);
+      emitSyncEvent({
+        type: 'sync_operation',
+        scope: 'conflict',
+        outcome: 'queued_retry',
+        store: targetOperation.store,
+        operation: targetOperation.operation,
+        entityId: targetOperation.entityId,
+      });
       return true;
     }
 
@@ -1430,6 +1601,14 @@ export const resolveConflictPreferLocalById = async (operationId: string): Promi
         );
       }
       await removeSyncOperation(targetOperation.id);
+      emitSyncEvent({
+        type: 'sync_operation',
+        scope: 'conflict',
+        outcome: 'resolved_local',
+        store: targetOperation.store,
+        operation: targetOperation.operation,
+        entityId: targetOperation.entityId,
+      });
       return true;
     }
 
@@ -1448,6 +1627,14 @@ export const resolveConflictPreferLocalById = async (operationId: string): Promi
 
       if (isUnsyncedTempCreate) {
         await resetSyncOperationForRetry(targetOperation.id);
+        emitSyncEvent({
+          type: 'sync_operation',
+          scope: 'conflict',
+          outcome: 'queued_retry',
+          store: targetOperation.store,
+          operation: targetOperation.operation,
+          entityId: targetOperation.entityId,
+        });
         return true;
       }
 
@@ -1471,6 +1658,14 @@ export const resolveConflictPreferLocalById = async (operationId: string): Promi
       }
       await saveToStore(targetOperation.store, { ...data, _synced: true });
       await removeSyncOperation(targetOperation.id);
+      emitSyncEvent({
+        type: 'sync_operation',
+        scope: 'conflict',
+        outcome: 'resolved_local',
+        store: targetOperation.store,
+        operation: targetOperation.operation,
+        entityId: targetOperation.entityId,
+      });
       return true;
     }
 
@@ -1488,9 +1683,26 @@ export const resolveConflictPreferLocalById = async (operationId: string): Promi
 
     await saveToStore(targetOperation.store, { ...data, _synced: true });
     await removeSyncOperation(targetOperation.id);
+    emitSyncEvent({
+      type: 'sync_operation',
+      scope: 'conflict',
+      outcome: 'resolved_local',
+      store: targetOperation.store,
+      operation: targetOperation.operation,
+      entityId: targetOperation.entityId,
+    });
     return true;
   } catch (error) {
     console.error('Failed to resolve conflict preferring local version', error);
+    emitSyncEvent({
+      type: 'sync_operation',
+      scope: 'conflict',
+      outcome: 'failure',
+      store: targetOperation.store,
+      operation: targetOperation.operation,
+      entityId: targetOperation.entityId,
+      error: error instanceof Error ? error.message : 'Unknown conflict resolution error',
+    });
     return false;
   }
 };

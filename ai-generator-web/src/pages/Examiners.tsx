@@ -83,7 +83,7 @@ export const Examiners = () => {
     const createExaminerOffline = async (
         examinerData: Partial<Profile> & { password?: string }
     ): Promise<void> => {
-        if (!examinerData.email || !examinerData.password) {
+        if (!examinerData.email) {
             throw new Error(t('examiners.dialog.emailRequired'));
         }
 
@@ -108,7 +108,7 @@ export const Examiners = () => {
             'create',
             {
                 email: examinerData.email,
-                password: examinerData.password,
+                password_mode: 'reset_link',
                 name: examinerData.name,
                 last_name: examinerData.last_name,
                 username: examinerData.username,

@@ -7,6 +7,19 @@ export interface VersionHistoryItem {
 export function getVersionHistory(language: string): VersionHistoryItem[] {
     return language === 'hr' ? [
         {
+            version: '2.25.0',
+            date: '2026-02-09',
+            changes: [
+                'Offline kreiranje ispitivača više ne sprema plain-text lozinku u IndexedDB red; sync koristi sigurni privremeni password i reset-link tok',
+                'Preview uploadanih blobova sada se obnavlja nakon refresh-a za privitke izvještaja, avatar, potpise certifikatora i slike shema',
+                'Dodan automatski cleanup upload reda (limit broja, ukupne veličine i starosti blob operacija) uz čišćenje zastarjelih temp privitaka',
+                'Proširen sync telemetry za ishode upload sinkronizacije i conflict resolution akcije (server/local/retry)',
+                'Dodani novi prijevodi za offline queue poruke bez hardcoded fallback stringova',
+                'Dodana QA matrica za offline scenarije i reconnect/sync regresiju',
+                'Dodani Playwright e2e smoke testovi za PWA/offline prijelaz i deep-link reports rutu bez module import greške',
+            ]
+        },
+        {
             version: '2.24.0',
             date: '2026-02-09',
             changes: [
@@ -464,6 +477,19 @@ export function getVersionHistory(language: string): VersionHistoryItem[] {
         },
     ] : [
         // English version
+        {
+            version: '2.25.0',
+            date: '2026-02-09',
+            changes: [
+                'Offline examiner create no longer stores plain-text passwords in IndexedDB queue; sync now uses a secure temporary password + reset-link flow',
+                'Queued blob previews now rehydrate after refresh for report attachments, profile avatar, certifier signatures, and scheme images',
+                'Added automatic upload-queue cleanup limits (count, total bytes, and age) with stale temp-attachment cleanup',
+                'Expanded sync telemetry for upload outcomes and conflict resolution actions (server/local/retry)',
+                'Added missing i18n keys for offline queue messages and removed hardcoded fallback strings',
+                'Added an offline QA matrix for reconnect/sync regression coverage',
+                'Added Playwright e2e smoke coverage for PWA offline transition and deep-link reports route without module import failure',
+            ]
+        },
         {
             version: '2.24.0',
             date: '2026-02-09',

@@ -160,7 +160,7 @@ export const TemplateEditor: React.FC = () => {
                     path: 'method1610.docx',
                     size: pendingFile.size,
                     lastUpdated: now,
-                    updatedBy: t('templateEditor.pendingSync') || 'Pending sync'
+                    updatedBy: t('templateEditor.pendingSync')
                 };
                 await saveToStore(STORES.TEMPLATE_CACHE, {
                     id: ACTIVE_TEMPLATE_CACHE_ID,
@@ -169,7 +169,7 @@ export const TemplateEditor: React.FC = () => {
                 } satisfies TemplateCacheEntry<TemplateInfo | null>);
                 setActiveTemplate(queuedTemplate);
 
-                addToast(t('templateEditor.uploadQueued') || 'Template upload queued for sync', 'success');
+                addToast(t('templateEditor.uploadQueued'), 'success');
             };
 
             if (isOnline) {
@@ -212,7 +212,7 @@ export const TemplateEditor: React.FC = () => {
     const handleRollback = async (version: TemplateInfo) => {
         if (!(await confirm({ title: t('templateEditor.rollbackConfirm') }))) return;
         if (!isOnline) {
-            addToast(t('templateEditor.onlineRequired') || 'Template restore requires an internet connection', 'error');
+            addToast(t('templateEditor.onlineRequired'), 'error');
             return;
         }
 
@@ -235,7 +235,7 @@ export const TemplateEditor: React.FC = () => {
     const handleDeleteBackup = async (version: TemplateInfo) => {
         if (!(await confirm({ title: t('templateEditor.deleteBackupConfirm'), variant: 'destructive' }))) return;
         if (!isOnline) {
-            addToast(t('templateEditor.onlineRequired') || 'Template backup deletion requires an internet connection', 'error');
+            addToast(t('templateEditor.onlineRequired'), 'error');
             return;
         }
 
@@ -254,7 +254,7 @@ export const TemplateEditor: React.FC = () => {
 
     const handlePreview = async () => {
         if (!isOnline) {
-            addToast(t('templateEditor.onlineRequired') || 'Template preview requires an internet connection', 'error');
+            addToast(t('templateEditor.onlineRequired'), 'error');
             return;
         }
         // Download template for preview in external app
@@ -368,7 +368,7 @@ export const TemplateEditor: React.FC = () => {
                         </p>
                         {!isOnline && (
                             <p className="text-xs text-amber-600 mt-2">
-                                {t('templateEditor.onlineRequired') || 'Template updates require internet connection'}
+                                {t('templateEditor.onlineRequired')}
                             </p>
                         )}
                     </div>

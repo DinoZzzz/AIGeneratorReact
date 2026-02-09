@@ -6,6 +6,9 @@
 const DB_NAME = 'ai-generator-offline';
 const DB_VERSION = 4;
 const SYNC_ID_MAP_METADATA_KEY = 'sync_id_map';
+const DEFAULT_UPLOAD_SYNC_MAX_OPERATIONS = 80;
+const DEFAULT_UPLOAD_SYNC_MAX_TOTAL_BYTES = 120 * 1024 * 1024; // 120 MB
+const DEFAULT_UPLOAD_SYNC_MAX_AGE_MS = 1000 * 60 * 60 * 24 * 14; // 14 days
 
 // Store names
 export const STORES = {
@@ -48,6 +51,19 @@ interface SyncQueueSummary {
   failed: number;
   inProgress: number;
   discarded: number;
+}
+
+export interface UploadQueueCleanupOptions {
+  maxUploadOperations?: number;
+  maxTotalBytes?: number;
+  maxAgeMs?: number;
+}
+
+export interface UploadQueueCleanupResult {
+  scanned: number;
+  removed: number;
+  removedBytes: number;
+  remainingUploads: number;
 }
 
 type SyncIdMap = Record<string, string>;
@@ -351,6 +367,26 @@ export const getSyncOperationsByStatus = async (
 };
 
 /**
+ * Get all sync operations regardless of status.
+ */
+export const getAllSyncOperations = async (): Promise<SyncOperation[]> => {
+  const db = await openDatabase();
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(STORES.SYNC_QUEUE, 'readonly');
+    const store = transaction.objectStore(STORES.SYNC_QUEUE);
+    const request = store.getAll();
+
+    request.onsuccess = () => {
+      const sorted = (request.result as SyncOperation[]).sort(
+        (a, b) => a.timestamp - b.timestamp
+      );
+      resolve(sorted);
+    };
+    request.onerror = () => reject(request.error);
+  });
+};
+
+/**
  * Get failed sync operations
  */
 export const getFailedSyncOperations = async (): Promise<SyncOperation[]> => {
@@ -490,6 +526,113 @@ export const getSyncQueueSummary = async (): Promise<SyncQueueSummary> => {
     inProgress: inProgress.length,
     discarded: discarded.length,
   };
+};
+
+const getUploadBlobFromOperationData = (data: unknown): Blob | null => {
+  if (!data || typeof data !== 'object' || Array.isArray(data)) {
+    return null;
+  }
+
+  const blobValue = (data as { blob?: unknown }).blob;
+  return blobValue instanceof Blob ? blobValue : null;
+};
+
+const getUploadOperationKind = (data: unknown): string | undefined => {
+  if (!data || typeof data !== 'object' || Array.isArray(data)) {
+    return undefined;
+  }
+
+  const kindValue = (data as { kind?: unknown }).kind;
+  return typeof kindValue === 'string' && kindValue.length > 0
+    ? kindValue
+    : undefined;
+};
+
+/**
+ * Remove old/oversized queued upload operations to prevent unbounded IndexedDB growth.
+ * Keeps the newest entries first and evicts stale/overflowed blob-backed uploads.
+ */
+export const cleanupStaleUploadOperations = async (
+  options: UploadQueueCleanupOptions = {}
+): Promise<UploadQueueCleanupResult> => {
+  const maxUploadOperations = Math.max(1, options.maxUploadOperations ?? DEFAULT_UPLOAD_SYNC_MAX_OPERATIONS);
+  const maxTotalBytes = Math.max(1, options.maxTotalBytes ?? DEFAULT_UPLOAD_SYNC_MAX_TOTAL_BYTES);
+  const maxAgeMs = Math.max(60_000, options.maxAgeMs ?? DEFAULT_UPLOAD_SYNC_MAX_AGE_MS);
+  const now = Date.now();
+
+  const db = await openDatabase();
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction([STORES.SYNC_QUEUE, STORES.REPORT_FILES], 'readwrite');
+    const queueStore = transaction.objectStore(STORES.SYNC_QUEUE);
+    const reportFilesStore = transaction.objectStore(STORES.REPORT_FILES);
+    const request = queueStore.getAll();
+
+    const result: UploadQueueCleanupResult = {
+      scanned: 0,
+      removed: 0,
+      removedBytes: 0,
+      remainingUploads: 0,
+    };
+
+    request.onerror = () => reject(request.error);
+    request.onsuccess = () => {
+      const allOperations = request.result as SyncOperation[];
+      const uploadOperations = allOperations
+        .map((operation) => {
+          if (operation.store !== STORES.UPLOADS) {
+            return null;
+          }
+
+          const blob = getUploadBlobFromOperationData(operation.data);
+          if (!blob) {
+            return null;
+          }
+
+          return {
+            operation,
+            blobSize: blob.size,
+            kind: getUploadOperationKind(operation.data),
+          };
+        })
+        .filter((entry): entry is { operation: SyncOperation; blobSize: number; kind?: string } => entry !== null)
+        .sort((left, right) => right.operation.timestamp - left.operation.timestamp);
+
+      result.scanned = uploadOperations.length;
+
+      let keptCount = 0;
+      let keptBytes = 0;
+
+      for (const entry of uploadOperations) {
+        const operationAgeMs = Math.max(0, now - entry.operation.timestamp);
+        const isStale = operationAgeMs > maxAgeMs;
+        const exceedsCount = keptCount >= maxUploadOperations;
+        const exceedsSize = keptBytes + entry.blobSize > maxTotalBytes;
+
+        if (isStale || exceedsCount || exceedsSize) {
+          queueStore.delete(entry.operation.id);
+          result.removed += 1;
+          result.removedBytes += entry.blobSize;
+
+          if (
+            entry.kind === 'report_file_upload' &&
+            typeof entry.operation.entityId === 'string' &&
+            entry.operation.entityId.startsWith('temp_file_')
+          ) {
+            reportFilesStore.delete(entry.operation.entityId);
+          }
+          continue;
+        }
+
+        keptCount += 1;
+        keptBytes += entry.blobSize;
+      }
+
+      result.remainingUploads = keptCount;
+    };
+
+    transaction.oncomplete = () => resolve(result);
+    transaction.onerror = () => reject(transaction.error);
+  });
 };
 
 const isPlainObject = (value: unknown): value is Record<string, unknown> => (

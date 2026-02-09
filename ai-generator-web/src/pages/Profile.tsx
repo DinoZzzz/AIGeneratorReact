@@ -13,6 +13,7 @@ import type { Profile, ReportType } from '../types';
 import { useAnalytics } from '../hooks/useAnalytics';
 import { UserAvatar } from '../components/ui/UserAvatar';
 import { errorHandler, isNetworkError } from '../lib/errorHandler';
+import { createQueuedUploadPreviewUrlMap, revokePreviewUrls } from '../lib/offlineUploadPreview';
 import {
     STORES,
     addToSyncQueue,
@@ -121,7 +122,7 @@ export const ProfilePage = () => {
             },
             profile.id
         );
-        toast.success(t('profile.avatarUploadQueued') || 'Avatar saved offline and queued for sync');
+        toast.success(t('profile.avatarUploadQueued'));
     };
 
     const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -227,6 +228,47 @@ export const ProfilePage = () => {
             setLoading(false);
         }
     };
+
+    useEffect(() => {
+        let disposed = false;
+
+        const hydrateQueuedAvatarPreview = async () => {
+            if (!profile?.id) {
+                return;
+            }
+
+            try {
+                const previewMap = await createQueuedUploadPreviewUrlMap('profile_avatar_upload');
+                const currentProfileQueuedPreview = previewMap.get(profile.id);
+                const otherPreviewUrls = Array.from(previewMap.entries())
+                    .filter(([entityId]) => entityId !== profile.id)
+                    .map(([, previewUrl]) => previewUrl);
+
+                if (otherPreviewUrls.length > 0) {
+                    revokePreviewUrls(otherPreviewUrls);
+                }
+
+                if (disposed) {
+                    if (currentProfileQueuedPreview) {
+                        URL.revokeObjectURL(currentProfileQueuedPreview);
+                    }
+                    return;
+                }
+
+                if (currentProfileQueuedPreview) {
+                    setFormData((prev) => ({ ...prev, avatar_url: currentProfileQueuedPreview }));
+                }
+            } catch (error) {
+                console.error('Failed to hydrate queued avatar preview', error);
+            }
+        };
+
+        void hydrateQueuedAvatarPreview();
+
+        return () => {
+            disposed = true;
+        };
+    }, [profile?.id]);
 
     useEffect(() => {
         return () => {

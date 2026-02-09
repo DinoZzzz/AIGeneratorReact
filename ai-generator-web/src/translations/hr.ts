@@ -196,7 +196,6 @@ export const hr: Record<string, string> = {
     'examiners.deleteWarning': 'Ova radnja se ne može poništiti.',
     'examiners.edit': 'Uredi ispitivača',
     'examiners.delete': 'Obriši ispitivača',
-    'examiners.createOnlineOnly': 'Kreiranje novog ispitivača zahtijeva internetsku vezu.',
 
     // Customers
     'customers.title': 'Naručitelji',
@@ -462,9 +461,11 @@ export const hr: Record<string, string> = {
     // File Uploader
     'fileUploader.invalidFileType': 'Samo slike (JPG, PNG) i PDF datoteke su dozvoljene',
     'fileUploader.uploadSuccess': 'Datoteka uspješno učitana!',
+    'fileUploader.uploadQueued': 'Datoteka je spremljena offline i dodana u red za sinkronizaciju.',
     'fileUploader.uploadError': 'Greška pri učitavanju',
     'fileUploader.deleteConfirm': 'Jeste li sigurni da želite obrisati {name}?',
     'fileUploader.deleteSuccess': 'Datoteka obrisana!',
+    'fileUploader.deleteQueued': 'Brisanje je dodano u red i sinkronizirat će se kad se vrati mreža.',
     'fileUploader.deleteError': 'Greška pri brisanju',
     'fileUploader.dragDrop': 'Povucite datoteku ovdje ili kliknite za odabir',
     'fileUploader.supportedFiles': 'Podržane datoteke: JPG, PNG, PDF',
@@ -505,7 +506,6 @@ export const hr: Record<string, string> = {
     'materials.confirmDelete': 'Obriši materijal',
     'materials.shaftSingular': 'Materijal za okna',
     'materials.pipeSingular': 'Materijal za cijevi',
-    'materials.createOnlineOnly': 'Dodavanje materijala zahtijeva internetsku vezu.',
 
     // Analytics
     'analytics.title': 'Analitika',
@@ -555,6 +555,7 @@ export const hr: Record<string, string> = {
     'profile.avatarUploaded': 'Profilna slika uspješno ažurirana',
     'profile.avatarUploadFailed': 'Neuspjelo učitavanje slike',
     'profile.avatarUploadOnlineOnly': 'Učitavanje profilne slike zahtijeva internetsku vezu.',
+    'profile.avatarUploadQueued': 'Avatar je spremljen offline i dodan u red za sinkronizaciju.',
     'profile.saved': 'Profil uspješno spremljen',
     'profile.saveFailed': 'Spremanje profila nije uspjelo',
     'profile.emailReadOnly': 'Email adresu nije moguće mijenjati. Kontaktirajte administratora za promjenu.',
@@ -651,6 +652,8 @@ export const hr: Record<string, string> = {
     'certifiers.deleteSignatureConfirm': 'Jeste li sigurni da želite obrisati potpis ovog certifikatora?',
     'certifiers.signatureUploaded': 'Potpis uspješno učitan.',
     'certifiers.signatureDeleted': 'Potpis uspješno obrisan.',
+    'certifiers.signatureQueued': 'Potpis je spremljen offline i dodan u red za sinkronizaciju.',
+    'certifiers.signatureDeleteQueued': 'Brisanje potpisa je dodano u red za sinkronizaciju.',
     'certifiers.signatureOfflineUnsupported': 'Promjene potpisa zahtijevaju internetsku vezu.',
     'certifiers.invalidFileType': 'Neispravan tip datoteke. Podržani formati: PNG, JPG, JPEG, GIF, WEBP',
     'certifiers.fileTooLarge': 'Datoteka je prevelika. Maksimalna veličina: 2MB',
@@ -675,6 +678,7 @@ export const hr: Record<string, string> = {
     'templateEditor.previousVersions': 'Prethodne verzije',
     'templateEditor.restore': 'Vrati',
     'templateEditor.uploadSuccess': 'Predložak uspješno učitan',
+    'templateEditor.uploadQueued': 'Učitavanje predloška dodano je u red za sinkronizaciju.',
     'templateEditor.uploadError': 'Greška prilikom učitavanja predloška',
     'templateEditor.rollbackConfirm': 'Jeste li sigurni da želite vratiti ovu verziju predloška?',
     'templateEditor.rollbackSuccess': 'Predložak uspješno vraćen',
@@ -682,6 +686,7 @@ export const hr: Record<string, string> = {
     'templateEditor.deleteBackupConfirm': 'Jeste li sigurni da želite obrisati ovu sigurnosnu kopiju?',
     'templateEditor.deleteBackupSuccess': 'Sigurnosna kopija uspješno obrisana',
     'templateEditor.deleteBackupError': 'Greška prilikom brisanja sigurnosne kopije',
+    'templateEditor.pendingSync': 'Čeka sinkronizaciju',
     'templateEditor.onlineRequired': 'Radnje s predloškom zahtijevaju internetsku vezu.',
 
     // Scheme Manager
@@ -693,6 +698,7 @@ export const hr: Record<string, string> = {
     'schemeManager.dragDrop': 'Povucite ili kliknite za učitavanje',
     'schemeManager.upload': 'Učitaj',
     'schemeManager.uploadSuccess': 'Slika sheme uspješno učitana',
+    'schemeManager.uploadQueued': 'Slika je spremljena offline i dodana u red za sinkronizaciju.',
     'schemeManager.uploadError': 'Greška prilikom učitavanja slike',
     'schemeManager.name': 'Naziv',
     'schemeManager.description': 'Opis',
