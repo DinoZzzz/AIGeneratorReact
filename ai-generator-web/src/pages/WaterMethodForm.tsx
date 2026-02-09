@@ -1,7 +1,5 @@
-import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { reportService } from '../services/reportService';
-import { supabase } from '../lib/supabase';
 import { Input } from '../components/ui/Input';
 import { Select } from '../components/ui/Select';
 import { Button } from '../components/ui/Button';
@@ -14,6 +12,13 @@ import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { errorHandler } from '../lib/errorHandler';
+import { getLookupWithOfflineFallback } from '../lib/offlineLookupCache';
+import {
+    useCreateReport,
+    useReport,
+    useReportsByConstruction,
+    useUpdateReport
+} from '../hooks/useReports';
 
 // Dynamic import for PDF generation to reduce initial bundle size
 const generatePDF = async (report: Partial<ReportForm>, userProfile?: Profile) => {
@@ -68,6 +73,15 @@ export const WaterMethodForm = () => {
     const { t } = useLanguage();
     const { profile } = useAuth();
     const { success: showSuccess, error: showError } = useToast();
+    const isEditMode = Boolean(id && id !== 'new' && id !== 'undefined');
+    const reportId = isEditMode ? id! : '';
+    const { data: loadedReport, isLoading: isReportLoading, error: reportLoadError } = useReport(reportId);
+    const {
+        data: constructionReports = [],
+        error: constructionReportsError
+    } = useReportsByConstruction(constructionId || '');
+    const createReportMutation = useCreateReport();
+    const updateReportMutation = useUpdateReport();
     const [loading, setLoading] = useState(false);
     const [formData, setFormData] = useState<Partial<ReportForm>>(initialState);
     const [drafts, setDrafts] = useState<ReportDraft[]>([]);
@@ -77,6 +91,7 @@ export const WaterMethodForm = () => {
     const [dionicaError, setDionicaError] = useState<string>('');
     const [showMobileResults, setShowMobileResults] = useState(false);
     const [previousReport, setPreviousReport] = useState<ReportForm | null>(null);
+    const initializedFromPreviousRef = useRef(false);
 
     // Memoized calculations to prevent recalculation on every render
     const calculated = useMemo<CalculatedResults>(() => {
@@ -187,71 +202,89 @@ export const WaterMethodForm = () => {
     }, [formData.draft_id, formData.water_height, calculated.hydrostaticHeight, formData.deviation]);
 
     const loadLookups = useCallback(async () => {
-        const [draftRes, matTypeRes, matRes] = await Promise.all([
-            supabase.from('report_drafts').select('*').order('id'),
-            supabase.from('material_types').select('*').order('id'),
-            supabase.from('materials').select('*').order('name')
-        ]);
-
-        if (draftRes.data) setDrafts(draftRes.data);
-        if (matTypeRes.data) setMaterialTypes(matTypeRes.data);
-        if (matRes.data) setMaterials(matRes.data);
-    }, []);
-
-    const loadReport = useCallback(async (reportId: string) => {
         try {
-            setLoading(true);
-            const data = await reportService.getById(reportId);
-            setFormData(data);
+            const [draftData, matTypeData, materialData] = await Promise.all([
+                getLookupWithOfflineFallback<ReportDraft>('report_drafts', 'id'),
+                getLookupWithOfflineFallback<MaterialType>('material_types', 'id'),
+                getLookupWithOfflineFallback<Material>('materials', 'name')
+            ]);
+
+            setDrafts(draftData);
+            setMaterialTypes(matTypeData);
+            setMaterials(materialData);
         } catch (error) {
             const appError = errorHandler.handle(error, 'WaterMethodForm');
             showError(errorHandler.getUserMessage(appError));
-        } finally {
-            setLoading(false);
         }
     }, [showError]);
 
-    // Load previous report for copying data
-    const loadPreviousReport = useCallback(async () => {
-        if (constructionId && (!id || id === 'new')) {
-            try {
-                const normalizedCustomerId = customerId && customerId !== 'undefined' ? customerId : undefined;
-                const [lastReport, lastAnyTypeReport] = await Promise.all([
-                    reportService.getLastByConstructionAndType(constructionId, 1, normalizedCustomerId), // type_id 1 = Water
-                    reportService.getLastByConstruction(constructionId, normalizedCustomerId)
-                ]);
+    useEffect(() => {
+        loadLookups();
+    }, [loadLookups]);
 
-                if (lastReport) {
-                    setPreviousReport(lastReport);
-                    // Auto-copy general info from previous report
-                    setFormData(prev => ({
-                        ...prev,
-                        dionica: lastAnyTypeReport?.dionica || lastAnyTypeReport?.stock || prev.dionica,
-                        examination_date: lastReport.examination_date || prev.examination_date,
-                        temperature: lastReport.temperature || prev.temperature,
-                        pane_material_id: lastReport.pane_material_id || prev.pane_material_id,
-                        pipe_material_id: lastReport.pipe_material_id || prev.pipe_material_id,
-                    }));
-                } else if (lastAnyTypeReport?.dionica || lastAnyTypeReport?.stock) {
-                    setFormData(prev => ({
-                        ...prev,
-                        dionica: lastAnyTypeReport.dionica || lastAnyTypeReport.stock || prev.dionica
-                    }));
-                }
-            } catch (error) {
-                errorHandler.handle(error, 'WaterMethodForm');
-            }
+    useEffect(() => {
+        if (reportLoadError) {
+            const appError = errorHandler.handle(reportLoadError, 'WaterMethodForm');
+            showError(errorHandler.getUserMessage(appError));
         }
+    }, [reportLoadError, showError]);
+
+    useEffect(() => {
+        if (constructionReportsError) {
+            errorHandler.handle(constructionReportsError, 'WaterMethodForm');
+        }
+    }, [constructionReportsError]);
+
+    useEffect(() => {
+        if (isEditMode && loadedReport) {
+            setFormData(loadedReport);
+        }
+    }, [isEditMode, loadedReport]);
+
+    useEffect(() => {
+        initializedFromPreviousRef.current = false;
+        setPreviousReport(null);
     }, [constructionId, customerId, id]);
 
     useEffect(() => {
-        loadLookups();
-        if (id && id !== 'new') {
-            loadReport(id);
-        } else {
-            loadPreviousReport();
+        if (!constructionId || isEditMode || initializedFromPreviousRef.current) return;
+
+        const normalizedCustomerId = customerId && customerId !== 'undefined' ? customerId : undefined;
+        const candidateReports = constructionReports
+            .filter((report) => !report.section_name)
+            .filter((report) => !normalizedCustomerId || report.customer_id === normalizedCustomerId)
+            .sort((a, b) => {
+                const aTime = new Date(a.created_at || a.updated_at || a.examination_date || 0).getTime();
+                const bTime = new Date(b.created_at || b.updated_at || b.examination_date || 0).getTime();
+                return bTime - aTime;
+            });
+
+        const lastAnyTypeReport = candidateReports[0];
+        const lastReport = candidateReports.find((report) => report.type_id === 1);
+
+        if (lastReport) {
+            setPreviousReport(lastReport);
+            setFormData(prev => ({
+                ...prev,
+                dionica: lastAnyTypeReport?.dionica || lastAnyTypeReport?.stock || prev.dionica,
+                examination_date: lastReport.examination_date || prev.examination_date,
+                temperature: lastReport.temperature || prev.temperature,
+                pane_material_id: lastReport.pane_material_id || prev.pane_material_id,
+                pipe_material_id: lastReport.pipe_material_id || prev.pipe_material_id,
+            }));
+            initializedFromPreviousRef.current = true;
+            return;
         }
-    }, [id, loadLookups, loadReport, loadPreviousReport]);
+
+        if (lastAnyTypeReport?.dionica || lastAnyTypeReport?.stock) {
+            setFormData(prev => ({
+                ...prev,
+                dionica: lastAnyTypeReport.dionica || lastAnyTypeReport.stock || prev.dionica
+            }));
+        }
+
+        initializedFromPreviousRef.current = true;
+    }, [constructionId, constructionReports, customerId, isEditMode]);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
         const { name, value, type } = e.target;
@@ -294,10 +327,10 @@ export const WaterMethodForm = () => {
                 type_id: 1
             };
 
-            if (!id || id === 'new' || id === 'undefined') {
-                await reportService.create(dataToSave as ReportForm);
+            if (!isEditMode) {
+                await createReportMutation.mutateAsync(dataToSave as Partial<ReportForm>);
             } else {
-                await reportService.update(id, dataToSave as ReportForm);
+                await updateReportMutation.mutateAsync({ id: reportId, report: dataToSave as Partial<ReportForm> });
             }
 
             if (!shouldRedirect) {
@@ -376,7 +409,7 @@ export const WaterMethodForm = () => {
     const showPipeFields = [2, 3, 5].includes(formData.draft_id || 0);
     const showGullyFields = [4, 5].includes(formData.draft_id || 0);
 
-    if (loading && id && id !== 'new') {
+    if (isEditMode && isReportLoading) {
         return (
             <div className="flex justify-center items-center h-64">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />

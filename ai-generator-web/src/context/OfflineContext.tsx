@@ -1,6 +1,20 @@
 import { createContext, useContext, useEffect, useState, useCallback, useRef, type ReactNode } from 'react';
-import { syncPendingOperations, onSyncEvent, isSyncInProgress } from '../lib/syncService';
-import { getPendingSyncCount } from '../lib/offlineDb';
+import {
+  syncPendingOperations,
+  onSyncEvent,
+  isSyncInProgress,
+  retryFailedOperations,
+  retryFailedOperationById,
+  discardFailedOperationById,
+  restoreDiscardedOperationById
+} from '../lib/syncService';
+import {
+  getDiscardedSyncOperations,
+  getFailedSyncOperations,
+  getSyncQueueSummary,
+  resetStuckSyncOperations,
+  type SyncOperation
+} from '../lib/offlineDb';
 
 interface SyncStatus {
   total: number;
@@ -12,8 +26,16 @@ interface SyncStatus {
 interface OfflineContextType {
   isOnline: boolean;
   pendingChanges: number;
+  failedChanges: number;
+  discardedChanges: number;
+  failedOperations: SyncOperation[];
+  discardedOperations: SyncOperation[];
   syncStatus: SyncStatus | null;
   triggerSync: () => Promise<void>;
+  retryFailedSync: () => Promise<void>;
+  retryFailedOperation: (operationId: string) => Promise<void>;
+  discardFailedOperation: (operationId: string) => Promise<void>;
+  restoreDiscardedOperation: (operationId: string) => Promise<void>;
   lastSyncTime: Date | null;
 }
 
@@ -29,6 +51,10 @@ const SYNC_STATUS_CLEAR_MS = 3000;
 export const OfflineProvider = ({ children }: { children: ReactNode }) => {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [pendingChanges, setPendingChanges] = useState(0);
+  const [failedChanges, setFailedChanges] = useState(0);
+  const [discardedChanges, setDiscardedChanges] = useState(0);
+  const [failedOperations, setFailedOperations] = useState<SyncOperation[]>([]);
+  const [discardedOperations, setDiscardedOperations] = useState<SyncOperation[]>([]);
   const [syncStatus, setSyncStatus] = useState<SyncStatus | null>(null);
   const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null);
 
@@ -38,8 +64,16 @@ export const OfflineProvider = ({ children }: { children: ReactNode }) => {
   // Update pending changes count
   const updatePendingCount = useCallback(async () => {
     try {
-      const count = await getPendingSyncCount();
-      setPendingChanges(count);
+      const [summary, failedOps, discardedOps] = await Promise.all([
+        getSyncQueueSummary(),
+        getFailedSyncOperations(),
+        getDiscardedSyncOperations()
+      ]);
+      setPendingChanges(summary.pending + summary.failed);
+      setFailedChanges(summary.failed);
+      setDiscardedChanges(summary.discarded);
+      setFailedOperations([...failedOps].sort((a, b) => b.timestamp - a.timestamp));
+      setDiscardedOperations([...discardedOps].sort((a, b) => b.timestamp - a.timestamp));
     } catch (error) {
       console.error('Failed to get pending sync count:', error);
     }
@@ -81,6 +115,54 @@ export const OfflineProvider = ({ children }: { children: ReactNode }) => {
       }
     }, SYNC_DEBOUNCE_MS);
   }, [updatePendingCount]);
+
+  const retryFailedSync = useCallback(async () => {
+    if (!navigator.onLine) return;
+    try {
+      const retriedCount = await retryFailedOperations();
+      await updatePendingCount();
+      if (retriedCount > 0) {
+        await triggerSync();
+      }
+    } catch (error) {
+      console.error('Failed to retry sync operations:', error);
+    }
+  }, [triggerSync, updatePendingCount]);
+
+  const retryFailedOperation = useCallback(async (operationId: string) => {
+    if (!navigator.onLine) return;
+    try {
+      const didQueueRetry = await retryFailedOperationById(operationId);
+      await updatePendingCount();
+      if (didQueueRetry) {
+        await triggerSync();
+      }
+    } catch (error) {
+      console.error('Failed to retry sync operation:', error);
+    }
+  }, [triggerSync, updatePendingCount]);
+
+  const discardFailedOperation = useCallback(async (operationId: string) => {
+    try {
+      await discardFailedOperationById(operationId);
+      await updatePendingCount();
+    } catch (error) {
+      console.error('Failed to discard sync operation:', error);
+    }
+  }, [updatePendingCount]);
+
+  const restoreDiscardedOperation = useCallback(async (operationId: string) => {
+    if (!navigator.onLine) return;
+    try {
+      const restored = await restoreDiscardedOperationById(operationId);
+      await updatePendingCount();
+      if (restored) {
+        await triggerSync();
+      }
+    } catch (error) {
+      console.error('Failed to restore sync operation:', error);
+    }
+  }, [triggerSync, updatePendingCount]);
 
   // Handle online/offline events
   useEffect(() => {
@@ -131,6 +213,7 @@ export const OfflineProvider = ({ children }: { children: ReactNode }) => {
             failed: event.failed || 0,
             inProgress: false,
           });
+          void updatePendingCount();
           // Clear sync status after a delay
           setTimeout(() => setSyncStatus(null), SYNC_STATUS_CLEAR_MS);
           break;
@@ -138,12 +221,13 @@ export const OfflineProvider = ({ children }: { children: ReactNode }) => {
           setSyncStatus((prev) =>
             prev ? { ...prev, inProgress: false } : null
           );
+          void updatePendingCount();
           break;
       }
     });
 
     return unsubscribe;
-  }, []);
+  }, [updatePendingCount]);
 
   // Periodically check for pending changes
   useEffect(() => {
@@ -152,12 +236,25 @@ export const OfflineProvider = ({ children }: { children: ReactNode }) => {
     return () => clearInterval(interval);
   }, [updatePendingCount]);
 
-  // Initial sync attempt on mount if online
+  // Recover interrupted sync state and then attempt sync if online
   useEffect(() => {
-    if (navigator.onLine) {
-      triggerSync();
-    }
-  }, [triggerSync]);
+    const initializeOfflineSync = async () => {
+      try {
+        const recoveredCount = await resetStuckSyncOperations();
+        if (recoveredCount > 0) {
+          await updatePendingCount();
+        }
+      } catch (error) {
+        console.error('Failed to recover interrupted sync operations:', error);
+      }
+
+      if (navigator.onLine) {
+        await triggerSync();
+      }
+    };
+
+    void initializeOfflineSync();
+  }, [triggerSync, updatePendingCount]);
 
   // Cleanup timeout on unmount
   useEffect(() => {
@@ -173,8 +270,16 @@ export const OfflineProvider = ({ children }: { children: ReactNode }) => {
       value={{
         isOnline,
         pendingChanges,
+        failedChanges,
+        discardedChanges,
+        failedOperations,
+        discardedOperations,
         syncStatus,
         triggerSync,
+        retryFailedSync,
+        retryFailedOperation,
+        discardFailedOperation,
+        restoreDiscardedOperation,
         lastSyncTime,
       }}
     >

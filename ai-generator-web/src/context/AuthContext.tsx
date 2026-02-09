@@ -1,7 +1,9 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import type { Profile } from '../types';
 import { setUserContext, clearUserContext } from '../lib/sentry';
+import { clearStore, STORES } from '../lib/offlineDb';
+import { prewarmLookupCache } from '../lib/offlineLookupCache';
 
 type Session = Awaited<ReturnType<typeof supabase.auth.getSession>>['data']['session'];
 type User = NonNullable<Session>['user'];
@@ -39,6 +41,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const [lowBandwidthMode, setLowBandwidthMode] = useState(() => {
         return localStorage.getItem('lowBandwidthMode') === 'true';
     });
+    const warmedLookupUserRef = useRef<string | null>(null);
+
+    const clearOfflineSessionData = async () => {
+        await Promise.all([
+            clearStore(STORES.CUSTOMERS),
+            clearStore(STORES.CONSTRUCTIONS),
+            clearStore(STORES.REPORTS),
+            clearStore(STORES.APPOINTMENTS),
+            clearStore(STORES.SYNC_QUEUE),
+            clearStore(STORES.METADATA),
+        ]);
+    };
 
     useEffect(() => {
         localStorage.setItem('lowBandwidthMode', String(lowBandwidthMode));
@@ -109,11 +123,47 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [lowBandwidthMode]);
 
+    useEffect(() => {
+        const warmLookups = async () => {
+            if (!user || lowBandwidthMode || !navigator.onLine) {
+                return;
+            }
+            if (warmedLookupUserRef.current === user.id) {
+                return;
+            }
+            warmedLookupUserRef.current = user.id;
+            await prewarmLookupCache();
+        };
+
+        void warmLookups();
+    }, [lowBandwidthMode, user]);
+
+    useEffect(() => {
+        const handleOnline = () => {
+            if (user && !lowBandwidthMode) {
+                warmedLookupUserRef.current = null;
+                void prewarmLookupCache();
+            }
+        };
+
+        window.addEventListener('online', handleOnline);
+        return () => window.removeEventListener('online', handleOnline);
+    }, [lowBandwidthMode, user]);
+
     const signOut = async () => {
-        await supabase.auth.signOut();
-        setProfile(null);
-        // Clear Sentry user context
-        clearUserContext();
+        try {
+            await supabase.auth.signOut();
+        } finally {
+            warmedLookupUserRef.current = null;
+            setProfile(null);
+            // Clear Sentry user context
+            clearUserContext();
+            try {
+                await clearOfflineSessionData();
+            } catch (error) {
+                console.error('Failed to clear offline cache during sign out:', error);
+            }
+        }
     };
 
     const value = {

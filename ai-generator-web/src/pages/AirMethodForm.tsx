@@ -1,7 +1,5 @@
-import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { reportService } from '../services/reportService';
-import { supabase } from '../lib/supabase';
 import { Input } from '../components/ui/Input';
 import { Select } from '../components/ui/Select';
 import { Button } from '../components/ui/Button';
@@ -16,6 +14,13 @@ import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { errorHandler } from '../lib/errorHandler';
+import { getLookupWithOfflineFallback } from '../lib/offlineLookupCache';
+import {
+    useCreateReport,
+    useReport,
+    useReportsByConstruction,
+    useUpdateReport
+} from '../hooks/useReports';
 
 // Dynamic import for PDF generation to reduce initial bundle size
 const generatePDF = async (report: Partial<ReportForm>, userProfile?: Profile) => {
@@ -61,6 +66,15 @@ export const AirMethodForm = () => {
     const { t } = useLanguage();
     const { profile } = useAuth();
     const { success: showSuccess, error: showError } = useToast();
+    const isEditMode = Boolean(id && id !== 'new' && id !== 'undefined');
+    const reportId = isEditMode ? id! : '';
+    const { data: loadedReport, isLoading: isReportLoading, error: reportLoadError } = useReport(reportId);
+    const {
+        data: constructionReports = [],
+        error: constructionReportsError
+    } = useReportsByConstruction(constructionId || '');
+    const createReportMutation = useCreateReport();
+    const updateReportMutation = useUpdateReport();
     const [loading, setLoading] = useState(false);
     const [formData, setFormData] = useState<Partial<ReportForm>>(initialState);
     const [procedures, setProcedures] = useState<ExaminationProcedure[]>([]);
@@ -70,6 +84,7 @@ export const AirMethodForm = () => {
     const [step, setStep] = useState<1 | 2>(1);
     const [showMobileResults, setShowMobileResults] = useState(false);
     const [previousReport, setPreviousReport] = useState<ReportForm | null>(null);
+    const initializedFromPreviousRef = useRef(false);
 
     // Memoized calculations to prevent recalculation on every render
     const calculated = useMemo<CalculatedResults>(() => {
@@ -130,83 +145,98 @@ export const AirMethodForm = () => {
     ]);
 
     const loadLookups = useCallback(async () => {
-        const [procRes, draftRes, matTypeRes, materialsRes] = await Promise.all([
-            supabase.from('examination_procedures').select('*').order('id'),
-            supabase.from('report_drafts').select('*').order('id'),
-            supabase.from('material_types').select('*').order('id'),
-            supabase.from('materials').select('*').order('id')
-        ]);
+        try {
+            const [procData, draftData, matTypeData, materialsData] = await Promise.all([
+                getLookupWithOfflineFallback<ExaminationProcedure>('examination_procedures', 'id'),
+                getLookupWithOfflineFallback<ReportDraft>('report_drafts', 'id'),
+                getLookupWithOfflineFallback<MaterialType>('material_types', 'id'),
+                getLookupWithOfflineFallback<Material>('materials', 'id')
+            ]);
 
-        if (procRes.data) setProcedures(procRes.data);
-        if (draftRes.data) setDrafts(draftRes.data);
-        if (matTypeRes.data) setMaterialTypes(matTypeRes.data);
-        if (materialsRes.data) {
-            setMaterials(materialsRes.data);
-            // Set default pipe material if not set
+            setProcedures(procData);
+            setDrafts(draftData);
+            setMaterialTypes(matTypeData);
+            setMaterials(materialsData);
+
             if (!formData.pipe_material_id) {
-                const pipeMaterials = materialsRes.data.filter(m => m.material_type_id === 2);
+                const pipeMaterials = materialsData.filter(m => m.material_type_id === 2);
                 if (pipeMaterials.length > 0) {
                     setFormData(prev => ({ ...prev, pipe_material_id: pipeMaterials[0].id }));
                 }
             }
-        }
-
-    }, [formData.pipe_material_id]);
-
-    const loadReport = useCallback(async (reportId: string) => {
-        try {
-            setLoading(true);
-            const data = await reportService.getById(reportId);
-            setFormData(data);
         } catch (error) {
             const appError = errorHandler.handle(error, 'AirMethodForm');
             showError(errorHandler.getUserMessage(appError));
-        } finally {
-            setLoading(false);
         }
-    }, [showError]);
-
-    // Load previous report for copying data
-    const loadPreviousReport = useCallback(async () => {
-        if (constructionId && (!id || id === 'new')) {
-            try {
-                const normalizedCustomerId = customerId && customerId !== 'undefined' ? customerId : undefined;
-                const [lastReport, lastAnyTypeReport] = await Promise.all([
-                    reportService.getLastByConstructionAndType(constructionId, 2, normalizedCustomerId), // type_id 2 = Air
-                    reportService.getLastByConstruction(constructionId, normalizedCustomerId)
-                ]);
-
-                if (lastReport) {
-                    setPreviousReport(lastReport);
-                    // Auto-copy general info from previous report
-                    setFormData(prev => ({
-                        ...prev,
-                        dionica: lastAnyTypeReport?.dionica || lastAnyTypeReport?.stock || prev.dionica,
-                        examination_date: lastReport.examination_date || prev.examination_date,
-                        temperature: lastReport.temperature || prev.temperature,
-                        examination_procedure_id: lastReport.examination_procedure_id || prev.examination_procedure_id,
-                        pipe_material_id: lastReport.pipe_material_id || prev.pipe_material_id,
-                    }));
-                } else if (lastAnyTypeReport?.dionica || lastAnyTypeReport?.stock) {
-                    setFormData(prev => ({
-                        ...prev,
-                        dionica: lastAnyTypeReport.dionica || lastAnyTypeReport.stock || prev.dionica
-                    }));
-                }
-            } catch (error) {
-                errorHandler.handle(error, 'AirMethodForm');
-            }
-        }
-    }, [constructionId, customerId, id]);
+    }, [formData.pipe_material_id, showError]);
 
     useEffect(() => {
         loadLookups();
-        if (id && id !== 'new') {
-            loadReport(id);
-        } else {
-            loadPreviousReport();
+    }, [loadLookups]);
+
+    useEffect(() => {
+        if (reportLoadError) {
+            const appError = errorHandler.handle(reportLoadError, 'AirMethodForm');
+            showError(errorHandler.getUserMessage(appError));
         }
-    }, [id, loadLookups, loadReport, loadPreviousReport]);
+    }, [reportLoadError, showError]);
+
+    useEffect(() => {
+        if (constructionReportsError) {
+            errorHandler.handle(constructionReportsError, 'AirMethodForm');
+        }
+    }, [constructionReportsError]);
+
+    useEffect(() => {
+        if (isEditMode && loadedReport) {
+            setFormData(loadedReport);
+        }
+    }, [isEditMode, loadedReport]);
+
+    useEffect(() => {
+        initializedFromPreviousRef.current = false;
+        setPreviousReport(null);
+    }, [constructionId, customerId, id]);
+
+    useEffect(() => {
+        if (!constructionId || isEditMode || initializedFromPreviousRef.current) return;
+
+        const normalizedCustomerId = customerId && customerId !== 'undefined' ? customerId : undefined;
+        const candidateReports = constructionReports
+            .filter((report) => !report.section_name)
+            .filter((report) => !normalizedCustomerId || report.customer_id === normalizedCustomerId)
+            .sort((a, b) => {
+                const aTime = new Date(a.created_at || a.updated_at || a.examination_date || 0).getTime();
+                const bTime = new Date(b.created_at || b.updated_at || b.examination_date || 0).getTime();
+                return bTime - aTime;
+            });
+
+        const lastAnyTypeReport = candidateReports[0];
+        const lastReport = candidateReports.find((report) => report.type_id === 2);
+
+        if (lastReport) {
+            setPreviousReport(lastReport);
+            setFormData(prev => ({
+                ...prev,
+                dionica: lastAnyTypeReport?.dionica || lastAnyTypeReport?.stock || prev.dionica,
+                examination_date: lastReport.examination_date || prev.examination_date,
+                temperature: lastReport.temperature || prev.temperature,
+                examination_procedure_id: lastReport.examination_procedure_id || prev.examination_procedure_id,
+                pipe_material_id: lastReport.pipe_material_id || prev.pipe_material_id,
+            }));
+            initializedFromPreviousRef.current = true;
+            return;
+        }
+
+        if (lastAnyTypeReport?.dionica || lastAnyTypeReport?.stock) {
+            setFormData(prev => ({
+                ...prev,
+                dionica: lastAnyTypeReport.dionica || lastAnyTypeReport.stock || prev.dionica
+            }));
+        }
+
+        initializedFromPreviousRef.current = true;
+    }, [constructionId, constructionReports, customerId, isEditMode]);
 
     // Effect to enforce Round Shafts for Air Method
     useEffect(() => {
@@ -269,10 +299,10 @@ export const AirMethodForm = () => {
                 type_id: 2
             };
 
-            if (!id || id === 'new' || id === 'undefined') {
-                await reportService.create(dataToSave as ReportForm);
+            if (!isEditMode) {
+                await createReportMutation.mutateAsync(dataToSave as Partial<ReportForm>);
             } else {
-                await reportService.update(id, dataToSave as ReportForm);
+                await updateReportMutation.mutateAsync({ id: reportId, report: dataToSave as Partial<ReportForm> });
             }
 
             if (!shouldRedirect) {
@@ -349,7 +379,7 @@ export const AirMethodForm = () => {
     // Hide for Schema A (Draft 1) and Schema D (Draft 4)
     const showPipeFields = formData.draft_id === 2 || formData.draft_id === 3 || formData.draft_id === 5;
 
-    if (loading && id && id !== 'new') {
+    if (isEditMode && isReportLoading) {
         return (
             <div className="flex justify-center items-center h-64">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />

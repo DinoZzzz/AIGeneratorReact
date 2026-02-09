@@ -168,7 +168,7 @@ export const customerService = {
     async delete(id: string) {
         // First delete related appointments
         const { error: appointmentsError } = await supabase
-            .from('appointments')
+            .from('calendar_events')
             .delete()
             .eq('customer_id', id);
 

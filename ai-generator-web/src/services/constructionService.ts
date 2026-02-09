@@ -129,7 +129,7 @@ export const constructionService = {
         }
 
         const { error: appointmentsError } = await supabase
-            .from('appointments')
+            .from('calendar_events')
             .delete()
             .eq('construction_id', id);
 

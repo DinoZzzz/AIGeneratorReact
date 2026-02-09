@@ -10,6 +10,7 @@ import {
   saveManyToStore,
   deleteFromStore,
   addToSyncQueue,
+  removeSyncOperationsForEntity,
   getByIndex,
   STORES,
 } from '../lib/offlineDb';
@@ -280,9 +281,11 @@ async function deleteReportOffline(id: string): Promise<void> {
   await deleteFromStore(STORES.REPORTS, id);
 
   // Add to sync queue (only if not a temp/offline-created item)
-  if (!id.startsWith('temp_')) {
-    await addToSyncQueue(STORES.REPORTS, 'delete', null, id);
+  if (id.startsWith('temp_')) {
+    await removeSyncOperationsForEntity(STORES.REPORTS, id);
+    return;
   }
+  await addToSyncQueue(STORES.REPORTS, 'delete', null, id);
 }
 
 export const useUpdateReportOrder = () => {

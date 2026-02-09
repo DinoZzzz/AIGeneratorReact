@@ -55,7 +55,7 @@ async function getLatestActivityDates(
     const allQueries = batches.flatMap(batch => [
         supabase.from('report_forms').select('customer_id, updated_at').in('customer_id', batch),
         supabase.from('report_exports').select('customer_id, updated_at').in('customer_id', batch),
-        supabase.from('appointments').select('customer_id, created_at').in('customer_id', batch)
+        supabase.from('calendar_events').select('customer_id, created_at').in('customer_id', batch)
     ]);
 
     const results = await Promise.all(allQueries);

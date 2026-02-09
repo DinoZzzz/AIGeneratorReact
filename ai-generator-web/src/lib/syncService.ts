@@ -4,9 +4,20 @@
  */
 
 import { supabase } from './supabase';
+import { constructionService } from '../services/constructionService';
+import { customerService } from '../services/customerService';
 import {
+  compactPendingSyncOperations,
+  getPersistedSyncIdMap,
+  getFailedSyncOperations,
+  getSyncOperationsByStatus,
   getPendingSyncOperations,
+  persistSyncIdMapping,
+  markSyncOperationDiscarded,
+  remapQueuedSyncReferences,
   removeSyncOperation,
+  restoreDiscardedSyncOperation,
+  resetSyncOperationForRetry,
   updateSyncOperationStatus,
   type SyncOperation,
   STORES,
@@ -88,10 +99,58 @@ const storeToTable: Record<string, string> = {
   [STORES.APPOINTMENTS]: 'calendar_events',
 };
 
+const deleteCustomerWithDependencies = async (customerId: string): Promise<void> => {
+  const { data, error } = await supabase
+    .from('constructions')
+    .select('id')
+    .eq('customer_id', customerId);
+
+  if (error) {
+    throw error;
+  }
+
+  const constructionIds = (data || [])
+    .map((item) => item.id)
+    .filter((value): value is string => typeof value === 'string' && value.length > 0);
+
+  // Keep deletions ordered to avoid FK races on tightly related rows.
+  for (const constructionId of constructionIds) {
+    await constructionService.delete(constructionId);
+  }
+
+  await customerService.delete(customerId);
+};
+
+const mapEntityId = (entityId: string | undefined, idMap: Map<string, string>): string | undefined => {
+  if (!entityId) return undefined;
+  return idMap.get(entityId) ?? entityId;
+};
+
+const applyIdMap = (value: unknown, idMap: Map<string, string>): unknown => {
+  if (typeof value === 'string') {
+    return idMap.get(value) ?? value;
+  }
+
+  if (Array.isArray(value)) {
+    return value.map((item) => applyIdMap(item, idMap));
+  }
+
+  if (value && typeof value === 'object') {
+    const mappedEntries = Object.entries(value as Record<string, unknown>)
+      .map(([key, nestedValue]) => [key, applyIdMap(nestedValue, idMap)]);
+    return Object.fromEntries(mappedEntries);
+  }
+
+  return value;
+};
+
 /**
  * Process a single sync operation
  */
-const processSyncOperation = async (operation: SyncOperation): Promise<boolean> => {
+const processSyncOperation = async (
+  operation: SyncOperation,
+  idMap: Map<string, string>
+): Promise<boolean> => {
   const tableName = storeToTable[operation.store];
   if (!tableName) {
     console.error(`Unknown store: ${operation.store}`);
@@ -103,11 +162,12 @@ const processSyncOperation = async (operation: SyncOperation): Promise<boolean> 
 
     switch (operation.operation) {
       case 'create': {
+        const mappedData = applyIdMap(operation.data, idMap);
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const createData = operation.data as any;
+        const createData = mappedData as any;
         // Remove offline-only fields
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const { _offline_id, _is_offline, id: _tempId, ...cleanData } = createData;
+        const { _offline_id, _is_offline, _synced, id: _tempId, ...cleanData } = createData;
 
         const { data, error } = await supabase
           .from(tableName)
@@ -120,6 +180,12 @@ const processSyncOperation = async (operation: SyncOperation): Promise<boolean> 
         // Update local store with server-assigned data
         // operation.entityId contains the temp ID used for the offline record
         if (data && operation.entityId) {
+          if (typeof data.id === 'string' && operation.entityId !== data.id) {
+            idMap.set(operation.entityId, data.id);
+            await persistSyncIdMapping(operation.entityId, data.id);
+            await remapQueuedSyncReferences({ [operation.entityId]: data.id });
+          }
+
           // Remove old offline record using the temp ID
           try {
             await deleteFromStore(operation.store, operation.entityId);
@@ -135,10 +201,12 @@ const processSyncOperation = async (operation: SyncOperation): Promise<boolean> 
       }
 
       case 'update': {
-        if (!operation.entityId) throw new Error('Entity ID required for update');
+        const mappedEntityId = mapEntityId(operation.entityId, idMap);
+        if (!mappedEntityId) throw new Error('Entity ID required for update');
 
+        const mappedData = applyIdMap(operation.data, idMap);
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const updateData = operation.data as any;
+        const updateData = mappedData as any;
         // Remove offline-only fields
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const { _offline_id, _is_offline, _synced, id: _entityId, ...cleanData } = updateData;
@@ -146,7 +214,7 @@ const processSyncOperation = async (operation: SyncOperation): Promise<boolean> 
         const { data, error } = await supabase
           .from(tableName)
           .update(cleanData)
-          .eq('id', operation.entityId)
+          .eq('id', mappedEntityId)
           .select()
           .single();
 
@@ -160,12 +228,23 @@ const processSyncOperation = async (operation: SyncOperation): Promise<boolean> 
       }
 
       case 'delete': {
-        if (!operation.entityId) throw new Error('Entity ID required for delete');
+        const mappedEntityId = mapEntityId(operation.entityId, idMap);
+        if (!mappedEntityId) throw new Error('Entity ID required for delete');
+
+        if (operation.store === STORES.CONSTRUCTIONS) {
+          await constructionService.delete(mappedEntityId);
+          break;
+        }
+
+        if (operation.store === STORES.CUSTOMERS) {
+          await deleteCustomerWithDependencies(mappedEntityId);
+          break;
+        }
 
         const { error } = await supabase
           .from(tableName)
           .delete()
-          .eq('id', operation.entityId);
+          .eq('id', mappedEntityId);
 
         if (error) throw error;
         break;
@@ -178,6 +257,7 @@ const processSyncOperation = async (operation: SyncOperation): Promise<boolean> 
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     const isNetwork = isNetworkError(error);
+    const nextRetryCount = operation.retryCount + 1;
 
     console.error(`Sync operation failed:`, {
       operation: operation.operation,
@@ -188,13 +268,13 @@ const processSyncOperation = async (operation: SyncOperation): Promise<boolean> 
       error: errorMessage
     });
 
-    if (operation.retryCount >= MAX_RETRY_COUNT) {
+    if (nextRetryCount >= MAX_RETRY_COUNT) {
       // Max retries exceeded - mark as failed
       await updateSyncOperationStatus(operation.id, 'failed', errorMessage);
       emitSyncEvent({ type: 'sync_error', error: `Operation failed after ${MAX_RETRY_COUNT} retries: ${errorMessage}` });
     } else if (isNetwork) {
       // Network error - apply exponential backoff before next retry
-      const retryDelay = getRetryDelay(operation.retryCount);
+      const retryDelay = getRetryDelay(nextRetryCount);
       console.log(`Network error, will retry in ${Math.round(retryDelay / 1000)}s`);
       await updateSyncOperationStatus(operation.id, 'pending', errorMessage);
       await delay(retryDelay);
@@ -219,51 +299,71 @@ export const syncPendingOperations = async (): Promise<{
   }
 
   syncInProgress = true;
-  const pendingOps = await getPendingSyncOperations();
-  const total = pendingOps.length;
-
-  if (total === 0) {
-    syncInProgress = false;
-    return { success: 0, failed: 0, total: 0 };
-  }
-
-  emitSyncEvent({ type: 'sync_start', total });
-
-  let success = 0;
-  let failed = 0;
-
-  for (const operation of pendingOps) {
-    // Skip operations that have exceeded retry limit
-    if (operation.retryCount >= MAX_RETRY_COUNT) {
-      failed++;
-      continue;
+  try {
+    const persistedIdMap = await getPersistedSyncIdMap();
+    if (Object.keys(persistedIdMap).length > 0) {
+      await remapQueuedSyncReferences(persistedIdMap);
     }
 
-    const result = await processSyncOperation(operation);
-    if (result) {
-      success++;
-    } else {
-      failed++;
+    await compactPendingSyncOperations();
+
+    const pendingOps = await getPendingSyncOperations();
+    const total = pendingOps.length;
+
+    if (total === 0) {
+      return { success: 0, failed: 0, total: 0 };
+    }
+
+    emitSyncEvent({ type: 'sync_start', total });
+
+    let success = 0;
+    let failed = 0;
+    const idMap = new Map<string, string>(Object.entries(persistedIdMap));
+
+    for (const operation of pendingOps) {
+      // Skip operations that have exceeded retry limit
+      if (operation.retryCount >= MAX_RETRY_COUNT) {
+        await updateSyncOperationStatus(
+          operation.id,
+          'failed',
+          operation.error || `Operation reached retry limit (${MAX_RETRY_COUNT})`
+        );
+        failed++;
+        emitSyncEvent({
+          type: 'sync_progress',
+          total,
+          completed: success + failed,
+          failed,
+        });
+        continue;
+      }
+
+      const result = await processSyncOperation(operation, idMap);
+      if (result) {
+        success++;
+      } else {
+        failed++;
+      }
+
+      emitSyncEvent({
+        type: 'sync_progress',
+        total,
+        completed: success + failed,
+        failed,
+      });
     }
 
     emitSyncEvent({
-      type: 'sync_progress',
+      type: 'sync_complete',
       total,
-      completed: success + failed,
+      completed: success,
       failed,
     });
+
+    return { success, failed, total };
+  } finally {
+    syncInProgress = false;
   }
-
-  syncInProgress = false;
-
-  emitSyncEvent({
-    type: 'sync_complete',
-    total,
-    completed: success,
-    failed,
-  });
-
-  return { success, failed, total };
 };
 
 /**
@@ -274,11 +374,55 @@ export const isSyncInProgress = (): boolean => syncInProgress;
 /**
  * Force retry failed operations
  */
-export const retryFailedOperations = async (): Promise<void> => {
-  const pendingOps = await getPendingSyncOperations();
-  for (const op of pendingOps) {
-    if (op.status === 'failed') {
-      await updateSyncOperationStatus(op.id, 'pending');
-    }
+export const retryFailedOperations = async (): Promise<number> => {
+  const failedOps = await getFailedSyncOperations();
+  for (const op of failedOps) {
+    await resetSyncOperationForRetry(op.id);
   }
+  return failedOps.length;
+};
+
+/**
+ * Retry a single failed operation by ID.
+ */
+export const retryFailedOperationById = async (operationId: string): Promise<boolean> => {
+  const failedOps = await getFailedSyncOperations();
+  const targetOperation = failedOps.find((operation) => operation.id === operationId);
+  if (!targetOperation) {
+    return false;
+  }
+
+  await resetSyncOperationForRetry(targetOperation.id);
+  return true;
+};
+
+/**
+ * Discard a single failed operation by ID.
+ */
+export const discardFailedOperationById = async (operationId: string): Promise<boolean> => {
+  const failedOps = await getFailedSyncOperations();
+  const targetOperation = failedOps.find((operation) => operation.id === operationId);
+  if (!targetOperation) {
+    return false;
+  }
+
+  await markSyncOperationDiscarded(
+    targetOperation.id,
+    `Marked as local-only by user on ${new Date().toISOString()}`
+  );
+  return true;
+};
+
+/**
+ * Restore a single discarded operation back into pending sync.
+ */
+export const restoreDiscardedOperationById = async (operationId: string): Promise<boolean> => {
+  const discardedOps = await getSyncOperationsByStatus('discarded');
+  const targetOperation = discardedOps.find((operation) => operation.id === operationId);
+  if (!targetOperation) {
+    return false;
+  }
+
+  await restoreDiscardedSyncOperation(targetOperation.id);
+  return true;
 };

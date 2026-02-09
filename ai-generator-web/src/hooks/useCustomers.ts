@@ -1,15 +1,17 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { customerService } from '../services/customerService';
-import type { Customer } from '../types';
+import type { Construction, Customer, ReportForm } from '../types';
 import { useOffline } from '../context/OfflineContext';
 import { isNetworkError } from '../lib/errorHandler';
 import {
   getAllFromStore,
+  getByIndex,
   getFromStore,
   saveToStore,
   saveManyToStore,
   deleteFromStore,
   addToSyncQueue,
+  removeSyncOperationsForEntity,
   STORES,
 } from '../lib/offlineDb';
 import { useOnlineQuery } from '../lib/offlineQueryFn';
@@ -235,8 +237,22 @@ export const useDeleteCustomer = () => {
 };
 
 async function deleteCustomerOffline(id: string): Promise<void> {
-  await deleteFromStore(STORES.CUSTOMERS, id);
-  if (!id.startsWith('temp_')) {
-    await addToSyncQueue(STORES.CUSTOMERS, 'delete', null, id);
+  const relatedReports = await getByIndex<ReportForm>(STORES.REPORTS, 'customer_id', id);
+  for (const report of relatedReports) {
+    await deleteFromStore(STORES.REPORTS, report.id);
+    await removeSyncOperationsForEntity(STORES.REPORTS, report.id);
   }
+
+  const relatedConstructions = await getByIndex<Construction>(STORES.CONSTRUCTIONS, 'customer_id', id);
+  for (const construction of relatedConstructions) {
+    await deleteFromStore(STORES.CONSTRUCTIONS, construction.id);
+    await removeSyncOperationsForEntity(STORES.CONSTRUCTIONS, construction.id);
+  }
+
+  await deleteFromStore(STORES.CUSTOMERS, id);
+  if (id.startsWith('temp_')) {
+    await removeSyncOperationsForEntity(STORES.CUSTOMERS, id);
+    return;
+  }
+  await addToSyncQueue(STORES.CUSTOMERS, 'delete', null, id);
 }

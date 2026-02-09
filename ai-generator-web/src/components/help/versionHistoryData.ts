@@ -7,6 +7,18 @@ export interface VersionHistoryItem {
 export function getVersionHistory(language: string): VersionHistoryItem[] {
     return language === 'hr' ? [
         {
+            version: '2.21.0',
+            date: '2026-02-09',
+            changes: [
+                'Dodana napredna offline podrška za rad s naručiteljima, gradilištima i obrascima, uz sinkronizaciju promjena nakon povratka na mrežu',
+                'Uveden queue compaction za offline sinkronizaciju (spajanje create/update operacija i uklanjanje redundantnih create/delete parova)',
+                'Dodani local-only (discarded) tokovi: pregled, odbacivanje i vraćanje neuspjelih promjena bez gubitka lokalnih podataka',
+                'Dodan lookup prewarm pri prijavi i povratku online radi stabilnijeg rada u sporim i mobilnim mrežnim uvjetima',
+                'Mobilni status sinkronizacije proširen akcijama za retry/discard/restore uz sigurnosnu potvrdu pri odjavi kad postoje nesinkronizirane promjene',
+                'Dodani novi testovi za offline bazu, sinkronizaciju i sign-out guard logiku',
+            ]
+        },
+        {
             version: '2.20.0',
             date: '2026-02-09',
             changes: [
@@ -416,6 +428,18 @@ export function getVersionHistory(language: string): VersionHistoryItem[] {
         },
     ] : [
         // English version
+        {
+            version: '2.21.0',
+            date: '2026-02-09',
+            changes: [
+                'Added robust offline support for working with customers, constructions, and reports, with deferred sync once the network is back',
+                'Implemented sync-queue compaction (merge create/update chains and remove redundant create/delete pairs)',
+                'Introduced local-only (discarded) flows: inspect, discard, and restore failed operations without losing local data',
+                'Added lookup prewarm on login and reconnect for more stable behavior on slow and mobile networks',
+                'Extended mobile sync status actions with retry/discard/restore and added sign-out protection when unsynced changes exist',
+                'Added dedicated tests for offline DB behavior, sync flows, and sign-out guard logic',
+            ]
+        },
         {
             version: '2.20.0',
             date: '2026-02-09',

@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { constructionService } from '../services/constructionService';
-import type { Construction } from '../types';
+import type { Construction, ReportForm } from '../types';
 import { useOffline } from '../context/OfflineContext';
 import { isNetworkError } from '../lib/errorHandler';
 import {
@@ -9,6 +9,7 @@ import {
   saveManyToStore,
   deleteFromStore,
   addToSyncQueue,
+  removeSyncOperationsForEntity,
   getByIndex,
   STORES,
 } from '../lib/offlineDb';
@@ -18,17 +19,18 @@ import { useOnlineQuery } from '../lib/offlineQueryFn';
 export const constructionKeys = {
   all: ['constructions'] as const,
   lists: () => [...constructionKeys.all, 'list'] as const,
-  byCustomer: (customerId: string) => [...constructionKeys.lists(), 'customer', customerId] as const,
+  byCustomer: (customerId: string, includeArchived: boolean = false) =>
+    [...constructionKeys.lists(), 'customer', customerId, includeArchived ? 'all' : 'active'] as const,
   details: () => [...constructionKeys.all, 'detail'] as const,
   detail: (id: string) => [...constructionKeys.details(), id] as const,
 };
 
 // Query hooks with offline support
-export const useConstructionsByCustomer = (customerId: string) =>
+export const useConstructionsByCustomer = (customerId: string, includeArchived: boolean = false) =>
   useOnlineQuery<Construction[]>(
-    constructionKeys.byCustomer(customerId),
-    () => constructionService.getByCustomerId(customerId),
-    () => getOfflineConstructionsByCustomer(customerId),
+    constructionKeys.byCustomer(customerId, includeArchived),
+    () => constructionService.getByCustomerId(customerId, includeArchived),
+    () => getOfflineConstructionsByCustomer(customerId, includeArchived),
     {
       cacheFn: (data) => saveManyToStore(STORES.CONSTRUCTIONS, data),
       enabled: !!customerId,
@@ -36,10 +38,13 @@ export const useConstructionsByCustomer = (customerId: string) =>
     },
   );
 
-async function getOfflineConstructionsByCustomer(customerId: string): Promise<Construction[]> {
+async function getOfflineConstructionsByCustomer(
+  customerId: string,
+  includeArchived: boolean = false
+): Promise<Construction[]> {
   const constructions = await getByIndex<Construction>(STORES.CONSTRUCTIONS, 'customer_id', customerId);
   return constructions
-    .filter(c => !c.is_archived)
+    .filter((c) => includeArchived || !c.is_archived)
     .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 }
 
@@ -228,11 +233,19 @@ export const useDeleteConstruction = () => {
 };
 
 async function deleteConstructionOffline(id: string): Promise<void> {
+  const relatedReports = await getByIndex<ReportForm>(STORES.REPORTS, 'construction_id', id);
+  for (const report of relatedReports) {
+    await deleteFromStore(STORES.REPORTS, report.id);
+    await removeSyncOperationsForEntity(STORES.REPORTS, report.id);
+  }
+
   // Remove from local store
   await deleteFromStore(STORES.CONSTRUCTIONS, id);
 
   // Add to sync queue (only if not a temp/offline-created item)
-  if (!id.startsWith('temp_')) {
-    await addToSyncQueue(STORES.CONSTRUCTIONS, 'delete', null, id);
+  if (id.startsWith('temp_')) {
+    await removeSyncOperationsForEntity(STORES.CONSTRUCTIONS, id);
+    return;
   }
+  await addToSyncQueue(STORES.CONSTRUCTIONS, 'delete', null, id);
 }

@@ -5,6 +5,7 @@
 
 const DB_NAME = 'ai-generator-offline';
 const DB_VERSION = 1;
+const SYNC_ID_MAP_METADATA_KEY = 'sync_id_map';
 
 // Store names
 export const STORES = {
@@ -27,9 +28,18 @@ export interface SyncOperation {
   entityId?: string; // For update/delete operations
   timestamp: number;
   retryCount: number;
-  status: 'pending' | 'in_progress' | 'failed';
+  status: 'pending' | 'in_progress' | 'failed' | 'discarded';
   error?: string;
 }
+
+interface SyncQueueSummary {
+  pending: number;
+  failed: number;
+  inProgress: number;
+  discarded: number;
+}
+
+type SyncIdMap = Record<string, string>;
 
 let dbInstance: IDBDatabase | null = null;
 
@@ -239,12 +249,21 @@ export const addToSyncQueue = async (
  * Get all pending sync operations
  */
 export const getPendingSyncOperations = async (): Promise<SyncOperation[]> => {
+  return getSyncOperationsByStatus('pending');
+};
+
+/**
+ * Get sync operations by status
+ */
+export const getSyncOperationsByStatus = async (
+  status: SyncOperation['status']
+): Promise<SyncOperation[]> => {
   const db = await openDatabase();
   return new Promise((resolve, reject) => {
     const transaction = db.transaction(STORES.SYNC_QUEUE, 'readonly');
     const store = transaction.objectStore(STORES.SYNC_QUEUE);
     const index = store.index('status');
-    const request = index.getAll('pending');
+    const request = index.getAll(status);
 
     request.onsuccess = () => {
       // Sort by timestamp to process in order
@@ -258,6 +277,21 @@ export const getPendingSyncOperations = async (): Promise<SyncOperation[]> => {
 };
 
 /**
+ * Get failed sync operations
+ */
+export const getFailedSyncOperations = async (): Promise<SyncOperation[]> => {
+  return getSyncOperationsByStatus('failed');
+};
+
+/**
+ * Get discarded sync operations.
+ * These represent local-only changes intentionally excluded from sync.
+ */
+export const getDiscardedSyncOperations = async (): Promise<SyncOperation[]> => {
+  return getSyncOperationsByStatus('discarded');
+};
+
+/**
  * Update sync operation status
  */
 export const updateSyncOperationStatus = async (
@@ -268,10 +302,55 @@ export const updateSyncOperationStatus = async (
   const op = await getFromStore<SyncOperation>(STORES.SYNC_QUEUE, id);
   if (op) {
     op.status = status;
-    if (error) op.error = error;
-    if (status === 'failed') op.retryCount++;
+    if (error) {
+      op.error = error;
+    } else if (status === 'pending') {
+      delete op.error;
+    }
+
+    if (status === 'failed' || (status === 'pending' && !!error)) {
+      op.retryCount++;
+    }
+
     await saveToStore(STORES.SYNC_QUEUE, op);
   }
+};
+
+/**
+ * Mark an operation as discarded (kept locally but excluded from sync).
+ */
+export const markSyncOperationDiscarded = async (
+  id: string,
+  reason: string = 'Marked as local-only by user'
+): Promise<void> => {
+  const op = await getFromStore<SyncOperation>(STORES.SYNC_QUEUE, id);
+  if (!op) return;
+  op.status = 'discarded';
+  op.error = reason;
+  await saveToStore(STORES.SYNC_QUEUE, op);
+};
+
+/**
+ * Restore a discarded operation back to pending sync.
+ */
+export const restoreDiscardedSyncOperation = async (id: string): Promise<void> => {
+  const op = await getFromStore<SyncOperation>(STORES.SYNC_QUEUE, id);
+  if (!op) return;
+  op.status = 'pending';
+  delete op.error;
+  await saveToStore(STORES.SYNC_QUEUE, op);
+};
+
+/**
+ * Reset a failed operation for another retry attempt.
+ */
+export const resetSyncOperationForRetry = async (id: string): Promise<void> => {
+  const op = await getFromStore<SyncOperation>(STORES.SYNC_QUEUE, id);
+  if (!op) return;
+  op.status = 'pending';
+  op.retryCount = 0;
+  delete op.error;
+  await saveToStore(STORES.SYNC_QUEUE, op);
 };
 
 /**
@@ -282,11 +361,348 @@ export const removeSyncOperation = async (id: string): Promise<void> => {
 };
 
 /**
+ * Remove queued operations for a specific entity.
+ * Used when an offline-created entity is deleted before sync.
+ */
+export const removeSyncOperationsForEntity = async (
+  storeName: StoreName,
+  entityId: string
+): Promise<number> => {
+  const db = await openDatabase();
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(STORES.SYNC_QUEUE, 'readwrite');
+    const queueStore = transaction.objectStore(STORES.SYNC_QUEUE);
+    const getAllRequest = queueStore.getAll();
+    let removedCount = 0;
+
+    getAllRequest.onerror = () => reject(getAllRequest.error);
+    getAllRequest.onsuccess = () => {
+      const operations = getAllRequest.result as SyncOperation[];
+      for (const operation of operations) {
+        if (operation.store !== storeName) continue;
+        if (operation.entityId !== entityId) continue;
+        queueStore.delete(operation.id);
+        removedCount++;
+      }
+    };
+
+    transaction.oncomplete = () => resolve(removedCount);
+    transaction.onerror = () => reject(transaction.error);
+  });
+};
+
+/**
  * Get count of pending sync operations
  */
 export const getPendingSyncCount = async (): Promise<number> => {
-  const pending = await getPendingSyncOperations();
-  return pending.length;
+  const summary = await getSyncQueueSummary();
+  return summary.pending + summary.failed;
+};
+
+/**
+ * Get sync queue summary by status.
+ */
+export const getSyncQueueSummary = async (): Promise<SyncQueueSummary> => {
+  const [pending, failed, inProgress, discarded] = await Promise.all([
+    getSyncOperationsByStatus('pending'),
+    getSyncOperationsByStatus('failed'),
+    getSyncOperationsByStatus('in_progress'),
+    getSyncOperationsByStatus('discarded'),
+  ]);
+
+  return {
+    pending: pending.length,
+    failed: failed.length,
+    inProgress: inProgress.length,
+    discarded: discarded.length,
+  };
+};
+
+const isPlainObject = (value: unknown): value is Record<string, unknown> => (
+  !!value &&
+  typeof value === 'object' &&
+  !Array.isArray(value)
+);
+
+const mergeSyncPayload = (baseValue: unknown, patchValue: unknown): unknown => {
+  if (isPlainObject(baseValue) && isPlainObject(patchValue)) {
+    return { ...baseValue, ...patchValue };
+  }
+  return patchValue;
+};
+
+const syncOperationKey = (operation: SyncOperation): string | null => {
+  if (!operation.entityId) return null;
+  return `${operation.store}:${operation.entityId}`;
+};
+
+/**
+ * Compact pending sync operations to reduce redundant queue items.
+ * - merge update+update for same entity
+ * - merge create+update for same temp entity into create
+ * - remove create+delete pair for same temp entity
+ * - keep only latest delete after updates
+ */
+export const compactPendingSyncOperations = async (): Promise<number> => {
+  const pendingOps = await getPendingSyncOperations();
+  if (pendingOps.length <= 1) {
+    return 0;
+  }
+
+  const operationOrder: Record<SyncOperation['operation'], number> = {
+    create: 0,
+    update: 1,
+    delete: 2,
+  };
+  const sortedPendingOps = [...pendingOps].sort((left, right) => {
+    if (left.timestamp !== right.timestamp) {
+      return left.timestamp - right.timestamp;
+    }
+
+    const leftKey = syncOperationKey(left);
+    const rightKey = syncOperationKey(right);
+    if (leftKey && rightKey && leftKey === rightKey) {
+      const leftOrder = operationOrder[left.operation];
+      const rightOrder = operationOrder[right.operation];
+      if (leftOrder !== rightOrder) {
+        return leftOrder - rightOrder;
+      }
+    }
+
+    return left.id.localeCompare(right.id);
+  });
+
+  const db = await openDatabase();
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(STORES.SYNC_QUEUE, 'readwrite');
+    const queueStore = transaction.objectStore(STORES.SYNC_QUEUE);
+
+    const latestCreateByKey = new Map<string, SyncOperation>();
+    const latestUpdateByKey = new Map<string, SyncOperation>();
+    let changedCount = 0;
+
+    for (const operation of sortedPendingOps) {
+      const key = syncOperationKey(operation);
+      if (!key) continue;
+
+      if (operation.operation === 'create') {
+        latestCreateByKey.set(key, operation);
+        latestUpdateByKey.delete(key);
+        continue;
+      }
+
+      if (operation.operation === 'update') {
+        const createOperation = latestCreateByKey.get(key);
+        if (createOperation) {
+          const mergedCreateData = mergeSyncPayload(createOperation.data, operation.data);
+          queueStore.put({ ...createOperation, data: mergedCreateData, timestamp: operation.timestamp });
+          latestCreateByKey.set(key, {
+            ...createOperation,
+            data: mergedCreateData,
+            timestamp: operation.timestamp,
+          });
+          queueStore.delete(operation.id);
+          changedCount++;
+          continue;
+        }
+
+        const previousUpdate = latestUpdateByKey.get(key);
+        if (previousUpdate) {
+          const mergedUpdateData = mergeSyncPayload(previousUpdate.data, operation.data);
+          queueStore.put({ ...previousUpdate, data: mergedUpdateData, timestamp: operation.timestamp });
+          latestUpdateByKey.set(key, {
+            ...previousUpdate,
+            data: mergedUpdateData,
+            timestamp: operation.timestamp,
+          });
+          queueStore.delete(operation.id);
+          changedCount++;
+          continue;
+        }
+
+        latestUpdateByKey.set(key, operation);
+        continue;
+      }
+
+      if (operation.operation === 'delete') {
+        const createOperation = latestCreateByKey.get(key);
+        if (createOperation) {
+          queueStore.delete(createOperation.id);
+          queueStore.delete(operation.id);
+          latestCreateByKey.delete(key);
+          const previousUpdate = latestUpdateByKey.get(key);
+          if (previousUpdate) {
+            queueStore.delete(previousUpdate.id);
+            latestUpdateByKey.delete(key);
+            changedCount++;
+          }
+          changedCount += 2;
+          continue;
+        }
+
+        const previousUpdate = latestUpdateByKey.get(key);
+        if (previousUpdate) {
+          queueStore.delete(previousUpdate.id);
+          latestUpdateByKey.delete(key);
+          changedCount++;
+        }
+      }
+    }
+
+    transaction.oncomplete = () => resolve(changedCount);
+    transaction.onerror = () => reject(transaction.error);
+  });
+};
+
+const mapSyncEntityId = (value: string, idMap: SyncIdMap): string => {
+  const mappedValue = idMap[value];
+  return typeof mappedValue === 'string' && mappedValue.length > 0 ? mappedValue : value;
+};
+
+const remapSyncPayload = (
+  value: unknown,
+  idMap: SyncIdMap
+): { value: unknown; changed: boolean } => {
+  if (typeof value === 'string') {
+    const mappedValue = mapSyncEntityId(value, idMap);
+    return {
+      value: mappedValue,
+      changed: mappedValue !== value,
+    };
+  }
+
+  if (Array.isArray(value)) {
+    let changed = false;
+    const mapped = value.map((item) => {
+      const result = remapSyncPayload(item, idMap);
+      changed = changed || result.changed;
+      return result.value;
+    });
+    return {
+      value: changed ? mapped : value,
+      changed,
+    };
+  }
+
+  if (value && typeof value === 'object') {
+    let changed = false;
+    const entries = Object.entries(value as Record<string, unknown>).map(([key, nestedValue]) => {
+      const result = remapSyncPayload(nestedValue, idMap);
+      changed = changed || result.changed;
+      return [key, result.value] as const;
+    });
+    return {
+      value: changed ? Object.fromEntries(entries) : value,
+      changed,
+    };
+  }
+
+  return { value, changed: false };
+};
+
+/**
+ * Replace temp IDs in queued operations (entityId + nested payload references).
+ */
+export const remapQueuedSyncReferences = async (idMap: SyncIdMap): Promise<number> => {
+  const validIdMap = Object.fromEntries(
+    Object.entries(idMap).filter(
+      ([tempId, realId]) =>
+        typeof tempId === 'string' &&
+        tempId.length > 0 &&
+        typeof realId === 'string' &&
+        realId.length > 0 &&
+        tempId !== realId
+    )
+  ) as SyncIdMap;
+
+  if (Object.keys(validIdMap).length === 0) {
+    return 0;
+  }
+
+  const db = await openDatabase();
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(STORES.SYNC_QUEUE, 'readwrite');
+    const queueStore = transaction.objectStore(STORES.SYNC_QUEUE);
+    const request = queueStore.getAll();
+    let updatedCount = 0;
+
+    request.onerror = () => reject(request.error);
+    request.onsuccess = () => {
+      const operations = request.result as SyncOperation[];
+      for (const operation of operations) {
+        const mappedEntityId = operation.entityId
+          ? mapSyncEntityId(operation.entityId, validIdMap)
+          : operation.entityId;
+        const remappedData = remapSyncPayload(operation.data, validIdMap);
+
+        if (mappedEntityId === operation.entityId && !remappedData.changed) {
+          continue;
+        }
+
+        queueStore.put({
+          ...operation,
+          entityId: mappedEntityId,
+          data: remappedData.value,
+        });
+        updatedCount++;
+      }
+    };
+
+    transaction.oncomplete = () => resolve(updatedCount);
+    transaction.onerror = () => reject(transaction.error);
+  });
+};
+
+/**
+ * Get persisted temp-to-real ID mappings used across sync runs.
+ */
+export const getPersistedSyncIdMap = async (): Promise<SyncIdMap> => {
+  const savedMap = await getMetadata<SyncIdMap>(SYNC_ID_MAP_METADATA_KEY);
+  if (!savedMap || typeof savedMap !== 'object' || Array.isArray(savedMap)) {
+    return {};
+  }
+
+  return Object.fromEntries(
+    Object.entries(savedMap).filter(
+      ([tempId, realId]) =>
+        typeof tempId === 'string' &&
+        tempId.length > 0 &&
+        typeof realId === 'string' &&
+        realId.length > 0
+    )
+  ) as SyncIdMap;
+};
+
+/**
+ * Persist one temp-to-real ID mapping for future sync runs.
+ */
+export const persistSyncIdMapping = async (tempId: string, realId: string): Promise<void> => {
+  if (!tempId || !realId || tempId === realId) {
+    return;
+  }
+
+  const currentMap = await getPersistedSyncIdMap();
+  if (currentMap[tempId] === realId) {
+    return;
+  }
+
+  await saveMetadata(SYNC_ID_MAP_METADATA_KEY, {
+    ...currentMap,
+    [tempId]: realId,
+  } satisfies SyncIdMap);
+};
+
+/**
+ * Reset queue operations that got stuck in in_progress (e.g. tab/app closed mid-sync).
+ */
+export const resetStuckSyncOperations = async (): Promise<number> => {
+  const inProgressOps = await getSyncOperationsByStatus('in_progress');
+  if (inProgressOps.length === 0) {
+    return 0;
+  }
+
+  await Promise.all(inProgressOps.map((operation) => updateSyncOperationStatus(operation.id, 'pending')));
+  return inProgressOps.length;
 };
 
 // ============ METADATA OPERATIONS ============

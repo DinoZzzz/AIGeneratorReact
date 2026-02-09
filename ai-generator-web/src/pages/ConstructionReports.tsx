@@ -1,8 +1,5 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { reportService } from '../services/reportService';
-import { constructionService } from '../services/constructionService';
-import { customerService } from '../services/customerService';
 import { Loader2, ArrowLeft, Archive } from 'lucide-react';
 import type { ReportForm, Construction, Customer, ReportFile, Profile } from '../types';
 import { ExportDialog } from '../components/ExportDialog';
@@ -21,6 +18,16 @@ import { useToast } from '../context/ToastContext';
 import { useConfirm } from '../context/useConfirm';
 import { useHandleError } from '../hooks/useHandleError';
 import { errorHandler } from '../lib/errorHandler';
+import { useOffline } from '../context/OfflineContext';
+import { useCustomer } from '../hooks/useCustomers';
+import { useConstruction } from '../hooks/useConstructions';
+import {
+    useCreateReport,
+    useDeleteReport,
+    useReportsByConstruction,
+    useUpdateReport,
+    useUpdateReportOrder
+} from '../hooks/useReports';
 
 // Dynamic imports for PDF/Word export to reduce initial bundle size
 const generatePDF = async (report: ReportForm, userProfile?: Profile) => {
@@ -43,14 +50,25 @@ export const ConstructionReports = () => {
     const navigate = useNavigate();
     const { user, profile } = useAuth();
     const { t } = useLanguage();
+    const { isOnline } = useOffline();
     const { addItem: addRecentItem } = useRecentlyViewed();
     const { success: showSuccess } = useToast();
     const handleError = useHandleError();
     const confirm = useConfirm();
+    const normalizedCustomerId = customerId || '';
+    const normalizedConstructionId = constructionId || '';
+    const { data: customer, isLoading: isCustomerLoading, error: customerError } = useCustomer(normalizedCustomerId);
+    const { data: construction, isLoading: isConstructionLoading, error: constructionError } = useConstruction(normalizedConstructionId);
+    const {
+        data: reportsData = [],
+        isLoading: isReportsLoading,
+        error: reportsError
+    } = useReportsByConstruction(normalizedConstructionId);
+    const createReportMutation = useCreateReport();
+    const updateReportMutation = useUpdateReport();
+    const deleteReportMutation = useDeleteReport();
+    const updateReportOrderMutation = useUpdateReportOrder();
     const [reports, setReports] = useState<ReportForm[]>([]);
-    const [construction, setConstruction] = useState<Construction | null>(null);
-    const [customer, setCustomer] = useState<Customer | null>(null);
-    const [loading, setLoading] = useState(true);
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
     const [isNewReportOpen, setIsNewReportOpen] = useState(false);
     const [isAddSectionOpen, setIsAddSectionOpen] = useState(false);
@@ -83,12 +101,26 @@ export const ConstructionReports = () => {
     const hasAnyAccreditation = hasWaterAccreditation || hasAirAccreditation;
 
     useEffect(() => {
-        if (customerId && constructionId) {
-            loadData();
+        setReports(reportsData);
+    }, [reportsData]);
+
+    useEffect(() => {
+        if (customerError) handleError(customerError, 'ConstructionReports');
+    }, [customerError, handleError]);
+
+    useEffect(() => {
+        if (constructionError) handleError(constructionError, 'ConstructionReports');
+    }, [constructionError, handleError]);
+
+    useEffect(() => {
+        if (reportsError) handleError(reportsError, 'ConstructionReports');
+    }, [reportsError, handleError]);
+
+    useEffect(() => {
+        if (customerId && constructionId && isOnline) {
             loadFiles();
         }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [customerId, constructionId]);
+    }, [customerId, constructionId, isOnline]);
 
     // Track construction in recently viewed
     useEffect(() => {
@@ -103,24 +135,6 @@ export const ConstructionReports = () => {
         }
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [construction?.id]);
-
-    const loadData = async () => {
-        try {
-            setLoading(true);
-            const [constructionData, customerData, reportsData] = await Promise.all([
-                constructionService.getById(constructionId!),
-                customerService.getById(customerId!),
-                reportService.getByConstruction(constructionId!)
-            ]);
-            setConstruction(constructionData);
-            setCustomer(customerData);
-            setReports(reportsData);
-        } catch (error) {
-            errorHandler.handle(error, 'ConstructionReports');
-        } finally {
-            setLoading(false);
-        }
-    };
 
     const loadFiles = async () => {
         try {
@@ -149,7 +163,7 @@ export const ConstructionReports = () => {
     const handleDelete = async (id: string) => {
         if (!(await confirm({ title: 'Are you sure you want to delete this report?', variant: 'destructive' }))) return;
         try {
-            await reportService.delete(id);
+            await deleteReportMutation.mutateAsync(id);
             setReports(reports.filter(r => r.id !== id));
             if (selectedIds.has(id)) {
                 const newSelected = new Set(selectedIds);
@@ -234,7 +248,7 @@ export const ConstructionReports = () => {
         const count = selectedIds.size;
         if (!(await confirm({ title: `Are you sure you want to delete ${count} selected report${count > 1 ? 's' : ''}?`, description: `This action cannot be undone. Delete ${count} report${count > 1 ? 's' : ''} permanently?`, variant: 'destructive' }))) return;
         try {
-            await Promise.all(Array.from(selectedIds).map(id => reportService.delete(id)));
+            await Promise.all(Array.from(selectedIds).map(id => deleteReportMutation.mutateAsync(id)));
             setReports(reports.filter(r => !selectedIds.has(r.id)));
             setSelectedIds(new Set());
             showSuccess(`Successfully deleted ${count} report${count > 1 ? 's' : ''}`);
@@ -260,7 +274,7 @@ export const ConstructionReports = () => {
                 ordinal: maxOrdinal + 1,
                 material_type_id: typeId,
             };
-            const newSection = await reportService.create(sectionPayload);
+            const newSection = await createReportMutation.mutateAsync(sectionPayload as Partial<ReportForm>);
             setReports([...reports, newSection]);
         } catch (error) {
             handleError(error, 'ConstructionReports');
@@ -276,7 +290,7 @@ export const ConstructionReports = () => {
         const { existingId, initialValue } = sectionDialogConfig;
         if (!existingId || newName === initialValue) return;
         try {
-            await reportService.update(existingId, { section_name: newName });
+            await updateReportMutation.mutateAsync({ id: existingId, report: { section_name: newName } });
             setReports(reports.map(r => r.id === existingId ? { ...r, section_name: newName } : r));
         } catch (error) {
             handleError(error, 'ConstructionReports');
@@ -301,11 +315,13 @@ export const ConstructionReports = () => {
         const newReports = arrayMove(reports, oldIndex, newIndex);
         setReports(newReports);
         try {
-            await reportService.updateOrder(newReports);
+            await updateReportOrderMutation.mutateAsync(newReports);
         } catch (error) {
             handleError(error, 'ConstructionReports');
         }
     };
+
+    const loading = isCustomerLoading || isConstructionLoading || isReportsLoading;
 
     if (loading) {
         return (

@@ -7,7 +7,7 @@ import { Input } from '../components/ui/Input';
 import { Loader2, Save, ArrowLeft } from 'lucide-react';
 import type { Customer } from '../types';
 import { useLanguage } from '../context/LanguageContext';
-import { getAllFromStore, STORES } from '../lib/offlineDb';
+import { getAllFromStore, getFromStore, STORES } from '../lib/offlineDb';
 import { useToast } from '../context/ToastContext';
 import { errorHandler } from '../lib/errorHandler';
 import { useDebouncedCallback, DEBOUNCE_VALIDATION_MS } from '../hooks/useDebouncedCallback';
@@ -33,15 +33,30 @@ export const CustomerForm = () => {
     const loadCustomer = useCallback(async (customerId: string) => {
         setLoading(true);
         try {
-            const data = await customerService.getById(customerId);
+            const data = isOnline
+                ? await customerService.getById(customerId)
+                : await getFromStore<Customer>(STORES.CUSTOMERS, customerId);
+            if (!data) {
+                throw new Error('Customer not found offline');
+            }
             setFormData(data);
         } catch (error) {
-            const appError = errorHandler.handle(error, 'CustomerForm');
-            showError(errorHandler.getUserMessage(appError));
+            try {
+                const fallback = await getFromStore<Customer>(STORES.CUSTOMERS, customerId);
+                if (fallback) {
+                    setFormData(fallback);
+                } else {
+                    const appError = errorHandler.handle(error, 'CustomerForm');
+                    showError(errorHandler.getUserMessage(appError));
+                }
+            } catch (offlineError) {
+                const appError = errorHandler.handle(offlineError, 'CustomerForm');
+                showError(errorHandler.getUserMessage(appError));
+            }
         } finally {
             setLoading(false);
         }
-    }, [showError]);
+    }, [isOnline, showError]);
 
     useEffect(() => {
         if (id && id !== 'new') {

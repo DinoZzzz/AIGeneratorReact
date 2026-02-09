@@ -1,13 +1,17 @@
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { constructionService } from '../services/constructionService';
-import { customerService } from '../services/customerService';
 import { Plus, Pencil, Trash2, ArrowLeft, Loader2, FileText, MapPin, HardHat, Archive, ArchiveRestore } from 'lucide-react';
 import type { Construction, Customer } from '../types';
 import { Breadcrumbs } from '../components/ui/Breadcrumbs';
 import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../context/AuthContext';
 import { useRecentlyViewed } from '../hooks/useRecentlyViewed';
+import { useCustomer } from '../hooks/useCustomers';
+import {
+    useConstructionsByCustomer,
+    useDeleteConstruction,
+    useUpdateConstruction,
+} from '../hooks/useConstructions';
 import { ConfirmDialog } from '../components/ui/ConfirmDialog';
 import { formatDate } from '../utils/dateFormatter';
 import { useConfirm } from '../context/useConfirm';
@@ -20,9 +24,6 @@ export const Constructions = () => {
     const navigate = useNavigate();
     const handleError = useHandleError();
     const confirm = useConfirm();
-    const [constructions, setConstructions] = useState<Construction[]>([]);
-    const [customer, setCustomer] = useState<Customer | null>(null);
-    const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     const { t } = useLanguage();
@@ -40,15 +41,30 @@ export const Constructions = () => {
     const [archiveLoading, setArchiveLoading] = useState(false);
 
     const isAdmin = profile?.role === 'admin';
+    const normalizedCustomerId = customerId || '';
+    const includeArchived = isAdmin;
+    const { data: customer, isLoading: isCustomerLoading, error: customerError } = useCustomer(normalizedCustomerId);
+    const {
+        data: constructions = [],
+        isLoading: isConstructionsLoading,
+        error: constructionsError
+    } = useConstructionsByCustomer(normalizedCustomerId, includeArchived);
+    const deleteConstruction = useDeleteConstruction();
+    const updateConstruction = useUpdateConstruction();
 
     const ITEMS_PER_PAGE = 15;
 
     useEffect(() => {
-        if (customerId) {
-            loadData(customerId);
+        if (customerError) {
+            handleError(customerError, 'Constructions');
         }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [customerId]);
+    }, [customerError, handleError]);
+
+    useEffect(() => {
+        if (constructionsError) {
+            handleError(constructionsError, 'Constructions');
+        }
+    }, [constructionsError, handleError]);
 
     // Track customer in recently viewed
     useEffect(() => {
@@ -64,24 +80,6 @@ export const Constructions = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [customer?.id]);
 
-    const loadData = async (id: string) => {
-        setLoading(true);
-        try {
-            // Admins can see all (including archived), regular users only active
-            const includeArchived = isAdmin;
-            const [customerData, constructionsData] = await Promise.all([
-                customerService.getById(id),
-                constructionService.getByCustomerId(id, includeArchived)
-            ]);
-            setCustomer(customerData);
-            setConstructions(constructionsData);
-        } catch (error) {
-            handleError(error, 'Constructions');
-        } finally {
-            setLoading(false);
-        }
-    };
-
     const handleArchiveClick = useCallback((construction: Construction) => {
         setSelectedConstruction(construction);
         setIsArchiving(!construction.is_archived);
@@ -93,36 +91,27 @@ export const Constructions = () => {
 
         setArchiveLoading(true);
         try {
-            if (isArchiving) {
-                await constructionService.archive(selectedConstruction.id);
-            } else {
-                await constructionService.unarchive(selectedConstruction.id);
-            }
+            await updateConstruction.mutateAsync({
+                id: selectedConstruction.id,
+                construction: { is_archived: isArchiving }
+            });
             setArchiveDialogOpen(false);
-            if (customerId) {
-                loadData(customerId);
-            }
         } catch (error) {
             handleError(error, 'Constructions');
         } finally {
             setArchiveLoading(false);
         }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [selectedConstruction, isArchiving, customerId]);
+    }, [selectedConstruction, isArchiving, updateConstruction, handleError]);
 
     const handleDelete = useCallback(async (id: string) => {
         if (await confirm({ title: t('constructions.deleteConfirm'), variant: 'destructive' })) {
             try {
-                await constructionService.delete(id);
-                if (customerId) {
-                    loadData(customerId);
-                }
+                await deleteConstruction.mutateAsync(id);
             } catch (error) {
                 handleError(error, 'Constructions');
             }
         }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [t, customerId]);
+    }, [confirm, t, deleteConstruction, handleError]);
 
     // Memoize filtered constructions to prevent recalculation on every render
     const filteredConstructions = useMemo(() => {
@@ -150,6 +139,8 @@ export const Constructions = () => {
     useEffect(() => {
         setCurrentPage(1);
     }, [searchTerm, filter]);
+
+    const loading = isCustomerLoading || isConstructionsLoading;
 
     if (loading) {
         return (

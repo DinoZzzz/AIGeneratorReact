@@ -11,7 +11,7 @@ import { useLanguage } from '../context/LanguageContext';
 import type { ReportFile } from '../types';
 import type { DragEndEvent } from '@dnd-kit/core';
 import { arrayMove } from '@dnd-kit/sortable';
-import { reportService } from '../services/reportService';
+import { useUpdateReportOrder } from '../hooks/useReports';
 import { ReportList } from '../components/history/ReportList';
 import { AttachmentsGallery } from '../components/history/AttachmentsGallery';
 import { useHandleError } from '../hooks/useHandleError';
@@ -23,6 +23,7 @@ export const HistoryDetails = () => {
     const { profile } = useAuth();
     const { t } = useLanguage();
     const handleError = useHandleError();
+    const updateReportOrderMutation = useUpdateReportOrder();
     const [exportData, setExportData] = useState<ReportExport | null>(null);
     const [forms, setForms] = useState<ReportExportForm[]>([]);
 
@@ -261,7 +262,7 @@ export const HistoryDetails = () => {
                     ordinal: f.ordinal
                 }));
 
-            await reportService.updateOrder(reportsToUpdate);
+            await updateReportOrderMutation.mutateAsync(reportsToUpdate);
         } catch (error) {
             handleError(error, 'HistoryDetails');
         }
