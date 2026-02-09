@@ -103,8 +103,16 @@ const renderReportPage = async (doc: jsPDF, report: Partial<ReportForm>, userPro
     try {
         logoImg = await loadImage('/assets/ai_icon.png');
         const schemeNum = report.draft_id || 1;
-        // Use custom scheme image from admin settings, with fallback to local asset
-        const schemeImageUrl = await getSchemeImageUrl(schemeNum);
+
+        // Try to get custom scheme image from admin settings, with safe fallback
+        let schemeImageUrl = `/assets/Scheme${schemeNum}.PNG`;
+        try {
+            schemeImageUrl = await getSchemeImageUrl(schemeNum);
+        } catch {
+            // Fallback to local asset if schemeService fails
+            console.warn('Failed to get custom scheme image, using local asset');
+        }
+
         sketchImg = await loadImage(schemeImageUrl);
     } catch (e) {
         console.warn('Failed to load some images', e);
