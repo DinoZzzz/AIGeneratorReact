@@ -47,6 +47,8 @@ const OfflineContext = createContext<OfflineContextType | undefined>(undefined);
 const SYNC_DEBOUNCE_MS = 2000;
 // Check for pending changes periodically
 const PENDING_CHECK_INTERVAL_MS = 10000;
+// Best-effort periodic auto-sync while online and app is open.
+const AUTO_SYNC_INTERVAL_MS = 60000;
 // How long to display sync status after completion
 const SYNC_STATUS_CLEAR_MS = 3000;
 
@@ -270,6 +272,36 @@ export const OfflineProvider = ({ children }: { children: ReactNode }) => {
 
     void initializeOfflineSync();
   }, [triggerSync, updatePendingCount]);
+
+  // Best-effort periodic sync while the app remains open.
+  useEffect(() => {
+    if (!isOnline || pendingChanges === 0) {
+      return;
+    }
+
+    const interval = setInterval(() => {
+      void triggerSync();
+    }, AUTO_SYNC_INTERVAL_MS);
+
+    return () => clearInterval(interval);
+  }, [isOnline, pendingChanges, triggerSync]);
+
+  // Trigger sync whenever app tab/window becomes active again.
+  useEffect(() => {
+    const triggerForegroundSync = () => {
+      if (!navigator.onLine) return;
+      if (document.visibilityState !== 'visible') return;
+      void triggerSync();
+    };
+
+    window.addEventListener('focus', triggerForegroundSync);
+    document.addEventListener('visibilitychange', triggerForegroundSync);
+
+    return () => {
+      window.removeEventListener('focus', triggerForegroundSync);
+      document.removeEventListener('visibilitychange', triggerForegroundSync);
+    };
+  }, [triggerSync]);
 
   // Cleanup timeout on unmount
   useEffect(() => {

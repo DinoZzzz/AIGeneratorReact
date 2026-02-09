@@ -91,6 +91,39 @@ const updateSW = registerSW({
   immediate: true,
 })
 
+const registerBackgroundSync = async () => {
+  if (!('serviceWorker' in navigator)) return
+
+  try {
+    const registration = await navigator.serviceWorker.ready
+    const registrationWithSync = registration as ServiceWorkerRegistration & {
+      sync?: { register: (tag: string) => Promise<void> }
+    }
+    if (!registrationWithSync.sync || typeof registrationWithSync.sync.register !== 'function') {
+      return
+    }
+
+    await registrationWithSync.sync.register('offline-sync')
+
+    const registrationWithPeriodicSync = registration as ServiceWorkerRegistration & {
+      periodicSync?: { register: (tag: string, options: { minInterval: number }) => Promise<void> }
+    }
+    if (registrationWithPeriodicSync.periodicSync && typeof registrationWithPeriodicSync.periodicSync.register === 'function') {
+      await registrationWithPeriodicSync.periodicSync.register('offline-sync-periodic', {
+        minInterval: 60 * 60 * 1000, // 1h
+      })
+    }
+  } catch (error) {
+    // Background Sync is best-effort and not supported in all browsers.
+    console.debug('Background sync registration skipped:', error)
+  }
+}
+
+void registerBackgroundSync()
+window.addEventListener('online', () => {
+  void registerBackgroundSync()
+})
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <App />

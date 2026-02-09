@@ -2,6 +2,7 @@ import { supabase } from '../lib/supabase';
 import { captureError } from '../lib/sentry';
 import type { Profile, ReportType } from '../types';
 import { createWeakPasswordError, isWeakPasswordAuthError, validatePasswordStrength } from '../lib/passwordValidation';
+import { getLookupWithOfflineFallback } from '../lib/offlineLookupCache';
 
 interface ProfileFromDB {
     id: string;
@@ -42,16 +43,15 @@ export const examinerService = {
     },
 
     async getReportTypes(): Promise<ReportType[]> {
-        const { data, error } = await supabase
-            .from('report_types')
-            .select('id, name')
-            .order('id');
-
-        if (error) {
-            captureError(error, { service: 'examinerService', method: 'getReportTypes' });
+        try {
+            return await getLookupWithOfflineFallback<ReportType>('report_types', 'id');
+        } catch (error) {
+            captureError(error instanceof Error ? error : new Error('Failed to load report types'), {
+                service: 'examinerService',
+                method: 'getReportTypes'
+            });
             throw error;
         }
-        return data as ReportType[];
     },
 
     async saveExaminer(profile: Partial<Profile> & { password?: string }): Promise<Profile> {

@@ -2,6 +2,8 @@ import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useLanguage } from '../../context/LanguageContext';
 import { useToast } from '../../context/ToastContext';
 import { useConfirm } from '../../context/useConfirm';
+import { useOffline } from '../../context/OfflineContext';
+import { useAuth } from '../../context/AuthContext';
 import {
     getSchemeImages,
     uploadSchemeImage,
@@ -12,13 +14,22 @@ import {
 } from '../../services/schemeService';
 import type { SchemeImage } from '../../types';
 import { Image, Upload, Save, RotateCcw, Loader2, X, Check, Edit2 } from 'lucide-react';
+import {
+    STORES,
+    addToSyncQueue,
+    getAllFromStore,
+    saveManyToStore,
+    saveToStore
+} from '../../lib/offlineDb';
 
 interface SchemeCardProps {
     scheme: SchemeImage;
+    isOnline: boolean;
+    onSaveMetadataOffline: (scheme: SchemeImage, name: string, description: string) => Promise<void>;
     onUpdate: () => void;
 }
 
-const SchemeCard: React.FC<SchemeCardProps> = ({ scheme, onUpdate }) => {
+const SchemeCard: React.FC<SchemeCardProps> = ({ scheme, isOnline, onSaveMetadataOffline, onUpdate }) => {
     const { t } = useLanguage();
     const { addToast } = useToast();
     const confirm = useConfirm();
@@ -79,6 +90,10 @@ const SchemeCard: React.FC<SchemeCardProps> = ({ scheme, onUpdate }) => {
 
     const handleUpload = async () => {
         if (!pendingFile) return;
+        if (!isOnline) {
+            addToast(t('schemeManager.onlineRequired') || 'Image uploads require an internet connection', 'error');
+            return;
+        }
 
         setUploading(true);
         try {
@@ -109,13 +124,20 @@ const SchemeCard: React.FC<SchemeCardProps> = ({ scheme, onUpdate }) => {
     const handleSaveMetadata = async () => {
         setSaving(true);
         try {
-            const result = await updateSchemeMetadata(scheme.scheme_number, name, description, scheme.method_type);
-            if (result.success) {
+            if (isOnline) {
+                const result = await updateSchemeMetadata(scheme.scheme_number, name, description, scheme.method_type);
+                if (result.success) {
+                    addToast(t('schemeManager.saveSuccess'), 'success');
+                    setIsEditing(false);
+                    onUpdate();
+                } else {
+                    addToast(result.error || t('schemeManager.saveError'), 'error');
+                }
+            } else {
+                await onSaveMetadataOffline(scheme, name, description);
                 addToast(t('schemeManager.saveSuccess'), 'success');
                 setIsEditing(false);
                 onUpdate();
-            } else {
-                addToast(result.error || t('schemeManager.saveError'), 'error');
             }
         } catch (error) {
             addToast(error instanceof Error ? error.message : t('common.unknownError'), 'error');
@@ -126,6 +148,10 @@ const SchemeCard: React.FC<SchemeCardProps> = ({ scheme, onUpdate }) => {
 
     const handleReset = async () => {
         if (!(await confirm({ title: t('schemeManager.resetConfirm'), variant: 'destructive' }))) return;
+        if (!isOnline) {
+            addToast(t('schemeManager.onlineRequired') || 'Reset requires an internet connection', 'error');
+            return;
+        }
 
         setResetting(true);
         try {
@@ -337,6 +363,8 @@ const SchemeCard: React.FC<SchemeCardProps> = ({ scheme, onUpdate }) => {
 
 export const SchemeManager: React.FC = () => {
     const { t } = useLanguage();
+    const { isOnline } = useOffline();
+    const { profile } = useAuth();
 
     const [schemes, setSchemes] = useState<SchemeImage[]>([]);
     const [loading, setLoading] = useState(true);
@@ -344,18 +372,63 @@ export const SchemeManager: React.FC = () => {
     const loadSchemes = useCallback(async () => {
         setLoading(true);
         try {
-            const data = await getSchemeImages();
-            setSchemes(data);
+            if (isOnline) {
+                const data = await getSchemeImages();
+                if (data.length > 0) {
+                    setSchemes(data);
+                    await saveManyToStore(STORES.SCHEME_IMAGES, data);
+                    return;
+                }
+
+                const fallbackSchemes = await getAllFromStore<SchemeImage>(STORES.SCHEME_IMAGES);
+                if (fallbackSchemes.length > 0) {
+                    setSchemes(fallbackSchemes.sort((left, right) => left.scheme_number - right.scheme_number));
+                    return;
+                }
+
+                setSchemes(data);
+                await saveManyToStore(STORES.SCHEME_IMAGES, data);
+                return;
+            }
+
+            const offlineSchemes = await getAllFromStore<SchemeImage>(STORES.SCHEME_IMAGES);
+            setSchemes(offlineSchemes.sort((left, right) => left.scheme_number - right.scheme_number));
         } catch (error) {
             console.error('Error loading schemes:', error);
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [isOnline]);
 
     useEffect(() => {
-        loadSchemes();
+        void loadSchemes();
     }, [loadSchemes]);
+
+    const saveMetadataOffline = useCallback(async (
+        scheme: SchemeImage,
+        name: string,
+        description: string
+    ) => {
+        const now = new Date().toISOString();
+        const updated = {
+            ...scheme,
+            name,
+            description,
+            updated_at: now,
+            updated_by: profile?.id,
+            updated_by_name: profile ? `${profile.name} ${profile.last_name}`.trim() : scheme.updated_by_name,
+            _is_offline: true
+        };
+
+        await saveToStore(STORES.SCHEME_IMAGES, updated);
+        await addToSyncQueue(STORES.SCHEME_IMAGES, 'update', {
+            name,
+            description,
+            updated_at: now,
+            updated_by: profile?.id,
+            updated_by_name: updated.updated_by_name
+        }, scheme.id);
+    }, [profile]);
 
     // Group schemes by method type
     const waterSchemes = schemes.filter(s => s.method_type === 'water');
@@ -367,6 +440,8 @@ export const SchemeManager: React.FC = () => {
                 <SchemeCard
                     key={scheme.id}
                     scheme={scheme}
+                    isOnline={isOnline}
+                    onSaveMetadataOffline={saveMetadataOffline}
                     onUpdate={loadSchemes}
                 />
             ))}

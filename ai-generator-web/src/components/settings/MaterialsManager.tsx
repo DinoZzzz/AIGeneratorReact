@@ -2,9 +2,20 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { Loader2, Plus, Trash2, Edit, Lock } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
 import { useToast } from '../../context/ToastContext';
+import { useOffline } from '../../context/OfflineContext';
 import { supabase } from '../../lib/supabase';
+import { isNetworkError } from '../../lib/errorHandler';
 import type { Material } from '../../types';
 import { ConfirmDialog } from '../ui/ConfirmDialog';
+import {
+    STORES,
+    addToSyncQueue,
+    deleteFromStore,
+    getAllFromStore,
+    getFromStore,
+    saveManyToStore,
+    saveToStore
+} from '../../lib/offlineDb';
 
 interface MaterialsManagerProps {
     isAdmin: boolean;
@@ -13,6 +24,7 @@ interface MaterialsManagerProps {
 export const MaterialsManager = ({ isAdmin }: MaterialsManagerProps) => {
     const { t } = useLanguage();
     const { addToast } = useToast();
+    const { isOnline, triggerSync } = useOffline();
 
     const [materials, setMaterials] = useState<Material[]>([]);
     const [loading, setLoading] = useState(true);
@@ -27,37 +39,80 @@ export const MaterialsManager = ({ isAdmin }: MaterialsManagerProps) => {
 
     const fetchMaterials = useCallback(async () => {
         try {
-            const { data, error } = await supabase
-                .from('materials')
-                .select('*')
-                .order('name');
+            if (isOnline) {
+                try {
+                    const { data, error } = await supabase
+                        .from('materials')
+                        .select('*')
+                        .order('name');
 
-            if (error) throw error;
-            setMaterials(data || []);
+                    if (error) throw error;
+                    const fetchedMaterials = (data || []) as Material[];
+                    setMaterials(fetchedMaterials);
+                    await saveManyToStore(STORES.MATERIALS, fetchedMaterials);
+                    return;
+                } catch (error) {
+                    if (!isNetworkError(error)) throw error;
+                }
+            }
+
+            const offlineMaterials = await getAllFromStore<Material>(STORES.MATERIALS);
+            setMaterials(offlineMaterials.sort((left, right) => left.name.localeCompare(right.name)));
         } catch (error) {
             addToast(error instanceof Error ? error.message : String(error), 'error');
         } finally {
             setLoading(false);
         }
-    }, [addToast]);
+    }, [addToast, isOnline]);
 
     useEffect(() => {
-        fetchMaterials();
+        void fetchMaterials();
     }, [fetchMaterials]);
+
+    const updateMaterialOffline = async (materialId: number, name: string) => {
+        const existing = await getFromStore<Material>(STORES.MATERIALS, materialId);
+        if (!existing) {
+            throw new Error('Material is not available offline');
+        }
+
+        const updated = {
+            ...existing,
+            id: materialId,
+            name,
+            _is_offline: true
+        };
+
+        await saveToStore(STORES.MATERIALS, updated);
+        await addToSyncQueue(STORES.MATERIALS, 'update', { name }, String(materialId));
+    };
+
+    const deleteMaterialOffline = async (materialId: number) => {
+        await deleteFromStore(STORES.MATERIALS, materialId);
+        await addToSyncQueue(STORES.MATERIALS, 'delete', null, String(materialId));
+    };
 
     const handleAdd = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!formData.name.trim() || !addingType) return;
         try {
-            const { error } = await supabase
+            if (!isOnline) {
+                addToast(t('materials.createOnlineOnly') || 'Creating materials requires an internet connection', 'error');
+                return;
+            }
+
+            const { data, error } = await supabase
                 .from('materials')
-                .insert([{ name: formData.name, material_type_id: addingType }]);
+                .insert([{ name: formData.name, material_type_id: addingType }])
+                .select()
+                .single();
 
             if (error) throw error;
+            await saveToStore(STORES.MATERIALS, data as Material);
             addToast(t('materials.added'), 'success');
             setAddingType(null);
             setFormData({ name: '', material_type_id: 1 });
-            fetchMaterials();
+            await fetchMaterials();
+            await triggerSync();
         } catch (error) {
             addToast(error instanceof Error ? error.message : String(error), 'error');
         }
@@ -67,16 +122,32 @@ export const MaterialsManager = ({ isAdmin }: MaterialsManagerProps) => {
         e.preventDefault();
         if (!isEditing || !formData.name.trim()) return;
         try {
-            const { error } = await supabase
-                .from('materials')
-                .update({ name: formData.name })
-                .eq('id', isEditing.id);
+            if (isOnline) {
+                try {
+                    const { data, error } = await supabase
+                        .from('materials')
+                        .update({ name: formData.name })
+                        .eq('id', isEditing.id)
+                        .select()
+                        .single();
 
-            if (error) throw error;
+                    if (error) throw error;
+                    await saveToStore(STORES.MATERIALS, data as Material);
+                } catch (error) {
+                    if (!isNetworkError(error)) throw error;
+                    await updateMaterialOffline(isEditing.id, formData.name);
+                }
+            } else {
+                await updateMaterialOffline(isEditing.id, formData.name);
+            }
+
             addToast(t('materials.updated'), 'success');
             setIsEditing(null);
             setFormData({ name: '', material_type_id: 1 });
-            fetchMaterials();
+            await fetchMaterials();
+            if (isOnline) {
+                await triggerSync();
+            }
         } catch (error) {
             addToast(error instanceof Error ? error.message : String(error), 'error');
         }
@@ -90,31 +161,65 @@ export const MaterialsManager = ({ isAdmin }: MaterialsManagerProps) => {
     const handleDeleteConfirm = async () => {
         if (!materialToDelete) return;
         try {
-            const { data: usageData, error: usageError } = await supabase
-                .from('report_forms')
-                .select('id')
-                .or(`pane_material_id.eq.${materialToDelete.id},pipe_material_id.eq.${materialToDelete.id}`)
-                .limit(1);
+            if (isOnline) {
+                try {
+                    const { data: usageData, error: usageError } = await supabase
+                        .from('report_forms')
+                        .select('id')
+                        .or(`pane_material_id.eq.${materialToDelete.id},pipe_material_id.eq.${materialToDelete.id}`)
+                        .limit(1);
 
-            if (usageError) throw usageError;
+                    if (usageError) throw usageError;
 
-            if (usageData && usageData.length > 0) {
-                addToast(t('materials.inUseError'), 'error');
-                setDeleteDialogOpen(false);
-                setMaterialToDelete(null);
-                return;
+                    if (usageData && usageData.length > 0) {
+                        addToast(t('materials.inUseError'), 'error');
+                        setDeleteDialogOpen(false);
+                        setMaterialToDelete(null);
+                        return;
+                    }
+
+                    const { error } = await supabase
+                        .from('materials')
+                        .delete()
+                        .eq('id', materialToDelete.id);
+
+                    if (error) throw error;
+                    await deleteFromStore(STORES.MATERIALS, materialToDelete.id);
+                } catch (error) {
+                    if (!isNetworkError(error)) throw error;
+                    const cachedReports = await getAllFromStore<{ pane_material_id?: number; pipe_material_id?: number }>(STORES.REPORTS);
+                    const isInUseOffline = cachedReports.some((report) =>
+                        report.pane_material_id === materialToDelete.id || report.pipe_material_id === materialToDelete.id
+                    );
+                    if (isInUseOffline) {
+                        addToast(t('materials.inUseError'), 'error');
+                        setDeleteDialogOpen(false);
+                        setMaterialToDelete(null);
+                        return;
+                    }
+                    await deleteMaterialOffline(materialToDelete.id);
+                }
+            } else {
+                const cachedReports = await getAllFromStore<{ pane_material_id?: number; pipe_material_id?: number }>(STORES.REPORTS);
+                const isInUseOffline = cachedReports.some((report) =>
+                    report.pane_material_id === materialToDelete.id || report.pipe_material_id === materialToDelete.id
+                );
+                if (isInUseOffline) {
+                    addToast(t('materials.inUseError'), 'error');
+                    setDeleteDialogOpen(false);
+                    setMaterialToDelete(null);
+                    return;
+                }
+                await deleteMaterialOffline(materialToDelete.id);
             }
 
-            const { error } = await supabase
-                .from('materials')
-                .delete()
-                .eq('id', materialToDelete.id);
-
-            if (error) throw error;
             addToast(t('materials.removed'), 'success');
-            fetchMaterials();
+            await fetchMaterials();
             setDeleteDialogOpen(false);
             setMaterialToDelete(null);
+            if (isOnline) {
+                await triggerSync();
+            }
         } catch (error) {
             addToast(error instanceof Error ? error.message : String(error), 'error');
             setDeleteDialogOpen(false);

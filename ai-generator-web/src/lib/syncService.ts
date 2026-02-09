@@ -21,6 +21,8 @@ import {
   updateSyncOperationStatus,
   type SyncOperation,
   STORES,
+  getByIndex,
+  saveManyToStore,
   saveToStore,
   deleteFromStore,
 } from './offlineDb';
@@ -99,6 +101,9 @@ const storeToTable: Record<string, string> = {
   [STORES.REPORTS]: 'report_forms',
   [STORES.APPOINTMENTS]: 'calendar_events',
   [STORES.MESSAGES]: 'messages',
+  [STORES.EXAMINERS]: 'profiles',
+  [STORES.MATERIALS]: 'materials',
+  [STORES.SCHEME_IMAGES]: 'scheme_images',
   [STORES.CERTIFIERS]: 'certifiers',
 };
 
@@ -191,7 +196,7 @@ const stripOfflineFields = (value: unknown): Record<string, unknown> => {
 
 const syncQueuedExportHistory = async (
   rawData: unknown
-): Promise<void> => {
+): Promise<{ id: string; exportPayload: QueuedExportHistoryData['exportPayload'] } | null> => {
   if (!rawData || typeof rawData !== 'object') {
     throw new Error('Invalid export history payload');
   }
@@ -257,7 +262,13 @@ const syncQueuedExportHistory = async (
   }
 
   if (!resolvedExport || !resolvedExport.id || forms.length === 0) {
-    return;
+    if (!resolvedExport?.id) {
+      return null;
+    }
+    return {
+      id: resolvedExport.id,
+      exportPayload,
+    };
   }
 
   const normalizedForms = forms
@@ -283,6 +294,11 @@ const syncQueuedExportHistory = async (
     .from('report_export_forms')
     .insert(normalizedForms);
   if (insertFormsError) throw insertFormsError;
+
+  return {
+    id: resolvedExport.id,
+    exportPayload,
+  };
 };
 
 /**
@@ -295,12 +311,76 @@ const processSyncOperation = async (
   if (operation.store === STORES.EXPORT_HISTORY) {
     try {
       await updateSyncOperationStatus(operation.id, 'in_progress');
-      if (operation.operation !== 'create') {
+      if (operation.operation === 'create') {
+        const mappedData = applyIdMap(operation.data, idMap);
+        const syncedExport = await syncQueuedExportHistory(mappedData);
+
+        if (operation.entityId) {
+          try {
+            const cachedForms = await getByIndex<{ id: string }>(
+              STORES.EXPORT_HISTORY_FORMS,
+              'export_id',
+              operation.entityId
+            );
+            await Promise.all(
+              cachedForms.map((form) => deleteFromStore(STORES.EXPORT_HISTORY_FORMS, form.id))
+            );
+            await deleteFromStore(STORES.EXPORT_HISTORY, operation.entityId);
+          } catch (deleteError) {
+            console.warn('Could not delete queued export history temp record:', deleteError);
+          }
+        }
+
+        if (syncedExport) {
+          const forms = (
+            mappedData &&
+            typeof mappedData === 'object' &&
+            Array.isArray((mappedData as { forms?: unknown[] }).forms)
+          )
+            ? (mappedData as { forms: unknown[] }).forms
+            : [];
+
+          await saveToStore(STORES.EXPORT_HISTORY, {
+            id: syncedExport.id,
+            ...syncedExport.exportPayload,
+            forms_count: forms.length,
+            _synced: true,
+            updated_at: new Date().toISOString(),
+          });
+
+          await saveManyToStore(
+            STORES.EXPORT_HISTORY_FORMS,
+            forms.map((form, index) => ({
+              id: `${syncedExport.id}:${(form as { form_id?: string }).form_id || index}:${index}`,
+              export_id: syncedExport.id,
+              form_id: (form as { form_id?: string }).form_id,
+              type_id: (form as { type_id?: number }).type_id,
+              ordinal: (form as { ordinal?: number }).ordinal || index + 1,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            }))
+          );
+        }
+      } else if (operation.operation === 'delete') {
+        const mappedEntityId = mapEntityId(operation.entityId, idMap);
+        if (!mappedEntityId) {
+          throw new Error('Entity ID required for export history delete');
+        }
+
+        await supabase
+          .from('report_export_forms')
+          .delete()
+          .eq('export_id', mappedEntityId);
+
+        const { error: deleteExportError } = await supabase
+          .from('report_exports')
+          .delete()
+          .eq('id', mappedEntityId);
+
+        if (deleteExportError) throw deleteExportError;
+      } else {
         throw new Error(`Unsupported export history operation: ${operation.operation}`);
       }
-
-      const mappedData = applyIdMap(operation.data, idMap);
-      await syncQueuedExportHistory(mappedData);
       await removeSyncOperation(operation.id);
       return true;
     } catch (error) {

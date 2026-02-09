@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { useLanguage } from '../../context/LanguageContext';
 import { useToast } from '../../context/ToastContext';
 import { useConfirm } from '../../context/useConfirm';
+import { useOffline } from '../../context/OfflineContext';
 import {
     getActiveTemplate,
     validateTemplate,
@@ -13,11 +14,22 @@ import {
 import type { TemplateInfo, TemplateValidationResult } from '../../types';
 import { FileText, Upload, Check, AlertTriangle, X, RotateCcw, Loader2, Trash2, Eye, Download } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
+import { STORES, getFromStore, saveToStore } from '../../lib/offlineDb';
+
+interface TemplateCacheEntry<T> {
+    id: string;
+    value: T;
+    updated_at: string;
+}
+
+const ACTIVE_TEMPLATE_CACHE_ID = 'active_template';
+const TEMPLATE_VERSIONS_CACHE_ID = 'template_versions';
 
 export const TemplateEditor: React.FC = () => {
     const { t } = useLanguage();
     const { addToast } = useToast();
     const confirm = useConfirm();
+    const { isOnline } = useOffline();
 
     const [activeTemplate, setActiveTemplate] = useState<TemplateInfo | null>(null);
     const [versions, setVersions] = useState<TemplateInfo[]>([]);
@@ -31,18 +43,51 @@ export const TemplateEditor: React.FC = () => {
     const loadData = useCallback(async () => {
         setLoading(true);
         try {
-            const [template, templateVersions] = await Promise.all([
-                getActiveTemplate(),
-                listTemplateVersions()
+            const [templateEntry, versionsEntry] = await Promise.all([
+                getFromStore<TemplateCacheEntry<TemplateInfo | null>>(STORES.TEMPLATE_CACHE, ACTIVE_TEMPLATE_CACHE_ID),
+                getFromStore<TemplateCacheEntry<TemplateInfo[]>>(STORES.TEMPLATE_CACHE, TEMPLATE_VERSIONS_CACHE_ID)
             ]);
-            setActiveTemplate(template);
-            setVersions(templateVersions);
+            const cachedTemplate = templateEntry?.value || null;
+            const cachedVersions = Array.isArray(versionsEntry?.value) ? versionsEntry.value : [];
+
+            if (isOnline) {
+                const [template, templateVersions] = await Promise.all([
+                    getActiveTemplate(),
+                    listTemplateVersions()
+                ]);
+
+                const shouldUseOnlineData = Boolean(template) || templateVersions.length > 0 || (cachedTemplate === null && cachedVersions.length === 0);
+
+                setActiveTemplate(shouldUseOnlineData ? template : cachedTemplate);
+                setVersions(shouldUseOnlineData ? templateVersions : cachedVersions);
+
+                if (!shouldUseOnlineData) {
+                    return;
+                }
+
+                await Promise.all([
+                    saveToStore(STORES.TEMPLATE_CACHE, {
+                        id: ACTIVE_TEMPLATE_CACHE_ID,
+                        value: template,
+                        updated_at: new Date().toISOString()
+                    } satisfies TemplateCacheEntry<TemplateInfo | null>),
+                    saveToStore(STORES.TEMPLATE_CACHE, {
+                        id: TEMPLATE_VERSIONS_CACHE_ID,
+                        value: templateVersions,
+                        updated_at: new Date().toISOString()
+                    } satisfies TemplateCacheEntry<TemplateInfo[]>)
+                ]);
+                return;
+            }
+
+            setActiveTemplate(cachedTemplate);
+            setVersions(cachedVersions);
         } catch (error) {
             console.error('Error loading template data:', error);
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [isOnline]);
 
     useEffect(() => {
         loadData();
@@ -91,6 +136,10 @@ export const TemplateEditor: React.FC = () => {
 
     const handleUpload = async () => {
         if (!pendingFile || !validation?.isValid) return;
+        if (!isOnline) {
+            addToast(t('templateEditor.onlineRequired') || 'Template uploads require an internet connection', 'error');
+            return;
+        }
 
         setUploading(true);
         try {
@@ -112,6 +161,10 @@ export const TemplateEditor: React.FC = () => {
 
     const handleRollback = async (version: TemplateInfo) => {
         if (!(await confirm({ title: t('templateEditor.rollbackConfirm') }))) return;
+        if (!isOnline) {
+            addToast(t('templateEditor.onlineRequired') || 'Template restore requires an internet connection', 'error');
+            return;
+        }
 
         setLoading(true);
         try {
@@ -131,6 +184,10 @@ export const TemplateEditor: React.FC = () => {
 
     const handleDeleteBackup = async (version: TemplateInfo) => {
         if (!(await confirm({ title: t('templateEditor.deleteBackupConfirm'), variant: 'destructive' }))) return;
+        if (!isOnline) {
+            addToast(t('templateEditor.onlineRequired') || 'Template backup deletion requires an internet connection', 'error');
+            return;
+        }
 
         try {
             const result = await deleteTemplateBackup(version.path);
@@ -146,6 +203,10 @@ export const TemplateEditor: React.FC = () => {
     };
 
     const handlePreview = async () => {
+        if (!isOnline) {
+            addToast(t('templateEditor.onlineRequired') || 'Template preview requires an internet connection', 'error');
+            return;
+        }
         // Download template for preview in external app
         const { data } = supabase.storage
             .from('templates')
@@ -255,6 +316,11 @@ export const TemplateEditor: React.FC = () => {
                         <p className="text-sm text-muted-foreground">
                             {t('templateEditor.supportedFormat')}
                         </p>
+                        {!isOnline && (
+                            <p className="text-xs text-amber-600 mt-2">
+                                {t('templateEditor.onlineRequired') || 'Template updates require internet connection'}
+                            </p>
+                        )}
                     </div>
 
                     {/* Pending File & Validation */}

@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { useToast } from '../context/ToastContext';
+import { useOffline } from '../context/OfflineContext';
 import { examinerService } from '../services/examinerService';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
@@ -11,12 +12,21 @@ import { Camera, Loader2, FileText, PieChart, TrendingUp } from 'lucide-react';
 import type { Profile, ReportType } from '../types';
 import { useAnalytics } from '../hooks/useAnalytics';
 import { UserAvatar } from '../components/ui/UserAvatar';
-import { errorHandler } from '../lib/errorHandler';
+import { errorHandler, isNetworkError } from '../lib/errorHandler';
+import {
+    STORES,
+    addToSyncQueue,
+    getAllFromStore,
+    getFromStore,
+    saveManyToStore,
+    saveToStore
+} from '../lib/offlineDb';
 
 export const ProfilePage = () => {
     const { profile, user, refreshProfile } = useAuth();
     const { t } = useLanguage();
     const toast = useToast();
+    const { isOnline, triggerSync } = useOffline();
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const [loading, setLoading] = useState(false);
@@ -34,8 +44,9 @@ export const ProfilePage = () => {
     });
 
     useEffect(() => {
-        loadReportTypes();
-    }, []);
+        void loadReportTypes();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isOnline]);
 
     useEffect(() => {
         if (profile) {
@@ -56,8 +67,19 @@ export const ProfilePage = () => {
 
     const loadReportTypes = async () => {
         try {
-            const types = await examinerService.getReportTypes();
-            setReportTypes(types);
+            if (isOnline) {
+                try {
+                    const types = await examinerService.getReportTypes();
+                    setReportTypes(types);
+                    await saveManyToStore(STORES.REPORT_TYPES, types);
+                    return;
+                } catch (error) {
+                    if (!isNetworkError(error)) throw error;
+                }
+            }
+
+            const offlineTypes = await getAllFromStore<ReportType>(STORES.REPORT_TYPES);
+            setReportTypes(offlineTypes);
         } catch (error) {
             console.error('Failed to load report types', error);
         }
@@ -68,6 +90,10 @@ export const ProfilePage = () => {
 
         const file = e.target.files[0];
         if (!profile?.id) return;
+        if (!isOnline) {
+            toast.error(t('profile.avatarUploadOnlineOnly') || 'Avatar upload requires an internet connection');
+            return;
+        }
 
         setUploading(true);
         try {
@@ -92,9 +118,57 @@ export const ProfilePage = () => {
 
         setLoading(true);
         try {
-            await examinerService.saveExaminer(formData);
-            await refreshProfile(); // Refresh context to update sidebar
+            const profileUpdatePayload: Partial<Profile> = {
+                id: formData.id,
+                name: formData.name,
+                last_name: formData.last_name,
+                username: formData.username,
+                title: formData.title,
+                gender: formData.gender,
+                role: formData.role,
+                accreditations: formData.accreditations,
+                avatar_url: formData.avatar_url
+            };
+            const cleanProfileUpdatePayload = Object.fromEntries(
+                Object.entries(profileUpdatePayload).filter(([, value]) => value !== undefined)
+            ) as Partial<Profile>;
+
+            const queueProfileUpdateOffline = async () => {
+                if (!profile?.id) {
+                    throw new Error('Profile ID is missing');
+                }
+
+                const existing = await getFromStore<Profile>(STORES.EXAMINERS, profile.id);
+                const updated = {
+                    ...(existing || profile),
+                    ...cleanProfileUpdatePayload,
+                    id: profile.id,
+                    _is_offline: true
+                };
+
+                await saveToStore(STORES.EXAMINERS, updated);
+                await addToSyncQueue(STORES.EXAMINERS, 'update', cleanProfileUpdatePayload, profile.id);
+            };
+
+            if (isOnline) {
+                try {
+                    const saved = await examinerService.saveExaminer(formData);
+                    await saveToStore(STORES.EXAMINERS, saved);
+                    await refreshProfile();
+                } catch (error) {
+                    if (!isNetworkError(error)) {
+                        throw error;
+                    }
+                    await queueProfileUpdateOffline();
+                }
+            } else {
+                await queueProfileUpdateOffline();
+            }
+
             toast.success(t('profile.saved'));
+            if (isOnline) {
+                await triggerSync();
+            }
         } catch (error) {
             const appError = errorHandler.handle(error, 'Profile');
             toast.error(errorHandler.getUserMessage(appError));

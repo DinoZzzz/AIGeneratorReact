@@ -8,10 +8,23 @@ import { examinerService } from '../services/examinerService';
 import type { Profile, ReportType } from '../types';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
+import { useOffline } from '../context/OfflineContext';
+import { isNetworkError } from '../lib/errorHandler';
+import {
+    STORES,
+    addToSyncQueue,
+    deleteFromStore,
+    getAllFromStore,
+    getFromStore,
+    removeSyncOperationsForEntity,
+    saveManyToStore,
+    saveToStore
+} from '../lib/offlineDb';
 
 export const Examiners = () => {
     const { profile } = useAuth();
     const { t } = useLanguage();
+    const { isOnline, triggerSync } = useOffline();
     const [examiners, setExaminers] = useState<Profile[]>([]);
     const [reportTypes, setReportTypes] = useState<ReportType[]>([]);
     const [loading, setLoading] = useState(true);
@@ -26,17 +39,40 @@ export const Examiners = () => {
     const isAdmin = profile?.role === 'admin';
 
     useEffect(() => {
-        loadData();
-    }, []);
+        void loadData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isOnline]);
+
+    const loadOfflineData = async () => {
+        const [offlineExaminers, offlineReportTypes] = await Promise.all([
+            getAllFromStore<Profile>(STORES.EXAMINERS),
+            getAllFromStore<ReportType>(STORES.REPORT_TYPES)
+        ]);
+        setExaminers(offlineExaminers);
+        setReportTypes(offlineReportTypes);
+    };
 
     const loadData = async () => {
+        setLoading(true);
         try {
-            const [examinersData, typesData] = await Promise.all([
-                examinerService.getExaminers(),
-                examinerService.getReportTypes()
-            ]);
-            setExaminers(examinersData);
-            setReportTypes(typesData);
+            if (isOnline) {
+                try {
+                    const [examinersData, typesData] = await Promise.all([
+                        examinerService.getExaminers(),
+                        examinerService.getReportTypes()
+                    ]);
+                    setExaminers(examinersData);
+                    setReportTypes(typesData);
+                    await Promise.all([
+                        saveManyToStore(STORES.EXAMINERS, examinersData),
+                        saveManyToStore(STORES.REPORT_TYPES, typesData)
+                    ]);
+                    return;
+                } catch (error) {
+                    if (!isNetworkError(error)) throw error;
+                }
+            }
+            await loadOfflineData();
         } catch (error) {
             console.error('Failed to load examiners:', error);
         } finally {
@@ -44,9 +80,70 @@ export const Examiners = () => {
         }
     };
 
+    const updateExaminerOffline = async (
+        id: string,
+        examinerData: Partial<Profile>
+    ): Promise<void> => {
+        const existing = await getFromStore<Profile>(STORES.EXAMINERS, id);
+        if (!existing) {
+            throw new Error('Examiner not available offline');
+        }
+
+        const updates = {
+            name: examinerData.name,
+            last_name: examinerData.last_name,
+            username: examinerData.username,
+            title: examinerData.title,
+            accreditations: examinerData.accreditations,
+            role: examinerData.role,
+            gender: examinerData.gender,
+            avatar_url: examinerData.avatar_url,
+        };
+        const cleanUpdates = Object.fromEntries(
+            Object.entries(updates).filter(([, value]) => value !== undefined)
+        ) as Partial<Profile>;
+
+        const updated = {
+            ...existing,
+            ...cleanUpdates,
+            _is_offline: true,
+        };
+        await saveToStore(STORES.EXAMINERS, updated);
+        await addToSyncQueue(STORES.EXAMINERS, 'update', cleanUpdates, id);
+    };
+
+    const deleteExaminerOffline = async (id: string): Promise<void> => {
+        await deleteFromStore(STORES.EXAMINERS, id);
+        if (id.startsWith('temp_')) {
+            await removeSyncOperationsForEntity(STORES.EXAMINERS, id);
+            return;
+        }
+        await addToSyncQueue(STORES.EXAMINERS, 'delete', null, id);
+    };
+
     const handleSave = async (examinerData: Partial<Profile>) => {
-        await examinerService.saveExaminer(examinerData);
+        if (!examinerData.id && !isOnline) {
+            throw new Error(t('examiners.createOnlineOnly') || 'New examiner creation requires an internet connection');
+        }
+
+        if (isOnline) {
+            try {
+                const saved = await examinerService.saveExaminer(examinerData);
+                await saveToStore(STORES.EXAMINERS, saved);
+            } catch (error) {
+                if (!isNetworkError(error) || !examinerData.id) {
+                    throw error;
+                }
+                await updateExaminerOffline(examinerData.id, examinerData);
+            }
+        } else if (examinerData.id) {
+            await updateExaminerOffline(examinerData.id, examinerData);
+        }
+
         await loadData();
+        if (isOnline) {
+            await triggerSync();
+        }
     };
 
     const handleDeleteClick = (examiner: Profile) => {
@@ -56,9 +153,22 @@ export const Examiners = () => {
 
     const handleDeleteConfirm = async () => {
         if (examinerToDelete) {
-            await examinerService.deleteExaminer(examinerToDelete.id);
+            if (isOnline) {
+                try {
+                    await examinerService.deleteExaminer(examinerToDelete.id);
+                    await deleteFromStore(STORES.EXAMINERS, examinerToDelete.id);
+                } catch (error) {
+                    if (!isNetworkError(error)) throw error;
+                    await deleteExaminerOffline(examinerToDelete.id);
+                }
+            } else {
+                await deleteExaminerOffline(examinerToDelete.id);
+            }
             await loadData();
             setExaminerToDelete(null);
+            if (isOnline) {
+                await triggerSync();
+            }
         }
     };
 
@@ -364,6 +474,7 @@ export const Examiners = () => {
                 onOpenChange={setDialogOpen}
                 examiner={selectedExaminer}
                 onSave={handleSave}
+                reportTypes={reportTypes}
             />
 
             {examinerToDelete && (

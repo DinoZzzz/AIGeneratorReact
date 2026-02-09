@@ -4,7 +4,7 @@
  */
 
 const DB_NAME = 'ai-generator-offline';
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 const SYNC_ID_MAP_METADATA_KEY = 'sync_id_map';
 
 // Store names
@@ -14,8 +14,15 @@ export const STORES = {
   REPORTS: 'reports',
   APPOINTMENTS: 'appointments',
   MESSAGES: 'messages',
+  EXAMINERS: 'examiners',
+  REPORT_TYPES: 'report_types',
+  MATERIALS: 'materials',
+  SCHEME_IMAGES: 'scheme_images',
   CERTIFIERS: 'certifiers',
   EXPORT_HISTORY: 'export_history',
+  EXPORT_HISTORY_FORMS: 'export_history_forms',
+  REPORT_FILES: 'report_files',
+  TEMPLATE_CACHE: 'template_cache',
   SYNC_QUEUE: 'sync_queue',
   METADATA: 'metadata',
 } as const;
@@ -101,6 +108,30 @@ export const openDatabase = (): Promise<IDBDatabase> => {
         messageStore.createIndex('created_at', 'created_at', { unique: false });
       }
 
+      if (!db.objectStoreNames.contains(STORES.EXAMINERS)) {
+        const examinerStore = db.createObjectStore(STORES.EXAMINERS, { keyPath: 'id' });
+        examinerStore.createIndex('name', 'name', { unique: false });
+        examinerStore.createIndex('username', 'username', { unique: false });
+        examinerStore.createIndex('email', 'email', { unique: false });
+      }
+
+      if (!db.objectStoreNames.contains(STORES.REPORT_TYPES)) {
+        const reportTypeStore = db.createObjectStore(STORES.REPORT_TYPES, { keyPath: 'id' });
+        reportTypeStore.createIndex('name', 'name', { unique: false });
+      }
+
+      if (!db.objectStoreNames.contains(STORES.MATERIALS)) {
+        const materialsStore = db.createObjectStore(STORES.MATERIALS, { keyPath: 'id' });
+        materialsStore.createIndex('material_type_id', 'material_type_id', { unique: false });
+        materialsStore.createIndex('name', 'name', { unique: false });
+      }
+
+      if (!db.objectStoreNames.contains(STORES.SCHEME_IMAGES)) {
+        const schemeStore = db.createObjectStore(STORES.SCHEME_IMAGES, { keyPath: 'id' });
+        schemeStore.createIndex('scheme_number', 'scheme_number', { unique: false });
+        schemeStore.createIndex('method_type', 'method_type', { unique: false });
+      }
+
       if (!db.objectStoreNames.contains(STORES.CERTIFIERS)) {
         const certifierStore = db.createObjectStore(STORES.CERTIFIERS, { keyPath: 'id' });
         certifierStore.createIndex('is_default', 'is_default', { unique: false });
@@ -111,6 +142,22 @@ export const openDatabase = (): Promise<IDBDatabase> => {
         const exportHistoryStore = db.createObjectStore(STORES.EXPORT_HISTORY, { keyPath: 'id' });
         exportHistoryStore.createIndex('user_id', 'user_id', { unique: false });
         exportHistoryStore.createIndex('created_at', 'created_at', { unique: false });
+      }
+
+      if (!db.objectStoreNames.contains(STORES.EXPORT_HISTORY_FORMS)) {
+        const exportHistoryFormsStore = db.createObjectStore(STORES.EXPORT_HISTORY_FORMS, { keyPath: 'id' });
+        exportHistoryFormsStore.createIndex('export_id', 'export_id', { unique: false });
+        exportHistoryFormsStore.createIndex('form_id', 'form_id', { unique: false });
+      }
+
+      if (!db.objectStoreNames.contains(STORES.REPORT_FILES)) {
+        const reportFilesStore = db.createObjectStore(STORES.REPORT_FILES, { keyPath: 'id' });
+        reportFilesStore.createIndex('construction_id', 'construction_id', { unique: false });
+        reportFilesStore.createIndex('report_id', 'report_id', { unique: false });
+      }
+
+      if (!db.objectStoreNames.contains(STORES.TEMPLATE_CACHE)) {
+        db.createObjectStore(STORES.TEMPLATE_CACHE, { keyPath: 'id' });
       }
 
       // Sync queue for pending operations
@@ -147,7 +194,7 @@ export const getAllFromStore = async <T>(storeName: StoreName): Promise<T[]> => 
 /**
  * Get a single item by ID
  */
-export const getFromStore = async <T>(storeName: StoreName, id: string): Promise<T | undefined> => {
+export const getFromStore = async <T>(storeName: StoreName, id: IDBValidKey): Promise<T | undefined> => {
   const db = await openDatabase();
   return new Promise((resolve, reject) => {
     const transaction = db.transaction(storeName, 'readonly');
@@ -213,7 +260,7 @@ export const saveManyToStore = async <T>(storeName: StoreName, items: T[]): Prom
 /**
  * Delete an item from a store
  */
-export const deleteFromStore = async (storeName: StoreName, id: string): Promise<void> => {
+export const deleteFromStore = async (storeName: StoreName, id: IDBValidKey): Promise<void> => {
   const db = await openDatabase();
   return new Promise((resolve, reject) => {
     const transaction = db.transaction(storeName, 'readwrite');

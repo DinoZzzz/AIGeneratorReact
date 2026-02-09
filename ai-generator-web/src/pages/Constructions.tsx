@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Plus, Pencil, Trash2, ArrowLeft, Loader2, FileText, MapPin, HardHat, Archive, ArchiveRestore } from 'lucide-react';
-import type { Construction, Customer } from '../types';
+import type { Construction } from '../types';
 import { Breadcrumbs } from '../components/ui/Breadcrumbs';
 import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../context/AuthContext';

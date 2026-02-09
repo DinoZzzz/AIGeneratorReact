@@ -15,7 +15,15 @@ import { useUpdateReportOrder } from '../hooks/useReports';
 import { ReportList } from '../components/history/ReportList';
 import { AttachmentsGallery } from '../components/history/AttachmentsGallery';
 import { useHandleError } from '../hooks/useHandleError';
-import { errorHandler } from '../lib/errorHandler';
+import { errorHandler, isNetworkError } from '../lib/errorHandler';
+import { useOffline } from '../context/OfflineContext';
+import {
+    STORES,
+    getByIndex,
+    getFromStore,
+    saveManyToStore,
+    saveToStore
+} from '../lib/offlineDb';
 
 export const HistoryDetails = () => {
     const { id } = useParams<{ id: string }>();
@@ -23,6 +31,7 @@ export const HistoryDetails = () => {
     const { profile } = useAuth();
     const { t } = useLanguage();
     const handleError = useHandleError();
+    const { isOnline } = useOffline();
     const updateReportOrderMutation = useUpdateReportOrder();
     const [exportData, setExportData] = useState<ReportExport | null>(null);
     const [forms, setForms] = useState<ReportExportForm[]>([]);
@@ -34,28 +43,120 @@ export const HistoryDetails = () => {
     const [actionMessage, setActionMessage] = useState<{ text: string; type: 'info' | 'error' } | null>(null);
     const [reportFiles, setReportFiles] = useState<ReportFile[]>([]);
 
+    const loadReportsByIds = async (formIds: string[]): Promise<ReportForm[]> => {
+        if (formIds.length === 0) return [];
+
+        if (isOnline) {
+            try {
+                const { data, error } = await supabase
+                    .from('report_forms')
+                    .select('*')
+                    .in('id', formIds);
+
+                if (error) throw error;
+
+                const reportForms = (data || []) as ReportForm[];
+                if (reportForms.length > 0) {
+                    await saveManyToStore(STORES.REPORTS, reportForms);
+                }
+                return reportForms;
+            } catch (error) {
+                if (!isNetworkError(error)) throw error;
+            }
+        }
+
+        const offlineReports = await Promise.all(
+            formIds.map((formId) => getFromStore<ReportForm>(STORES.REPORTS, formId))
+        );
+        return offlineReports.filter((report): report is ReportForm => Boolean(report));
+    };
+
     useEffect(() => {
         const loadData = async () => {
             if (!id) return;
             try {
-                const [exportResult, formsResult] = await Promise.all([
-                    historyService.getById(id),
-                    historyService.getExportForms(id)
-                ]);
-                setExportData(exportResult);
-                setForms(formsResult);
+                if (isOnline) {
+                    try {
+                        const [exportResult, formsResult] = await Promise.all([
+                            historyService.getById(id),
+                            historyService.getExportForms(id)
+                        ]);
+                        setExportData(exportResult);
+                        setForms(formsResult);
+                        await saveToStore(STORES.EXPORT_HISTORY, exportResult);
+                        await saveManyToStore(STORES.EXPORT_HISTORY_FORMS, formsResult);
 
-                // Fetch report files for this construction
-                if (exportResult.construction_id) {
-                    const { data: files } = await supabase
-                        .from('report_files')
-                        .select('*')
-                        .eq('construction_id', exportResult.construction_id)
-                        .order('created_at', { ascending: true });
+                        const reportForms = formsResult
+                            .map((item) => item.report_form)
+                            .filter((form): form is ReportForm => Boolean(form));
+                        if (reportForms.length > 0) {
+                            await saveManyToStore(STORES.REPORTS, reportForms);
+                        }
 
-                    if (files) {
-                        setReportFiles(files);
+                        if (exportResult.construction_id) {
+                            const { data: files } = await supabase
+                                .from('report_files')
+                                .select('*')
+                                .eq('construction_id', exportResult.construction_id)
+                                .order('created_at', { ascending: true });
+
+                            if (files) {
+                                const typedFiles = files as ReportFile[];
+                                setReportFiles(typedFiles);
+                                await saveManyToStore(STORES.REPORT_FILES, typedFiles);
+                            }
+                        }
+                        return;
+                    } catch (error) {
+                        if (!isNetworkError(error)) {
+                            throw error;
+                        }
                     }
+                }
+
+                const offlineExport = await getFromStore<ReportExport>(STORES.EXPORT_HISTORY, id);
+                if (!offlineExport) {
+                    throw new Error('Export not found offline');
+                }
+
+                const offlineForms = await getByIndex<ReportExportForm>(STORES.EXPORT_HISTORY_FORMS, 'export_id', id);
+                const fallbackForms = (
+                    Array.isArray((offlineExport as { forms?: unknown[] }).forms)
+                        ? (offlineExport as { forms: Array<{ form_id: string; type_id: number; ordinal?: number }> }).forms
+                        : []
+                ).map((form, index) => ({
+                    id: `${id}:${form.form_id}:${index}`,
+                    export_id: id,
+                    form_id: form.form_id,
+                    type_id: form.type_id,
+                    ordinal: form.ordinal || index + 1,
+                    created_at: offlineExport.created_at,
+                    updated_at: offlineExport.updated_at
+                } satisfies ReportExportForm));
+
+                const formsForHydration = offlineForms.length > 0 ? offlineForms : fallbackForms;
+                const hydratedOfflineForms = await Promise.all(formsForHydration.map(async (form) => {
+                    if (form.report_form) return form;
+                    const reportId = form.form_id || form.report_form?.id;
+                    if (!reportId) return form;
+                    const reportForm = await getFromStore<ReportForm>(STORES.REPORTS, reportId);
+                    if (!reportForm) return form;
+                    return {
+                        ...form,
+                        report_form: reportForm
+                    };
+                }));
+
+                setExportData(offlineExport);
+                setForms(hydratedOfflineForms);
+
+                if (offlineExport.construction_id) {
+                    const cachedFiles = await getByIndex<ReportFile>(
+                        STORES.REPORT_FILES,
+                        'construction_id',
+                        offlineExport.construction_id
+                    );
+                    setReportFiles(cachedFiles);
                 }
             } catch (error) {
                 handleError(error, 'HistoryDetails');
@@ -65,8 +166,8 @@ export const HistoryDetails = () => {
             }
 
         };
-        loadData();
-    }, [handleError, id, navigate]);
+        void loadData();
+    }, [handleError, id, isOnline, navigate]);
 
     const handleDownloadReport = async (formId: string) => {
         if (!exportData) return;
@@ -74,13 +175,25 @@ export const HistoryDetails = () => {
         setActionMessage({ text: t('exportDetails.downloading'), type: 'info' });
         setDownloadingFormId(formId);
         try {
-            const { data: reportData, error } = await supabase
-                .from('report_forms')
-                .select('*')
-                .eq('id', formId)
-                .single();
+            let reportData: ReportForm | null = null;
+            if (isOnline) {
+                try {
+                    const { data, error } = await supabase
+                        .from('report_forms')
+                        .select('*')
+                        .eq('id', formId)
+                        .single();
+                    if (error) throw error;
+                    reportData = data as ReportForm;
+                    await saveToStore(STORES.REPORTS, reportData);
+                } catch (error) {
+                    if (!isNetworkError(error)) throw error;
+                }
+            }
 
-            if (error) throw error;
+            if (!reportData) {
+                reportData = await getFromStore<ReportForm>(STORES.REPORTS, formId) || null;
+            }
             if (!reportData) throw new Error('Report not found');
 
             const { generatePDF } = await import('../lib/pdfGenerator');
@@ -105,12 +218,7 @@ export const HistoryDetails = () => {
                     .map(f => f.form_id || f.report_form?.id)
                     .filter((id): id is string => !!id);
 
-            const { data: reportForms, error } = await supabase
-                .from('report_forms')
-                .select('*')
-                .in('id', formIdsToExport);
-
-            if (error) throw error;
+            const reportForms = await loadReportsByIds(formIdsToExport);
             if (!reportForms || reportForms.length === 0) throw new Error('No reports found');
 
             const formMap = new Map(reportForms.map((rf) => [rf.id, rf as ReportForm]));
@@ -141,12 +249,7 @@ export const HistoryDetails = () => {
                     .map(f => f.form_id || f.report_form?.id)
                     .filter((id): id is string => !!id);
 
-            const { data: reportForms, error } = await supabase
-                .from('report_forms')
-                .select('*')
-                .in('id', formIdsToExport);
-
-            if (error) throw error;
+            const reportForms = await loadReportsByIds(formIdsToExport);
             if (!reportForms || reportForms.length === 0) throw new Error('No reports found');
 
             const formMap = new Map(reportForms.map((rf) => [rf.id, rf as ReportForm]));

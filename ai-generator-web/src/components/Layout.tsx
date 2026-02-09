@@ -61,6 +61,9 @@ const offlineTranslations = {
         reports: 'Izvještaji',
         appointments: 'Termin',
         messages: 'Poruke',
+        examiners: 'Ispitivači',
+        materials: 'Materijali',
+        schemeImages: 'Sheme',
         certifiers: 'Certifikatori',
         exportHistory: 'Povijest izvoza',
         create: 'kreiranje',
@@ -88,6 +91,9 @@ const offlineTranslations = {
         reports: 'Reports',
         appointments: 'Appointments',
         messages: 'Messages',
+        examiners: 'Examiners',
+        materials: 'Materials',
+        schemeImages: 'Schemes',
         certifiers: 'Certifiers',
         exportHistory: 'Export history',
         create: 'create',
@@ -198,6 +204,12 @@ export const Layout = ({ children }: LayoutProps) => {
                 return ot.appointments;
             case 'messages':
                 return ot.messages;
+            case 'examiners':
+                return ot.examiners;
+            case 'materials':
+                return ot.materials;
+            case 'scheme_images':
+                return ot.schemeImages;
             case 'certifiers':
                 return ot.certifiers;
             case 'export_history':

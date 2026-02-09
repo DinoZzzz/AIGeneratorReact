@@ -27,6 +27,9 @@ const translations = {
     reports: 'Izvještaji',
     appointments: 'Termin',
     messages: 'Poruke',
+    examiners: 'Ispitivači',
+    materials: 'Materijali',
+    schemeImages: 'Sheme',
     certifiers: 'Certifikatori',
     exportHistory: 'Povijest izvoza',
     create: 'kreiranje',
@@ -59,6 +62,9 @@ const translations = {
     reports: 'Reports',
     appointments: 'Appointments',
     messages: 'Messages',
+    examiners: 'Examiners',
+    materials: 'Materials',
+    schemeImages: 'Schemes',
     certifiers: 'Certifiers',
     exportHistory: 'Export history',
     create: 'create',
@@ -191,6 +197,12 @@ export const OfflineIndicator = () => {
         return t.appointments;
       case 'messages':
         return t.messages;
+      case 'examiners':
+        return t.examiners;
+      case 'materials':
+        return t.materials;
+      case 'scheme_images':
+        return t.schemeImages;
       case 'certifiers':
         return t.certifiers;
       case 'export_history':

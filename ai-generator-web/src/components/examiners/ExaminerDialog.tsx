@@ -15,9 +15,10 @@ interface ExaminerDialogProps {
     onOpenChange: (open: boolean) => void;
     examiner: Profile | null;
     onSave: (examiner: Partial<Profile>) => Promise<void>;
+    reportTypes?: ReportType[];
 }
 
-export const ExaminerDialog = ({ open, onOpenChange, examiner, onSave }: ExaminerDialogProps) => {
+export const ExaminerDialog = ({ open, onOpenChange, examiner, onSave, reportTypes: reportTypesProp }: ExaminerDialogProps) => {
     const [loading, setLoading] = useState(false);
     const [reportTypes, setReportTypes] = useState<ReportType[]>([]);
     const [error, setError] = useState<string | null>(null);
@@ -35,8 +36,12 @@ export const ExaminerDialog = ({ open, onOpenChange, examiner, onSave }: Examine
     const { t } = useLanguage();
 
     useEffect(() => {
-        loadReportTypes();
-    }, []);
+        if (reportTypesProp) {
+            setReportTypes(reportTypesProp);
+            return;
+        }
+        void loadReportTypes();
+    }, [reportTypesProp]);
 
     useEffect(() => {
         if (open) {
@@ -71,8 +76,12 @@ export const ExaminerDialog = ({ open, onOpenChange, examiner, onSave }: Examine
     }, [open, examiner]);
 
     const loadReportTypes = async () => {
-        const types = await examinerService.getReportTypes();
-        setReportTypes(types);
+        try {
+            const types = await examinerService.getReportTypes();
+            setReportTypes(types);
+        } catch (error) {
+            console.warn('Failed to load report types in ExaminerDialog', error);
+        }
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -120,6 +129,8 @@ export const ExaminerDialog = ({ open, onOpenChange, examiner, onSave }: Examine
         } catch (err) {
             if (isWeakPasswordAuthError(err)) {
                 setError(t('examiners.dialog.weakPassword'));
+            } else if (err instanceof Error && err.message === t('examiners.createOnlineOnly')) {
+                setError(err.message);
             } else {
                 setError(t('examiners.dialog.saveFailed'));
             }

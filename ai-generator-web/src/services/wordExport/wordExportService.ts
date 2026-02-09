@@ -4,7 +4,7 @@ import type { DocxTemplaterError, ReportFormWithJoins } from './types';
 import { supabase } from '../../lib/supabase';
 import { traceAsync, captureError } from '../../lib/sentry';
 import { isNetworkError } from '../../lib/errorHandler';
-import { addToSyncQueue, saveToStore, STORES } from '../../lib/offlineDb';
+import { addToSyncQueue, saveManyToStore, saveToStore, STORES } from '../../lib/offlineDb';
 import { findRawTagPlacementIssues } from '../../utils/docxTemplate';
 import { formatDate, formatNum } from './helpers';
 import { loadFile } from './templateLoader';
@@ -53,10 +53,20 @@ const queueHistorySave = async (payload: QueuedExportHistoryPayload): Promise<vo
         id: queueId,
         ...payload.exportPayload,
         forms_count: payload.forms.length,
+        forms: payload.forms,
         created_at: now,
         updated_at: now,
         _is_offline: true
     });
+    await saveManyToStore(STORES.EXPORT_HISTORY_FORMS, payload.forms.map((form, index) => ({
+        id: `${queueId}:${form.form_id}:${index}`,
+        export_id: queueId,
+        form_id: form.form_id,
+        type_id: form.type_id,
+        ordinal: form.ordinal || index + 1,
+        created_at: now,
+        updated_at: now
+    })));
     await addToSyncQueue(STORES.EXPORT_HISTORY, 'create', payload, queueId);
 };
 

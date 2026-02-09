@@ -196,6 +196,7 @@ export const hr: Record<string, string> = {
     'examiners.deleteWarning': 'Ova radnja se ne može poništiti.',
     'examiners.edit': 'Uredi ispitivača',
     'examiners.delete': 'Obriši ispitivača',
+    'examiners.createOnlineOnly': 'Kreiranje novog ispitivača zahtijeva internetsku vezu.',
 
     // Customers
     'customers.title': 'Naručitelji',
@@ -504,6 +505,7 @@ export const hr: Record<string, string> = {
     'materials.confirmDelete': 'Obriši materijal',
     'materials.shaftSingular': 'Materijal za okna',
     'materials.pipeSingular': 'Materijal za cijevi',
+    'materials.createOnlineOnly': 'Dodavanje materijala zahtijeva internetsku vezu.',
 
     // Analytics
     'analytics.title': 'Analitika',
@@ -552,6 +554,7 @@ export const hr: Record<string, string> = {
     'profile.changePhoto': 'Kliknite za promjenu fotografije',
     'profile.avatarUploaded': 'Profilna slika uspješno ažurirana',
     'profile.avatarUploadFailed': 'Neuspjelo učitavanje slike',
+    'profile.avatarUploadOnlineOnly': 'Učitavanje profilne slike zahtijeva internetsku vezu.',
     'profile.saved': 'Profil uspješno spremljen',
     'profile.saveFailed': 'Spremanje profila nije uspjelo',
     'profile.emailReadOnly': 'Email adresu nije moguće mijenjati. Kontaktirajte administratora za promjenu.',
@@ -679,6 +682,7 @@ export const hr: Record<string, string> = {
     'templateEditor.deleteBackupConfirm': 'Jeste li sigurni da želite obrisati ovu sigurnosnu kopiju?',
     'templateEditor.deleteBackupSuccess': 'Sigurnosna kopija uspješno obrisana',
     'templateEditor.deleteBackupError': 'Greška prilikom brisanja sigurnosne kopije',
+    'templateEditor.onlineRequired': 'Radnje s predloškom zahtijevaju internetsku vezu.',
 
     // Scheme Manager
     'schemeManager.title': 'Sheme ispitivanja',
@@ -700,6 +704,7 @@ export const hr: Record<string, string> = {
     'schemeManager.resetError': 'Greška prilikom vraćanja sheme',
     'schemeManager.reset': 'Vrati izvorno',
     'schemeManager.updatedBy': 'Izmijenio',
+    'schemeManager.onlineRequired': 'Ova radnja zahtijeva internetsku vezu.',
 
     // Command Palette
     'commandPalette.searchPlaceholder': 'Pretraži kupce, gradilišta...',

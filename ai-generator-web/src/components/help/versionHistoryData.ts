@@ -7,6 +7,18 @@ export interface VersionHistoryItem {
 export function getVersionHistory(language: string): VersionHistoryItem[] {
     return language === 'hr' ? [
         {
+            version: '2.23.0',
+            date: '2026-02-09',
+            changes: [
+                'Povijest izvoza sada radi offline: lista i detalji se učitavaju iz lokalnog cachea, a brisanja se stavljaju u sync red',
+                'Detalji izvoza sada mogu preuzeti i ponovno izvesti obrasce iz lokalnog cachea kada mreža nije dostupna',
+                'Ispitivači i profil sada podržavaju offline uređivanje (update/delete kroz sync red), dok kreiranje novih korisnika ostaje online-only',
+                'Materijali sada podržavaju offline pregled i uređivanje/brisanje kroz sync red; dodavanje novih materijala ostaje online-only',
+                'Sheme i predlošci sada koriste lokalni cache za čitanje; upload/reset/rollback akcije su jasno označene kao online-only',
+                'Dodani dodatni foreground/periodic sync okidači i proširena offline baza/sync mapiranje za nove entitete',
+            ]
+        },
+        {
             version: '2.22.0',
             date: '2026-02-09',
             changes: [
@@ -440,6 +452,18 @@ export function getVersionHistory(language: string): VersionHistoryItem[] {
         },
     ] : [
         // English version
+        {
+            version: '2.23.0',
+            date: '2026-02-09',
+            changes: [
+                'Export history now works offline: history list/details read from local cache, and delete actions are queued for sync',
+                'Export details can now download and re-export reports from cached local data when the network is unavailable',
+                'Examiners and profile now support offline editing (update/delete through sync queue); creating new examiner accounts remains online-only',
+                'Materials now support offline read and queued update/delete operations; creating new materials remains online-only',
+                'Schemes and template screens now use local cache for reads; upload/reset/rollback actions are clearly marked as online-only',
+                'Added additional foreground/periodic sync triggers and expanded offline DB/sync mapping for the new entities',
+            ]
+        },
         {
             version: '2.22.0',
             date: '2026-02-09',

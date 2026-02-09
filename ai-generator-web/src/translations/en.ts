@@ -196,6 +196,7 @@ export const en: Record<string, string> = {
     'examiners.deleteWarning': 'This action cannot be undone.',
     'examiners.edit': 'Edit examiner',
     'examiners.delete': 'Delete examiner',
+    'examiners.createOnlineOnly': 'New examiner creation requires an internet connection.',
 
     // Customers
     'customers.title': 'Customers',
@@ -504,6 +505,7 @@ export const en: Record<string, string> = {
     'materials.confirmDelete': 'Delete Material',
     'materials.shaftSingular': 'Shaft material',
     'materials.pipeSingular': 'Pipe material',
+    'materials.createOnlineOnly': 'Creating materials requires an internet connection.',
 
     // Analytics
     'analytics.title': 'Analytics',
@@ -552,6 +554,7 @@ export const en: Record<string, string> = {
     'profile.changePhoto': 'Click to change photo',
     'profile.avatarUploaded': 'Profile picture updated successfully',
     'profile.avatarUploadFailed': 'Failed to upload image',
+    'profile.avatarUploadOnlineOnly': 'Avatar upload requires an internet connection.',
     'profile.saved': 'Profile saved successfully',
     'profile.saveFailed': 'Failed to save profile',
     'profile.emailReadOnly': 'Email address cannot be changed. Contact administrator for changes.',
@@ -679,6 +682,7 @@ export const en: Record<string, string> = {
     'templateEditor.deleteBackupConfirm': 'Are you sure you want to delete this backup?',
     'templateEditor.deleteBackupSuccess': 'Backup deleted successfully',
     'templateEditor.deleteBackupError': 'Error deleting backup',
+    'templateEditor.onlineRequired': 'Template actions require an internet connection.',
 
     // Scheme Manager
     'schemeManager.title': 'Test Schemes',
@@ -700,6 +704,7 @@ export const en: Record<string, string> = {
     'schemeManager.resetError': 'Error resetting scheme',
     'schemeManager.reset': 'Reset to Original',
     'schemeManager.updatedBy': 'Updated by',
+    'schemeManager.onlineRequired': 'This action requires an internet connection.',
 
     // Command Palette
     'commandPalette.searchPlaceholder': 'Search customers, constructions...',

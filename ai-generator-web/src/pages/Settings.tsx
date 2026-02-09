@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
+import { useOffline } from '../context/OfflineContext';
 import { supabase } from '../lib/supabase';
 import { Settings2, Shield } from 'lucide-react';
 import { GeneralSettings } from '../components/settings/GeneralSettings';
@@ -11,17 +12,30 @@ import { SchemeManager } from '../components/settings/SchemeManager';
 
 export const Settings = () => {
     const { t } = useLanguage();
-    const { user } = useAuth();
+    const { user, profile } = useAuth();
+    const { isOnline } = useOffline();
     const [isAdmin, setIsAdmin] = useState(false);
     const [activeTab, setActiveTab] = useState<'general' | 'admin'>('general');
 
     useEffect(() => {
-        checkAdminStatus();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+        if (profile?.role) {
+            setIsAdmin(profile.role === 'admin');
+        }
+    }, [profile]);
+
+    useEffect(() => {
+        void checkAdminStatus();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isOnline, user?.id]);
 
     const checkAdminStatus = async () => {
         if (!user) return;
+
+        if (!isOnline) {
+            setIsAdmin(profile?.role === 'admin');
+            return;
+        }
+
         try {
             const { data, error } = await supabase
                 .from('profiles')
@@ -31,7 +45,9 @@ export const Settings = () => {
 
             if (!error && data && data.role === 'admin') {
                 setIsAdmin(true);
+                return;
             }
+            setIsAdmin(false);
         } catch (err) {
             console.warn('Error checking admin status:', err);
         }

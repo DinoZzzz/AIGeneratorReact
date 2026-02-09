@@ -82,7 +82,6 @@ export const WaterMethodForm = () => {
     } = useReportsByConstruction(constructionId || '');
     const createReportMutation = useCreateReport();
     const updateReportMutation = useUpdateReport();
-    const [loading, setLoading] = useState(false);
     const [formData, setFormData] = useState<Partial<ReportForm>>(initialState);
     const [drafts, setDrafts] = useState<ReportDraft[]>([]);
     const [materialTypes, setMaterialTypes] = useState<MaterialType[]>([]);
@@ -308,11 +307,9 @@ export const WaterMethodForm = () => {
 
     const saveReport = async (shouldRedirect: boolean) => {
         try {
-            setLoading(true);
             if (!formData.dionica?.trim()) {
                 setDionicaError(t('reports.form.dionicaRequired'));
                 setStep(1);
-                setLoading(false);
                 return;
             }
             // Only save 'satisfies' from calculated - all other fields are display-only
@@ -354,8 +351,6 @@ export const WaterMethodForm = () => {
         } catch (error) {
             const appError = errorHandler.handle(error, 'WaterMethodForm');
             showError(errorHandler.getUserMessage(appError));
-        } finally {
-            setLoading(false);
         }
     };
 

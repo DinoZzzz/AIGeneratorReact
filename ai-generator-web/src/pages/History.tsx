@@ -7,13 +7,24 @@ import { Loader2, Search, Trash2, ExternalLink, ChevronLeft, ChevronRight, User,
 import { useLanguage } from '../context/LanguageContext';
 import { useConfirm } from '../context/useConfirm';
 import { useHandleError } from '../hooks/useHandleError';
-import { errorHandler } from '../lib/errorHandler';
+import { errorHandler, isNetworkError } from '../lib/errorHandler';
+import { useOffline } from '../context/OfflineContext';
+import {
+    STORES,
+    addToSyncQueue,
+    deleteFromStore,
+    getAllFromStore,
+    getByIndex,
+    removeSyncOperationsForEntity,
+    saveManyToStore
+} from '../lib/offlineDb';
 
 export const History = () => {
     const navigate = useNavigate();
     const { t } = useLanguage();
     const handleError = useHandleError();
     const confirm = useConfirm();
+    const { isOnline, triggerSync } = useOffline();
     const [exports, setExports] = useState<ReportExport[]>([]);
     const [users, setUsers] = useState<Profile[]>([]);
     const [loading, setLoading] = useState(true);
@@ -26,6 +37,39 @@ export const History = () => {
     const [sortColumn, setSortColumn] = useState<'created_at' | 'construction_part'>('created_at');
     const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
+    const loadOfflineHistory = useCallback(async () => {
+        const cached = await getAllFromStore<ReportExport>(STORES.EXPORT_HISTORY);
+        const normalizedSearch = debouncedSearch.trim().toLowerCase();
+
+        const filtered = cached.filter((item) => {
+            const matchesSearch = !normalizedSearch
+                || (item.construction_part || '').toLowerCase().includes(normalizedSearch);
+            const matchesUser = !selectedUserId || item.user_id === selectedUserId;
+            return matchesSearch && matchesUser;
+        });
+
+        const sorted = [...filtered].sort((left, right) => {
+            const leftValue = left[sortColumn] || '';
+            const rightValue = right[sortColumn] || '';
+            const direction = sortOrder === 'asc' ? 1 : -1;
+            if (sortColumn === 'created_at') {
+                return (new Date(String(leftValue)).getTime() - new Date(String(rightValue)).getTime()) * direction;
+            }
+            return String(leftValue).localeCompare(String(rightValue)) * direction;
+        });
+
+        const start = page * pageSize;
+        return {
+            data: sorted.slice(start, start + pageSize),
+            count: sorted.length
+        };
+    }, [debouncedSearch, page, pageSize, selectedUserId, sortColumn, sortOrder]);
+
+    const clearCachedExportForms = useCallback(async (exportId: string) => {
+        const cachedForms = await getByIndex<{ id: string }>(STORES.EXPORT_HISTORY_FORMS, 'export_id', exportId);
+        await Promise.all(cachedForms.map((form) => deleteFromStore(STORES.EXPORT_HISTORY_FORMS, form.id)));
+    }, []);
+
     useEffect(() => {
         const timer = setTimeout(() => {
             setDebouncedSearch(search);
@@ -37,14 +81,25 @@ export const History = () => {
     const loadData = useCallback(async () => {
         setLoading(true);
         try {
-            const result = await historyService.getAll(
-                page,
-                pageSize,
-                debouncedSearch,
-                sortColumn,
-                sortOrder,
-                selectedUserId || undefined
-            );
+            let result;
+            if (isOnline) {
+                try {
+                    result = await historyService.getAll(
+                        page,
+                        pageSize,
+                        debouncedSearch,
+                        sortColumn,
+                        sortOrder,
+                        selectedUserId || undefined
+                    );
+                    await saveManyToStore(STORES.EXPORT_HISTORY, result.data);
+                } catch (error) {
+                    if (!isNetworkError(error)) throw error;
+                    result = await loadOfflineHistory();
+                }
+            } else {
+                result = await loadOfflineHistory();
+            }
             setExports(result.data);
             setTotalCount(result.count);
         } catch (error) {
@@ -52,19 +107,30 @@ export const History = () => {
         } finally {
             setLoading(false);
         }
-    }, [page, debouncedSearch, sortColumn, sortOrder, selectedUserId]);
+    }, [debouncedSearch, isOnline, loadOfflineHistory, page, pageSize, selectedUserId, sortColumn, sortOrder]);
 
     useEffect(() => {
         const loadUsers = async () => {
             try {
-                const usersData = await examinerService.getExaminers();
-                setUsers(usersData);
+                if (isOnline) {
+                    try {
+                        const usersData = await examinerService.getExaminers();
+                        setUsers(usersData);
+                        await saveManyToStore(STORES.EXAMINERS, usersData);
+                        return;
+                    } catch (error) {
+                        if (!isNetworkError(error)) throw error;
+                    }
+                }
+
+                const offlineUsers = await getAllFromStore<Profile>(STORES.EXAMINERS);
+                setUsers(offlineUsers);
             } catch (error) {
                 errorHandler.handle(error, 'History');
             }
         };
-        loadUsers();
-    }, []);
+        void loadUsers();
+    }, [isOnline]);
 
     useEffect(() => {
         loadData();
@@ -73,8 +139,25 @@ export const History = () => {
     const handleDelete = async (id: string) => {
         if (!(await confirm({ title: t('history.deleteConfirm') || 'Are you sure you want to delete this report export?', variant: 'destructive' }))) return;
         try {
-            await historyService.delete(id);
-            loadData();
+            if (isOnline) {
+                try {
+                    await historyService.delete(id);
+                } catch (error) {
+                    if (!isNetworkError(error)) throw error;
+                    await addToSyncQueue(STORES.EXPORT_HISTORY, 'delete', null, id);
+                }
+            } else if (id.startsWith('queued_export_') || id.startsWith('temp_')) {
+                await removeSyncOperationsForEntity(STORES.EXPORT_HISTORY, id);
+            } else {
+                await addToSyncQueue(STORES.EXPORT_HISTORY, 'delete', null, id);
+            }
+
+            await deleteFromStore(STORES.EXPORT_HISTORY, id);
+            await clearCachedExportForms(id);
+            await loadData();
+            if (isOnline) {
+                await triggerSync();
+            }
         } catch (error) {
             handleError(error, 'History');
         }

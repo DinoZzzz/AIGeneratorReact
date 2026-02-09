@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 type TestSyncOperation = {
   id: string;
-  store: 'customers' | 'constructions' | 'reports' | 'appointments' | 'messages' | 'certifiers' | 'export_history';
+  store: 'customers' | 'constructions' | 'reports' | 'appointments' | 'messages' | 'examiners' | 'report_types' | 'materials' | 'scheme_images' | 'certifiers' | 'export_history' | 'export_history_forms' | 'report_files' | 'template_cache';
   operation: 'create' | 'update' | 'delete';
   data: unknown;
   entityId?: string;
@@ -29,8 +29,15 @@ const offlineDbMock = vi.hoisted(() => ({
     REPORTS: 'reports',
     APPOINTMENTS: 'appointments',
     MESSAGES: 'messages',
+    EXAMINERS: 'examiners',
+    REPORT_TYPES: 'report_types',
+    MATERIALS: 'materials',
+    SCHEME_IMAGES: 'scheme_images',
     CERTIFIERS: 'certifiers',
     EXPORT_HISTORY: 'export_history',
+    EXPORT_HISTORY_FORMS: 'export_history_forms',
+    REPORT_FILES: 'report_files',
+    TEMPLATE_CACHE: 'template_cache',
     SYNC_QUEUE: 'sync_queue',
     METADATA: 'metadata',
   } as const,
@@ -49,6 +56,8 @@ const offlineDbMock = vi.hoisted(() => ({
   removeSyncOperation: vi.fn(async () => {}),
   resetSyncOperationForRetry: vi.fn(async () => {}),
   updateSyncOperationStatus: vi.fn(async () => {}),
+  getByIndex: vi.fn(async () => []),
+  saveManyToStore: vi.fn(async () => {}),
   saveToStore: vi.fn(async () => {}),
   deleteFromStore: vi.fn(async () => {}),
 }));
