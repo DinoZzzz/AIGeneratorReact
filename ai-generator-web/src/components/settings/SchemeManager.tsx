@@ -82,7 +82,7 @@ const SchemeCard: React.FC<SchemeCardProps> = ({ scheme, onUpdate }) => {
 
         setUploading(true);
         try {
-            const result = await uploadSchemeImage(scheme.scheme_number, pendingFile);
+            const result = await uploadSchemeImage(scheme.scheme_number, pendingFile, scheme.method_type);
             if (result.success) {
                 addToast(t('schemeManager.uploadSuccess'), 'success');
                 setPendingFile(null);
@@ -109,7 +109,7 @@ const SchemeCard: React.FC<SchemeCardProps> = ({ scheme, onUpdate }) => {
     const handleSaveMetadata = async () => {
         setSaving(true);
         try {
-            const result = await updateSchemeMetadata(scheme.scheme_number, name, description);
+            const result = await updateSchemeMetadata(scheme.scheme_number, name, description, scheme.method_type);
             if (result.success) {
                 addToast(t('schemeManager.saveSuccess'), 'success');
                 setIsEditing(false);
@@ -129,7 +129,7 @@ const SchemeCard: React.FC<SchemeCardProps> = ({ scheme, onUpdate }) => {
 
         setResetting(true);
         try {
-            const result = await resetSchemeImage(scheme.scheme_number);
+            const result = await resetSchemeImage(scheme.scheme_number, scheme.method_type);
             if (result.success) {
                 addToast(t('schemeManager.resetSuccess'), 'success');
                 onUpdate();

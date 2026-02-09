@@ -7,6 +7,15 @@ export interface VersionHistoryItem {
 export function getVersionHistory(language: string): VersionHistoryItem[] {
     return language === 'hr' ? [
         {
+            version: '2.19.0',
+            date: '2026-02-09',
+            changes: [
+                'Ispravljeno učitavanje shema u PDF izvozu prema metodi i odabranoj shemi (water/air + A-E)',
+                'U admin postavkama upload, reset i uređivanje shema sada ciljaju točno zapis po metodi',
+                'Spriječeno prepisivanje water i air slika za isti broj sheme',
+            ]
+        },
+        {
             version: '2.18.0',
             date: '2026-02-09',
             changes: [
@@ -395,6 +404,15 @@ export function getVersionHistory(language: string): VersionHistoryItem[] {
         },
     ] : [
         // English version
+        {
+            version: '2.19.0',
+            date: '2026-02-09',
+            changes: [
+                'Fixed scheme loading in PDF export by method and selected scheme (water/air + A-E)',
+                'In admin settings, scheme upload/reset/metadata updates now target the exact method-specific record',
+                'Prevented water and air images from overwriting each other for the same scheme number',
+            ]
+        },
         {
             version: '2.18.0',
             date: '2026-02-09',

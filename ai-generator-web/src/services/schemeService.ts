@@ -5,6 +5,7 @@ import type { SchemeImage } from '../types';
 const BUCKET_NAME = 'scheme-images';
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const ALLOWED_TYPES = ['image/png', 'image/jpeg', 'image/webp'];
+type SchemeMethodType = SchemeImage['method_type'];
 
 /**
  * Get all scheme images from the database
@@ -28,25 +29,62 @@ export const getSchemeImages = async (): Promise<SchemeImage[]> => {
     }
 };
 
+const buildSchemeFilter = (
+    schemeNumber: number,
+    methodType?: SchemeMethodType
+) => {
+    let query = supabase
+        .from('scheme_images')
+        .select('*')
+        .eq('scheme_number', schemeNumber);
+
+    if (methodType) {
+        query = query.eq('method_type', methodType);
+    }
+
+    return query;
+};
+
+const isFilePathShared = async (filePath: string, excludeSchemeId?: string): Promise<boolean> => {
+    let query = supabase
+        .from('scheme_images')
+        .select('id', { count: 'exact', head: true })
+        .eq('file_path', filePath);
+
+    if (excludeSchemeId) {
+        query = query.neq('id', excludeSchemeId);
+    }
+
+    const { count, error } = await query;
+    if (error) {
+        captureError(error, { service: 'schemeService', method: 'isFilePathShared', filePath });
+        return true;
+    }
+
+    return (count || 0) > 0;
+};
+
 /**
- * Get a single scheme image by scheme number
+ * Get a single scheme image by scheme number, optionally scoped by method
  */
-export const getSchemeImage = async (schemeNumber: number): Promise<SchemeImage | null> => {
+export const getSchemeImage = async (
+    schemeNumber: number,
+    methodType?: SchemeMethodType
+): Promise<SchemeImage | null> => {
     try {
-        const { data, error } = await supabase
-            .from('scheme_images')
-            .select('*')
-            .eq('scheme_number', schemeNumber)
-            .single();
+        const { data, error } = await buildSchemeFilter(schemeNumber, methodType)
+            .order('updated_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
 
         if (error) {
-            captureError(error, { service: 'schemeService', method: 'getSchemeImage', schemeNumber });
+            captureError(error, { service: 'schemeService', method: 'getSchemeImage', schemeNumber, methodType });
             throw error;
         }
 
         return data;
     } catch (error) {
-        captureError(error instanceof Error ? error : new Error(`Error fetching scheme ${schemeNumber}`), { service: 'schemeService', method: 'getSchemeImage', schemeNumber });
+        captureError(error instanceof Error ? error : new Error(`Error fetching scheme ${schemeNumber}`), { service: 'schemeService', method: 'getSchemeImage', schemeNumber, methodType });
         return null;
     }
 };
@@ -54,9 +92,12 @@ export const getSchemeImage = async (schemeNumber: number): Promise<SchemeImage 
 /**
  * Get the URL for a scheme image with fallback to local assets
  */
-export const getSchemeImageUrl = async (schemeNumber: number): Promise<string> => {
+export const getSchemeImageUrl = async (
+    schemeNumber: number,
+    methodType?: SchemeMethodType
+): Promise<string> => {
     try {
-        const scheme = await getSchemeImage(schemeNumber);
+        const scheme = await getSchemeImage(schemeNumber, methodType);
 
         // If there's a cloud file path, return the public URL
         if (scheme?.file_path) {
@@ -72,10 +113,19 @@ export const getSchemeImageUrl = async (schemeNumber: number): Promise<string> =
         // Fallback to local asset
         return `/assets/Scheme${schemeNumber}.PNG`;
     } catch (error) {
-        captureError(error instanceof Error ? error : new Error(`Error getting scheme ${schemeNumber} URL`), { service: 'schemeService', method: 'getSchemeImageUrl', schemeNumber });
+        captureError(error instanceof Error ? error : new Error(`Error getting scheme ${schemeNumber} URL`), { service: 'schemeService', method: 'getSchemeImageUrl', schemeNumber, methodType });
         // Fallback to local asset
         return `/assets/Scheme${schemeNumber}.PNG`;
     }
+};
+
+/**
+ * Get the URL for a scheme image by scheme number and method type
+ * @param schemeNumber - The scheme number (1-5 for A-E)
+ * @param methodType - 'water' or 'air'
+ */
+export const getSchemeImageUrlByMethod = async (schemeNumber: number, methodType: 'water' | 'air'): Promise<string> => {
+    return getSchemeImageUrl(schemeNumber, methodType);
 };
 
 /**
@@ -104,7 +154,8 @@ export const validateSchemeImage = (file: File): { isValid: boolean; error?: str
  */
 export const uploadSchemeImage = async (
     schemeNumber: number,
-    file: File
+    file: File,
+    methodType?: SchemeMethodType
 ): Promise<{ success: boolean; error?: string }> => {
     try {
         // Validate file
@@ -130,19 +181,23 @@ export const uploadSchemeImage = async (
             : user.email || 'Unknown';
 
         // Get current scheme to check for existing file
-        const currentScheme = await getSchemeImage(schemeNumber);
+        const currentScheme = await getSchemeImage(schemeNumber, methodType);
 
         // Delete old file if exists
         if (currentScheme?.file_path) {
-            await supabase.storage
-                .from(BUCKET_NAME)
-                .remove([currentScheme.file_path]);
+            const isShared = await isFilePathShared(currentScheme.file_path, currentScheme.id);
+            if (!isShared) {
+                await supabase.storage
+                    .from(BUCKET_NAME)
+                    .remove([currentScheme.file_path]);
+            }
         }
 
         // Generate unique filename
         const fileExt = file.name.split('.').pop()?.toLowerCase() || 'png';
         const timestamp = Date.now();
-        const fileName = `scheme_${schemeNumber}_${timestamp}.${fileExt}`;
+        const methodSuffix = methodType ? `_${methodType}` : '';
+        const fileName = `scheme_${schemeNumber}${methodSuffix}_${timestamp}.${fileExt}`;
 
         // Upload new file
         const { error: uploadError } = await supabase.storage
@@ -153,12 +208,12 @@ export const uploadSchemeImage = async (
             });
 
         if (uploadError) {
-            captureError(uploadError, { service: 'schemeService', method: 'uploadSchemeImage', schemeNumber });
+            captureError(uploadError, { service: 'schemeService', method: 'uploadSchemeImage', schemeNumber, methodType });
             return { success: false, error: uploadError.message };
         }
 
         // Update database record
-        const { error: updateError } = await supabase
+        let updateQuery = supabase
             .from('scheme_images')
             .update({
                 file_path: fileName,
@@ -168,16 +223,22 @@ export const uploadSchemeImage = async (
             })
             .eq('scheme_number', schemeNumber);
 
+        if (methodType) {
+            updateQuery = updateQuery.eq('method_type', methodType);
+        }
+
+        const { error: updateError } = await updateQuery;
+
         if (updateError) {
             // Rollback: delete uploaded file
             await supabase.storage.from(BUCKET_NAME).remove([fileName]);
-            captureError(updateError, { service: 'schemeService', method: 'uploadSchemeImage', schemeNumber, step: 'dbUpdate' });
+            captureError(updateError, { service: 'schemeService', method: 'uploadSchemeImage', schemeNumber, methodType, step: 'dbUpdate' });
             return { success: false, error: updateError.message };
         }
 
         return { success: true };
     } catch (error) {
-        captureError(error instanceof Error ? error : new Error('Scheme image upload failed'), { service: 'schemeService', method: 'uploadSchemeImage', schemeNumber });
+        captureError(error instanceof Error ? error : new Error('Scheme image upload failed'), { service: 'schemeService', method: 'uploadSchemeImage', schemeNumber, methodType });
         return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
     }
 };
@@ -188,7 +249,8 @@ export const uploadSchemeImage = async (
 export const updateSchemeMetadata = async (
     schemeNumber: number,
     name: string,
-    description: string
+    description: string,
+    methodType?: SchemeMethodType
 ): Promise<{ success: boolean; error?: string }> => {
     try {
         const { data: { user } } = await supabase.auth.getUser();
@@ -206,7 +268,7 @@ export const updateSchemeMetadata = async (
             ? `${profile.name} ${profile.last_name}`.trim()
             : user.email || 'Unknown';
 
-        const { error } = await supabase
+        let updateQuery = supabase
             .from('scheme_images')
             .update({
                 name,
@@ -217,14 +279,20 @@ export const updateSchemeMetadata = async (
             })
             .eq('scheme_number', schemeNumber);
 
+        if (methodType) {
+            updateQuery = updateQuery.eq('method_type', methodType);
+        }
+
+        const { error } = await updateQuery;
+
         if (error) {
-            captureError(error, { service: 'schemeService', method: 'updateSchemeMetadata', schemeNumber });
+            captureError(error, { service: 'schemeService', method: 'updateSchemeMetadata', schemeNumber, methodType });
             return { success: false, error: error.message };
         }
 
         return { success: true };
     } catch (error) {
-        captureError(error instanceof Error ? error : new Error('Scheme metadata update failed'), { service: 'schemeService', method: 'updateSchemeMetadata', schemeNumber });
+        captureError(error instanceof Error ? error : new Error('Scheme metadata update failed'), { service: 'schemeService', method: 'updateSchemeMetadata', schemeNumber, methodType });
         return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
     }
 };
@@ -233,7 +301,8 @@ export const updateSchemeMetadata = async (
  * Reset a scheme image to default (remove cloud image)
  */
 export const resetSchemeImage = async (
-    schemeNumber: number
+    schemeNumber: number,
+    methodType?: SchemeMethodType
 ): Promise<{ success: boolean; error?: string }> => {
     try {
         const { data: { user } } = await supabase.auth.getUser();
@@ -242,17 +311,20 @@ export const resetSchemeImage = async (
         }
 
         // Get current scheme
-        const currentScheme = await getSchemeImage(schemeNumber);
+        const currentScheme = await getSchemeImage(schemeNumber, methodType);
 
         // Delete cloud file if exists
         if (currentScheme?.file_path) {
-            await supabase.storage
-                .from(BUCKET_NAME)
-                .remove([currentScheme.file_path]);
+            const isShared = await isFilePathShared(currentScheme.file_path, currentScheme.id);
+            if (!isShared) {
+                await supabase.storage
+                    .from(BUCKET_NAME)
+                    .remove([currentScheme.file_path]);
+            }
         }
 
         // Update database to remove file_path
-        const { error } = await supabase
+        let updateQuery = supabase
             .from('scheme_images')
             .update({
                 file_path: null,
@@ -261,14 +333,20 @@ export const resetSchemeImage = async (
             })
             .eq('scheme_number', schemeNumber);
 
+        if (methodType) {
+            updateQuery = updateQuery.eq('method_type', methodType);
+        }
+
+        const { error } = await updateQuery;
+
         if (error) {
-            captureError(error, { service: 'schemeService', method: 'resetSchemeImage', schemeNumber });
+            captureError(error, { service: 'schemeService', method: 'resetSchemeImage', schemeNumber, methodType });
             return { success: false, error: error.message };
         }
 
         return { success: true };
     } catch (error) {
-        captureError(error instanceof Error ? error : new Error('Scheme image reset failed'), { service: 'schemeService', method: 'resetSchemeImage', schemeNumber });
+        captureError(error instanceof Error ? error : new Error('Scheme image reset failed'), { service: 'schemeService', method: 'resetSchemeImage', schemeNumber, methodType });
         return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
     }
 };

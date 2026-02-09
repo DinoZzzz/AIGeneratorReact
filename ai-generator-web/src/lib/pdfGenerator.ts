@@ -32,6 +32,9 @@ const registerFonts = (doc: jsPDF) => {
 const loadImage = (src: string): Promise<HTMLImageElement> => {
     return new Promise((resolve, reject) => {
         const img = new Image();
+        if (/^https?:\/\//i.test(src)) {
+            img.crossOrigin = 'anonymous';
+        }
         img.src = src;
         img.onload = () => resolve(img);
         img.onerror = reject;
@@ -102,13 +105,18 @@ const renderReportPage = async (doc: jsPDF, report: Partial<ReportForm>, userPro
     try {
         logoImg = await loadImage('/assets/ai_icon.png');
         const schemeNum = report.draft_id || 1;
+        const methodType = report.type_id === 1
+            ? 'water'
+            : report.type_id === 2
+                ? 'air'
+                : undefined;
 
         // Try to get custom scheme image from admin settings, with safe fallback
         let schemeImageUrl = `/assets/Scheme${schemeNum}.PNG`;
         try {
             // Use dynamic import to avoid module initialization issues
             const { getSchemeImageUrl } = await import('../services/schemeService');
-            schemeImageUrl = await getSchemeImageUrl(schemeNum);
+            schemeImageUrl = await getSchemeImageUrl(schemeNum, methodType);
         } catch {
             // Fallback to local asset if schemeService fails
             console.warn('Failed to get custom scheme image, using local asset');
