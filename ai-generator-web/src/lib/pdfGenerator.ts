@@ -2,7 +2,6 @@ import jsPDF from 'jspdf';
 import type { ReportForm, Profile } from '../types';
 import * as calc from './calculations/report';
 import { RobotoRegular, RobotoBold } from './fonts/roboto';
-import { getSchemeImageUrl } from '../services/schemeService';
 
 /**
  * PDF Generator for Water and Air Method Reports
@@ -107,6 +106,8 @@ const renderReportPage = async (doc: jsPDF, report: Partial<ReportForm>, userPro
         // Try to get custom scheme image from admin settings, with safe fallback
         let schemeImageUrl = `/assets/Scheme${schemeNum}.PNG`;
         try {
+            // Use dynamic import to avoid module initialization issues
+            const { getSchemeImageUrl } = await import('../services/schemeService');
             schemeImageUrl = await getSchemeImageUrl(schemeNum);
         } catch {
             // Fallback to local asset if schemeService fails
