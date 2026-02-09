@@ -2,6 +2,7 @@ import jsPDF from 'jspdf';
 import type { ReportForm, Profile } from '../types';
 import * as calc from './calculations/report';
 import { RobotoRegular, RobotoBold } from './fonts/roboto';
+import { getSchemeImageUrl } from '../services/schemeService';
 
 /**
  * PDF Generator for Water and Air Method Reports
@@ -102,7 +103,9 @@ const renderReportPage = async (doc: jsPDF, report: Partial<ReportForm>, userPro
     try {
         logoImg = await loadImage('/assets/ai_icon.png');
         const schemeNum = report.draft_id || 1;
-        sketchImg = await loadImage(`/assets/Scheme${schemeNum}.PNG`);
+        // Use custom scheme image from admin settings, with fallback to local asset
+        const schemeImageUrl = await getSchemeImageUrl(schemeNum);
+        sketchImg = await loadImage(schemeImageUrl);
     } catch (e) {
         console.warn('Failed to load some images', e);
     }
