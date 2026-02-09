@@ -6,7 +6,8 @@ import {
   retryFailedOperations,
   retryFailedOperationById,
   discardFailedOperationById,
-  restoreDiscardedOperationById
+  restoreDiscardedOperationById,
+  resolveConflictUseServerById
 } from '../lib/syncService';
 import {
   getDiscardedSyncOperations,
@@ -36,6 +37,7 @@ interface OfflineContextType {
   retryFailedOperation: (operationId: string) => Promise<void>;
   discardFailedOperation: (operationId: string) => Promise<void>;
   restoreDiscardedOperation: (operationId: string) => Promise<void>;
+  resolveConflictUseServer: (operationId: string) => Promise<void>;
   lastSyncTime: Date | null;
 }
 
@@ -164,6 +166,19 @@ export const OfflineProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [triggerSync, updatePendingCount]);
 
+  const resolveConflictUseServer = useCallback(async (operationId: string) => {
+    if (!navigator.onLine) return;
+    try {
+      const resolved = await resolveConflictUseServerById(operationId);
+      await updatePendingCount();
+      if (resolved) {
+        await triggerSync();
+      }
+    } catch (error) {
+      console.error('Failed to resolve sync conflict:', error);
+    }
+  }, [triggerSync, updatePendingCount]);
+
   // Handle online/offline events
   useEffect(() => {
     const handleOnline = () => {
@@ -280,6 +295,7 @@ export const OfflineProvider = ({ children }: { children: ReactNode }) => {
         retryFailedOperation,
         discardFailedOperation,
         restoreDiscardedOperation,
+        resolveConflictUseServer,
         lastSyncTime,
       }}
     >

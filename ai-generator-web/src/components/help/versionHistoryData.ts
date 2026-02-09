@@ -7,6 +7,18 @@ export interface VersionHistoryItem {
 export function getVersionHistory(language: string): VersionHistoryItem[] {
     return language === 'hr' ? [
         {
+            version: '2.22.0',
+            date: '2026-02-09',
+            changes: [
+                'Kalendar sada radi offline: dohvat, kreiranje, uređivanje i brisanje termina spremaju se lokalno i sinkroniziraju pri povratku veze',
+                'Chat sada podržava offline poruke (slanje, uređivanje, brisanje) uz red sinkronizacije po povratku online',
+                'Upravljanje certifikatorima radi offline za CRUD i postavljanje zadanog certifikatora; promjene potpisa ostaju online-only',
+                'Word izvoz sada stavlja spremanje povijesti u offline red kada mreža nije dostupna, pa se history sinkronizira kasnije',
+                'Dodan eksplicitan conflict-resolution tok: za konfliktne sinkronizacije moguće je odabrati server verziju direktno iz offline panela',
+                'Prošireni offline testovi za conflict detekciju, server-resolution i red povijesti izvoza',
+            ]
+        },
+        {
             version: '2.21.0',
             date: '2026-02-09',
             changes: [
@@ -428,6 +440,18 @@ export function getVersionHistory(language: string): VersionHistoryItem[] {
         },
     ] : [
         // English version
+        {
+            version: '2.22.0',
+            date: '2026-02-09',
+            changes: [
+                'Calendar now works offline: loading, creating, editing, and deleting appointments are stored locally and synced on reconnect',
+                'Chat now supports offline message flows (send, edit, delete) with deferred sync once back online',
+                'Certifier management now supports offline CRUD and default selection; signature changes remain online-only',
+                'Word export now queues history save operations when offline, then syncs report history later',
+                'Added explicit conflict-resolution flow: conflict operations can be resolved using server state directly from offline panels',
+                'Extended offline test coverage for conflict detection, server-resolution, and export-history queue syncing',
+            ]
+        },
         {
             version: '2.21.0',
             date: '2026-02-09',

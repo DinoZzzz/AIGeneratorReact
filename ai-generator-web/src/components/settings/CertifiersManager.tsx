@@ -3,12 +3,25 @@ import { Loader2, Plus, Trash2, Edit, Star, Upload, X } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
 import { useToast } from '../../context/ToastContext';
 import { useConfirm } from '../../context/useConfirm';
+import { useOffline } from '../../context/OfflineContext';
 import { certifierService, type Certifier } from '../../services/certifierService';
+import { isNetworkError } from '../../lib/errorHandler';
+import {
+    STORES,
+    addToSyncQueue,
+    deleteFromStore,
+    getAllFromStore,
+    getFromStore,
+    removeSyncOperationsForEntity,
+    saveManyToStore,
+    saveToStore
+} from '../../lib/offlineDb';
 
 export const CertifiersManager = () => {
     const { t } = useLanguage();
     const { addToast } = useToast();
     const confirm = useConfirm();
+    const { isOnline, triggerSync } = useOffline();
 
     const [certifiers, setCertifiers] = useState<Certifier[]>([]);
     const [certifiersLoading, setCertifiersLoading] = useState(true);
@@ -16,17 +29,79 @@ export const CertifiersManager = () => {
     const [editingCertifier, setEditingCertifier] = useState<Certifier | null>(null);
     const [certifierForm, setCertifierForm] = useState({ name: '', title: '' });
 
+    const loadOfflineCertifiers = async (): Promise<Certifier[]> => {
+        const cached = await getAllFromStore<Certifier>(STORES.CERTIFIERS);
+        return cached.sort((left, right) => {
+            if (left.is_default && !right.is_default) return -1;
+            if (!left.is_default && right.is_default) return 1;
+            return (left.name || '').localeCompare(right.name || '');
+        });
+    };
+
+    const createCertifierOffline = async (payload: Omit<Certifier, 'id' | 'created_at'>): Promise<Certifier> => {
+        const tempId = `temp_${crypto.randomUUID()}`;
+        const now = new Date().toISOString();
+        const certifier: Certifier = {
+            id: tempId,
+            name: payload.name,
+            title: payload.title,
+            is_default: payload.is_default,
+            signature_url: payload.signature_url,
+            created_at: now,
+        };
+        (certifier as Certifier & { _is_offline?: boolean })._is_offline = true;
+        await saveToStore(STORES.CERTIFIERS, certifier);
+        await addToSyncQueue(STORES.CERTIFIERS, 'create', payload, tempId);
+        return certifier;
+    };
+
+    const updateCertifierOffline = async (id: string, updates: Partial<Omit<Certifier, 'id' | 'created_at'>>): Promise<Certifier> => {
+        const existing = await getFromStore<Certifier>(STORES.CERTIFIERS, id);
+        const updated: Certifier = {
+            ...(existing || { id, name: updates.name || '', created_at: new Date().toISOString() }),
+            ...updates,
+            id,
+        } as Certifier;
+        (updated as Certifier & { _is_offline?: boolean })._is_offline = true;
+        await saveToStore(STORES.CERTIFIERS, updated);
+        await addToSyncQueue(STORES.CERTIFIERS, 'update', updates, id);
+        return updated;
+    };
+
+    const deleteCertifierOffline = async (id: string): Promise<void> => {
+        await deleteFromStore(STORES.CERTIFIERS, id);
+        if (id.startsWith('temp_')) {
+            await removeSyncOperationsForEntity(STORES.CERTIFIERS, id);
+            return;
+        }
+        await addToSyncQueue(STORES.CERTIFIERS, 'delete', null, id);
+    };
+
     useEffect(() => {
-        fetchCertifiers();
-    }, []);
+        void fetchCertifiers();
+    // Refresh cached/online list when connectivity changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isOnline]);
 
     const fetchCertifiers = async () => {
         setCertifiersLoading(true);
         try {
-            const data = await certifierService.getAll();
-            setCertifiers(data);
+            if (isOnline) {
+                const data = await certifierService.getAll();
+                await saveManyToStore(STORES.CERTIFIERS, data);
+                setCertifiers(data);
+                return;
+            }
+
+            const offlineData = await loadOfflineCertifiers();
+            setCertifiers(offlineData);
         } catch (error: unknown) {
-            console.warn('Error fetching certifiers:', (error as Error).message);
+            if (isNetworkError(error)) {
+                const offlineData = await loadOfflineCertifiers();
+                setCertifiers(offlineData);
+            } else {
+                console.warn('Error fetching certifiers:', (error as Error).message);
+            }
         } finally {
             setCertifiersLoading(false);
         }
@@ -36,15 +111,31 @@ export const CertifiersManager = () => {
         e.preventDefault();
         if (!certifierForm.name.trim()) return;
         try {
-            await certifierService.create({
+            const payload = {
                 name: certifierForm.name.trim(),
                 title: certifierForm.title.trim() || undefined,
                 is_default: certifiers.length === 0
-            });
+            };
+
+            if (isOnline) {
+                try {
+                    const created = await certifierService.create(payload);
+                    await saveToStore(STORES.CERTIFIERS, created);
+                } catch (error) {
+                    if (!isNetworkError(error)) throw error;
+                    await createCertifierOffline(payload);
+                }
+            } else {
+                await createCertifierOffline(payload);
+            }
+
             addToast(t('certifiers.added'), 'success');
             setIsAddingCertifier(false);
             setCertifierForm({ name: '', title: '' });
-            fetchCertifiers();
+            await fetchCertifiers();
+            if (isOnline) {
+                await triggerSync();
+            }
         } catch (error: unknown) {
             addToast((error as Error).message, 'error');
         }
@@ -54,14 +145,30 @@ export const CertifiersManager = () => {
         e.preventDefault();
         if (!editingCertifier || !certifierForm.name.trim()) return;
         try {
-            await certifierService.update(editingCertifier.id, {
+            const updates = {
                 name: certifierForm.name.trim(),
                 title: certifierForm.title.trim() || undefined
-            });
+            };
+
+            if (isOnline) {
+                try {
+                    const updated = await certifierService.update(editingCertifier.id, updates);
+                    await saveToStore(STORES.CERTIFIERS, updated);
+                } catch (error) {
+                    if (!isNetworkError(error)) throw error;
+                    await updateCertifierOffline(editingCertifier.id, updates);
+                }
+            } else {
+                await updateCertifierOffline(editingCertifier.id, updates);
+            }
+
             addToast(t('certifiers.updated'), 'success');
             setEditingCertifier(null);
             setCertifierForm({ name: '', title: '' });
-            fetchCertifiers();
+            await fetchCertifiers();
+            if (isOnline) {
+                await triggerSync();
+            }
         } catch (error: unknown) {
             addToast((error as Error).message, 'error');
         }
@@ -70,9 +177,23 @@ export const CertifiersManager = () => {
     const handleDeleteCertifier = async (id: string) => {
         if (!(await confirm({ title: t('certifiers.deleteConfirm'), variant: 'destructive' }))) return;
         try {
-            await certifierService.delete(id);
+            if (isOnline) {
+                try {
+                    await certifierService.delete(id);
+                    await deleteFromStore(STORES.CERTIFIERS, id);
+                } catch (error) {
+                    if (!isNetworkError(error)) throw error;
+                    await deleteCertifierOffline(id);
+                }
+            } else {
+                await deleteCertifierOffline(id);
+            }
+
             addToast(t('certifiers.deleted'), 'success');
-            fetchCertifiers();
+            await fetchCertifiers();
+            if (isOnline) {
+                await triggerSync();
+            }
         } catch (error: unknown) {
             addToast((error as Error).message, 'error');
         }
@@ -80,9 +201,38 @@ export const CertifiersManager = () => {
 
     const handleSetDefaultCertifier = async (id: string) => {
         try {
-            await certifierService.setDefault(id);
+            const applyDefaultOffline = async () => {
+                const cached = await loadOfflineCertifiers();
+                await Promise.all(cached.map(async (certifier) => {
+                    const nextValue = certifier.id === id;
+                    if (certifier.is_default === nextValue) {
+                        return;
+                    }
+
+                    const updated = { ...certifier, is_default: nextValue };
+                    await saveToStore(STORES.CERTIFIERS, updated);
+                    await addToSyncQueue(STORES.CERTIFIERS, 'update', { is_default: nextValue }, certifier.id);
+                }));
+            };
+
+            if (isOnline) {
+                try {
+                    await certifierService.setDefault(id);
+                    const refreshed = await certifierService.getAll();
+                    await saveManyToStore(STORES.CERTIFIERS, refreshed);
+                } catch (error) {
+                    if (!isNetworkError(error)) throw error;
+                    await applyDefaultOffline();
+                }
+            } else {
+                await applyDefaultOffline();
+            }
+
             addToast(t('certifiers.defaultSet'), 'success');
-            fetchCertifiers();
+            await fetchCertifiers();
+            if (isOnline) {
+                await triggerSync();
+            }
         } catch (error: unknown) {
             addToast((error as Error).message, 'error');
         }
@@ -90,6 +240,10 @@ export const CertifiersManager = () => {
 
     const handleSignatureUpload = async (certifierId: string, file: File | undefined) => {
         if (!file) return;
+        if (!isOnline) {
+            addToast(t('certifiers.signatureOfflineUnsupported') || 'Signature upload requires an internet connection', 'error');
+            return;
+        }
         if (!file.type.startsWith('image/')) {
             addToast(t('certifiers.invalidFileType') || 'Please upload an image file', 'error');
             return;
@@ -109,6 +263,10 @@ export const CertifiersManager = () => {
 
     const handleDeleteSignature = async (certifierId: string) => {
         if (!(await confirm({ title: t('certifiers.deleteSignatureConfirm') || 'Are you sure you want to delete this signature?', variant: 'destructive' }))) return;
+        if (!isOnline) {
+            addToast(t('certifiers.signatureOfflineUnsupported') || 'Signature changes require an internet connection', 'error');
+            return;
+        }
         try {
             await certifierService.deleteSignature(certifierId);
             addToast(t('certifiers.signatureDeleted') || 'Signature deleted', 'success');

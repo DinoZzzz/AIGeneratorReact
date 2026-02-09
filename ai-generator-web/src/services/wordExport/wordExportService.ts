@@ -3,6 +3,8 @@ import type { ExportMetaData } from '../../components/ExportDialog';
 import type { DocxTemplaterError, ReportFormWithJoins } from './types';
 import { supabase } from '../../lib/supabase';
 import { traceAsync, captureError } from '../../lib/sentry';
+import { isNetworkError } from '../../lib/errorHandler';
+import { addToSyncQueue, saveToStore, STORES } from '../../lib/offlineDb';
 import { findRawTagPlacementIssues } from '../../utils/docxTemplate';
 import { formatDate, formatNum } from './helpers';
 import { loadFile } from './templateLoader';
@@ -13,6 +15,7 @@ import { enrichReports, buildAirReportRows, buildWaterReportRows } from './table
 export interface WordExportResult {
     historySaved: boolean;
     historyConflictRecovered: boolean;
+    historyQueued: boolean;
 }
 
 const isConflictDbError = (error: unknown): boolean => {
@@ -28,6 +31,35 @@ const isConflictDbError = (error: unknown): boolean => {
         details.includes('already exists');
 };
 
+interface QueuedExportHistoryPayload {
+    exportPayload: Record<string, unknown> & {
+        construction_id: string;
+        customer_id: string;
+        user_id: string;
+        type_id: number;
+        examination_date: string;
+    };
+    forms: Array<{
+        form_id: string;
+        type_id: number;
+        ordinal: number;
+    }>;
+}
+
+const queueHistorySave = async (payload: QueuedExportHistoryPayload): Promise<void> => {
+    const queueId = `queued_export_${crypto.randomUUID()}`;
+    const now = new Date().toISOString();
+    await saveToStore(STORES.EXPORT_HISTORY, {
+        id: queueId,
+        ...payload.exportPayload,
+        forms_count: payload.forms.length,
+        created_at: now,
+        updated_at: now,
+        _is_offline: true
+    });
+    await addToSyncQueue(STORES.EXPORT_HISTORY, 'create', payload, queueId);
+};
+
 export const generateWordDocument = async (
     reports: ReportForm[],
     metaData: ExportMetaData,
@@ -37,7 +69,8 @@ export const generateWordDocument = async (
         try {
             const exportResult: WordExportResult = {
                 historySaved: false,
-                historyConflictRecovered: false
+                historyConflictRecovered: false,
+                historyQueued: false
             };
 
             if (reports.length === 0) throw new Error("No reports selected");
@@ -234,52 +267,71 @@ export const generateWordDocument = async (
 
             // 12. Save to History (Database)
             if (userId) {
-                try {
-                    const historyForms = reportsWithJoins.filter((report) =>
-                        Boolean(report.id) &&
-                        !report.section_name &&
-                        typeof report.type_id === 'number' &&
-                        report.type_id > 0
-                    );
+                const historyForms = reportsWithJoins.filter((report) =>
+                    Boolean(report.id) &&
+                    !report.section_name &&
+                    typeof report.type_id === 'number' &&
+                    report.type_id > 0
+                );
 
-                    // Use the first valid (non-section) report as the history anchor.
-                    const historyAnchor = historyForms[0];
-                    if (historyAnchor) {
-                        const fallbackConstructionId = historyAnchor.construction_id || firstReport.construction_id;
-                        const finalConstructionId = docData.construction?.id || fallbackConstructionId;
-                        if (!finalConstructionId) {
-                            throw new Error('History save failed: missing construction_id');
-                        }
+                // Use the first valid (non-section) report as the history anchor.
+                const historyAnchor = historyForms[0];
+                if (historyAnchor) {
+                    const fallbackConstructionId = historyAnchor.construction_id || firstReport.construction_id;
+                    const finalConstructionId = docData.construction?.id || fallbackConstructionId;
+                    if (!finalConstructionId) {
+                        captureError(new Error('History save failed: missing construction_id'), {
+                            userId,
+                            reportCount: reports.length,
+                            source: 'wordExportService.historySave'
+                        });
+                        return exportResult;
+                    }
 
-                        const fallbackCustomerId = historyAnchor.customer_id || firstReport.customer_id;
-                        const customerId = docData.customer?.id || docData.construction?.customer_id || fallbackCustomerId;
-                        if (!customerId) {
-                            throw new Error('History save failed: missing customer_id');
-                        }
+                    const fallbackCustomerId = historyAnchor.customer_id || firstReport.customer_id;
+                    const customerId = docData.customer?.id || docData.construction?.customer_id || fallbackCustomerId;
+                    if (!customerId) {
+                        captureError(new Error('History save failed: missing customer_id'), {
+                            userId,
+                            reportCount: reports.length,
+                            source: 'wordExportService.historySave'
+                        });
+                        return exportResult;
+                    }
 
-                        const typeId = historyAnchor.type_id;
-                        const examinationDateRaw = historyAnchor.examination_date || firstReport.examination_date;
-                        const examinationDate = examinationDateRaw && !Number.isNaN(new Date(examinationDateRaw).getTime())
-                            ? examinationDateRaw
-                            : new Date().toISOString();
+                    const typeId = historyAnchor.type_id;
+                    const examinationDateRaw = historyAnchor.examination_date || firstReport.examination_date;
+                    const examinationDate = examinationDateRaw && !Number.isNaN(new Date(examinationDateRaw).getTime())
+                        ? examinationDateRaw
+                        : new Date().toISOString();
 
-                        const exportPayload = {
-                            certifier_id: userId,
-                            user_id: userId,
-                            construction_part: metaData.constructionPart || 'Unknown Part',
-                            construction_id: finalConstructionId,
-                            customer_id: customerId,
-                            type_id: typeId,
-                            drainage: metaData.drainage || null,
-                            water_remark: metaData.waterRemark || null,
-                            water_deviation: metaData.waterDeviation || null,
-                            air_remark: metaData.airRemark || null,
-                            air_deviation: metaData.airDeviation || null,
-                            is_finished: true,
-                            certification_time: new Date().toISOString(),
-                            examination_date: examinationDate
-                        };
+                    const exportPayload = {
+                        certifier_id: userId,
+                        user_id: userId,
+                        construction_part: metaData.constructionPart || 'Unknown Part',
+                        construction_id: finalConstructionId,
+                        customer_id: customerId,
+                        type_id: typeId,
+                        drainage: metaData.drainage || null,
+                        water_remark: metaData.waterRemark || null,
+                        water_deviation: metaData.waterDeviation || null,
+                        air_remark: metaData.airRemark || null,
+                        air_deviation: metaData.airDeviation || null,
+                        is_finished: true,
+                        certification_time: new Date().toISOString(),
+                        examination_date: examinationDate
+                    };
 
+                    const queuedPayload: QueuedExportHistoryPayload = {
+                        exportPayload,
+                        forms: historyForms.map((report, index) => ({
+                            form_id: report.id as string,
+                            type_id: report.type_id,
+                            ordinal: index + 1
+                        }))
+                    };
+
+                    try {
                         const { data: exportData, error: exportError } = await supabase
                             .from('report_exports')
                             .insert(exportPayload)
@@ -336,39 +388,52 @@ export const generateWordDocument = async (
                             resolvedExport = updatedExport || existingExport;
                         }
 
-                        if (resolvedExport) {
-                            const exportForms = historyForms.map((r, index) => ({
+                        if (resolvedExport && queuedPayload.forms.length > 0) {
+                            const exportForms = queuedPayload.forms.map((form) => ({
                                 export_id: resolvedExport.id,
-                                form_id: r.id,
-                                type_id: r.type_id,
-                                ordinal: index + 1
+                                form_id: form.form_id,
+                                type_id: form.type_id,
+                                ordinal: form.ordinal
                             }));
 
-                            if (exportForms.length > 0) {
-                                // Ensure re-exports replace old form links cleanly.
-                                const { error: deleteOldFormsError } = await supabase
-                                    .from('report_export_forms')
-                                    .delete()
-                                    .eq('export_id', resolvedExport.id);
+                            // Ensure re-exports replace old form links cleanly.
+                            const { error: deleteOldFormsError } = await supabase
+                                .from('report_export_forms')
+                                .delete()
+                                .eq('export_id', resolvedExport.id);
 
-                                if (deleteOldFormsError) throw deleteOldFormsError;
+                            if (deleteOldFormsError) throw deleteOldFormsError;
 
-                                const { error: formsError } = await supabase
-                                    .from('report_export_forms')
-                                    .insert(exportForms);
+                            const { error: formsError } = await supabase
+                                .from('report_export_forms')
+                                .insert(exportForms);
 
-                                if (formsError) throw formsError;
-                            }
+                            if (formsError) throw formsError;
                         }
 
                         exportResult.historySaved = true;
+                    } catch (dbError) {
+                        const shouldQueueHistory = !navigator.onLine || isNetworkError(dbError);
+                        if (shouldQueueHistory) {
+                            try {
+                                await queueHistorySave(queuedPayload);
+                                exportResult.historyQueued = true;
+                            } catch (queueError) {
+                                captureError(queueError, {
+                                    userId,
+                                    reportCount: reports.length,
+                                    source: 'wordExportService.historyQueue'
+                                });
+                            }
+                        }
+
+                        captureError(dbError, {
+                            userId,
+                            reportCount: reports.length,
+                            source: 'wordExportService.historySave',
+                            queued: shouldQueueHistory
+                        });
                     }
-                } catch (dbError) {
-                    captureError(dbError, {
-                        userId,
-                        reportCount: reports.length,
-                        source: 'wordExportService.historySave'
-                    });
                 }
             }
 

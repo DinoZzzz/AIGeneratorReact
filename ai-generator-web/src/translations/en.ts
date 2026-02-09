@@ -271,6 +271,7 @@ export const en: Record<string, string> = {
     'reports.deleteSelectedSuccess': 'Successfully deleted {count} report{plural}',
     'reports.exportSuccess': 'Report exported successfully',
     'reports.exportHistoryUpdated': 'Report exported successfully. Existing history entry was updated.',
+    'reports.exportHistoryQueued': 'Report exported successfully. History save is queued and will sync when online.',
     'reports.noReports': 'No reports found',
     'reports.reportsFromConstructions': 'Reports are created from construction sites.',
 
@@ -647,6 +648,7 @@ export const en: Record<string, string> = {
     'certifiers.deleteSignatureConfirm': 'Are you sure you want to delete this certifier\'s signature?',
     'certifiers.signatureUploaded': 'Signature uploaded successfully.',
     'certifiers.signatureDeleted': 'Signature deleted successfully.',
+    'certifiers.signatureOfflineUnsupported': 'Signature changes require an internet connection.',
     'certifiers.invalidFileType': 'Invalid file type. Supported formats: PNG, JPG, JPEG, GIF, WEBP',
     'certifiers.fileTooLarge': 'File too large. Maximum size: 2MB',
 

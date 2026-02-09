@@ -33,6 +33,7 @@ import {
 import { cn } from '../lib/utils';
 import { getUnsyncedChangeCount, requiresOfflineSignOutConfirmation } from '../lib/offlineSignOutGuard';
 import { prefetchCommonRoutes } from '../lib/routePrefetch';
+import { isConflictErrorMessage } from '../lib/offlineConflict';
 import { UserAvatar } from './ui/UserAvatar';
 
 interface LayoutProps {
@@ -59,9 +60,13 @@ const offlineTranslations = {
         constructions: 'Gradilišta',
         reports: 'Izvještaji',
         appointments: 'Termin',
+        messages: 'Poruke',
+        certifiers: 'Certifikatori',
+        exportHistory: 'Povijest izvoza',
         create: 'kreiranje',
         update: 'ažuriranje',
         delete: 'brisanje',
+        useServerVersion: 'Koristi server',
     },
     en: {
         online: 'Online',
@@ -82,9 +87,13 @@ const offlineTranslations = {
         constructions: 'Constructions',
         reports: 'Reports',
         appointments: 'Appointments',
+        messages: 'Messages',
+        certifiers: 'Certifiers',
+        exportHistory: 'Export history',
         create: 'create',
         update: 'update',
         delete: 'delete',
+        useServerVersion: 'Use server',
     },
 };
 
@@ -105,7 +114,8 @@ export const Layout = ({ children }: LayoutProps) => {
         retryFailedSync,
         retryFailedOperation,
         discardFailedOperation,
-        restoreDiscardedOperation
+        restoreDiscardedOperation,
+        resolveConflictUseServer
     } = useOffline();
     const confirm = useConfirm();
     const { items: recentItems } = useRecentlyViewed();
@@ -186,6 +196,12 @@ export const Layout = ({ children }: LayoutProps) => {
                 return ot.reports;
             case 'appointments':
                 return ot.appointments;
+            case 'messages':
+                return ot.messages;
+            case 'certifiers':
+                return ot.certifiers;
+            case 'export_history':
+                return ot.exportHistory;
             default:
                 return store;
         }
@@ -470,6 +486,14 @@ export const Layout = ({ children }: LayoutProps) => {
                                             >
                                                 {ot.discard}
                                             </button>
+                                            {isConflictErrorMessage(operation.error) && (
+                                                <button
+                                                    onClick={() => resolveConflictUseServer(operation.id)}
+                                                    className="px-2 py-1 text-[11px] rounded bg-blue-600 hover:bg-blue-700 text-white"
+                                                >
+                                                    {ot.useServerVersion}
+                                                </button>
+                                            )}
                                         </div>
                                     </div>
                                 ))}

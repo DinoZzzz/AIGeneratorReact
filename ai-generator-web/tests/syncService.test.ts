@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 type TestSyncOperation = {
   id: string;
-  store: 'customers' | 'constructions' | 'reports' | 'appointments';
+  store: 'customers' | 'constructions' | 'reports' | 'appointments' | 'messages' | 'certifiers' | 'export_history';
   operation: 'create' | 'update' | 'delete';
   data: unknown;
   entityId?: string;
@@ -28,6 +28,9 @@ const offlineDbMock = vi.hoisted(() => ({
     CONSTRUCTIONS: 'constructions',
     REPORTS: 'reports',
     APPOINTMENTS: 'appointments',
+    MESSAGES: 'messages',
+    CERTIFIERS: 'certifiers',
+    EXPORT_HISTORY: 'export_history',
     SYNC_QUEUE: 'sync_queue',
     METADATA: 'metadata',
   } as const,
@@ -76,15 +79,25 @@ const fromMock = vi.hoisted(() =>
         return { error: null };
       },
     }),
-    select: (fields: string) => ({
-      eq: async (field: string, value: string) => {
-        void fields;
-        void field;
-        void value;
-        if (table === 'constructions') {
-          return { data: testState.constructionRowsForCustomerDelete, error: null };
-        }
-        return { data: [], error: null };
+    select: () => ({
+      eq: (field: string, value: string) => {
+        const result = table === 'constructions' && field === 'customer_id'
+          ? { data: testState.constructionRowsForCustomerDelete, error: null }
+          : { data: [{ id: value }], error: null };
+        const promise = Promise.resolve(result);
+        const builder = {
+          eq: () => builder,
+          order: () => builder,
+          limit: () => builder,
+          maybeSingle: async () => ({
+            data: Array.isArray(result.data) ? result.data[0] ?? null : result.data,
+            error: result.error,
+          }),
+          then: promise.then.bind(promise),
+          catch: promise.catch.bind(promise),
+          finally: promise.finally.bind(promise),
+        };
+        return builder;
       },
     }),
   }))
@@ -111,6 +124,7 @@ vi.mock('../src/services/customerService', () => ({
 
 import {
   discardFailedOperationById,
+  resolveConflictUseServerById,
   restoreDiscardedOperationById,
   retryFailedOperationById,
   syncPendingOperations,
@@ -236,5 +250,58 @@ describe('syncService offline flows', () => {
       expect.stringContaining('Marked as local-only by user')
     );
     expect(offlineDbMock.restoreDiscardedSyncOperation).toHaveBeenCalledWith('discarded-op');
+  });
+
+  it('resolves failed conflicts by trusting server state', async () => {
+    testState.failedOps = [{
+      id: 'failed-conflict',
+      store: 'reports',
+      operation: 'update',
+      data: { ordinal: 3 },
+      entityId: 'report-1',
+      timestamp: 1,
+      retryCount: 5,
+      status: 'failed',
+      error: 'Conflict: duplicate key',
+    }];
+
+    const resolved = await resolveConflictUseServerById('failed-conflict');
+
+    expect(resolved).toBe(true);
+    expect(offlineDbMock.saveToStore).toHaveBeenCalledWith(
+      'reports',
+      expect.objectContaining({ id: 'report-1', _synced: true })
+    );
+    expect(offlineDbMock.removeSyncOperation).toHaveBeenCalledWith('failed-conflict');
+  });
+
+  it('syncs queued export history records', async () => {
+    testState.pendingOps = [{
+      id: 'op-export-history',
+      store: 'export_history',
+      operation: 'create',
+      data: {
+        exportPayload: {
+          construction_id: 'construction-1',
+          customer_id: 'customer-1',
+          user_id: 'user-1',
+          type_id: 1,
+          examination_date: '2026-02-09',
+        },
+        forms: [
+          { form_id: 'form-1', type_id: 1, ordinal: 1 },
+        ],
+      },
+      entityId: 'queued_export_1',
+      timestamp: 1,
+      retryCount: 0,
+      status: 'pending',
+    }];
+
+    const result = await syncPendingOperations();
+
+    expect(result.total).toBe(1);
+    expect(result.success).toBe(1);
+    expect(offlineDbMock.removeSyncOperation).toHaveBeenCalledWith('op-export-history');
   });
 });

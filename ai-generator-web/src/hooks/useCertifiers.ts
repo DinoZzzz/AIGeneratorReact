@@ -1,14 +1,19 @@
-import { useQuery } from '@tanstack/react-query';
 import { certifierService, type Certifier } from '../services/certifierService';
+import { getAllFromStore, saveManyToStore, STORES } from '../lib/offlineDb';
+import { useOnlineQuery } from '../lib/offlineQueryFn';
 
 export const certifierKeys = {
   all: ['certifiers'] as const,
 };
 
 export const useCertifiers = () => {
-  return useQuery<Certifier[]>({
-    queryKey: certifierKeys.all,
-    queryFn: () => certifierService.getAll(),
-    staleTime: 30 * 60 * 1000, // 30 minutes — certifiers rarely change
-  });
+  return useOnlineQuery<Certifier[]>(
+    certifierKeys.all,
+    () => certifierService.getAll(),
+    () => getAllFromStore<Certifier>(STORES.CERTIFIERS),
+    {
+      cacheFn: (data) => saveManyToStore(STORES.CERTIFIERS, data),
+      staleTime: 30 * 60 * 1000,
+    },
+  );
 };

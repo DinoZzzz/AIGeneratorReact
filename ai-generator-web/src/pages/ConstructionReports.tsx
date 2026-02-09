@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Loader2, ArrowLeft, Archive } from 'lucide-react';
-import type { ReportForm, Construction, Customer, ReportFile, Profile } from '../types';
+import type { ReportForm, ReportFile, Profile } from '../types';
 import { ExportDialog } from '../components/ExportDialog';
 import type { ExportMetaData } from '../components/ExportDialog';
 import { Breadcrumbs } from '../components/ui/Breadcrumbs';
@@ -225,6 +225,8 @@ export const ConstructionReports = () => {
             setActionMessage(null);
             if (exportResult.historyConflictRecovered) {
                 showSuccess(t('reports.exportHistoryUpdated'));
+            } else if (exportResult.historyQueued) {
+                showSuccess(t('reports.exportHistoryQueued'));
             }
         } catch (error) {
             const appError = errorHandler.handle(error, 'ConstructionReports');

@@ -16,6 +16,9 @@ const clearAllOfflineStores = async () => {
     clearStore(STORES.CONSTRUCTIONS),
     clearStore(STORES.REPORTS),
     clearStore(STORES.APPOINTMENTS),
+    clearStore(STORES.MESSAGES),
+    clearStore(STORES.CERTIFIERS),
+    clearStore(STORES.EXPORT_HISTORY),
     clearStore(STORES.SYNC_QUEUE),
     clearStore(STORES.METADATA),
   ]);

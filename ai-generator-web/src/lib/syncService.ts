@@ -25,6 +25,7 @@ import {
   deleteFromStore,
 } from './offlineDb';
 import { NetworkError } from './errorHandler';
+import { isConflictErrorMessage } from './offlineConflict';
 
 const MAX_RETRY_COUNT = 5;
 const BASE_RETRY_DELAY_MS = 1000; // 1 second base delay
@@ -97,6 +98,8 @@ const storeToTable: Record<string, string> = {
   [STORES.CONSTRUCTIONS]: 'constructions',
   [STORES.REPORTS]: 'report_forms',
   [STORES.APPOINTMENTS]: 'calendar_events',
+  [STORES.MESSAGES]: 'messages',
+  [STORES.CERTIFIERS]: 'certifiers',
 };
 
 const deleteCustomerWithDependencies = async (customerId: string): Promise<void> => {
@@ -144,6 +147,144 @@ const applyIdMap = (value: unknown, idMap: Map<string, string>): unknown => {
   return value;
 };
 
+interface QueuedExportHistoryForm {
+  form_id: string;
+  type_id: number;
+  ordinal: number;
+}
+
+interface QueuedExportHistoryData {
+  exportPayload: Record<string, unknown> & {
+    construction_id: string;
+    customer_id: string;
+    user_id: string;
+    type_id: number;
+    examination_date: string;
+  };
+  forms: QueuedExportHistoryForm[];
+}
+
+const isDbConflictError = (error: unknown): boolean => {
+  if (error && typeof error === 'object') {
+    const dbError = error as { code?: string; status?: number; message?: string; details?: string };
+    const message = (dbError.message || '').toLowerCase();
+    const details = (dbError.details || '').toLowerCase();
+    return dbError.code === '23505' ||
+      dbError.status === 409 ||
+      message.includes('duplicate key') ||
+      details.includes('already exists');
+  }
+  return false;
+};
+
+const stripOfflineFields = (value: unknown): Record<string, unknown> => {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return {};
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const raw = value as any;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { _offline_id, _is_offline, _synced, assignee_ids: _assigneeIds, id: _entityId, ...rest } = raw;
+  return rest as Record<string, unknown>;
+};
+
+const syncQueuedExportHistory = async (
+  rawData: unknown
+): Promise<void> => {
+  if (!rawData || typeof rawData !== 'object') {
+    throw new Error('Invalid export history payload');
+  }
+
+  const data = rawData as QueuedExportHistoryData;
+  const exportPayload = data.exportPayload;
+  const forms = Array.isArray(data.forms) ? data.forms : [];
+
+  if (!exportPayload?.construction_id || !exportPayload?.customer_id || !exportPayload?.user_id) {
+    throw new Error('Invalid export history payload: missing required ids');
+  }
+
+  const { data: insertedExport, error: insertError } = await supabase
+    .from('report_exports')
+    .insert(exportPayload)
+    .select()
+    .single();
+
+  let resolvedExport = insertedExport as { id: string } | null;
+  if (insertError) {
+    if (!isDbConflictError(insertError)) {
+      throw insertError;
+    }
+
+    const { data: exactExistingExport, error: exactExistingExportError } = await supabase
+      .from('report_exports')
+      .select('id')
+      .eq('construction_id', exportPayload.construction_id)
+      .eq('customer_id', exportPayload.customer_id)
+      .eq('user_id', exportPayload.user_id)
+      .eq('type_id', exportPayload.type_id)
+      .eq('examination_date', exportPayload.examination_date)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    let existingExport = exactExistingExport as { id: string } | null;
+    if (exactExistingExportError || !existingExport) {
+      const { data: fallbackExistingExport, error: fallbackExistingExportError } = await supabase
+        .from('report_exports')
+        .select('id')
+        .eq('construction_id', exportPayload.construction_id)
+        .eq('user_id', exportPayload.user_id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (fallbackExistingExportError || !fallbackExistingExport) {
+        throw insertError;
+      }
+      existingExport = fallbackExistingExport as { id: string };
+    }
+
+    const { data: updatedExport, error: updateExportError } = await supabase
+      .from('report_exports')
+      .update(exportPayload)
+      .eq('id', existingExport.id)
+      .select('id')
+      .single();
+
+    if (updateExportError) throw updateExportError;
+    resolvedExport = (updatedExport as { id: string } | null) || existingExport;
+  }
+
+  if (!resolvedExport || !resolvedExport.id || forms.length === 0) {
+    return;
+  }
+
+  const normalizedForms = forms
+    .filter((form) => typeof form.form_id === 'string' && form.form_id.length > 0)
+    .map((form, index) => ({
+      export_id: resolvedExport!.id,
+      form_id: form.form_id,
+      type_id: form.type_id,
+      ordinal: form.ordinal || index + 1,
+    }));
+
+  if (normalizedForms.length === 0) {
+    return;
+  }
+
+  const { error: deleteOldFormsError } = await supabase
+    .from('report_export_forms')
+    .delete()
+    .eq('export_id', resolvedExport.id);
+  if (deleteOldFormsError) throw deleteOldFormsError;
+
+  const { error: insertFormsError } = await supabase
+    .from('report_export_forms')
+    .insert(normalizedForms);
+  if (insertFormsError) throw insertFormsError;
+};
+
 /**
  * Process a single sync operation
  */
@@ -151,6 +292,37 @@ const processSyncOperation = async (
   operation: SyncOperation,
   idMap: Map<string, string>
 ): Promise<boolean> => {
+  if (operation.store === STORES.EXPORT_HISTORY) {
+    try {
+      await updateSyncOperationStatus(operation.id, 'in_progress');
+      if (operation.operation !== 'create') {
+        throw new Error(`Unsupported export history operation: ${operation.operation}`);
+      }
+
+      const mappedData = applyIdMap(operation.data, idMap);
+      await syncQueuedExportHistory(mappedData);
+      await removeSyncOperation(operation.id);
+      return true;
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const normalizedError = isConflictErrorMessage(errorMessage) ? `Conflict: ${errorMessage}` : errorMessage;
+      const isNetwork = isNetworkError(error);
+      const nextRetryCount = operation.retryCount + 1;
+
+      if (nextRetryCount >= MAX_RETRY_COUNT) {
+        await updateSyncOperationStatus(operation.id, 'failed', normalizedError);
+        emitSyncEvent({ type: 'sync_error', error: `Operation failed after ${MAX_RETRY_COUNT} retries: ${normalizedError}` });
+      } else if (isNetwork) {
+        const retryDelay = getRetryDelay(nextRetryCount);
+        await updateSyncOperationStatus(operation.id, 'pending', normalizedError);
+        await delay(retryDelay);
+      } else {
+        await updateSyncOperationStatus(operation.id, 'pending', normalizedError);
+      }
+      return false;
+    }
+  }
+
   const tableName = storeToTable[operation.store];
   if (!tableName) {
     console.error(`Unknown store: ${operation.store}`);
@@ -163,11 +335,7 @@ const processSyncOperation = async (
     switch (operation.operation) {
       case 'create': {
         const mappedData = applyIdMap(operation.data, idMap);
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const createData = mappedData as any;
-        // Remove offline-only fields
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const { _offline_id, _is_offline, _synced, id: _tempId, ...cleanData } = createData;
+        const cleanData = stripOfflineFields(mappedData);
 
         const { data, error } = await supabase
           .from(tableName)
@@ -205,11 +373,7 @@ const processSyncOperation = async (
         if (!mappedEntityId) throw new Error('Entity ID required for update');
 
         const mappedData = applyIdMap(operation.data, idMap);
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const updateData = mappedData as any;
-        // Remove offline-only fields
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const { _offline_id, _is_offline, _synced, id: _entityId, ...cleanData } = updateData;
+        const cleanData = stripOfflineFields(mappedData);
 
         const { data, error } = await supabase
           .from(tableName)
@@ -256,6 +420,7 @@ const processSyncOperation = async (
     return true;
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    const normalizedError = isConflictErrorMessage(errorMessage) ? `Conflict: ${errorMessage}` : errorMessage;
     const isNetwork = isNetworkError(error);
     const nextRetryCount = operation.retryCount + 1;
 
@@ -265,22 +430,22 @@ const processSyncOperation = async (
       entityId: operation.entityId,
       retryCount: operation.retryCount,
       isNetworkError: isNetwork,
-      error: errorMessage
+      error: normalizedError
     });
 
     if (nextRetryCount >= MAX_RETRY_COUNT) {
       // Max retries exceeded - mark as failed
-      await updateSyncOperationStatus(operation.id, 'failed', errorMessage);
-      emitSyncEvent({ type: 'sync_error', error: `Operation failed after ${MAX_RETRY_COUNT} retries: ${errorMessage}` });
+      await updateSyncOperationStatus(operation.id, 'failed', normalizedError);
+      emitSyncEvent({ type: 'sync_error', error: `Operation failed after ${MAX_RETRY_COUNT} retries: ${normalizedError}` });
     } else if (isNetwork) {
       // Network error - apply exponential backoff before next retry
       const retryDelay = getRetryDelay(nextRetryCount);
       console.log(`Network error, will retry in ${Math.round(retryDelay / 1000)}s`);
-      await updateSyncOperationStatus(operation.id, 'pending', errorMessage);
+      await updateSyncOperationStatus(operation.id, 'pending', normalizedError);
       await delay(retryDelay);
     } else {
       // Non-network error - still retry but without delay
-      await updateSyncOperationStatus(operation.id, 'pending', errorMessage);
+      await updateSyncOperationStatus(operation.id, 'pending', normalizedError);
     }
     return false;
   }
@@ -425,4 +590,72 @@ export const restoreDiscardedOperationById = async (operationId: string): Promis
 
   await restoreDiscardedSyncOperation(targetOperation.id);
   return true;
+};
+
+const fetchAndApplyServerState = async (
+  operation: SyncOperation,
+  mappedEntityId: string | undefined
+): Promise<void> => {
+  const tableName = storeToTable[operation.store];
+  if (!tableName || !mappedEntityId) {
+    return;
+  }
+
+  const { data, error } = await supabase
+    .from(tableName)
+    .select('*')
+    .eq('id', mappedEntityId)
+    .maybeSingle();
+
+  if (error) {
+    throw error;
+  }
+
+  if (data) {
+    await saveToStore(operation.store, { ...data, _synced: true });
+    return;
+  }
+
+  if (operation.entityId) {
+    await deleteFromStore(operation.store, operation.entityId);
+  }
+};
+
+/**
+ * Resolve a failed conflict by trusting current server state and removing local queued change.
+ */
+export const resolveConflictUseServerById = async (operationId: string): Promise<boolean> => {
+  const failedOps = await getFailedSyncOperations();
+  const targetOperation = failedOps.find((operation) => operation.id === operationId);
+  if (!targetOperation) {
+    return false;
+  }
+
+  try {
+    const persistedIdMap = await getPersistedSyncIdMap();
+    const mappedEntityId = targetOperation.entityId
+      ? persistedIdMap[targetOperation.entityId] ?? targetOperation.entityId
+      : undefined;
+
+    if (targetOperation.store === STORES.EXPORT_HISTORY) {
+      if (targetOperation.entityId) {
+        await deleteFromStore(STORES.EXPORT_HISTORY, targetOperation.entityId);
+      }
+      await removeSyncOperation(targetOperation.id);
+      return true;
+    }
+
+    if (targetOperation.operation === 'create' && targetOperation.entityId?.startsWith('temp_')) {
+      // Drop unsynced temp entity in favor of server state.
+      await deleteFromStore(targetOperation.store, targetOperation.entityId);
+    } else {
+      await fetchAndApplyServerState(targetOperation, mappedEntityId);
+    }
+
+    await removeSyncOperation(targetOperation.id);
+    return true;
+  } catch (error) {
+    console.error('Failed to resolve conflict using server version', error);
+    return false;
+  }
 };

@@ -5,12 +5,15 @@ import { Input } from '../ui/Input';
 import { Label } from '../ui/Label';
 import { useLanguage } from '../../context/LanguageContext';
 import { useAuth } from '../../context/AuthContext';
+import { useOffline } from '../../context/OfflineContext';
 import { examinerService } from '../../services/examinerService';
 import { customerService } from '../../services/customerService';
 import { constructionService } from '../../services/constructionService';
 import type { Appointment, AppointmentPayload, Profile, Customer, Construction } from '../../types';
 import { Loader2, Plus, Trash2 } from 'lucide-react';
 import { ConfirmDialog } from '../ui/ConfirmDialog';
+import { isNetworkError } from '../../lib/errorHandler';
+import { getAllFromStore, getByIndex, saveManyToStore, STORES } from '../../lib/offlineDb';
 
 interface AppointmentDialogProps {
     open: boolean;
@@ -31,6 +34,7 @@ export const AppointmentDialog = ({
 }: AppointmentDialogProps) => {
     const { t } = useLanguage();
     const { profile } = useAuth();
+    const { isOnline } = useOffline();
     const [loading, setLoading] = useState(false);
     const [examiners, setExaminers] = useState<Profile[]>([]);
     const [customers, setCustomers] = useState<Customer[]>([]);
@@ -60,16 +64,33 @@ export const AppointmentDialog = ({
 
         const loadData = async () => {
             try {
-                const [examinersData, customersData] = await Promise.all([
-                    examinerService.getExaminers(),
-                    customerService.getAll()
-                ]);
+                if (isOnline) {
+                    const [examinersData, customersData] = await Promise.all([
+                        examinerService.getExaminers(),
+                        customerService.getAll()
+                    ]);
+                    await saveManyToStore(STORES.CUSTOMERS, customersData);
+                    if (!cancelled) {
+                        setExaminers(examinersData);
+                        setCustomers(customersData);
+                    }
+                    return;
+                }
+
+                const offlineCustomers = await getAllFromStore<Customer>(STORES.CUSTOMERS);
                 if (!cancelled) {
-                    setExaminers(examinersData);
-                    setCustomers(customersData);
+                    setExaminers(profile ? [profile] : []);
+                    setCustomers(offlineCustomers);
                 }
             } catch (error) {
-                if (!cancelled) console.error('Failed to load data', error);
+                if (!cancelled) {
+                    if (!isNetworkError(error)) {
+                        console.error('Failed to load data', error);
+                    }
+                    const offlineCustomers = await getAllFromStore<Customer>(STORES.CUSTOMERS);
+                    setExaminers(profile ? [profile] : []);
+                    setCustomers(offlineCustomers);
+                }
             }
         };
 
@@ -109,7 +130,7 @@ export const AppointmentDialog = ({
         }
 
         return () => { cancelled = true; };
-    }, [open, appointment, selectedSlot, profile]);
+    }, [isOnline, open, appointment, profile, selectedSlot]);
 
     // Load constructions when customer changes
     useEffect(() => {
@@ -122,17 +143,40 @@ export const AppointmentDialog = ({
 
         const loadConstructions = async () => {
             try {
-                const data = await constructionService.getByCustomerId(formData.customer_id!);
-                if (!cancelled) setConstructions(data);
+                if (isOnline) {
+                    const data = await constructionService.getByCustomerId(formData.customer_id!);
+                    await saveManyToStore(STORES.CONSTRUCTIONS, data);
+                    if (!cancelled) setConstructions(data);
+                    return;
+                }
+
+                const offlineConstructions = await getByIndex<Construction>(
+                    STORES.CONSTRUCTIONS,
+                    'customer_id',
+                    formData.customer_id!
+                );
+                if (!cancelled) {
+                    setConstructions(offlineConstructions);
+                }
             } catch (error) {
-                if (!cancelled) console.error('Failed to load constructions', error);
+                if (!cancelled) {
+                    if (!isNetworkError(error)) {
+                        console.error('Failed to load constructions', error);
+                    }
+                    const offlineConstructions = await getByIndex<Construction>(
+                        STORES.CONSTRUCTIONS,
+                        'customer_id',
+                        formData.customer_id!
+                    );
+                    setConstructions(offlineConstructions);
+                }
             }
         };
 
         loadConstructions();
 
         return () => { cancelled = true; };
-    }, [formData.customer_id]);
+    }, [formData.customer_id, isOnline]);
 
     // Auto-fill location when construction changes
     useEffect(() => {

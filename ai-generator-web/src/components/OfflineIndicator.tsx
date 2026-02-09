@@ -4,6 +4,7 @@ import { useOffline } from '../context/OfflineContext';
 import { useLanguage } from '../context/LanguageContext';
 import { useConfirm } from '../context/useConfirm';
 import type { StoreName } from '../lib/offlineDb';
+import { isConflictErrorMessage } from '../lib/offlineConflict';
 
 const translations = {
   hr: {
@@ -25,12 +26,16 @@ const translations = {
     constructions: 'Gradilišta',
     reports: 'Izvještaji',
     appointments: 'Termin',
+    messages: 'Poruke',
+    certifiers: 'Certifikatori',
+    exportHistory: 'Povijest izvoza',
     create: 'kreiranje',
     update: 'ažuriranje',
     delete: 'brisanje',
     unknownError: 'Nepoznata greška',
     localOnlyChanges: 'Lokalne promjene (bez sinkronizacije)',
     restoreOne: 'Vrati u sinkronizaciju',
+    useServerVersion: 'Koristi verziju sa servera',
     discardConfirmTitle: 'Odbaciti sinkronizaciju za ovu promjenu?',
     discardConfirmDescription: 'Promjena će ostati samo lokalno na ovom uređaju i neće se poslati u bazu.',
   },
@@ -53,12 +58,16 @@ const translations = {
     constructions: 'Constructions',
     reports: 'Reports',
     appointments: 'Appointments',
+    messages: 'Messages',
+    certifiers: 'Certifiers',
+    exportHistory: 'Export history',
     create: 'create',
     update: 'update',
     delete: 'delete',
     unknownError: 'Unknown error',
     localOnlyChanges: 'Local-only changes (excluded from sync)',
     restoreOne: 'Restore to sync',
+    useServerVersion: 'Use server version',
     discardConfirmTitle: 'Discard sync for this change?',
     discardConfirmDescription: 'The change will stay local on this device and will not be sent to the database.',
   },
@@ -80,6 +89,7 @@ export const OfflineIndicator = () => {
     retryFailedOperation,
     discardFailedOperation,
     restoreDiscardedOperation,
+    resolveConflictUseServer,
     lastSyncTime
   } = useOffline();
   const confirm = useConfirm();
@@ -179,6 +189,12 @@ export const OfflineIndicator = () => {
         return t.reports;
       case 'appointments':
         return t.appointments;
+      case 'messages':
+        return t.messages;
+      case 'certifiers':
+        return t.certifiers;
+      case 'export_history':
+        return t.exportHistory;
       default:
         return store;
     }
@@ -312,6 +328,16 @@ export const OfflineIndicator = () => {
                       >
                         {t.discardOne}
                       </button>
+                      {isConflictErrorMessage(operation.error) && (
+                        <button
+                          onClick={() => {
+                            resolveConflictUseServer(operation.id);
+                          }}
+                          className="px-2 py-1 text-xs rounded bg-blue-600 hover:bg-blue-700 text-white transition-colors"
+                        >
+                          {t.useServerVersion}
+                        </button>
+                      )}
                     </div>
                   </div>
                 ))}

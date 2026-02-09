@@ -4,7 +4,7 @@
  */
 
 const DB_NAME = 'ai-generator-offline';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 const SYNC_ID_MAP_METADATA_KEY = 'sync_id_map';
 
 // Store names
@@ -13,6 +13,9 @@ export const STORES = {
   CONSTRUCTIONS: 'constructions',
   REPORTS: 'reports',
   APPOINTMENTS: 'appointments',
+  MESSAGES: 'messages',
+  CERTIFIERS: 'certifiers',
+  EXPORT_HISTORY: 'export_history',
   SYNC_QUEUE: 'sync_queue',
   METADATA: 'metadata',
 } as const;
@@ -90,6 +93,24 @@ export const openDatabase = (): Promise<IDBDatabase> => {
         const appointmentStore = db.createObjectStore(STORES.APPOINTMENTS, { keyPath: 'id' });
         appointmentStore.createIndex('customer_id', 'customer_id', { unique: false });
         appointmentStore.createIndex('start', 'start', { unique: false });
+      }
+
+      if (!db.objectStoreNames.contains(STORES.MESSAGES)) {
+        const messageStore = db.createObjectStore(STORES.MESSAGES, { keyPath: 'id' });
+        messageStore.createIndex('user_id', 'user_id', { unique: false });
+        messageStore.createIndex('created_at', 'created_at', { unique: false });
+      }
+
+      if (!db.objectStoreNames.contains(STORES.CERTIFIERS)) {
+        const certifierStore = db.createObjectStore(STORES.CERTIFIERS, { keyPath: 'id' });
+        certifierStore.createIndex('is_default', 'is_default', { unique: false });
+        certifierStore.createIndex('name', 'name', { unique: false });
+      }
+
+      if (!db.objectStoreNames.contains(STORES.EXPORT_HISTORY)) {
+        const exportHistoryStore = db.createObjectStore(STORES.EXPORT_HISTORY, { keyPath: 'id' });
+        exportHistoryStore.createIndex('user_id', 'user_id', { unique: false });
+        exportHistoryStore.createIndex('created_at', 'created_at', { unique: false });
       }
 
       // Sync queue for pending operations

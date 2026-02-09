@@ -271,6 +271,7 @@ export const hr: Record<string, string> = {
     'reports.deleteSelectedSuccess': 'Uspješno obrisan{plural} {count} obrazac{plural}',
     'reports.exportSuccess': 'Obrazac uspješno izvezen',
     'reports.exportHistoryUpdated': 'Obrazac uspješno izvezen. Postojeći zapis u povijesti je ažuriran.',
+    'reports.exportHistoryQueued': 'Obrazac uspješno izvezen. Spremanje u povijest je na čekanju i sinkronizirat će se kad se vrati veza.',
     'reports.noReports': 'Nema pronađenih obrazaca',
     'reports.reportsFromConstructions': 'Obrasci se kreiraju iz gradilišta.',
 
@@ -647,6 +648,7 @@ export const hr: Record<string, string> = {
     'certifiers.deleteSignatureConfirm': 'Jeste li sigurni da želite obrisati potpis ovog certifikatora?',
     'certifiers.signatureUploaded': 'Potpis uspješno učitan.',
     'certifiers.signatureDeleted': 'Potpis uspješno obrisan.',
+    'certifiers.signatureOfflineUnsupported': 'Promjene potpisa zahtijevaju internetsku vezu.',
     'certifiers.invalidFileType': 'Neispravan tip datoteke. Podržani formati: PNG, JPG, JPEG, GIF, WEBP',
     'certifiers.fileTooLarge': 'Datoteka je prevelika. Maksimalna veličina: 2MB',
 

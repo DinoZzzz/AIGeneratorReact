@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Calendar as BigCalendar, dateFnsLocalizer, Views } from 'react-big-calendar';
 import type { View } from 'react-big-calendar';
 import { format, parse, startOfWeek, getDay } from 'date-fns';
@@ -8,12 +8,17 @@ import '../styles/calendar.css'; // Create this file for overrides
 
 import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../context/AuthContext';
-import { appointmentService } from '../services/appointmentService';
 import { AppointmentDialog } from '../components/calendar/AppointmentDialog';
 import { CalendarSkeleton } from '../components/skeletons/CalendarSkeleton';
 import type { Appointment, AppointmentPayload } from '../types';
 import { Loader2, Plus } from 'lucide-react';
 import { Button } from '../components/ui/Button';
+import {
+    useAppointmentsInRange,
+    useCreateAppointment,
+    useDeleteAppointment,
+    useUpdateAppointment
+} from '../hooks/useAppointments';
 
 const locales = {
     'hr': hr,
@@ -38,15 +43,15 @@ interface CalendarEvent {
 export const Calendar = () => {
     const { t } = useLanguage();
     const { profile } = useAuth();
-    const [events, setEvents] = useState<CalendarEvent[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [initialLoading, setInitialLoading] = useState(true);
     const [view, setView] = useState<View>(Views.MONTH);
     const [date, setDate] = useState(new Date());
 
     const [dialogOpen, setDialogOpen] = useState(false);
     const [selectedAppointment, setSelectedAppointment] = useState<Partial<Appointment> | null>(null);
     const [selectedSlot, setSelectedSlot] = useState<{ start: Date; end: Date } | null>(null);
+    const createAppointmentMutation = useCreateAppointment();
+    const updateAppointmentMutation = useUpdateAppointment();
+    const deleteAppointmentMutation = useDeleteAppointment();
 
     // Set default view based on screen size
     useEffect(() => {
@@ -60,70 +65,40 @@ export const Calendar = () => {
         return () => window.removeEventListener('resize', handleResize);
     }, []);
 
-    // Debounce ref to prevent excessive API calls on rapid date/view changes
-    const debounceRef = useRef<NodeJS.Timeout | null>(null);
+    const visibleRange = useMemo(() => {
+        let start = new Date(date.getFullYear(), date.getMonth(), 1);
+        let end = new Date(date.getFullYear(), date.getMonth() + 1, 0);
 
-    useEffect(() => {
-        // Clear any pending debounced call
-        if (debounceRef.current) {
-            clearTimeout(debounceRef.current);
-        }
-
-        // Debounce the loadAppointments call by 300ms
-        debounceRef.current = setTimeout(() => {
-            loadAppointments();
-        }, 300);
-
-        return () => {
-            if (debounceRef.current) {
-                clearTimeout(debounceRef.current);
-            }
-        };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [date, view]);
-
-    const loadAppointments = useCallback(async () => {
-        setLoading(true);
-        try {
-            // Calculate range based on view
-            let start = new Date(date.getFullYear(), date.getMonth(), 1);
-            let end = new Date(date.getFullYear(), date.getMonth() + 1, 0);
-
-            if (view === Views.WEEK) {
-                start = startOfWeek(date, { weekStartsOn: 1 });
-                end = new Date(start);
-                end.setDate(end.getDate() + 7);
-            } else if (view === Views.DAY) {
-                start = new Date(date);
-                start.setHours(0, 0, 0, 0);
-                end = new Date(date);
-                end.setHours(23, 59, 59, 999);
-            }
-
-            // Add buffer
-            start.setDate(start.getDate() - 7);
+        if (view === Views.WEEK) {
+            start = startOfWeek(date, { weekStartsOn: 1 });
+            end = new Date(start);
             end.setDate(end.getDate() + 7);
-
-            const data = await appointmentService.getAll(start, end);
-
-            const calendarEvents: CalendarEvent[] = data.map(apt => {
-                return {
-                    id: apt.id,
-                    title: apt.title,
-                    start: new Date(apt.start),
-                    end: new Date(apt.end),
-                    resource: apt
-                };
-            });
-
-            setEvents(calendarEvents);
-        } catch (error) {
-            console.error('Failed to load appointments', error);
-        } finally {
-            setLoading(false);
-            setInitialLoading(false);
+        } else if (view === Views.DAY) {
+            start = new Date(date);
+            start.setHours(0, 0, 0, 0);
+            end = new Date(date);
+            end.setHours(23, 59, 59, 999);
         }
+
+        // Add buffer
+        start.setDate(start.getDate() - 7);
+        end.setDate(end.getDate() + 7);
+
+        return { start, end };
     }, [date, view]);
+
+    const appointmentsQuery = useAppointmentsInRange(visibleRange.start, visibleRange.end);
+    const events: CalendarEvent[] = useMemo(
+        () =>
+            (appointmentsQuery.data || []).map((appointment) => ({
+                id: appointment.id,
+                title: appointment.title,
+                start: new Date(appointment.start),
+                end: new Date(appointment.end),
+                resource: appointment
+            })),
+        [appointmentsQuery.data]
+    );
 
     const handleSelectSlot = ({ start, end }: { start: Date; end: Date }) => {
         setSelectedSlot({ start, end });
@@ -139,11 +114,11 @@ export const Calendar = () => {
     const handleSave = async (appointment: AppointmentPayload) => {
         try {
             if (appointment.id) {
-                await appointmentService.update(appointment.id, appointment);
+                await updateAppointmentMutation.mutateAsync({ id: appointment.id, appointment });
             } else {
-                await appointmentService.create(appointment);
+                await createAppointmentMutation.mutateAsync(appointment);
             }
-            await loadAppointments();
+            await appointmentsQuery.refetch();
         } catch (error) {
             console.error('Failed to save appointment', error);
             throw error;
@@ -152,8 +127,8 @@ export const Calendar = () => {
 
     const handleDelete = async (id: string) => {
         try {
-            await appointmentService.delete(id);
-            await loadAppointments();
+            await deleteAppointmentMutation.mutateAsync(id);
+            await appointmentsQuery.refetch();
         } catch (error) {
             console.error('Failed to delete appointment', error);
             throw error;
@@ -174,7 +149,7 @@ export const Calendar = () => {
     };
 
     // Show skeleton on initial load
-    if (initialLoading) {
+    if (appointmentsQuery.isLoading) {
         return <CalendarSkeleton />;
     }
 
@@ -192,7 +167,7 @@ export const Calendar = () => {
             </div>
 
             <div className="flex-1 bg-card rounded-lg shadow p-4 border border-border">
-                {loading && !initialLoading && (
+                {appointmentsQuery.isFetching && (
                     <div className="absolute inset-0 bg-background/50 flex items-center justify-center z-10">
                         <Loader2 className="h-8 w-8 animate-spin text-primary" />
                     </div>
