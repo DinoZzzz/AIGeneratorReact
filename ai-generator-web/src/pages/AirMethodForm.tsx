@@ -44,7 +44,7 @@ const initialState: Partial<ReportForm> = {
     examination_date: new Date().toISOString().split('T')[0],
     examination_start_time: '',
     examination_end_time: '',
-    stabilization_time: '',
+    stabilization_time: '5', // Default 5 minutes
 };
 
 interface CalculatedResults {
@@ -117,7 +117,7 @@ export const AirMethodForm = () => {
             testTime: '00:00',
             requiredTestTime: finalTime
         };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [
         formData.examination_procedure_id,
         formData.pane_diameter,
@@ -204,6 +204,20 @@ export const AirMethodForm = () => {
         }
     }, [formData.draft_id, formData.material_type_id]);
 
+    // Effect to auto-populate examination_duration from EN 1610 table
+    useEffect(() => {
+        if (calculated.requiredTestTime > 0) {
+            // Convert minutes to HH:MM:SS format
+            const totalSeconds = Math.round(calculated.requiredTestTime * 60);
+            const hours = Math.floor(totalSeconds / 3600);
+            const minutes = Math.floor((totalSeconds % 3600) / 60);
+            const seconds = totalSeconds % 60;
+            const durationStr = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+
+            setFormData(prev => ({ ...prev, examination_duration: durationStr }));
+        }
+    }, [calculated.requiredTestTime]);
+
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
         const { name, value, type } = e.target;
         let finalValue: string | number | boolean = value;
@@ -259,7 +273,7 @@ export const AirMethodForm = () => {
                     examination_procedure_id: dataToSave.examination_procedure_id,
                     draft_id: dataToSave.draft_id,
                     material_type_id: dataToSave.material_type_id,
-                    dionica: '', // Reset dionica for new report
+                    dionica: dataToSave.dionica || '', // Carry over dionica from previous report
                 });
                 setStep(1);
                 navigate(`/customers/${customerId}/constructions/${constructionId}/reports/new/air`);
@@ -570,14 +584,34 @@ export const AirMethodForm = () => {
                                         value={formData.examination_end_time}
                                         onChange={handleChange}
                                     />
-                                    <Input
-                                        label={t('reports.form.stabilizationTime')}
-                                        type="text"
-                                        name="stabilization_time"
-                                        value={formData.stabilization_time}
-                                        onChange={handleChange}
-                                        placeholder="00:00"
-                                    />
+                                    <div>
+                                        <label className="text-sm font-medium mb-1 block">{t('reports.form.stabilizationTime')}</label>
+                                        <div className="flex items-center gap-2">
+                                            <button
+                                                type="button"
+                                                onClick={() => setFormData(prev => ({ ...prev, stabilization_time: String(Math.max(0, parseInt(String(prev.stabilization_time || '5')) - 1)) }))}
+                                                className="h-10 w-10 rounded-md border border-input bg-background flex items-center justify-center hover:bg-muted"
+                                            >
+                                                -
+                                            </button>
+                                            <Input
+                                                type="number"
+                                                name="stabilization_time"
+                                                value={formData.stabilization_time || '5'}
+                                                onChange={handleChange}
+                                                className="text-center w-20"
+                                                min="0"
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={() => setFormData(prev => ({ ...prev, stabilization_time: String(parseInt(String(prev.stabilization_time || '5')) + 1) }))}
+                                                className="h-10 w-10 rounded-md border border-input bg-background flex items-center justify-center hover:bg-muted"
+                                            >
+                                                +
+                                            </button>
+                                            <span className="text-sm text-muted-foreground">min</span>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
 

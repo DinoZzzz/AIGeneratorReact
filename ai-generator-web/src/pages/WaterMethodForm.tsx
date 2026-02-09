@@ -148,7 +148,7 @@ export const WaterMethodForm = () => {
         );
 
         return { ...results, wettedShaftSurface, wettedPipeSurface, hydrostaticHeight };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [
         formData.draft_id,
         formData.material_type_id,
@@ -164,7 +164,7 @@ export const WaterMethodForm = () => {
         formData.depositional_height,
         formData.temperature,
         formData.examination_duration
-     
+
     ]);
 
     // Auto-fill deviation text based on schema conditions
@@ -599,7 +599,7 @@ export const WaterMethodForm = () => {
                                         <Input
                                             label={t('reports.form.roHeight')}
                                             type="number"
-                                            step="0.01"
+                                            step="1"
                                             name="ro_height"
                                             value={formData.ro_height}
                                             onChange={handleChange}
@@ -625,17 +625,26 @@ export const WaterMethodForm = () => {
                                             className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                                         />
                                     </div>
-                                    <div>
-                                        <label className="text-sm font-medium mb-1 block">{t('reports.form.saturationTime')}</label>
-                                        <input
-                                            type="text"
-                                            name="saturation_time"
-                                            value={formData.saturation_time || '01:00:00'}
-                                            onChange={handleChange}
-                                            placeholder="01:00:00"
-                                            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                                        />
-                                    </div>
+                                    {(() => {
+                                        // Show saturation time only for concrete materials
+                                        const paneMaterial = materials.find(m => m.id === formData.pane_material_id);
+                                        const pipeMaterial = materials.find(m => m.id === formData.pipe_material_id);
+                                        const isConcrete = (paneMaterial?.name?.toLowerCase().includes('beton') || paneMaterial?.name?.toLowerCase().includes('concrete')) ||
+                                            (pipeMaterial?.name?.toLowerCase().includes('beton') || pipeMaterial?.name?.toLowerCase().includes('concrete'));
+                                        return isConcrete ? (
+                                            <div>
+                                                <label className="text-sm font-medium mb-1 block">{t('reports.form.saturationTime')}</label>
+                                                <input
+                                                    type="text"
+                                                    name="saturation_time"
+                                                    value={formData.saturation_time || '01:00:00'}
+                                                    onChange={handleChange}
+                                                    placeholder="01:00:00"
+                                                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                                                />
+                                            </div>
+                                        ) : null;
+                                    })()}
                                     {showPipeFields && (
                                         <>
                                             <Select

@@ -32,7 +32,8 @@
       "Bash(PGPASSWORD=\"Dinos.050298\" psql:*)",
       "Bash(git push:*)",
       "Bash(git stash:*)",
-      "Bash(npm test:*)"
+      "Bash(npm test:*)",
+      "Bash(git status:*)"
     ],
     "deny": [],
     "ask": []

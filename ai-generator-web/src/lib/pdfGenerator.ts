@@ -274,7 +274,7 @@ const renderReportPage = async (doc: jsPDF, report: Partial<ReportForm>, userPro
     if (report.material_type_id === 1) { // Round
         // Only show "Visina ro" for Water Method (type_id === 1)
         if (report.type_id === 1 && report.draft_id !== 2) { // Not Schema C (Pipe Only) - Schema C uses pane_diameter for main pipe
-            addLeft('Visina ro', `${(report.ro_height || 0).toFixed(2)} cm`);
+            addLeft('Visina okna', `${Math.round(report.ro_height || 0)} cm`);
         }
 
         if (report.draft_id === 2) {
@@ -285,20 +285,20 @@ const renderReportPage = async (doc: jsPDF, report: Partial<ReportForm>, userPro
     } else { // Rectangular
         if (report.draft_id === 2) {
             // Schema C Rectangular uses Channel dimensions
-            addLeft('Širina kanala', `${(report.pane_width || 0).toFixed(2)} cm`);
-            addLeft('Dužina kanala', `${(report.pane_length || 0).toFixed(2)} cm`);
-            addLeft('Visina kanala', `${(report.pane_height || 0).toFixed(2)} cm`);
+            addLeft('Širina kanala', `${Math.round(report.pane_width || 0)} cm`);
+            addLeft('Dužina kanala', `${Math.round(report.pane_length || 0)} cm`);
+            addLeft('Visina kanala', `${Math.round(report.pane_height || 0)} cm`);
         } else {
-            addLeft(widthLabel, `${(report.pane_width || 0).toFixed(2)} cm`);
-            addLeft(lengthLabel, `${(report.pane_length || 0).toFixed(2)} cm`);
-            addLeft(heightLabel, `${(report.pane_height || 0).toFixed(2)} cm`);
+            addLeft(widthLabel, `${Math.round(report.pane_width || 0)} cm`);
+            addLeft(lengthLabel, `${Math.round(report.pane_length || 0)} cm`);
+            addLeft(heightLabel, `${Math.round(report.pane_height || 0)} cm`);
         }
     }
 
 
     // Water Method specific
     if (report.type_id === 1) {
-        addLeft('Visina vode', `${(report.water_height || 0).toFixed(2)} cm`);
+        addLeft('Visina vode', `${Math.round(report.water_height || 0)} cm`);
     }
 
     // Air Method specific
@@ -316,18 +316,31 @@ const renderReportPage = async (doc: jsPDF, report: Partial<ReportForm>, userPro
         const pipeMatName = pipeMats[(report.pipe_material_id || 1) - 1] || 'PVC';
 
         addRight('Materijal cijevi', pipeMatName);
-        addRight('Dužina cijevi', `${(report.pipe_length || 0).toFixed(2)} m`);
+        addRight('Dužina cijevi', `${(report.pipe_length || 0).toFixed(1)} m`);
         addRight('Promjer cijevi', `${(report.pipe_diameter || 0).toFixed(0)} mm`);
 
         if ([4, 5].includes(report.draft_id || 0)) { // D or E
-            addRight('Taložna visina', `${(report.depositional_height || 0).toFixed(2)} cm`);
+            addRight('Taložna visina', `${Math.round(report.depositional_height || 0)} cm`);
         }
 
-        addRight('Nagib', `${(report.pipeline_slope || 0).toFixed(2)} %`);
+        addRight('Nagib', `${(report.pipeline_slope || 0).toFixed(1)} %`);
     }
 
     // For Air Method, show measurements in the right column
     if (report.type_id === 2) {
+        // Show pipe material info if selected
+        if (report.pipe_material_id && report.pipe_material_id > 0) {
+            const airPipeMats: Record<number, string> = { 1: 'PVC', 2: 'Betonska', 3: 'PE', 4: 'PEHD' };
+            const pipeMat = airPipeMats[report.pipe_material_id] || 'PVC';
+            addRight('Materijal cijevi', pipeMat);
+            if (report.pipe_length && report.pipe_length > 0) {
+                addRight('Dužina cijevi', `${(report.pipe_length).toFixed(1)} m`);
+            }
+            if (report.pipe_diameter && report.pipe_diameter > 0) {
+                addRight('Promjer cijevi', `${(report.pipe_diameter).toFixed(0)} mm`);
+            }
+        }
+
         const stabTime = report.stabilization_time || '00:00';
         addRight('Vr. stabilizacije', stabTime.toString());
 
@@ -340,9 +353,9 @@ const renderReportPage = async (doc: jsPDF, report: Partial<ReportForm>, userPro
         const testSecs = Math.round((testTimeMins - testMins) * 60);
         addRight('Vr. ispitivanja', `${testMins}m ${testSecs.toString().padStart(2, '0')}s`);
 
-        addRight('Tlak poc.', `${(report.pressure_start || 0).toFixed(2)} mbar`);
-        addRight('Tlak kraj', `${(report.pressure_end || 0).toFixed(2)} mbar`);
-        addRight('Pad tlaka', `${(report.pressure_loss || 0).toFixed(2)} mbar`);
+        addRight('Tlak poc.', `${(report.pressure_start || 0).toFixed(1)} mbar`);
+        addRight('Tlak kraj', `${(report.pressure_end || 0).toFixed(1)} mbar`);
+        addRight('Pad tlaka', `${(report.pressure_loss || 0).toFixed(1)} mbar`);
     }
 
     // Sync Y for Results
@@ -393,32 +406,32 @@ const renderReportPage = async (doc: jsPDF, report: Partial<ReportForm>, userPro
         // Display Results (Left Column) - Use shorter labels to fit
         if (draftId === 1 || draftId === 3 || draftId === 4 || draftId === 5) {
             const label = (draftId === 4 || draftId === 5) ? 'Om. povr. slivnika' : 'Om. povr. okna';
-            addLeft(label, `${wettedShaft.toFixed(2)} m²`);
+            addLeft(label, `${wettedShaft.toFixed(1)} m²`);
         } else if (draftId === 2) {
             if (report.material_type_id === 2) {
-                addLeft('Om. povr. kanala', `${wettedShaft.toFixed(2)} m²`);
+                addLeft('Om. povr. kanala', `${wettedShaft.toFixed(1)} m²`);
             } else {
-                addLeft('Om. povr. okna', `${wettedShaft.toFixed(2)} m²`);
+                addLeft('Om. povr. okna', `${wettedShaft.toFixed(1)} m²`);
             }
         }
 
         if ([2, 3, 5].includes(draftId)) {
-            addLeft('Om. povr. cijevi', `${wettedPipe.toFixed(2)} m²`);
+            addLeft('Om. povr. cijevi', `${wettedPipe.toFixed(1)} m²`);
         }
 
-        addLeft('Ukupna om. povr.', `${totalArea.toFixed(2)} m²`);
-        addLeft('Dozv. gubitak (l)', `${allowedLossL.toFixed(2)} l`);
-        addLeft('Dozv. gubitak (mm)', `${allowedLossMm.toFixed(2)} mm`);
+        addLeft('Ukupna om. povr.', `${totalArea.toFixed(1)} m²`);
+        addLeft('Dozv. gubitak (l)', `${allowedLossL.toFixed(1)} l`);
+        addLeft('Dozv. gubitak (mm)', `${allowedLossMm.toFixed(1)} mm`);
 
         // Display Results (Right Column) - Use shorter labels
-        addRight('Vis. vode na poc.', `${(report.water_height_start || 0).toFixed(2)} mm`);
-        addRight('Vis. vode na kraju', `${(report.water_height_end || 0).toFixed(2)} mm`);
+        addRight('Vis. vode na poc.', `${Math.round(report.water_height_start || 0)} mm`);
+        addRight('Vis. vode na kraju', `${Math.round(report.water_height_end || 0)} mm`);
 
         if ([2, 3].includes(draftId) && hydrostaticHeight > 0) {
             addRight('Hidrost. visina', `${(hydrostaticHeight * 100).toFixed(0)} cm`);
         }
 
-        addRight('Gubitak vode', `${waterLoss.toFixed(2)} mm`);
+        addRight('Gubitak vode', `${waterLoss.toFixed(1)} mm`);
         addRight('ΔV', `${volLoss.toFixed(4)} l`);
         addRight('Izmj. gubitak', `${result.toFixed(2)} l/m²`);
     } else if (report.type_id === 2) { // Air Method Results

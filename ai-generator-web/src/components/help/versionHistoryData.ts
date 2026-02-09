@@ -7,6 +7,23 @@ export interface VersionHistoryItem {
 export function getVersionHistory(language: string): VersionHistoryItem[] {
     return language === 'hr' ? [
         {
+            version: '2.18.0',
+            date: '2026-02-09',
+            changes: [
+                'Ispravljen dozvoljeni gubitak u Word tablici za metodu zraka (koristi izračunatu vrijednost umjesto statičke)',
+                'Automatsko popunjavanje trajanja ispitivanja iz EN 1610 tablice prema promjeru i metodi',
+                'Vrijeme stabilizacije: +/- kontrola s default 5 min',
+                'Prijenos dionice na sljedeći obrazac pri spremanju',
+                'Poboljšan unos na mobitelu: polje se čisti kad ima vrijednost 0',
+                'Uklonjene decimale iz PDF izvoza (osim za kritične vrijednosti)',
+                'Podaci o cijevima prikazuju se u PDF-u za metodu zraka',
+                'Promijenjena "mokra površina" u "omočena površina" u svim prijevodima',
+                'Promijenjena "ro visina" u "visina okna", bez decimala',
+                'Vrijeme zasićenja prikazuje se samo za betonske materijale',
+                'Ispravljen broj okana u rekapitulaciji Word dokumenta (Schema B)',
+            ]
+        },
+        {
             version: '2.17.0',
             date: '2026-02-08',
             changes: [
@@ -378,6 +395,23 @@ export function getVersionHistory(language: string): VersionHistoryItem[] {
         },
     ] : [
         // English version
+        {
+            version: '2.18.0',
+            date: '2026-02-09',
+            changes: [
+                'Fixed allowed loss in Word table for air method (uses calculated value instead of static)',
+                'Auto-populate test duration from EN 1610 table based on diameter and method',
+                'Stabilization time: +/- control with default 5 min',
+                'Section name carries over to next form when saving',
+                'Improved mobile input: field clears when value is 0',
+                'Removed decimals from PDF export (except for critical values)',
+                'Pipe data now shows in PDF for air method',
+                'Changed "wet surface" to "soaked surface" in all translations',
+                'Changed "ro height" to "shaft height", no decimals',
+                'Saturation time only shows for concrete materials',
+                'Fixed shaft count in Word document recapitulation (Schema B)',
+            ]
+        },
         {
             version: '2.17.0',
             date: '2026-02-08',

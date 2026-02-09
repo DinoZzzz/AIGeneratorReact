@@ -84,7 +84,8 @@ export const buildAirReportRows = (reportsWithJoins: ReportFormWithJoins[]): Air
 
         const proc = r.examination_procedure;
         const procText = proc ? `${proc.name} - ${formatNum(proc.pressure, 2)}` : '-';
-        const allowedLoss = proc ? formatNum(proc.allowed_loss, 2) : '-';
+        // Use calculated allowed_loss from report (saved during form submission) instead of static procedure value
+        const allowedLoss = r.allowed_loss ? formatNum(r.allowed_loss, 2) : (proc ? formatNum(proc.allowed_loss, 2) : '-');
 
         airReports.push({
             isSection: false,

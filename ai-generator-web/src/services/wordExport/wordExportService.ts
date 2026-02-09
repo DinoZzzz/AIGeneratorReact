@@ -149,7 +149,8 @@ export const generateWordDocument = async (
                 constructionSite: docData.construction?.name || "-",
                 customerDetailed: docData.customer ? `${docData.customer.name}, ${docData.customer.address || ''} ${docData.customer.location || ''}` : "-",
 
-                revisionPaneCount: reportsWithJoins.filter(r => r.draft_id !== 3 && r.draft_id !== 6).length + " kom.",
+                // Count all reports that include okno (1,3) or slivnik (4,5), exclude pipe-only (2) and other (6)
+                revisionPaneCount: reportsWithJoins.filter(r => r.draft_id === 1 || r.draft_id === 3 || r.draft_id === 4 || r.draft_id === 5).length + " kom.",
                 tubeLengthSum: totalLength === 0 ? "-" : formatNum(totalLength, 2) + " m",
                 drainage: metaData.drainage,
 
