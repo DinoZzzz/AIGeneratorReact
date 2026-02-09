@@ -180,7 +180,7 @@ export const hr: Record<string, string> = {
     'examiners.dialog.fillRequired': 'Molimo ispunite sva obavezna polja',
     'examiners.dialog.emailRequired': 'Email je obavezan za nove ispitivače',
     'examiners.dialog.passwordRequired': 'Lozinka je obavezna za nove ispitivače',
-    'examiners.dialog.passwordTooShort': 'Lozinka mora imati najmanje 6 znakova',
+    'examiners.dialog.passwordTooShort': 'Lozinka mora imati najmanje 8 znakova',
     'examiners.dialog.accreditationRequired': 'Molimo odaberite barem jednu akreditaciju',
     'examiners.dialog.saveFailed': 'Spremanje ispitivača nije uspjelo',
     'examiners.dialog.weakPassword': 'Lozinka je preslaba. Molimo odaberite jaču lozinku.',
@@ -270,6 +270,7 @@ export const hr: Record<string, string> = {
     'reports.deleteSuccess': 'Obrazac uspješno obrisan',
     'reports.deleteSelectedSuccess': 'Uspješno obrisan{plural} {count} obrazac{plural}',
     'reports.exportSuccess': 'Obrazac uspješno izvezen',
+    'reports.exportHistoryUpdated': 'Obrazac uspješno izvezen. Postojeći zapis u povijesti je ažuriran.',
     'reports.noReports': 'Nema pronađenih obrazaca',
     'reports.reportsFromConstructions': 'Obrasci se kreiraju iz gradilišta.',
 

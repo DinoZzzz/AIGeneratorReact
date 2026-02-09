@@ -148,18 +148,46 @@ export const reportService = {
         }
     },
 
-    async getLastByConstructionAndType(constructionId: string, typeId: number) {
-        const { data, error } = await supabase
+    async getLastByConstructionAndType(constructionId: string, typeId: number, customerId?: string) {
+        let query = supabase
             .from('report_forms')
             .select('*')
             .eq('construction_id', constructionId)
-            .eq('type_id', typeId)
+            .eq('type_id', typeId);
+
+        if (customerId) {
+            query = query.eq('customer_id', customerId);
+        }
+
+        const { data, error } = await query
             .order('created_at', { ascending: false })
             .limit(1)
             .maybeSingle();
 
         if (error) {
-            captureError(error, { service: 'reportService', method: 'getLastByConstructionAndType', constructionId, typeId });
+            captureError(error, { service: 'reportService', method: 'getLastByConstructionAndType', constructionId, typeId, customerId });
+            throw new AppError(error.message, 'SUPABASE_ERROR', 500);
+        }
+        return data as ReportForm | null;
+    },
+
+    async getLastByConstruction(constructionId: string, customerId?: string) {
+        let query = supabase
+            .from('report_forms')
+            .select('*')
+            .eq('construction_id', constructionId);
+
+        if (customerId) {
+            query = query.eq('customer_id', customerId);
+        }
+
+        const { data, error } = await query
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+        if (error) {
+            captureError(error, { service: 'reportService', method: 'getLastByConstruction', constructionId, customerId });
             throw new AppError(error.message, 'SUPABASE_ERROR', 500);
         }
         return data as ReportForm | null;

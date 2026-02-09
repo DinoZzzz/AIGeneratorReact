@@ -70,14 +70,82 @@ export const constructionService = {
     },
 
     async delete(id: string) {
-        const { error } = await supabase
+        // Delete dependent records first to avoid FK violations.
+        // NOTE: This is intentionally ordered by dependency depth.
+        const { data: exportsData, error: exportsSelectError } = await supabase
+            .from('report_exports')
+            .select('id')
+            .eq('construction_id', id);
+
+        if (exportsSelectError) {
+            captureError(exportsSelectError, { service: 'constructionService', method: 'delete', step: 'selectReportExports', id });
+            throw new AppError(exportsSelectError.message, 'SUPABASE_ERROR', 500);
+        }
+
+        const exportIds = (exportsData || [])
+            .map((row) => row.id)
+            .filter((value): value is string => typeof value === 'string' && value.length > 0);
+
+        if (exportIds.length > 0) {
+            const { error: exportFormsError } = await supabase
+                .from('report_export_forms')
+                .delete()
+                .in('export_id', exportIds);
+
+            if (exportFormsError) {
+                captureError(exportFormsError, { service: 'constructionService', method: 'delete', step: 'deleteReportExportForms', id, exportCount: exportIds.length });
+                throw new AppError(exportFormsError.message, 'SUPABASE_ERROR', 500);
+            }
+        }
+
+        const { error: exportsDeleteError } = await supabase
+            .from('report_exports')
+            .delete()
+            .eq('construction_id', id);
+
+        if (exportsDeleteError) {
+            captureError(exportsDeleteError, { service: 'constructionService', method: 'delete', step: 'deleteReportExports', id });
+            throw new AppError(exportsDeleteError.message, 'SUPABASE_ERROR', 500);
+        }
+
+        const { error: filesError } = await supabase
+            .from('report_files')
+            .delete()
+            .eq('construction_id', id);
+
+        if (filesError) {
+            captureError(filesError, { service: 'constructionService', method: 'delete', step: 'deleteReportFiles', id });
+            throw new AppError(filesError.message, 'SUPABASE_ERROR', 500);
+        }
+
+        const { error: reportFormsError } = await supabase
+            .from('report_forms')
+            .delete()
+            .eq('construction_id', id);
+
+        if (reportFormsError) {
+            captureError(reportFormsError, { service: 'constructionService', method: 'delete', step: 'deleteReportForms', id });
+            throw new AppError(reportFormsError.message, 'SUPABASE_ERROR', 500);
+        }
+
+        const { error: appointmentsError } = await supabase
+            .from('appointments')
+            .delete()
+            .eq('construction_id', id);
+
+        if (appointmentsError) {
+            captureError(appointmentsError, { service: 'constructionService', method: 'delete', step: 'deleteAppointments', id });
+            throw new AppError(appointmentsError.message, 'SUPABASE_ERROR', 500);
+        }
+
+        const { error: constructionDeleteError } = await supabase
             .from('constructions')
             .delete()
             .eq('id', id);
 
-        if (error) {
-            captureError(error, { service: 'constructionService', method: 'delete', id });
-            throw new AppError(error.message, 'SUPABASE_ERROR', 500);
+        if (constructionDeleteError) {
+            captureError(constructionDeleteError, { service: 'constructionService', method: 'delete', step: 'deleteConstruction', id });
+            throw new AppError(constructionDeleteError.message, 'SUPABASE_ERROR', 500);
         }
     },
 

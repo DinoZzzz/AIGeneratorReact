@@ -9,6 +9,75 @@ import { initSentry } from './lib/sentry'
 // Initialize Sentry error tracking (before app renders)
 initSentry()
 
+const MODULE_LOAD_RETRY_KEY = 'module-load-retry-at'
+const MODULE_LOAD_RETRY_WINDOW_MS = 60_000
+const MODULE_LOAD_ERROR_MARKERS = [
+  'importing a module script failed',
+  'failed to fetch dynamically imported module',
+  'error loading dynamically imported module',
+]
+
+const readErrorMessage = (value: unknown): string => {
+  if (typeof value === 'string') {
+    return value
+  }
+  if (value instanceof Error) {
+    return value.message
+  }
+  if (typeof value === 'object' && value !== null && 'message' in value) {
+    const message = (value as { message?: unknown }).message
+    return typeof message === 'string' ? message : ''
+  }
+  return ''
+}
+
+const isModuleLoadError = (value: unknown): boolean => {
+  const message = readErrorMessage(value).toLowerCase()
+  if (!message) return false
+  return MODULE_LOAD_ERROR_MARKERS.some((marker) => message.includes(marker))
+}
+
+const recoverFromModuleLoadError = (value: unknown): boolean => {
+  if (!isModuleLoadError(value)) return false
+
+  const now = Date.now()
+  const lastRetryRaw = sessionStorage.getItem(MODULE_LOAD_RETRY_KEY)
+  const lastRetry = lastRetryRaw ? Number(lastRetryRaw) : 0
+
+  if (!Number.isFinite(lastRetry) || now - lastRetry > MODULE_LOAD_RETRY_WINDOW_MS) {
+    sessionStorage.setItem(MODULE_LOAD_RETRY_KEY, String(now))
+    window.location.reload()
+  }
+
+  return true
+}
+
+const setupModuleLoadRecovery = () => {
+  const lastRetryRaw = sessionStorage.getItem(MODULE_LOAD_RETRY_KEY)
+  const lastRetry = lastRetryRaw ? Number(lastRetryRaw) : 0
+  if (Number.isFinite(lastRetry) && Date.now() - lastRetry > MODULE_LOAD_RETRY_WINDOW_MS) {
+    sessionStorage.removeItem(MODULE_LOAD_RETRY_KEY)
+  }
+
+  window.addEventListener('vite:preloadError', (event) => {
+    const viteEvent = event as Event & { payload?: unknown }
+    const recovered = recoverFromModuleLoadError(viteEvent.payload ?? event)
+    if (recovered) event.preventDefault()
+  })
+
+  window.addEventListener('error', (event) => {
+    const errorEvent = event as ErrorEvent
+    recoverFromModuleLoadError(errorEvent.error ?? errorEvent.message)
+  })
+
+  window.addEventListener('unhandledrejection', (event) => {
+    const recovered = recoverFromModuleLoadError(event.reason)
+    if (recovered) event.preventDefault()
+  })
+}
+
+setupModuleLoadRecovery()
+
 // Register service worker with automatic updates
 const updateSW = registerSW({
   onNeedRefresh() {

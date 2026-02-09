@@ -85,8 +85,8 @@ export const Reports = () => {
         setIsExporting(true);
         try {
             const selectedData = reports.filter(r => selectedReports.has(r.id));
-            await generateWordDocument(selectedData, metaData, user?.id);
-            success(t('reports.exportSuccess'));
+            const exportResult = await generateWordDocument(selectedData, metaData, user?.id);
+            success(t(exportResult.historyConflictRecovered ? 'reports.exportHistoryUpdated' : 'reports.exportSuccess'));
         } catch (error) {
             const appError = errorHandler.handle(error, 'ReportExport');
             showError(errorHandler.getUserMessage(appError));

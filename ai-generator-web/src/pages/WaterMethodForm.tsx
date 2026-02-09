@@ -215,23 +215,34 @@ export const WaterMethodForm = () => {
     const loadPreviousReport = useCallback(async () => {
         if (constructionId && (!id || id === 'new')) {
             try {
-                const lastReport = await reportService.getLastByConstructionAndType(constructionId, 1); // type_id 1 = Water
+                const normalizedCustomerId = customerId && customerId !== 'undefined' ? customerId : undefined;
+                const [lastReport, lastAnyTypeReport] = await Promise.all([
+                    reportService.getLastByConstructionAndType(constructionId, 1, normalizedCustomerId), // type_id 1 = Water
+                    reportService.getLastByConstruction(constructionId, normalizedCustomerId)
+                ]);
+
                 if (lastReport) {
                     setPreviousReport(lastReport);
                     // Auto-copy general info from previous report
                     setFormData(prev => ({
                         ...prev,
+                        dionica: lastAnyTypeReport?.dionica || lastAnyTypeReport?.stock || prev.dionica,
                         examination_date: lastReport.examination_date || prev.examination_date,
                         temperature: lastReport.temperature || prev.temperature,
                         pane_material_id: lastReport.pane_material_id || prev.pane_material_id,
                         pipe_material_id: lastReport.pipe_material_id || prev.pipe_material_id,
+                    }));
+                } else if (lastAnyTypeReport?.dionica || lastAnyTypeReport?.stock) {
+                    setFormData(prev => ({
+                        ...prev,
+                        dionica: lastAnyTypeReport.dionica || lastAnyTypeReport.stock || prev.dionica
                     }));
                 }
             } catch (error) {
                 errorHandler.handle(error, 'WaterMethodForm');
             }
         }
-    }, [constructionId, id]);
+    }, [constructionId, customerId, id]);
 
     useEffect(() => {
         loadLookups();
@@ -295,6 +306,7 @@ export const WaterMethodForm = () => {
                     customer_id: dataToSave.customer_id,
                     construction_id: dataToSave.construction_id,
                     examination_date: dataToSave.examination_date,
+                    dionica: dataToSave.dionica || '',
                 });
                 setStep(1);
                 navigate(`/customers/${customerId}/constructions/${constructionId}/reports/new/water`);

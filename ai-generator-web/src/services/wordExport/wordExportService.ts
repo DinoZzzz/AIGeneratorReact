@@ -10,13 +10,36 @@ import { createSoftBreakModule } from './softBreakModule';
 import { fetchDocumentData } from './dataPreparation';
 import { enrichReports, buildAirReportRows, buildWaterReportRows } from './tableBuilder';
 
+export interface WordExportResult {
+    historySaved: boolean;
+    historyConflictRecovered: boolean;
+}
+
+const isConflictDbError = (error: unknown): boolean => {
+    if (!error || typeof error !== 'object') return false;
+
+    const dbError = error as { code?: string; status?: number; message?: string; details?: string };
+    const message = (dbError.message || '').toLowerCase();
+    const details = (dbError.details || '').toLowerCase();
+
+    return dbError.code === '23505' ||
+        dbError.status === 409 ||
+        message.includes('duplicate key') ||
+        details.includes('already exists');
+};
+
 export const generateWordDocument = async (
     reports: ReportForm[],
     metaData: ExportMetaData,
     userId?: string
-): Promise<void> => {
+): Promise<WordExportResult> => {
     return traceAsync('generateWordDocument', 'export.word', async () => {
         try {
+            const exportResult: WordExportResult = {
+                historySaved: false,
+                historyConflictRecovered: false
+            };
+
             if (reports.length === 0) throw new Error("No reports selected");
 
             // Lazy-load heavy document libraries (only needed at export time)
@@ -212,13 +235,35 @@ export const generateWordDocument = async (
             // 12. Save to History (Database)
             if (userId) {
                 try {
-                    const finalConstructionId = docData.construction?.id || firstReport.construction_id;
-                    const customerId = docData.customer?.id || firstReport.customer_id;
-                    const typeId = firstReport.type_id || 0;
+                    const historyForms = reportsWithJoins.filter((report) =>
+                        Boolean(report.id) &&
+                        !report.section_name &&
+                        typeof report.type_id === 'number' &&
+                        report.type_id > 0
+                    );
 
-                    const { data: exportData, error: exportError } = await supabase
-                        .from('report_exports')
-                        .insert({
+                    // Use the first valid (non-section) report as the history anchor.
+                    const historyAnchor = historyForms[0];
+                    if (historyAnchor) {
+                        const fallbackConstructionId = historyAnchor.construction_id || firstReport.construction_id;
+                        const finalConstructionId = docData.construction?.id || fallbackConstructionId;
+                        if (!finalConstructionId) {
+                            throw new Error('History save failed: missing construction_id');
+                        }
+
+                        const fallbackCustomerId = historyAnchor.customer_id || firstReport.customer_id;
+                        const customerId = docData.customer?.id || docData.construction?.customer_id || fallbackCustomerId;
+                        if (!customerId) {
+                            throw new Error('History save failed: missing customer_id');
+                        }
+
+                        const typeId = historyAnchor.type_id;
+                        const examinationDateRaw = historyAnchor.examination_date || firstReport.examination_date;
+                        const examinationDate = examinationDateRaw && !Number.isNaN(new Date(examinationDateRaw).getTime())
+                            ? examinationDateRaw
+                            : new Date().toISOString();
+
+                        const exportPayload = {
                             certifier_id: userId,
                             user_id: userId,
                             construction_part: metaData.constructionPart || 'Unknown Part',
@@ -232,35 +277,102 @@ export const generateWordDocument = async (
                             air_deviation: metaData.airDeviation || null,
                             is_finished: true,
                             certification_time: new Date().toISOString(),
-                            examination_date: firstReport.examination_date || new Date().toISOString()
-                        })
-                        .select()
-                        .single();
+                            examination_date: examinationDate
+                        };
 
-                    if (exportError) throw exportError;
+                        const { data: exportData, error: exportError } = await supabase
+                            .from('report_exports')
+                            .insert(exportPayload)
+                            .select()
+                            .single();
 
-                    if (exportData) {
-                        const exportForms = reportsWithJoins.map((r, index) => ({
-                            export_id: exportData.id,
-                            form_id: r.id,
-                            type_id: r.type_id,
-                            ordinal: index + 1
-                        }));
+                        let resolvedExport = exportData;
+                        if (exportError) {
+                            if (!isConflictDbError(exportError)) {
+                                throw exportError;
+                            }
 
-                        const { error: formsError } = await supabase
-                            .from('report_export_forms')
-                            .insert(exportForms);
+                            exportResult.historyConflictRecovered = true;
 
-                        if (formsError) throw formsError;
+                            // Recover from duplicate export conflicts by reusing the latest matching export row.
+                            const { data: exactExistingExport, error: exactExistingExportError } = await supabase
+                                .from('report_exports')
+                                .select('id')
+                                .eq('construction_id', finalConstructionId)
+                                .eq('customer_id', customerId)
+                                .eq('user_id', userId)
+                                .eq('type_id', typeId)
+                                .eq('examination_date', examinationDate)
+                                .order('created_at', { ascending: false })
+                                .limit(1)
+                                .maybeSingle();
+
+                            let existingExport = exactExistingExport;
+                            if (exactExistingExportError || !existingExport) {
+                                // Fallback for schemas where the unique key is broader/narrower than the exact match above.
+                                const { data: fallbackExistingExport, error: fallbackExistingExportError } = await supabase
+                                    .from('report_exports')
+                                    .select('id')
+                                    .eq('construction_id', finalConstructionId)
+                                    .eq('user_id', userId)
+                                    .order('created_at', { ascending: false })
+                                    .limit(1)
+                                    .maybeSingle();
+
+                                if (fallbackExistingExportError || !fallbackExistingExport) {
+                                    throw exportError;
+                                }
+                                existingExport = fallbackExistingExport;
+                            }
+
+                            const { data: updatedExport, error: updateExportError } = await supabase
+                                .from('report_exports')
+                                .update(exportPayload)
+                                .eq('id', existingExport.id)
+                                .select()
+                                .single();
+
+                            if (updateExportError) throw updateExportError;
+                            resolvedExport = updatedExport || existingExport;
+                        }
+
+                        if (resolvedExport) {
+                            const exportForms = historyForms.map((r, index) => ({
+                                export_id: resolvedExport.id,
+                                form_id: r.id,
+                                type_id: r.type_id,
+                                ordinal: index + 1
+                            }));
+
+                            if (exportForms.length > 0) {
+                                // Ensure re-exports replace old form links cleanly.
+                                const { error: deleteOldFormsError } = await supabase
+                                    .from('report_export_forms')
+                                    .delete()
+                                    .eq('export_id', resolvedExport.id);
+
+                                if (deleteOldFormsError) throw deleteOldFormsError;
+
+                                const { error: formsError } = await supabase
+                                    .from('report_export_forms')
+                                    .insert(exportForms);
+
+                                if (formsError) throw formsError;
+                            }
+                        }
+
+                        exportResult.historySaved = true;
                     }
                 } catch (dbError) {
-                    captureError(dbError instanceof Error ? dbError : new Error('History save failed'), {
+                    captureError(dbError, {
                         userId,
-                        reportCount: reports.length
+                        reportCount: reports.length,
+                        source: 'wordExportService.historySave'
                     });
                 }
             }
 
+            return exportResult;
         } catch (error) {
             captureError(error instanceof Error ? error : new Error('Word export failed'), {
                 reportCount: reports.length,

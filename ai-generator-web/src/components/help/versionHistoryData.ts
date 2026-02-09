@@ -7,6 +7,18 @@ export interface VersionHistoryItem {
 export function getVersionHistory(language: string): VersionHistoryItem[] {
     return language === 'hr' ? [
         {
+            version: '2.20.0',
+            date: '2026-02-09',
+            changes: [
+                'Dodan oporavak od greške učitavanja modula (automatski reload) i prilagođena PWA aktivacija radi manje chunk grešaka na iOS/Safari',
+                'Word izvoz sada sigurno sprema povijest: fallback na postojeći report_exports zapis kod konflikta i osvježavanje report_export_forms veza',
+                'Dodana korisnička poruka kada je izvoz uspješan uz ažuriranje postojećeg history zapisa',
+                'Brisanje gradilišta sada briše povezane zapise prije samog gradilišta (report_export_forms, report_exports, report_files, report_forms, appointments)',
+                'Pri izradi novog obrasca dionica se automatski kopira s posljednjeg obrasca istog naručitelja i gradilišta (water i air)',
+                'Pojačana validacija lozinke za ispitivače (minimalno 8 znakova + detekcija slabih lozinki) uz jasnije poruke greške',
+            ]
+        },
+        {
             version: '2.19.0',
             date: '2026-02-09',
             changes: [
@@ -404,6 +416,18 @@ export function getVersionHistory(language: string): VersionHistoryItem[] {
         },
     ] : [
         // English version
+        {
+            version: '2.20.0',
+            date: '2026-02-09',
+            changes: [
+                'Added module-load error recovery (automatic reload) and adjusted PWA activation behavior to reduce chunk loading failures on iOS/Safari',
+                'Word export history save is now conflict-safe: fallback to an existing report_exports row and refresh report_export_forms links',
+                'Added user feedback when export succeeds by updating an existing history entry',
+                'Construction deletion now removes dependent records before deleting the construction (report_export_forms, report_exports, report_files, report_forms, appointments)',
+                'When creating a new form, section name is auto-copied from the latest form on the same customer and construction (water and air)',
+                'Strengthened examiner password validation (minimum 8 characters + weak-password detection) with clearer error messages',
+            ]
+        },
         {
             version: '2.19.0',
             date: '2026-02-09',

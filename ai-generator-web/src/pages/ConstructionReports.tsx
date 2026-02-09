@@ -207,8 +207,11 @@ export const ConstructionReports = () => {
             } else {
                 reportsToExport = reports.filter(r => !r.section_name);
             }
-            await generateWordDocument(reportsToExport, metaData, user?.id);
+            const exportResult = await generateWordDocument(reportsToExport, metaData, user?.id);
             setActionMessage(null);
+            if (exportResult.historyConflictRecovered) {
+                showSuccess(t('reports.exportHistoryUpdated'));
+            }
         } catch (error) {
             const appError = errorHandler.handle(error, 'ConstructionReports');
             setActionMessage({ text: errorHandler.getUserMessage(appError), type: 'error' });

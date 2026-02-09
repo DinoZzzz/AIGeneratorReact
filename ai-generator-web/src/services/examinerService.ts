@@ -1,6 +1,7 @@
 import { supabase } from '../lib/supabase';
 import { captureError } from '../lib/sentry';
 import type { Profile, ReportType } from '../types';
+import { createWeakPasswordError, isWeakPasswordAuthError, validatePasswordStrength } from '../lib/passwordValidation';
 
 interface ProfileFromDB {
     id: string;
@@ -63,6 +64,14 @@ export const examinerService = {
                 throw error;
             }
 
+            const passwordValidation = validatePasswordStrength(profile.password);
+            if (passwordValidation === 'too_short') {
+                throw createWeakPasswordError('Password must be at least 8 characters long');
+            }
+            if (passwordValidation === 'weak') {
+                throw createWeakPasswordError('Password is known to be weak and easy to guess, please choose a different one.');
+            }
+
             // Save the current session to restore it after creating the new user
             const { data: { session: currentSession } } = await supabase.auth.getSession();
 
@@ -79,6 +88,9 @@ export const examinerService = {
             });
 
             if (authError) {
+                if (isWeakPasswordAuthError(authError)) {
+                    throw authError;
+                }
                 captureError(authError, { service: 'examinerService', method: 'saveExaminer', step: 'signUp' });
                 throw authError;
             }
@@ -142,6 +154,14 @@ export const examinerService = {
 
         // If password is provided, update it using Edge Function
         if (profile.password && profile.password.trim() !== '') {
+            const passwordValidation = validatePasswordStrength(profile.password);
+            if (passwordValidation === 'too_short') {
+                throw createWeakPasswordError('Password must be at least 8 characters long');
+            }
+            if (passwordValidation === 'weak') {
+                throw createWeakPasswordError('Password is known to be weak and easy to guess, please choose a different one.');
+            }
+
             // Use Edge Function to reset password (works for any user)
             const { data, error: passwordError } = await supabase.functions.invoke('admin-reset-password', {
                 body: {
@@ -150,9 +170,31 @@ export const examinerService = {
                 }
             });
 
-            if (passwordError || !data?.success) {
+            if (passwordError) {
+                if (isWeakPasswordAuthError(passwordError)) {
+                    throw passwordError;
+                }
                 const error = new Error(
-                    passwordError?.message ||
+                    passwordError.message ||
+                    'Unable to update password. Make sure the Edge Function is deployed.'
+                );
+                captureError(error, { service: 'examinerService', method: 'saveExaminer', step: 'passwordReset', userId: profile.id });
+                throw error;
+            }
+
+            if (!data?.success) {
+                const possibleWeakPasswordMessage = typeof data?.error === 'string'
+                    ? data.error
+                    : typeof data?.message === 'string'
+                        ? data.message
+                        : '';
+
+                if (possibleWeakPasswordMessage && isWeakPasswordAuthError({ code: 'weak_password', message: possibleWeakPasswordMessage })) {
+                    throw createWeakPasswordError(possibleWeakPasswordMessage);
+                }
+
+                const error = new Error(
+                    possibleWeakPasswordMessage ||
                     'Unable to update password. Make sure the Edge Function is deployed.'
                 );
                 captureError(error, { service: 'examinerService', method: 'saveExaminer', step: 'passwordReset', userId: profile.id });

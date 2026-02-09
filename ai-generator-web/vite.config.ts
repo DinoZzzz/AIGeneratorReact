@@ -49,9 +49,10 @@ export default defineConfig(({ mode }) => ({
         mode: 'development',
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2,json}'],
         globIgnores: ['**/stats.html'], // Exclude bundle stats from service worker cache
-        // Skip waiting and claim clients immediately for faster updates
-        skipWaiting: true,
-        clientsClaim: true,
+        // Avoid taking over active tabs immediately; immediate SW activation can
+        // invalidate lazy-loaded chunks in open sessions during deploy rollouts.
+        skipWaiting: false,
+        clientsClaim: false,
         // Navigation fallback for SPA
         navigateFallback: 'index.html',
         navigateFallbackDenylist: [/^\/api/],

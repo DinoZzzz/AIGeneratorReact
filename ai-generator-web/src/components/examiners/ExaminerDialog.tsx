@@ -8,28 +8,13 @@ import { AlertCircle } from 'lucide-react';
 import type { Profile, ReportType } from '../../types';
 import { examinerService } from '../../services/examinerService';
 import { useLanguage } from '../../context/LanguageContext';
+import { isWeakPasswordAuthError, validatePasswordStrength } from '../../lib/passwordValidation';
 
 interface ExaminerDialogProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     examiner: Profile | null;
     onSave: (examiner: Partial<Profile>) => Promise<void>;
-}
-
-interface WeakPasswordError extends Error {
-    __isAuthError?: boolean;
-    code?: string;
-    status?: number;
-}
-
-function isWeakPasswordError(error: unknown): boolean {
-    if (error && typeof error === 'object') {
-        const e = error as WeakPasswordError;
-        return e.code === 'weak_password' ||
-               e.message?.toLowerCase().includes('weak') ||
-               e.message?.toLowerCase().includes('password is known');
-    }
-    return false;
 }
 
 export const ExaminerDialog = ({ open, onOpenChange, examiner, onSave }: ExaminerDialogProps) => {
@@ -109,10 +94,18 @@ export const ExaminerDialog = ({ open, onOpenChange, examiner, onSave }: Examine
             return;
         }
 
-        // Validate password length for new users or when changing password
-        if (formData.password && formData.password.trim().length > 0 && formData.password.length < 6) {
-            setError(t('examiners.dialog.passwordTooShort'));
-            return;
+        // Validate password strength for new users or when changing password
+        const password = formData.password?.trim() || '';
+        if (!examiner || password.length > 0) {
+            const passwordValidation = validatePasswordStrength(password);
+            if (passwordValidation === 'too_short') {
+                setError(t('examiners.dialog.passwordTooShort'));
+                return;
+            }
+            if (passwordValidation === 'weak') {
+                setError(t('examiners.dialog.weakPassword'));
+                return;
+            }
         }
 
         if (formData.accreditations?.length === 0) {
@@ -125,8 +118,7 @@ export const ExaminerDialog = ({ open, onOpenChange, examiner, onSave }: Examine
             await onSave(formData);
             onOpenChange(false);
         } catch (err) {
-            console.error(err);
-            if (isWeakPasswordError(err)) {
+            if (isWeakPasswordAuthError(err)) {
                 setError(t('examiners.dialog.weakPassword'));
             } else {
                 setError(t('examiners.dialog.saveFailed'));

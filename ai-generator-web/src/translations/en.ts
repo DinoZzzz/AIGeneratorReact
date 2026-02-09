@@ -180,7 +180,7 @@ export const en: Record<string, string> = {
     'examiners.dialog.fillRequired': 'Please fill in all required fields',
     'examiners.dialog.emailRequired': 'Email is required for new examiners',
     'examiners.dialog.passwordRequired': 'Password is required for new examiners',
-    'examiners.dialog.passwordTooShort': 'Password must be at least 6 characters long',
+    'examiners.dialog.passwordTooShort': 'Password must be at least 8 characters long',
     'examiners.dialog.accreditationRequired': 'Please select at least one accreditation',
     'examiners.dialog.saveFailed': 'Failed to save examiner',
     'examiners.dialog.weakPassword': 'Password is too weak. Please choose a stronger password.',
@@ -270,6 +270,7 @@ export const en: Record<string, string> = {
     'reports.deleteSuccess': 'Report deleted successfully',
     'reports.deleteSelectedSuccess': 'Successfully deleted {count} report{plural}',
     'reports.exportSuccess': 'Report exported successfully',
+    'reports.exportHistoryUpdated': 'Report exported successfully. Existing history entry was updated.',
     'reports.noReports': 'No reports found',
     'reports.reportsFromConstructions': 'Reports are created from construction sites.',
 

@@ -170,23 +170,34 @@ export const AirMethodForm = () => {
     const loadPreviousReport = useCallback(async () => {
         if (constructionId && (!id || id === 'new')) {
             try {
-                const lastReport = await reportService.getLastByConstructionAndType(constructionId, 2); // type_id 2 = Air
+                const normalizedCustomerId = customerId && customerId !== 'undefined' ? customerId : undefined;
+                const [lastReport, lastAnyTypeReport] = await Promise.all([
+                    reportService.getLastByConstructionAndType(constructionId, 2, normalizedCustomerId), // type_id 2 = Air
+                    reportService.getLastByConstruction(constructionId, normalizedCustomerId)
+                ]);
+
                 if (lastReport) {
                     setPreviousReport(lastReport);
                     // Auto-copy general info from previous report
                     setFormData(prev => ({
                         ...prev,
+                        dionica: lastAnyTypeReport?.dionica || lastAnyTypeReport?.stock || prev.dionica,
                         examination_date: lastReport.examination_date || prev.examination_date,
                         temperature: lastReport.temperature || prev.temperature,
                         examination_procedure_id: lastReport.examination_procedure_id || prev.examination_procedure_id,
                         pipe_material_id: lastReport.pipe_material_id || prev.pipe_material_id,
+                    }));
+                } else if (lastAnyTypeReport?.dionica || lastAnyTypeReport?.stock) {
+                    setFormData(prev => ({
+                        ...prev,
+                        dionica: lastAnyTypeReport.dionica || lastAnyTypeReport.stock || prev.dionica
                     }));
                 }
             } catch (error) {
                 errorHandler.handle(error, 'AirMethodForm');
             }
         }
-    }, [constructionId, id]);
+    }, [constructionId, customerId, id]);
 
     useEffect(() => {
         loadLookups();
