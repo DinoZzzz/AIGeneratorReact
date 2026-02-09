@@ -13,6 +13,7 @@ import {
     deleteFromStore,
     getAllFromStore,
     getFromStore,
+    removeSyncOperationsForEntity,
     saveManyToStore,
     saveToStore
 } from '../../lib/offlineDb';
@@ -86,8 +87,30 @@ export const MaterialsManager = ({ isAdmin }: MaterialsManagerProps) => {
         await addToSyncQueue(STORES.MATERIALS, 'update', { name }, String(materialId));
     };
 
+    const createMaterialOffline = async (name: string, materialTypeId: number) => {
+        const tempMaterialId = -Math.floor(Date.now() + Math.random() * 1000);
+        const offlineMaterial = {
+            id: tempMaterialId,
+            name,
+            material_type_id: materialTypeId,
+            _is_offline: true
+        } as Material & { _is_offline: boolean };
+
+        await saveToStore(STORES.MATERIALS, offlineMaterial);
+        await addToSyncQueue(
+            STORES.MATERIALS,
+            'create',
+            { name, material_type_id: materialTypeId },
+            String(tempMaterialId)
+        );
+    };
+
     const deleteMaterialOffline = async (materialId: number) => {
         await deleteFromStore(STORES.MATERIALS, materialId);
+        if (materialId < 0) {
+            await removeSyncOperationsForEntity(STORES.MATERIALS, String(materialId));
+            return;
+        }
         await addToSyncQueue(STORES.MATERIALS, 'delete', null, String(materialId));
     };
 
@@ -95,19 +118,24 @@ export const MaterialsManager = ({ isAdmin }: MaterialsManagerProps) => {
         e.preventDefault();
         if (!formData.name.trim() || !addingType) return;
         try {
-            if (!isOnline) {
-                addToast(t('materials.createOnlineOnly') || 'Creating materials requires an internet connection', 'error');
-                return;
+            if (isOnline) {
+                try {
+                    const { data, error } = await supabase
+                        .from('materials')
+                        .insert([{ name: formData.name, material_type_id: addingType }])
+                        .select()
+                        .single();
+
+                    if (error) throw error;
+                    await saveToStore(STORES.MATERIALS, data as Material);
+                } catch (error) {
+                    if (!isNetworkError(error)) throw error;
+                    await createMaterialOffline(formData.name.trim(), addingType);
+                }
+            } else {
+                await createMaterialOffline(formData.name.trim(), addingType);
             }
 
-            const { data, error } = await supabase
-                .from('materials')
-                .insert([{ name: formData.name, material_type_id: addingType }])
-                .select()
-                .single();
-
-            if (error) throw error;
-            await saveToStore(STORES.MATERIALS, data as Material);
             addToast(t('materials.added'), 'success');
             setAddingType(null);
             setFormData({ name: '', material_type_id: 1 });

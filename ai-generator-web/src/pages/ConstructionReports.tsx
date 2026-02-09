@@ -17,10 +17,11 @@ import { useReportsFiltering } from '../features/reports/hooks';
 import { useToast } from '../context/ToastContext';
 import { useConfirm } from '../context/useConfirm';
 import { useHandleError } from '../hooks/useHandleError';
-import { errorHandler } from '../lib/errorHandler';
+import { errorHandler, isNetworkError } from '../lib/errorHandler';
 import { useOffline } from '../context/OfflineContext';
 import { useCustomer } from '../hooks/useCustomers';
 import { useConstruction } from '../hooks/useConstructions';
+import { getByIndex, saveManyToStore, STORES } from '../lib/offlineDb';
 import {
     useCreateReport,
     useDeleteReport,
@@ -117,9 +118,10 @@ export const ConstructionReports = () => {
     }, [reportsError, handleError]);
 
     useEffect(() => {
-        if (customerId && constructionId && isOnline) {
-            loadFiles();
+        if (customerId && constructionId) {
+            void loadFiles();
         }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [customerId, constructionId, isOnline]);
 
     // Track construction in recently viewed
@@ -138,14 +140,28 @@ export const ConstructionReports = () => {
 
     const loadFiles = async () => {
         try {
-            const { data, error } = await supabase
-                .from('report_files')
-                .select('*')
-                .eq('construction_id', constructionId!)
-                .order('created_at', { ascending: false });
+            if (isOnline) {
+                try {
+                    const { data, error } = await supabase
+                        .from('report_files')
+                        .select('*')
+                        .eq('construction_id', constructionId!)
+                        .order('created_at', { ascending: false });
 
-            if (error) throw error;
-            setUploadedFiles(data || []);
+                    if (error) throw error;
+                    setUploadedFiles((data || []) as ReportFile[]);
+                    await saveManyToStore(STORES.REPORT_FILES, (data || []) as ReportFile[]);
+                    return;
+                } catch (error) {
+                    if (!isNetworkError(error)) throw error;
+                }
+            }
+
+            const offlineFiles = await getByIndex<ReportFile>(STORES.REPORT_FILES, 'construction_id', constructionId!);
+            const sortedOfflineFiles = offlineFiles.sort(
+                (left, right) => new Date(right.created_at).getTime() - new Date(left.created_at).getTime()
+            );
+            setUploadedFiles(sortedOfflineFiles);
         } catch (error) {
             errorHandler.handle(error, 'ConstructionReports');
         }

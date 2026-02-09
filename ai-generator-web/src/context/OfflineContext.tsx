@@ -7,7 +7,8 @@ import {
   retryFailedOperationById,
   discardFailedOperationById,
   restoreDiscardedOperationById,
-  resolveConflictUseServerById
+  resolveConflictUseServerById,
+  resolveConflictPreferLocalById
 } from '../lib/syncService';
 import {
   getDiscardedSyncOperations,
@@ -38,6 +39,7 @@ interface OfflineContextType {
   discardFailedOperation: (operationId: string) => Promise<void>;
   restoreDiscardedOperation: (operationId: string) => Promise<void>;
   resolveConflictUseServer: (operationId: string) => Promise<void>;
+  resolveConflictPreferLocal: (operationId: string) => Promise<void>;
   lastSyncTime: Date | null;
 }
 
@@ -181,6 +183,19 @@ export const OfflineProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [triggerSync, updatePendingCount]);
 
+  const resolveConflictPreferLocal = useCallback(async (operationId: string) => {
+    if (!navigator.onLine) return;
+    try {
+      const resolved = await resolveConflictPreferLocalById(operationId);
+      await updatePendingCount();
+      if (resolved) {
+        await triggerSync();
+      }
+    } catch (error) {
+      console.error('Failed to resolve sync conflict preferring local version:', error);
+    }
+  }, [triggerSync, updatePendingCount]);
+
   // Handle online/offline events
   useEffect(() => {
     const handleOnline = () => {
@@ -303,6 +318,22 @@ export const OfflineProvider = ({ children }: { children: ReactNode }) => {
     };
   }, [triggerSync]);
 
+  // Receive sync completion messages from service worker background sync.
+  useEffect(() => {
+    const handleServiceWorkerSyncResult = (event: Event) => {
+      const customEvent = event as CustomEvent<{ total?: number }>;
+      if ((customEvent.detail?.total || 0) > 0) {
+        setLastSyncTime(new Date());
+      }
+      void updatePendingCount();
+    };
+
+    window.addEventListener('offline-sync-result', handleServiceWorkerSyncResult as EventListener);
+    return () => {
+      window.removeEventListener('offline-sync-result', handleServiceWorkerSyncResult as EventListener);
+    };
+  }, [updatePendingCount]);
+
   // Cleanup timeout on unmount
   useEffect(() => {
     return () => {
@@ -328,6 +359,7 @@ export const OfflineProvider = ({ children }: { children: ReactNode }) => {
         discardFailedOperation,
         restoreDiscardedOperation,
         resolveConflictUseServer,
+        resolveConflictPreferLocal,
         lastSyncTime,
       }}
     >

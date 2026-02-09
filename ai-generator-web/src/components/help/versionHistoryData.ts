@@ -7,6 +7,18 @@ export interface VersionHistoryItem {
 export function getVersionHistory(language: string): VersionHistoryItem[] {
     return language === 'hr' ? [
         {
+            version: '2.24.0',
+            date: '2026-02-09',
+            changes: [
+                'Ispitivači i materijali sada podržavaju i offline kreiranje (create) uz sync kad se veza vrati',
+                'Dodan offline queue za upload datoteka (privitci izvještaja, avatar, potpis certifikatora, sheme i Word predložak)',
+                'Privitci izvještaja sada rade offline: upload i delete se spremaju lokalno i sinkroniziraju kasnije',
+                'Sinkronizacija sada mapira i numeričke reference ID-jeva (npr. materijali u obrascima) nakon zamjene temp ID-jeva',
+                'Dodan “keep local” conflict action koji pokušava primijeniti lokalnu verziju na server',
+                'PWA je prebačen na custom service worker (injectManifest) s background sync handlerom i runtime cache pravilima',
+            ]
+        },
+        {
             version: '2.23.0',
             date: '2026-02-09',
             changes: [
@@ -452,6 +464,18 @@ export function getVersionHistory(language: string): VersionHistoryItem[] {
         },
     ] : [
         // English version
+        {
+            version: '2.24.0',
+            date: '2026-02-09',
+            changes: [
+                'Examiners and materials now support offline create flows with deferred sync when back online',
+                'Added offline binary upload queue for report attachments, avatars, certifier signatures, scheme images, and Word template',
+                'Report attachment upload/delete now work offline by storing local state and syncing later',
+                'Sync mapping now remaps numeric ID references (e.g. material IDs inside reports) after temp ID replacement',
+                'Added a “keep local” conflict action that attempts to force local payload onto server state',
+                'PWA moved to custom injectManifest service worker with background sync handler and runtime caching routes',
+            ]
+        },
         {
             version: '2.23.0',
             date: '2026-02-09',

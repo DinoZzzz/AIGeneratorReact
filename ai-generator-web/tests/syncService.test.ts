@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 type TestSyncOperation = {
   id: string;
-  store: 'customers' | 'constructions' | 'reports' | 'appointments' | 'messages' | 'examiners' | 'report_types' | 'materials' | 'scheme_images' | 'certifiers' | 'export_history' | 'export_history_forms' | 'report_files' | 'template_cache';
+  store: 'customers' | 'constructions' | 'reports' | 'appointments' | 'messages' | 'examiners' | 'report_types' | 'materials' | 'scheme_images' | 'certifiers' | 'export_history' | 'export_history_forms' | 'report_files' | 'template_cache' | 'uploads';
   operation: 'create' | 'update' | 'delete';
   data: unknown;
   entityId?: string;
@@ -38,6 +38,7 @@ const offlineDbMock = vi.hoisted(() => ({
     EXPORT_HISTORY_FORMS: 'export_history_forms',
     REPORT_FILES: 'report_files',
     TEMPLATE_CACHE: 'template_cache',
+    UPLOADS: 'uploads',
     SYNC_QUEUE: 'sync_queue',
     METADATA: 'metadata',
   } as const,
@@ -57,6 +58,7 @@ const offlineDbMock = vi.hoisted(() => ({
   resetSyncOperationForRetry: vi.fn(async () => {}),
   updateSyncOperationStatus: vi.fn(async () => {}),
   getByIndex: vi.fn(async () => []),
+  getMetadata: vi.fn(async () => null),
   saveManyToStore: vi.fn(async () => {}),
   saveToStore: vi.fn(async () => {}),
   deleteFromStore: vi.fn(async () => {}),
@@ -87,6 +89,10 @@ const fromMock = vi.hoisted(() =>
         testState.deleteCalls.push({ table, id });
         return { error: null };
       },
+      in: async (_field: string, ids: string[]) => {
+        ids.forEach((id) => testState.deleteCalls.push({ table, id }));
+        return { error: null };
+      },
     }),
     select: () => ({
       eq: (field: string, value: string) => {
@@ -112,23 +118,24 @@ const fromMock = vi.hoisted(() =>
   }))
 );
 
-const constructionServiceMock = vi.hoisted(() => ({
-  delete: vi.fn(async () => {}),
-}));
-
-const customerServiceMock = vi.hoisted(() => ({
-  delete: vi.fn(async () => {}),
-}));
-
 vi.mock('../src/lib/offlineDb', () => offlineDbMock);
 vi.mock('../src/lib/supabase', () => ({
-  supabase: { from: fromMock },
-}));
-vi.mock('../src/services/constructionService', () => ({
-  constructionService: constructionServiceMock,
-}));
-vi.mock('../src/services/customerService', () => ({
-  customerService: customerServiceMock,
+  supabase: {
+    from: fromMock,
+    auth: {
+      getSession: vi.fn(async () => ({ data: { session: null }, error: null })),
+      setSession: vi.fn(async () => ({ data: { session: null }, error: null })),
+      getUser: vi.fn(async () => ({ data: { user: null }, error: null })),
+      signUp: vi.fn(async () => ({ data: { user: { id: 'new-user-id' } }, error: null })),
+    },
+    storage: {
+      from: vi.fn(() => ({
+        upload: vi.fn(async () => ({ data: { path: 'mock-path' }, error: null })),
+        remove: vi.fn(async () => ({ data: null, error: null })),
+        getPublicUrl: vi.fn(() => ({ data: { publicUrl: 'https://example.com/mock-path' } })),
+      })),
+    },
+  },
 }));
 
 import {
@@ -197,8 +204,14 @@ describe('syncService offline flows', () => {
 
     await syncPendingOperations();
 
-    expect(constructionServiceMock.delete).toHaveBeenCalledWith('construction-1');
-    expect(testState.deleteCalls.some((call) => call.table === 'constructions')).toBe(false);
+    expect(testState.deleteCalls).toEqual(expect.arrayContaining([
+      expect.objectContaining({ table: 'report_export_forms' }),
+      expect.objectContaining({ table: 'report_exports', id: 'construction-1' }),
+      expect.objectContaining({ table: 'report_files', id: 'construction-1' }),
+      expect.objectContaining({ table: 'report_forms', id: 'construction-1' }),
+      expect.objectContaining({ table: 'calendar_events', id: 'construction-1' }),
+      expect.objectContaining({ table: 'constructions', id: 'construction-1' }),
+    ]));
   });
 
   it('uses cascade-safe delete service for customer delete operations', async () => {
@@ -216,9 +229,12 @@ describe('syncService offline flows', () => {
 
     await syncPendingOperations();
 
-    expect(constructionServiceMock.delete).toHaveBeenCalledWith('construction-a');
-    expect(constructionServiceMock.delete).toHaveBeenCalledWith('construction-b');
-    expect(customerServiceMock.delete).toHaveBeenCalledWith('customer-1');
+    expect(testState.deleteCalls).toEqual(expect.arrayContaining([
+      expect.objectContaining({ table: 'constructions', id: 'construction-a' }),
+      expect.objectContaining({ table: 'constructions', id: 'construction-b' }),
+      expect.objectContaining({ table: 'calendar_events', id: 'customer-1' }),
+      expect.objectContaining({ table: 'customers', id: 'customer-1' }),
+    ]));
   });
 
   it('retries, discards to local-only, and restores operations by id', async () => {

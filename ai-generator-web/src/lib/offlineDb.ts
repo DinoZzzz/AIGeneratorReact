@@ -4,7 +4,7 @@
  */
 
 const DB_NAME = 'ai-generator-offline';
-const DB_VERSION = 3;
+const DB_VERSION = 4;
 const SYNC_ID_MAP_METADATA_KEY = 'sync_id_map';
 
 // Store names
@@ -23,6 +23,7 @@ export const STORES = {
   EXPORT_HISTORY_FORMS: 'export_history_forms',
   REPORT_FILES: 'report_files',
   TEMPLATE_CACHE: 'template_cache',
+  UPLOADS: 'uploads',
   SYNC_QUEUE: 'sync_queue',
   METADATA: 'metadata',
 } as const;
@@ -158,6 +159,11 @@ export const openDatabase = (): Promise<IDBDatabase> => {
 
       if (!db.objectStoreNames.contains(STORES.TEMPLATE_CACHE)) {
         db.createObjectStore(STORES.TEMPLATE_CACHE, { keyPath: 'id' });
+      }
+
+      if (!db.objectStoreNames.contains(STORES.UPLOADS)) {
+        const uploadStore = db.createObjectStore(STORES.UPLOADS, { keyPath: 'id' });
+        uploadStore.createIndex('timestamp', 'timestamp', { unique: false });
       }
 
       // Sync queue for pending operations
@@ -489,7 +495,8 @@ export const getSyncQueueSummary = async (): Promise<SyncQueueSummary> => {
 const isPlainObject = (value: unknown): value is Record<string, unknown> => (
   !!value &&
   typeof value === 'object' &&
-  !Array.isArray(value)
+  !Array.isArray(value) &&
+  (Object.getPrototypeOf(value) === Object.prototype || Object.getPrototypeOf(value) === null)
 );
 
 const mergeSyncPayload = (baseValue: unknown, patchValue: unknown): unknown => {
@@ -627,12 +634,30 @@ const mapSyncEntityId = (value: string, idMap: SyncIdMap): string => {
   return typeof mappedValue === 'string' && mappedValue.length > 0 ? mappedValue : value;
 };
 
+const mapSyncNumericId = (value: number, idMap: SyncIdMap): number => {
+  const mappedValue = idMap[String(value)];
+  if (typeof mappedValue !== 'string' || mappedValue.length === 0) {
+    return value;
+  }
+
+  const mappedNumber = Number(mappedValue);
+  return Number.isFinite(mappedNumber) ? mappedNumber : value;
+};
+
 const remapSyncPayload = (
   value: unknown,
   idMap: SyncIdMap
 ): { value: unknown; changed: boolean } => {
   if (typeof value === 'string') {
     const mappedValue = mapSyncEntityId(value, idMap);
+    return {
+      value: mappedValue,
+      changed: mappedValue !== value,
+    };
+  }
+
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    const mappedValue = mapSyncNumericId(value, idMap);
     return {
       value: mappedValue,
       changed: mappedValue !== value,
@@ -652,7 +677,7 @@ const remapSyncPayload = (
     };
   }
 
-  if (value && typeof value === 'object') {
+  if (isPlainObject(value)) {
     let changed = false;
     const entries = Object.entries(value as Record<string, unknown>).map(([key, nestedValue]) => {
       const result = remapSyncPayload(nestedValue, idMap);

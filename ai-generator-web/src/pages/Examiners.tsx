@@ -80,6 +80,48 @@ export const Examiners = () => {
         }
     };
 
+    const createExaminerOffline = async (
+        examinerData: Partial<Profile> & { password?: string }
+    ): Promise<void> => {
+        if (!examinerData.email || !examinerData.password) {
+            throw new Error(t('examiners.dialog.emailRequired'));
+        }
+
+        const tempId = `temp_${crypto.randomUUID()}`;
+        const created = {
+            id: tempId,
+            name: examinerData.name || '',
+            last_name: examinerData.last_name || '',
+            username: examinerData.username || '',
+            email: examinerData.email,
+            title: examinerData.title,
+            gender: examinerData.gender,
+            role: examinerData.role || 'user',
+            avatar_url: examinerData.avatar_url,
+            accreditations: examinerData.accreditations || [],
+            _is_offline: true,
+        };
+
+        await saveToStore(STORES.EXAMINERS, created);
+        await addToSyncQueue(
+            STORES.EXAMINERS,
+            'create',
+            {
+                email: examinerData.email,
+                password: examinerData.password,
+                name: examinerData.name,
+                last_name: examinerData.last_name,
+                username: examinerData.username,
+                title: examinerData.title,
+                gender: examinerData.gender,
+                role: examinerData.role,
+                avatar_url: examinerData.avatar_url,
+                accreditations: examinerData.accreditations || [],
+            },
+            tempId
+        );
+    };
+
     const updateExaminerOffline = async (
         id: string,
         examinerData: Partial<Profile>
@@ -121,23 +163,25 @@ export const Examiners = () => {
         await addToSyncQueue(STORES.EXAMINERS, 'delete', null, id);
     };
 
-    const handleSave = async (examinerData: Partial<Profile>) => {
-        if (!examinerData.id && !isOnline) {
-            throw new Error(t('examiners.createOnlineOnly') || 'New examiner creation requires an internet connection');
-        }
-
+    const handleSave = async (examinerData: Partial<Profile> & { password?: string }) => {
         if (isOnline) {
             try {
                 const saved = await examinerService.saveExaminer(examinerData);
                 await saveToStore(STORES.EXAMINERS, saved);
             } catch (error) {
-                if (!isNetworkError(error) || !examinerData.id) {
+                if (!isNetworkError(error)) {
                     throw error;
                 }
-                await updateExaminerOffline(examinerData.id, examinerData);
+                if (examinerData.id) {
+                    await updateExaminerOffline(examinerData.id, examinerData);
+                } else {
+                    await createExaminerOffline(examinerData);
+                }
             }
         } else if (examinerData.id) {
             await updateExaminerOffline(examinerData.id, examinerData);
+        } else {
+            await createExaminerOffline(examinerData);
         }
 
         await loadData();

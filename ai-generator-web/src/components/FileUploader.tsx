@@ -5,7 +5,15 @@ import type { ReportFile } from '../types';
 import { useToast } from '../context/ToastContext';
 import { useConfirm } from '../context/useConfirm';
 import { useLanguage } from '../context/LanguageContext';
-import { errorHandler } from '../lib/errorHandler';
+import { useOffline } from '../context/OfflineContext';
+import { errorHandler, isNetworkError } from '../lib/errorHandler';
+import {
+  STORES,
+  addToSyncQueue,
+  deleteFromStore,
+  removeSyncOperationsForEntity,
+  saveToStore,
+} from '../lib/offlineDb';
 
 interface FileUploaderProps {
   constructionId: string;
@@ -18,9 +26,51 @@ export function FileUploader({ constructionId, onUploadComplete, onDelete, files
   const { t } = useLanguage();
   const { success: showSuccess, error: showError } = useToast();
   const confirm = useConfirm();
+  const { isOnline } = useOffline();
   const [uploading, setUploading] = useState(false);
   const [dragActive, setDragActive] = useState(false);
   const [description, setDescription] = useState('');
+
+  const queueUploadOffline = async (file: File, fileType: 'image' | 'pdf') => {
+    const tempId = `temp_file_${crypto.randomUUID()}`;
+    const now = new Date().toISOString();
+    const blobUrl = URL.createObjectURL(file);
+    const offlineRecord: ReportFile = {
+      id: tempId,
+      construction_id: constructionId,
+      file_path: blobUrl,
+      file_name: file.name,
+      description: description || file.name,
+      file_type: fileType,
+      created_at: now,
+    };
+
+    await saveToStore(STORES.REPORT_FILES, {
+      ...offlineRecord,
+      _is_offline: true,
+      _synced: false,
+    });
+    await addToSyncQueue(
+      STORES.UPLOADS,
+      'create',
+      {
+        kind: 'report_file_upload',
+        construction_id: constructionId,
+        file_name: file.name,
+        description: description || file.name,
+        file_type: fileType,
+        mime_type: file.type,
+        blob: file,
+      },
+      tempId
+    );
+
+    setDescription('');
+    if (onUploadComplete) {
+      onUploadComplete(offlineRecord);
+    }
+    showSuccess(t('fileUploader.uploadQueued') || 'File saved offline and queued for sync');
+  };
 
   const handleUpload = async (file: File) => {
     try {
@@ -32,6 +82,13 @@ export function FileUploader({ constructionId, onUploadComplete, onDelete, files
 
       if (!isImage && !isPdf) {
         showError(t('fileUploader.invalidFileType'));
+        return;
+      }
+
+      const resolvedFileType: 'image' | 'pdf' = isImage ? 'image' : 'pdf';
+
+      if (!isOnline) {
+        await queueUploadOffline(file, resolvedFileType);
         return;
       }
 
@@ -58,12 +115,17 @@ export function FileUploader({ constructionId, onUploadComplete, onDelete, files
           file_path: uploadData.path,
           file_name: file.name,
           description: description || file.name,
-          file_type: isImage ? 'image' : 'pdf'
+          file_type: resolvedFileType
         })
         .select()
         .single();
 
       if (dbError) throw dbError;
+
+      await saveToStore(STORES.REPORT_FILES, {
+        ...(fileRecord as ReportFile),
+        _synced: true,
+      });
 
       // Clear description and notify parent
       setDescription('');
@@ -73,6 +135,21 @@ export function FileUploader({ constructionId, onUploadComplete, onDelete, files
 
       showSuccess(t('fileUploader.uploadSuccess'));
     } catch (error) {
+      if (isNetworkError(error)) {
+        try {
+          const isImage = file.type.startsWith('image/');
+          const isPdf = file.type === 'application/pdf';
+          if (isImage || isPdf) {
+            await queueUploadOffline(file, isImage ? 'image' : 'pdf');
+            return;
+          }
+        } catch (queueError) {
+          const queueAppError = errorHandler.handle(queueError, 'FileUploader.queueUpload');
+          showError(errorHandler.getUserMessage(queueAppError));
+          return;
+        }
+      }
+
       const appError = errorHandler.handle(error, 'FileUploader');
       showError(errorHandler.getUserMessage(appError));
     } finally {
@@ -86,6 +163,33 @@ export function FileUploader({ constructionId, onUploadComplete, onDelete, files
     }
 
     try {
+      if (!isOnline) {
+        await deleteFromStore(STORES.REPORT_FILES, file.id);
+        if (file.id.startsWith('temp_file_')) {
+          await removeSyncOperationsForEntity(STORES.UPLOADS, file.id);
+          if (file.file_path.startsWith('blob:')) {
+            URL.revokeObjectURL(file.file_path);
+          }
+        } else {
+          await addToSyncQueue(
+            STORES.UPLOADS,
+            'delete',
+            {
+              kind: 'report_file_delete',
+              file_id: file.id,
+              file_path: file.file_path,
+            },
+            file.id
+          );
+        }
+
+        if (onDelete) {
+          onDelete(file.id);
+        }
+        showSuccess(t('fileUploader.deleteQueued') || 'Delete queued and will sync when online');
+        return;
+      }
+
       // Delete from storage
       const { error: storageError } = await supabase.storage
         .from('report-files')
@@ -101,12 +205,46 @@ export function FileUploader({ constructionId, onUploadComplete, onDelete, files
 
       if (dbError) throw dbError;
 
+      await deleteFromStore(STORES.REPORT_FILES, file.id);
       if (onDelete) {
         onDelete(file.id);
       }
 
       showSuccess(t('fileUploader.deleteSuccess'));
     } catch (error) {
+      if (isNetworkError(error)) {
+        try {
+          await deleteFromStore(STORES.REPORT_FILES, file.id);
+          if (file.id.startsWith('temp_file_')) {
+            await removeSyncOperationsForEntity(STORES.UPLOADS, file.id);
+            if (file.file_path.startsWith('blob:')) {
+              URL.revokeObjectURL(file.file_path);
+            }
+          } else {
+            await addToSyncQueue(
+              STORES.UPLOADS,
+              'delete',
+              {
+                kind: 'report_file_delete',
+                file_id: file.id,
+                file_path: file.file_path,
+              },
+              file.id
+            );
+          }
+
+          if (onDelete) {
+            onDelete(file.id);
+          }
+          showSuccess(t('fileUploader.deleteQueued') || 'Delete queued and will sync when online');
+          return;
+        } catch (queueError) {
+          const queueAppError = errorHandler.handle(queueError, 'FileUploader.queueDelete');
+          showError(errorHandler.getUserMessage(queueAppError));
+          return;
+        }
+      }
+
       const appError = errorHandler.handle(error, 'FileUploader');
       showError(errorHandler.getUserMessage(appError));
     }

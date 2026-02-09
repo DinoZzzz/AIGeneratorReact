@@ -119,9 +119,37 @@ const registerBackgroundSync = async () => {
   }
 }
 
+const requestServiceWorkerSync = () => {
+  if (!('serviceWorker' in navigator)) return
+  if (!navigator.serviceWorker.controller) return
+  navigator.serviceWorker.controller.postMessage({ type: 'offline-sync-now' })
+}
+
 void registerBackgroundSync()
 window.addEventListener('online', () => {
   void registerBackgroundSync()
+  requestServiceWorkerSync()
+})
+
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.addEventListener('message', (event) => {
+    const payload = event.data as { type?: string; success?: number; failed?: number; total?: number } | undefined
+    if (payload?.type !== 'offline-sync-result') {
+      return
+    }
+
+    window.dispatchEvent(new CustomEvent('offline-sync-result', {
+      detail: {
+        success: payload.success || 0,
+        failed: payload.failed || 0,
+        total: payload.total || 0,
+      },
+    }))
+  })
+}
+
+window.addEventListener('focus', () => {
+  requestServiceWorkerSync()
 })
 
 createRoot(document.getElementById('root')!).render(

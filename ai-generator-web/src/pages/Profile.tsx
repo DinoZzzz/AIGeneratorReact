@@ -18,6 +18,7 @@ import {
     addToSyncQueue,
     getAllFromStore,
     getFromStore,
+    removeSyncOperationsForEntity,
     saveManyToStore,
     saveToStore
 } from '../lib/offlineDb';
@@ -85,21 +86,70 @@ export const ProfilePage = () => {
         }
     };
 
+    const isBlobAvatarUrl = (value: unknown): value is string => (
+        typeof value === 'string' && value.startsWith('blob:')
+    );
+
+    const queueAvatarUploadOffline = async (file: File) => {
+        if (!profile?.id) return;
+
+        const blobUrl = URL.createObjectURL(file);
+        const previousAvatarUrl = formData.avatar_url;
+        if (isBlobAvatarUrl(previousAvatarUrl)) {
+            URL.revokeObjectURL(previousAvatarUrl);
+        }
+
+        setFormData(prev => ({ ...prev, avatar_url: blobUrl }));
+
+        const existing = await getFromStore<Profile>(STORES.EXAMINERS, profile.id);
+        await saveToStore(STORES.EXAMINERS, {
+            ...(existing || profile),
+            avatar_url: blobUrl,
+            _is_offline: true
+        });
+
+        await removeSyncOperationsForEntity(STORES.UPLOADS, profile.id);
+        await addToSyncQueue(
+            STORES.UPLOADS,
+            'update',
+            {
+                kind: 'profile_avatar_upload',
+                user_id: profile.id,
+                file_name: file.name,
+                mime_type: file.type,
+                blob: file
+            },
+            profile.id
+        );
+        toast.success(t('profile.avatarUploadQueued') || 'Avatar saved offline and queued for sync');
+    };
+
     const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (!e.target.files || e.target.files.length === 0) return;
 
         const file = e.target.files[0];
         if (!profile?.id) return;
-        if (!isOnline) {
-            toast.error(t('profile.avatarUploadOnlineOnly') || 'Avatar upload requires an internet connection');
-            return;
-        }
 
         setUploading(true);
         try {
-            const publicUrl = await examinerService.uploadAvatar(file, profile.id);
-            setFormData(prev => ({ ...prev, avatar_url: publicUrl }));
-            toast.success(t('profile.avatarUploaded'));
+            if (isOnline) {
+                try {
+                    const publicUrl = await examinerService.uploadAvatar(file, profile.id);
+                    const previousAvatarUrl = formData.avatar_url;
+                    if (isBlobAvatarUrl(previousAvatarUrl)) {
+                        URL.revokeObjectURL(previousAvatarUrl);
+                    }
+                    setFormData(prev => ({ ...prev, avatar_url: publicUrl }));
+                    toast.success(t('profile.avatarUploaded'));
+                    return;
+                } catch (error) {
+                    if (!isNetworkError(error)) {
+                        throw error;
+                    }
+                }
+            }
+
+            await queueAvatarUploadOffline(file);
         } catch (error) {
             const appError = errorHandler.handle(error, 'Profile');
             toast.error(errorHandler.getUserMessage(appError));
@@ -118,6 +168,7 @@ export const ProfilePage = () => {
 
         setLoading(true);
         try {
+            const safeAvatarUrl = isBlobAvatarUrl(formData.avatar_url) ? undefined : formData.avatar_url;
             const profileUpdatePayload: Partial<Profile> = {
                 id: formData.id,
                 name: formData.name,
@@ -127,7 +178,7 @@ export const ProfilePage = () => {
                 gender: formData.gender,
                 role: formData.role,
                 accreditations: formData.accreditations,
-                avatar_url: formData.avatar_url
+                avatar_url: safeAvatarUrl
             };
             const cleanProfileUpdatePayload = Object.fromEntries(
                 Object.entries(profileUpdatePayload).filter(([, value]) => value !== undefined)
@@ -152,7 +203,7 @@ export const ProfilePage = () => {
 
             if (isOnline) {
                 try {
-                    const saved = await examinerService.saveExaminer(formData);
+                    const saved = await examinerService.saveExaminer({ ...formData, avatar_url: safeAvatarUrl });
                     await saveToStore(STORES.EXAMINERS, saved);
                     await refreshProfile();
                 } catch (error) {
@@ -176,6 +227,14 @@ export const ProfilePage = () => {
             setLoading(false);
         }
     };
+
+    useEffect(() => {
+        return () => {
+            if (isBlobAvatarUrl(formData.avatar_url)) {
+                URL.revokeObjectURL(formData.avatar_url);
+            }
+        };
+    }, [formData.avatar_url]);
 
     const toggleAccreditation = (typeId: number) => {
         const current = formData.accreditations || [];

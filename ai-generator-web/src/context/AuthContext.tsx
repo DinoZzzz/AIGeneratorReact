@@ -2,11 +2,12 @@ import React, { createContext, useContext, useEffect, useRef, useState } from 'r
 import { supabase } from '../lib/supabase';
 import type { Profile } from '../types';
 import { setUserContext, clearUserContext } from '../lib/sentry';
-import { clearStore, STORES } from '../lib/offlineDb';
+import { clearStore, saveMetadata, STORES } from '../lib/offlineDb';
 import { prewarmLookupCache } from '../lib/offlineLookupCache';
 
 type Session = Awaited<ReturnType<typeof supabase.auth.getSession>>['data']['session'];
 type User = NonNullable<Session>['user'];
+const SYNC_SESSION_METADATA_KEY = 'supabase_session_tokens';
 
 interface AuthContextType {
     session: Session;
@@ -59,9 +60,23 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             clearStore(STORES.EXPORT_HISTORY_FORMS),
             clearStore(STORES.REPORT_FILES),
             clearStore(STORES.TEMPLATE_CACHE),
+            clearStore(STORES.UPLOADS),
             clearStore(STORES.SYNC_QUEUE),
             clearStore(STORES.METADATA),
         ]);
+    };
+
+    const persistSyncSession = async (sessionValue: Session) => {
+        if (!sessionValue?.access_token || !sessionValue.refresh_token) {
+            await saveMetadata(SYNC_SESSION_METADATA_KEY, null);
+            return;
+        }
+
+        await saveMetadata(SYNC_SESSION_METADATA_KEY, {
+            access_token: sessionValue.access_token,
+            refresh_token: sessionValue.refresh_token,
+            expires_at: sessionValue.expires_at
+        });
     };
 
     useEffect(() => {
@@ -101,6 +116,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         supabase.auth.getSession().then(({ data: { session } }) => {
             setSession(session);
             setUser(session?.user ?? null);
+            void persistSyncSession(session);
             if (session?.user && !lowBandwidthMode) {
                 loadProfile(session.user.id);
             }
@@ -113,6 +129,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         } = supabase.auth.onAuthStateChange((_event, session) => {
             setSession(session);
             setUser(session?.user ?? null);
+            void persistSyncSession(session);
             if (session?.user && !lowBandwidthMode) {
                 loadProfile(session.user.id);
                 // Set Sentry user context for error tracking

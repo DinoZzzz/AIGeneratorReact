@@ -17,6 +17,9 @@ export default defineConfig(({ mode }) => ({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     }) as any, // Plugin type compatibility - visualizer types don't match Vite plugin interface
     VitePWA({
+      strategies: 'injectManifest',
+      srcDir: 'src',
+      filename: 'sw.ts',
       registerType: 'autoUpdate',
       includeAssets: ['icon-192x192.png', 'icon-512x512.png', 'apple-touch-icon.png'],
       manifest: {
@@ -43,98 +46,10 @@ export default defineConfig(({ mode }) => ({
           }
         ]
       },
-      workbox: {
-        // Work around Workbox terser renderChunk crashes in production SW generation.
-        // Keeps app build in production mode while generating a stable (non-minified) SW.
-        mode: 'development',
+      injectManifest: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2,json}'],
         globIgnores: ['**/stats.html'], // Exclude bundle stats from service worker cache
-        // Avoid taking over active tabs immediately; immediate SW activation can
-        // invalidate lazy-loaded chunks in open sessions during deploy rollouts.
-        skipWaiting: false,
-        clientsClaim: false,
-        // Navigation fallback for SPA
-        navigateFallback: 'index.html',
-        navigateFallbackDenylist: [/^\/api/],
-        runtimeCaching: [
-          // Cache Supabase API calls with network-first strategy
-          {
-            urlPattern: /^https:\/\/zfmvpzypgagtexjbufsq\.supabase\.co\/rest\/v1\/.*/i,
-            handler: 'NetworkFirst',
-            options: {
-              cacheName: 'supabase-api-cache',
-              expiration: {
-                maxEntries: 100,
-                maxAgeSeconds: 60 * 60 * 24 // 24 hours
-              },
-              cacheableResponse: {
-                statuses: [0, 200]
-              },
-              networkTimeoutSeconds: 10
-            }
-          },
-          // Cache Supabase auth endpoints (shorter cache)
-          {
-            urlPattern: /^https:\/\/zfmvpzypgagtexjbufsq\.supabase\.co\/auth\/.*/i,
-            handler: 'NetworkFirst',
-            options: {
-              cacheName: 'supabase-auth-cache',
-              expiration: {
-                maxEntries: 10,
-                maxAgeSeconds: 60 * 60 // 1 hour
-              },
-              cacheableResponse: {
-                statuses: [0, 200]
-              },
-              networkTimeoutSeconds: 5
-            }
-          },
-          // Cache Supabase storage (images, files) with cache-first
-          {
-            urlPattern: /^https:\/\/zfmvpzypgagtexjbufsq\.supabase\.co\/storage\/.*/i,
-            handler: 'CacheFirst',
-            options: {
-              cacheName: 'supabase-storage-cache',
-              expiration: {
-                maxEntries: 200,
-                maxAgeSeconds: 60 * 60 * 24 * 7 // 7 days
-              },
-              cacheableResponse: {
-                statuses: [0, 200]
-              }
-            }
-          },
-          // Cache Google Fonts
-          {
-            urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
-            handler: 'CacheFirst',
-            options: {
-              cacheName: 'google-fonts-cache',
-              expiration: {
-                maxEntries: 10,
-                maxAgeSeconds: 60 * 60 * 24 * 365 // 1 year
-              },
-              cacheableResponse: {
-                statuses: [0, 200]
-              }
-            }
-          },
-          // Cache font files
-          {
-            urlPattern: /^https:\/\/fonts\.gstatic\.com\/.*/i,
-            handler: 'CacheFirst',
-            options: {
-              cacheName: 'gstatic-fonts-cache',
-              expiration: {
-                maxEntries: 10,
-                maxAgeSeconds: 60 * 60 * 24 * 365 // 1 year
-              },
-              cacheableResponse: {
-                statuses: [0, 200]
-              }
-            }
-          }
-        ]
+        maximumFileSizeToCacheInBytes: 8 * 1024 * 1024,
       },
       devOptions: {
         enabled: true

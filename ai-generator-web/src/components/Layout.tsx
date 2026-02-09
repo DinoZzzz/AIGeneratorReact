@@ -63,13 +63,16 @@ const offlineTranslations = {
         messages: 'Poruke',
         examiners: 'Ispitivači',
         materials: 'Materijali',
+        reportFiles: 'Privitci',
         schemeImages: 'Sheme',
         certifiers: 'Certifikatori',
         exportHistory: 'Povijest izvoza',
+        uploads: 'Prijenosi datoteka',
         create: 'kreiranje',
         update: 'ažuriranje',
         delete: 'brisanje',
         useServerVersion: 'Koristi server',
+        keepLocalVersion: 'Zadrži lokalno',
     },
     en: {
         online: 'Online',
@@ -93,13 +96,16 @@ const offlineTranslations = {
         messages: 'Messages',
         examiners: 'Examiners',
         materials: 'Materials',
+        reportFiles: 'Attachments',
         schemeImages: 'Schemes',
         certifiers: 'Certifiers',
         exportHistory: 'Export history',
+        uploads: 'File uploads',
         create: 'create',
         update: 'update',
         delete: 'delete',
         useServerVersion: 'Use server',
+        keepLocalVersion: 'Keep local',
     },
 };
 
@@ -121,7 +127,8 @@ export const Layout = ({ children }: LayoutProps) => {
         retryFailedOperation,
         discardFailedOperation,
         restoreDiscardedOperation,
-        resolveConflictUseServer
+        resolveConflictUseServer,
+        resolveConflictPreferLocal
     } = useOffline();
     const confirm = useConfirm();
     const { items: recentItems } = useRecentlyViewed();
@@ -208,12 +215,16 @@ export const Layout = ({ children }: LayoutProps) => {
                 return ot.examiners;
             case 'materials':
                 return ot.materials;
+            case 'report_files':
+                return ot.reportFiles;
             case 'scheme_images':
                 return ot.schemeImages;
             case 'certifiers':
                 return ot.certifiers;
             case 'export_history':
                 return ot.exportHistory;
+            case 'uploads':
+                return ot.uploads;
             default:
                 return store;
         }
@@ -499,12 +510,20 @@ export const Layout = ({ children }: LayoutProps) => {
                                                 {ot.discard}
                                             </button>
                                             {isConflictErrorMessage(operation.error) && (
-                                                <button
-                                                    onClick={() => resolveConflictUseServer(operation.id)}
-                                                    className="px-2 py-1 text-[11px] rounded bg-blue-600 hover:bg-blue-700 text-white"
-                                                >
-                                                    {ot.useServerVersion}
-                                                </button>
+                                                <>
+                                                    <button
+                                                        onClick={() => resolveConflictPreferLocal(operation.id)}
+                                                        className="px-2 py-1 text-[11px] rounded bg-emerald-600 hover:bg-emerald-700 text-white"
+                                                    >
+                                                        {ot.keepLocalVersion}
+                                                    </button>
+                                                    <button
+                                                        onClick={() => resolveConflictUseServer(operation.id)}
+                                                        className="px-2 py-1 text-[11px] rounded bg-blue-600 hover:bg-blue-700 text-white"
+                                                    >
+                                                        {ot.useServerVersion}
+                                                    </button>
+                                                </>
                                             )}
                                         </div>
                                     </div>
@@ -669,6 +688,22 @@ export const Layout = ({ children }: LayoutProps) => {
                                                     >
                                                         {ot.discard}
                                                     </button>
+                                                    {isConflictErrorMessage(operation.error) && (
+                                                        <>
+                                                            <button
+                                                                onClick={() => resolveConflictPreferLocal(operation.id)}
+                                                                className="px-2 py-1 text-xs rounded bg-emerald-600 hover:bg-emerald-700 text-white"
+                                                            >
+                                                                {ot.keepLocalVersion}
+                                                            </button>
+                                                            <button
+                                                                onClick={() => resolveConflictUseServer(operation.id)}
+                                                                className="px-2 py-1 text-xs rounded bg-blue-600 hover:bg-blue-700 text-white"
+                                                            >
+                                                                {ot.useServerVersion}
+                                                            </button>
+                                                        </>
+                                                    )}
                                                 </div>
                                             </div>
                                         ))}

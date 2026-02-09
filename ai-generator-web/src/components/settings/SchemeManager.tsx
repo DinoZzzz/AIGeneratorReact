@@ -14,10 +14,12 @@ import {
 } from '../../services/schemeService';
 import type { SchemeImage } from '../../types';
 import { Image, Upload, Save, RotateCcw, Loader2, X, Check, Edit2 } from 'lucide-react';
+import { isNetworkError } from '../../lib/errorHandler';
 import {
     STORES,
     addToSyncQueue,
     getAllFromStore,
+    removeSyncOperationsForEntity,
     saveManyToStore,
     saveToStore
 } from '../../lib/offlineDb';
@@ -26,10 +28,11 @@ interface SchemeCardProps {
     scheme: SchemeImage;
     isOnline: boolean;
     onSaveMetadataOffline: (scheme: SchemeImage, name: string, description: string) => Promise<void>;
+    onQueueUploadOffline: (scheme: SchemeImage, file: File) => Promise<void>;
     onUpdate: () => void;
 }
 
-const SchemeCard: React.FC<SchemeCardProps> = ({ scheme, isOnline, onSaveMetadataOffline, onUpdate }) => {
+const SchemeCard: React.FC<SchemeCardProps> = ({ scheme, isOnline, onSaveMetadataOffline, onQueueUploadOffline, onUpdate }) => {
     const { t } = useLanguage();
     const { addToast } = useToast();
     const confirm = useConfirm();
@@ -47,7 +50,7 @@ const SchemeCard: React.FC<SchemeCardProps> = ({ scheme, isOnline, onSaveMetadat
 
     // Get current image URL
     const currentImageUrl = scheme.file_path
-        ? getSchemePublicUrl(scheme.file_path)
+        ? (scheme.file_path.startsWith('blob:') ? scheme.file_path : getSchemePublicUrl(scheme.file_path))
         : `/assets/Scheme${scheme.scheme_number}.PNG`;
 
     const handleFileSelect = (file: File) => {
@@ -90,22 +93,37 @@ const SchemeCard: React.FC<SchemeCardProps> = ({ scheme, isOnline, onSaveMetadat
 
     const handleUpload = async () => {
         if (!pendingFile) return;
-        if (!isOnline) {
-            addToast(t('schemeManager.onlineRequired') || 'Image uploads require an internet connection', 'error');
-            return;
-        }
 
         setUploading(true);
         try {
-            const result = await uploadSchemeImage(scheme.scheme_number, pendingFile, scheme.method_type);
-            if (result.success) {
-                addToast(t('schemeManager.uploadSuccess'), 'success');
-                setPendingFile(null);
-                setPreviewUrl(null);
-                onUpdate();
-            } else {
-                addToast(result.error || t('schemeManager.uploadError'), 'error');
+            if (isOnline) {
+                try {
+                    const result = await uploadSchemeImage(scheme.scheme_number, pendingFile, scheme.method_type);
+                    if (result.success) {
+                        addToast(t('schemeManager.uploadSuccess'), 'success');
+                        setPendingFile(null);
+                        setPreviewUrl(null);
+                        onUpdate();
+                        return;
+                    }
+
+                    const maybeNetworkFailure = !!result.error && /network|offline|fetch/i.test(result.error);
+                    if (!maybeNetworkFailure) {
+                        addToast(result.error || t('schemeManager.uploadError'), 'error');
+                        return;
+                    }
+                } catch (error) {
+                    if (!isNetworkError(error)) {
+                        throw error;
+                    }
+                }
             }
+
+            await onQueueUploadOffline(scheme, pendingFile);
+            addToast(t('schemeManager.uploadQueued') || 'Image saved offline and queued for sync', 'success');
+            setPendingFile(null);
+            setPreviewUrl(null);
+            onUpdate();
         } catch (error) {
             addToast(error instanceof Error ? error.message : t('common.unknownError'), 'error');
         } finally {
@@ -363,7 +381,7 @@ const SchemeCard: React.FC<SchemeCardProps> = ({ scheme, isOnline, onSaveMetadat
 
 export const SchemeManager: React.FC = () => {
     const { t } = useLanguage();
-    const { isOnline } = useOffline();
+    const { isOnline, triggerSync } = useOffline();
     const { profile } = useAuth();
 
     const [schemes, setSchemes] = useState<SchemeImage[]>([]);
@@ -430,6 +448,43 @@ export const SchemeManager: React.FC = () => {
         }, scheme.id);
     }, [profile]);
 
+    const queueUploadOffline = useCallback(async (
+        scheme: SchemeImage,
+        file: File
+    ) => {
+        const now = new Date().toISOString();
+        const localBlobUrl = URL.createObjectURL(file);
+
+        await saveToStore(STORES.SCHEME_IMAGES, {
+            ...scheme,
+            file_path: localBlobUrl,
+            updated_at: now,
+            updated_by: profile?.id,
+            updated_by_name: profile ? `${profile.name} ${profile.last_name}`.trim() : scheme.updated_by_name,
+            _is_offline: true
+        });
+
+        await removeSyncOperationsForEntity(STORES.UPLOADS, scheme.id);
+        await addToSyncQueue(
+            STORES.UPLOADS,
+            'update',
+            {
+                kind: 'scheme_image_upload',
+                scheme_id: scheme.id,
+                scheme_number: scheme.scheme_number,
+                method_type: scheme.method_type,
+                file_name: file.name,
+                mime_type: file.type,
+                blob: file
+            },
+            scheme.id
+        );
+
+        if (isOnline) {
+            await triggerSync();
+        }
+    }, [isOnline, profile, triggerSync]);
+
     // Group schemes by method type
     const waterSchemes = schemes.filter(s => s.method_type === 'water');
     const airSchemes = schemes.filter(s => s.method_type === 'air');
@@ -442,6 +497,7 @@ export const SchemeManager: React.FC = () => {
                     scheme={scheme}
                     isOnline={isOnline}
                     onSaveMetadataOffline={saveMetadataOffline}
+                    onQueueUploadOffline={queueUploadOffline}
                     onUpdate={loadSchemes}
                 />
             ))}

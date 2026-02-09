@@ -14,7 +14,8 @@ import {
 import type { TemplateInfo, TemplateValidationResult } from '../../types';
 import { FileText, Upload, Check, AlertTriangle, X, RotateCcw, Loader2, Trash2, Eye, Download } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
-import { STORES, getFromStore, saveToStore } from '../../lib/offlineDb';
+import { isNetworkError } from '../../lib/errorHandler';
+import { STORES, addToSyncQueue, getFromStore, removeSyncOperationsForEntity, saveToStore } from '../../lib/offlineDb';
 
 interface TemplateCacheEntry<T> {
     id: string;
@@ -29,7 +30,7 @@ export const TemplateEditor: React.FC = () => {
     const { t } = useLanguage();
     const { addToast } = useToast();
     const confirm = useConfirm();
-    const { isOnline } = useOffline();
+    const { isOnline, triggerSync } = useOffline();
 
     const [activeTemplate, setActiveTemplate] = useState<TemplateInfo | null>(null);
     const [versions, setVersions] = useState<TemplateInfo[]>([]);
@@ -136,21 +137,70 @@ export const TemplateEditor: React.FC = () => {
 
     const handleUpload = async () => {
         if (!pendingFile || !validation?.isValid) return;
-        if (!isOnline) {
-            addToast(t('templateEditor.onlineRequired') || 'Template uploads require an internet connection', 'error');
-            return;
-        }
 
         setUploading(true);
         try {
-            const result = await uploadTemplate(pendingFile);
-            if (result.success) {
-                addToast(t('templateEditor.uploadSuccess'), 'success');
-                setPendingFile(null);
-                setValidation(null);
-                await loadData();
-            } else {
-                addToast(result.error || t('templateEditor.uploadError'), 'error');
+            const queueTemplateUploadOffline = async () => {
+                await removeSyncOperationsForEntity(STORES.UPLOADS, 'template:method1610');
+                await addToSyncQueue(
+                    STORES.UPLOADS,
+                    'create',
+                    {
+                        kind: 'template_upload',
+                        file_name: pendingFile.name,
+                        mime_type: pendingFile.type,
+                        blob: pendingFile
+                    },
+                    'template:method1610'
+                );
+
+                const now = new Date().toISOString();
+                const queuedTemplate: TemplateInfo = {
+                    name: 'method1610.docx',
+                    path: 'method1610.docx',
+                    size: pendingFile.size,
+                    lastUpdated: now,
+                    updatedBy: t('templateEditor.pendingSync') || 'Pending sync'
+                };
+                await saveToStore(STORES.TEMPLATE_CACHE, {
+                    id: ACTIVE_TEMPLATE_CACHE_ID,
+                    value: queuedTemplate,
+                    updated_at: now
+                } satisfies TemplateCacheEntry<TemplateInfo | null>);
+                setActiveTemplate(queuedTemplate);
+
+                addToast(t('templateEditor.uploadQueued') || 'Template upload queued for sync', 'success');
+            };
+
+            if (isOnline) {
+                try {
+                    const result = await uploadTemplate(pendingFile);
+                    if (result.success) {
+                        addToast(t('templateEditor.uploadSuccess'), 'success');
+                        setPendingFile(null);
+                        setValidation(null);
+                        await loadData();
+                        return;
+                    }
+
+                    const maybeNetworkFailure = !!result.error && /network|offline|fetch/i.test(result.error);
+                    if (!maybeNetworkFailure) {
+                        addToast(result.error || t('templateEditor.uploadError'), 'error');
+                        return;
+                    }
+                } catch (error) {
+                    if (!isNetworkError(error)) {
+                        throw error;
+                    }
+                }
+            }
+
+            await queueTemplateUploadOffline();
+            setPendingFile(null);
+            setValidation(null);
+
+            if (isOnline) {
+                await triggerSync();
             }
         } catch (error) {
             addToast(error instanceof Error ? error.message : t('common.unknownError'), 'error');

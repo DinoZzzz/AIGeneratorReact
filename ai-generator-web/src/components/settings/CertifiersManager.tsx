@@ -240,10 +240,6 @@ export const CertifiersManager = () => {
 
     const handleSignatureUpload = async (certifierId: string, file: File | undefined) => {
         if (!file) return;
-        if (!isOnline) {
-            addToast(t('certifiers.signatureOfflineUnsupported') || 'Signature upload requires an internet connection', 'error');
-            return;
-        }
         if (!file.type.startsWith('image/')) {
             addToast(t('certifiers.invalidFileType') || 'Please upload an image file', 'error');
             return;
@@ -252,10 +248,50 @@ export const CertifiersManager = () => {
             addToast(t('certifiers.fileTooLarge') || 'File size must be less than 2MB', 'error');
             return;
         }
+
+        const queueSignatureUploadOffline = async () => {
+            const certifier = await getFromStore<Certifier>(STORES.CERTIFIERS, certifierId);
+            if (!certifier) {
+                throw new Error('Certifier not found in offline cache');
+            }
+
+            const blobUrl = URL.createObjectURL(file);
+            await saveToStore(STORES.CERTIFIERS, {
+                ...certifier,
+                signature_url: blobUrl,
+                _is_offline: true
+            });
+
+            await removeSyncOperationsForEntity(STORES.UPLOADS, certifierId);
+            await addToSyncQueue(
+                STORES.UPLOADS,
+                'update',
+                {
+                    kind: 'certifier_signature_upload',
+                    certifier_id: certifierId,
+                    file_name: file.name,
+                    mime_type: file.type,
+                    blob: file
+                },
+                certifierId
+            );
+            addToast(t('certifiers.signatureQueued') || 'Signature saved offline and queued for sync', 'success');
+        };
+
         try {
-            await certifierService.uploadSignature(certifierId, file);
-            addToast(t('certifiers.signatureUploaded') || 'Signature uploaded successfully', 'success');
-            fetchCertifiers();
+            if (isOnline) {
+                try {
+                    await certifierService.uploadSignature(certifierId, file);
+                    addToast(t('certifiers.signatureUploaded') || 'Signature uploaded successfully', 'success');
+                    await fetchCertifiers();
+                    return;
+                } catch (error) {
+                    if (!isNetworkError(error)) throw error;
+                }
+            }
+
+            await queueSignatureUploadOffline();
+            await fetchCertifiers();
         } catch (error: unknown) {
             addToast((error as Error).message, 'error');
         }
@@ -263,14 +299,50 @@ export const CertifiersManager = () => {
 
     const handleDeleteSignature = async (certifierId: string) => {
         if (!(await confirm({ title: t('certifiers.deleteSignatureConfirm') || 'Are you sure you want to delete this signature?', variant: 'destructive' }))) return;
-        if (!isOnline) {
-            addToast(t('certifiers.signatureOfflineUnsupported') || 'Signature changes require an internet connection', 'error');
-            return;
-        }
+
+        const queueSignatureDeleteOffline = async () => {
+            const certifier = await getFromStore<Certifier>(STORES.CERTIFIERS, certifierId);
+            if (!certifier) {
+                throw new Error('Certifier not found in offline cache');
+            }
+
+            if (certifier.signature_url?.startsWith('blob:')) {
+                URL.revokeObjectURL(certifier.signature_url);
+            }
+
+            await saveToStore(STORES.CERTIFIERS, {
+                ...certifier,
+                signature_url: undefined,
+                _is_offline: true
+            });
+
+            await removeSyncOperationsForEntity(STORES.UPLOADS, certifierId);
+            await addToSyncQueue(
+                STORES.UPLOADS,
+                'delete',
+                {
+                    kind: 'certifier_signature_delete',
+                    certifier_id: certifierId
+                },
+                certifierId
+            );
+            addToast(t('certifiers.signatureDeleteQueued') || 'Signature delete queued for sync', 'success');
+        };
+
         try {
-            await certifierService.deleteSignature(certifierId);
-            addToast(t('certifiers.signatureDeleted') || 'Signature deleted', 'success');
-            fetchCertifiers();
+            if (isOnline) {
+                try {
+                    await certifierService.deleteSignature(certifierId);
+                    addToast(t('certifiers.signatureDeleted') || 'Signature deleted', 'success');
+                    await fetchCertifiers();
+                    return;
+                } catch (error) {
+                    if (!isNetworkError(error)) throw error;
+                }
+            }
+
+            await queueSignatureDeleteOffline();
+            await fetchCertifiers();
         } catch (error: unknown) {
             addToast((error as Error).message, 'error');
         }
