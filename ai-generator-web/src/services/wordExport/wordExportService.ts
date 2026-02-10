@@ -4,6 +4,8 @@ import type { DocxTemplaterError, ReportFormWithJoins } from './types';
 import { supabase } from '../../lib/supabase';
 import { traceAsync, captureError } from '../../lib/sentry';
 import { isNetworkError } from '../../lib/errorHandler';
+import { isConflictDbError } from '../../lib/offlineConflict';
+import { findExistingReportExportId } from '../../lib/reportExportHistory';
 import { addToSyncQueue, saveManyToStore, saveToStore, STORES } from '../../lib/offlineDb';
 import { findRawTagPlacementIssues } from '../../utils/docxTemplate';
 import { formatDate, formatNum } from './helpers';
@@ -17,19 +19,6 @@ export interface WordExportResult {
     historyConflictRecovered: boolean;
     historyQueued: boolean;
 }
-
-const isConflictDbError = (error: unknown): boolean => {
-    if (!error || typeof error !== 'object') return false;
-
-    const dbError = error as { code?: string; status?: number; message?: string; details?: string };
-    const message = (dbError.message || '').toLowerCase();
-    const details = (dbError.details || '').toLowerCase();
-
-    return dbError.code === '23505' ||
-        dbError.status === 409 ||
-        message.includes('duplicate key') ||
-        details.includes('already exists');
-};
 
 interface QueuedExportHistoryPayload {
     exportPayload: Record<string, unknown> & {
@@ -356,46 +345,30 @@ export const generateWordDocument = async (
 
                             exportResult.historyConflictRecovered = true;
 
-                            // Recover from duplicate export conflicts by reusing the latest matching export row.
-                            const { data: exactExistingExport, error: exactExistingExportError } = await supabase
-                                .from('report_exports')
-                                .select('id')
-                                .eq('construction_id', finalConstructionId)
-                                .eq('customer_id', customerId)
-                                .eq('user_id', userId)
-                                .eq('type_id', typeId)
-                                .eq('examination_date', examinationDate)
-                                .order('created_at', { ascending: false })
-                                .limit(1)
-                                .maybeSingle();
+                            // Recover from duplicate export conflicts by reusing a matching export row.
+                            const existingExportId = await findExistingReportExportId({
+                                constructionId: finalConstructionId,
+                                customerId,
+                                userId,
+                                typeId,
+                                examinationDate
+                            });
 
-                            let existingExport = exactExistingExport;
-                            if (exactExistingExportError || !existingExport) {
-                                // Fallback for schemas where the unique key is broader/narrower than the exact match above.
-                                const { data: fallbackExistingExport, error: fallbackExistingExportError } = await supabase
-                                    .from('report_exports')
-                                    .select('id')
-                                    .eq('construction_id', finalConstructionId)
-                                    .eq('user_id', userId)
-                                    .order('created_at', { ascending: false })
-                                    .limit(1)
-                                    .maybeSingle();
-
-                                if (fallbackExistingExportError || !fallbackExistingExport) {
-                                    throw exportError;
-                                }
-                                existingExport = fallbackExistingExport;
+                            if (!existingExportId) {
+                                throw exportError;
                             }
 
                             const { data: updatedExport, error: updateExportError } = await supabase
                                 .from('report_exports')
                                 .update(exportPayload)
-                                .eq('id', existingExport.id)
+                                .eq('id', existingExportId)
                                 .select()
                                 .single();
 
-                            if (updateExportError) throw updateExportError;
-                            resolvedExport = updatedExport || existingExport;
+                            // Some RLS setups block update but allow linking forms to the existing export row.
+                            resolvedExport = updateExportError
+                                ? { id: existingExportId }
+                                : (updatedExport || { id: existingExportId });
                         }
 
                         if (resolvedExport && queuedPayload.forms.length > 0) {

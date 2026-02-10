@@ -52,6 +52,11 @@ const initialState: Partial<ReportForm> = {
     stabilization_time: '5', // Default 5 minutes
 };
 
+const AIR_DRAFT_SHAFT_ONLY = 1;
+const AIR_DRAFT_PIPE_ONLY = 2;
+const AIR_DRAFT_SHAFT_AND_PIPE = 3;
+const AIR_ALLOWED_DRAFT_IDS = [AIR_DRAFT_SHAFT_ONLY, AIR_DRAFT_PIPE_ONLY, AIR_DRAFT_SHAFT_AND_PIPE] as const;
+
 interface CalculatedResults {
     pressureLoss: number;
     allowedLoss: number;
@@ -86,14 +91,50 @@ export const AirMethodForm = () => {
     const [previousReport, setPreviousReport] = useState<ReportForm | null>(null);
     const initializedFromPreviousRef = useRef(false);
 
+    const airDraftOptions = useMemo(() => {
+        const draftLabelById = new Map(drafts.map((draft) => [draft.id, draft.name]));
+        return [
+            {
+                id: AIR_DRAFT_PIPE_ONLY,
+                label: draftLabelById.get(AIR_DRAFT_PIPE_ONLY) || (t('reports.form.airScheme1PipeOnly') || 'Shema 1 - Ispitivanje cjevovoda')
+            },
+            {
+                id: AIR_DRAFT_SHAFT_AND_PIPE,
+                label: draftLabelById.get(AIR_DRAFT_SHAFT_AND_PIPE) || (t('reports.form.airScheme2ShaftPipe') || 'Shema 2 - Ispitivanje okna i cjevovoda')
+            },
+            {
+                id: AIR_DRAFT_SHAFT_ONLY,
+                label: draftLabelById.get(AIR_DRAFT_SHAFT_ONLY) || (t('reports.form.airScheme3ShaftOnly') || 'Shema 3 - Ispitivanje okna')
+            }
+        ];
+    }, [drafts, t]);
+
+    const isShaftOnlyDraft = formData.draft_id === AIR_DRAFT_SHAFT_ONLY;
+    const isPipeOnlyDraft = formData.draft_id === AIR_DRAFT_PIPE_ONLY;
+    const isShaftAndPipeDraft = formData.draft_id === AIR_DRAFT_SHAFT_AND_PIPE;
+    const includesShaft = !isPipeOnlyDraft;
+
+    const procedureOptions = useMemo(() => {
+        if (!isShaftOnlyDraft) {
+            return procedures;
+        }
+
+        return procedures.filter((procedure) => {
+            const normalizedName = procedure.name?.toUpperCase().trim() || '';
+            return normalizedName === 'LA' || normalizedName.includes('LA') || normalizedName === 'LB' || normalizedName.includes('LB');
+        });
+    }, [isShaftOnlyDraft, procedures]);
+
     // Memoized calculations to prevent recalculation on every render
     const calculated = useMemo<CalculatedResults>(() => {
         const selectedProcedure = procedures.find(p => p.id === formData.examination_procedure_id);
 
-        // Diameter logic: Always use shaft diameter (pane_diameter) for test time
-        // Schema A (Draft 1): Shaft only - halve the time
-        // Schema B (Draft 2/3): Shaft + Pipeline - full time
-        const diameterMm = formData.pane_diameter || 0;
+        // EN 1610: test time follows test method + pipe diameter.
+        // Shaft-only tests (okno) use half time of a pipe with the same diameter.
+        const usesPipeDiameter = formData.draft_id === AIR_DRAFT_PIPE_ONLY || formData.draft_id === AIR_DRAFT_SHAFT_AND_PIPE;
+        const diameterMm = usesPipeDiameter
+            ? (formData.pipe_diameter || formData.pane_diameter || 0)
+            : (formData.pane_diameter || formData.pipe_diameter || 0);
 
         const selectedMaterial = materials.find(m => m.id === formData.pipe_material_id);
         const isConcrete = selectedMaterial
@@ -115,9 +156,9 @@ export const AirMethodForm = () => {
         // Get requirements from table
         const requirements = getAirTestRequirements(method, materialKey, diameterMm);
 
-        // Shaft logic: Halve the time if it's a shaft test (Draft 1)
+        // Shaft-only logic: halve required time for revision shaft tests.
         let finalTime = requirements.requiredTime;
-        if (formData.draft_id === 1) {
+        if (formData.draft_id === AIR_DRAFT_SHAFT_ONLY) {
             finalTime = finalTime / 2;
         }
 
@@ -143,6 +184,26 @@ export const AirMethodForm = () => {
         procedures,
         materials
     ]);
+
+    useEffect(() => {
+        if (!formData.draft_id || AIR_ALLOWED_DRAFT_IDS.includes(formData.draft_id as typeof AIR_ALLOWED_DRAFT_IDS[number])) {
+            return;
+        }
+        setFormData(prev => ({ ...prev, draft_id: AIR_DRAFT_SHAFT_ONLY }));
+    }, [formData.draft_id]);
+
+    useEffect(() => {
+        if (procedureOptions.length === 0) return;
+        const selectedProcedureIsValid = procedureOptions.some(
+            (procedure) => procedure.id === formData.examination_procedure_id
+        );
+        if (selectedProcedureIsValid) return;
+
+        setFormData(prev => ({
+            ...prev,
+            examination_procedure_id: procedureOptions[0].id
+        }));
+    }, [formData.examination_procedure_id, procedureOptions]);
 
     const loadLookups = useCallback(async () => {
         try {
@@ -240,7 +301,7 @@ export const AirMethodForm = () => {
 
     // Effect to enforce Round Shafts for Air Method
     useEffect(() => {
-        if (formData.draft_id === 1 && formData.material_type_id !== 1) {
+        if (formData.draft_id === AIR_DRAFT_SHAFT_ONLY && formData.material_type_id !== 1) {
             setFormData(prev => ({ ...prev, material_type_id: 1 }));
         }
     }, [formData.draft_id, formData.material_type_id]);
@@ -375,9 +436,8 @@ export const AirMethodForm = () => {
 
     const isShaftRound = formData.material_type_id === 1;
     const isShaftRectangular = formData.material_type_id === 2;
-    // Show pipe fields for Schema B (Draft 2), Schema C (Draft 3), and Schema E (Draft 5)
-    // Hide for Schema A (Draft 1) and Schema D (Draft 4)
-    const showPipeFields = formData.draft_id === 2 || formData.draft_id === 3 || formData.draft_id === 5;
+    // Pipe dimensions are relevant for pipeline-only and shaft+pipeline tests.
+    const showPipeFields = isPipeOnlyDraft || isShaftAndPipeDraft;
 
     if (isEditMode && isReportLoading) {
         return (
@@ -439,7 +499,7 @@ export const AirMethodForm = () => {
                                         onChange={handleChange}
                                     >
                                         <option value="">{t('reports.form.selectProcedure')}</option>
-                                        {procedures.map(p => (
+                                        {procedureOptions.map(p => (
                                             <option key={p.id} value={p.id}>{p.name}</option>
                                         ))}
                                     </Select>
@@ -491,25 +551,28 @@ export const AirMethodForm = () => {
                                         value={formData.draft_id}
                                         onChange={handleChange}
                                     >
-                                        {drafts.length === 0 && <option value={1}>{t('reports.form.shaftOnly')}</option>}
-                                        {drafts.map(d => (
-                                            <option key={d.id} value={d.id}>{d.name}</option>
+                                        {airDraftOptions.map((draftOption) => (
+                                            <option key={draftOption.id} value={draftOption.id}>
+                                                {draftOption.label}
+                                            </option>
                                         ))}
                                     </Select>
-                                    <Select
-                                        label={t('reports.form.materialType')}
-                                        name="material_type_id"
-                                        value={formData.material_type_id}
-                                        onChange={handleChange}
-                                        disabled={formData.draft_id === 1} // Disable for Shaft Only
-                                    >
-                                        {materialTypes.length === 0 && <option value={1}>{t('reports.form.round')}</option>}
-                                        {materialTypes
-                                            .filter(m => formData.draft_id === 1 ? m.id === 1 : true) // Only show Round for Shaft
-                                            .map(m => (
-                                                <option key={m.id} value={m.id}>{m.name}</option>
-                                            ))}
-                                    </Select>
+                                    {includesShaft && (
+                                        <Select
+                                            label={t('reports.form.materialType')}
+                                            name="material_type_id"
+                                            value={formData.material_type_id}
+                                            onChange={handleChange}
+                                            disabled={isShaftOnlyDraft}
+                                        >
+                                            {materialTypes.length === 0 && <option value={1}>{t('reports.form.round')}</option>}
+                                            {materialTypes
+                                                .filter(m => isShaftOnlyDraft ? m.id === 1 : true)
+                                                .map(m => (
+                                                    <option key={m.id} value={m.id}>{m.name}</option>
+                                                ))}
+                                        </Select>
+                                    )}
                                     <Select
                                         label={t('reports.form.pipeMaterial')}
                                         name="pipe_material_id"
@@ -529,7 +592,7 @@ export const AirMethodForm = () => {
                             <div className="bg-card shadow-sm rounded-xl border border-border p-6">
                                 <h3 className="text-lg font-semibold text-foreground mb-4">{t('reports.form.dimensions')}</h3>
                                 <div className="space-y-4">
-                                    {isShaftRound && (
+                                    {includesShaft && isShaftRound && (
                                         <Input
                                             label={t('reports.form.paneDiameterMm')}
                                             type="number"
@@ -538,7 +601,7 @@ export const AirMethodForm = () => {
                                             onChange={handleChange}
                                         />
                                     )}
-                                    {isShaftRectangular && (
+                                    {includesShaft && isShaftRectangular && (
                                         <>
                                             <Input
                                                 label={t('reports.form.paneWidthM')}

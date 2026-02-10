@@ -7,6 +7,19 @@ export interface VersionHistoryItem {
 export function getVersionHistory(language: string): VersionHistoryItem[] {
     return language === 'hr' ? [
         {
+            version: '2.26.0',
+            date: '2026-02-10',
+            changes: [
+                'Metoda zrak usklađena s traženim shemama: Shema 1 (cjevovod), Shema 2 (okno i cjevovod), Shema 3 (okno)',
+                'Za ispitivanje samo okna ograničeni postupci na LA/LB; vrijeme ispitivanja računa se po promjeru i postupku, a za samo okno koristi se pola vremena',
+                'PDF za metodu zrak sada koristi ispravno mapiranje shema i skica; kod cjevovoda više ne prikazuje podatke o oknu',
+                'U PDF obrascu pojašnjena EN 1610 tablica (DN [mm], p0, dp, vrijeme t [min]) i postavljen fiksni datum obrasca umjesto datuma izrade zapisa',
+                'Word/history spremanje dodatno ojačano za 409 konflikt: pronalazak postojećeg export zapisa i sigurno relinkanje formi',
+                'Sentry filtrira benigni DOM NotFoundError (insertBefore/removeChild) uzrokovan vanjskim DOM mutacijama (npr. translate/extension alati)',
+                'Dodana no-translate zaštita u root HTML-u i prošireni prijevodi za nove opcije shema metode zraka',
+            ]
+        },
+        {
             version: '2.25.0',
             date: '2026-02-09',
             changes: [
@@ -477,6 +490,19 @@ export function getVersionHistory(language: string): VersionHistoryItem[] {
         },
     ] : [
         // English version
+        {
+            version: '2.26.0',
+            date: '2026-02-10',
+            changes: [
+                'Air method now follows requested schema mapping: Scheme 1 (pipeline), Scheme 2 (shaft and pipeline), Scheme 3 (shaft)',
+                'Shaft-only tests are now restricted to LA/LB; required test time is calculated from diameter + procedure, with shaft-only using half-time',
+                'Air PDF export now resolves the correct scheme/image mapping and no longer shows shaft data for pipeline-only tests',
+                'EN 1610 table labels in PDF were clarified (DN [mm], p0, dp, test time t [min]) and a fixed form issue date is shown instead of report creation date',
+                'Word/history saving was hardened for 409 conflicts by reusing an existing export row and safely relinking export forms',
+                'Sentry now drops benign DOM NotFoundError (insertBefore/removeChild) events caused by external DOM mutations (e.g. translate/extension tools)',
+                'Added no-translate protection in root HTML and translations for new air-method schema labels',
+            ]
+        },
         {
             version: '2.25.0',
             date: '2026-02-09',

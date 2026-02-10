@@ -25,7 +25,8 @@ import {
   saveToStore,
   deleteFromStore,
 } from './offlineDb';
-import { isConflictErrorMessage } from './offlineConflict';
+import { isConflictErrorMessage, isConflictDbError } from './offlineConflict';
+import { findExistingReportExportId } from './reportExportHistory';
 
 const MAX_RETRY_COUNT = 5;
 const BASE_RETRY_DELAY_MS = 1000; // 1 second base delay
@@ -456,19 +457,6 @@ interface QueuedExportHistoryData {
   forms: QueuedExportHistoryForm[];
 }
 
-const isDbConflictError = (error: unknown): boolean => {
-  if (error && typeof error === 'object') {
-    const dbError = error as { code?: string; status?: number; message?: string; details?: string };
-    const message = (dbError.message || '').toLowerCase();
-    const details = (dbError.details || '').toLowerCase();
-    return dbError.code === '23505' ||
-      dbError.status === 409 ||
-      message.includes('duplicate key') ||
-      details.includes('already exists');
-  }
-  return false;
-};
-
 const stripOfflineFields = (value: unknown): Record<string, unknown> => {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
     return {};
@@ -504,48 +492,32 @@ const syncQueuedExportHistory = async (
 
   let resolvedExport = insertedExport as { id: string } | null;
   if (insertError) {
-    if (!isDbConflictError(insertError)) {
+    if (!isConflictDbError(insertError)) {
       throw insertError;
     }
 
-    const { data: exactExistingExport, error: exactExistingExportError } = await supabase
-      .from('report_exports')
-      .select('id')
-      .eq('construction_id', exportPayload.construction_id)
-      .eq('customer_id', exportPayload.customer_id)
-      .eq('user_id', exportPayload.user_id)
-      .eq('type_id', exportPayload.type_id)
-      .eq('examination_date', exportPayload.examination_date)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
+    const existingExportId = await findExistingReportExportId({
+      constructionId: exportPayload.construction_id,
+      customerId: exportPayload.customer_id,
+      userId: exportPayload.user_id,
+      typeId: exportPayload.type_id,
+      examinationDate: exportPayload.examination_date,
+    });
 
-    let existingExport = exactExistingExport as { id: string } | null;
-    if (exactExistingExportError || !existingExport) {
-      const { data: fallbackExistingExport, error: fallbackExistingExportError } = await supabase
-        .from('report_exports')
-        .select('id')
-        .eq('construction_id', exportPayload.construction_id)
-        .eq('user_id', exportPayload.user_id)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      if (fallbackExistingExportError || !fallbackExistingExport) {
-        throw insertError;
-      }
-      existingExport = fallbackExistingExport as { id: string };
+    if (!existingExportId) {
+      throw insertError;
     }
 
     const { data: updatedExport, error: updateExportError } = await supabase
       .from('report_exports')
       .update(exportPayload)
-      .eq('id', existingExport.id)
+      .eq('id', existingExportId)
       .select('id')
       .single();
 
-    if (updateExportError) throw updateExportError;
-    resolvedExport = (updatedExport as { id: string } | null) || existingExport;
+    resolvedExport = updateExportError
+      ? { id: existingExportId }
+      : (updatedExport as { id: string } | null) || { id: existingExportId };
   }
 
   if (!resolvedExport || !resolvedExport.id || forms.length === 0) {
@@ -568,7 +540,10 @@ const syncQueuedExportHistory = async (
     }));
 
   if (normalizedForms.length === 0) {
-    return;
+    return {
+      id: resolvedExport.id,
+      exportPayload,
+    };
   }
 
   const { error: deleteOldFormsError } = await supabase

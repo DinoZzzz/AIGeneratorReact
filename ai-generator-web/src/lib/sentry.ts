@@ -1,5 +1,14 @@
 import * as Sentry from '@sentry/react';
 
+const isExternalDomMutationNotFoundError = (value: unknown): boolean => {
+    if (typeof DOMException === 'undefined') return false;
+    if (!(value instanceof DOMException)) return false;
+    if (value.name !== 'NotFoundError') return false;
+
+    const message = value.message.toLowerCase();
+    return message.includes('insertbefore') || message.includes('removechild');
+};
+
 export const initSentry = () => {
     const dsn = import.meta.env.VITE_SENTRY_DSN;
 
@@ -50,7 +59,13 @@ export const initSentry = () => {
         // Don't send in development unless explicitly enabled
         enabled: import.meta.env.PROD || import.meta.env.VITE_SENTRY_DEBUG === 'true',
 
-        beforeSend(event) {
+        beforeSend(event, hint) {
+            // Browser translators/extensions can mutate DOM outside React and trigger benign
+            // NotFoundError insertBefore/removeChild crashes during reconciliation.
+            if (isExternalDomMutationNotFoundError(hint.originalException)) {
+                return null;
+            }
+
             // Remove sensitive data
             if (event.request?.headers) {
                 delete event.request.headers['Authorization'];
