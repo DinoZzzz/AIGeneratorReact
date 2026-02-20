@@ -131,7 +131,7 @@ export const fetchDocumentData = async (
                             attachments.push({
                                 path: f.file_path,
                                 name: f.file_name,
-                                description: f.description || f.file_name,
+                                description: 'Situacija',
                                 image: f.file_path
                             });
                         }

@@ -8,6 +8,11 @@ import { certifierService } from '../services/certifierService';
 import { useCertifiers } from '../hooks/useCertifiers';
 import { useToast } from '../context/ToastContext';
 
+const DEFAULT_CONSTRUCTION_PART = 'Sustav odvodnje odpadnih voda';
+const WATER_DEVIATION_OPTION_LOW_H2 = 'h2 < 100 cm';
+const WATER_DEVIATION_OPTION_SOME_SECTIONS = 'Kod pojedinih dionica h2 < 100 cm';
+const LEGACY_WATER_DEVIATION_OPTION_SOME_SECTIONS = 'Kod pojedinih dionica h2<100cm';
+
 interface ExportDialogProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
@@ -34,45 +39,51 @@ export interface ExportMetaData {
     includePdfs?: boolean;
 }
 
+const normalizeWaterDeviation = (value?: string): string => {
+    if (!value) return WATER_DEVIATION_OPTION_LOW_H2;
+    if (value === WATER_DEVIATION_OPTION_LOW_H2 || value === WATER_DEVIATION_OPTION_SOME_SECTIONS) {
+        return value;
+    }
+    if (value.trim() === LEGACY_WATER_DEVIATION_OPTION_SOME_SECTIONS) {
+        return WATER_DEVIATION_OPTION_SOME_SECTIONS;
+    }
+    return WATER_DEVIATION_OPTION_LOW_H2;
+};
+
+const getInitialExportData = (defaultValues?: Partial<ExportMetaData>): ExportMetaData => ({
+    constructionPart: defaultValues?.constructionPart || DEFAULT_CONSTRUCTION_PART,
+    drainage: defaultValues?.drainage || '',
+    airRemark: defaultValues?.airRemark || '',
+    airDeviation: defaultValues?.airDeviation || '',
+    waterRemark: defaultValues?.waterRemark || '',
+    waterDeviation: normalizeWaterDeviation(defaultValues?.waterDeviation),
+    certifierName: defaultValues?.certifierName || '',
+    includePdfs: defaultValues?.includePdfs ?? false,
+});
+
 export const ExportDialog = ({ open, onOpenChange, onConfirm, loading = false, defaultValues, reports, constructionId, uploadedFiles = [], onFileUploaded, onFileDeleted }: ExportDialogProps) => {
     const { t } = useLanguage();
     const { error: showError } = useToast();
-    const [data, setData] = useState<ExportMetaData>({
-        constructionPart: defaultValues?.constructionPart || '',
-        drainage: defaultValues?.drainage || '',
-        airRemark: defaultValues?.airRemark || '',
-        airDeviation: defaultValues?.airDeviation || '',
-        waterRemark: defaultValues?.waterRemark || '',
-        waterDeviation: defaultValues?.waterDeviation || '',
-        certifierName: defaultValues?.certifierName || '',
-        includePdfs: defaultValues?.includePdfs || false,
-    });
+    const [data, setData] = useState<ExportMetaData>(getInitialExportData(defaultValues));
 
     const [selectedReportIds, setSelectedReportIds] = useState<Set<string>>(new Set());
     const { data: certifiers = [] } = useCertifiers();
 
     // Set default certifier when certifiers load
     useEffect(() => {
-        if (certifiers.length > 0 && !defaultValues?.certifierName && !data.certifierName) {
+        if (open && certifiers.length > 0 && !data.certifierName) {
             const defaultCertifier = certifiers.find(c => c.is_default) || certifiers[0];
             setData(prev => ({
                 ...prev,
                 certifierName: certifierService.getDisplayName(defaultCertifier)
             }));
         }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [certifiers]);
+    }, [certifiers, data.certifierName, open]);
 
     // Update state when defaultValues change or dialog opens
     useEffect(() => {
         if (open) {
-            if (defaultValues && data.constructionPart === '' && defaultValues.constructionPart) {
-                 
-                setData(prev => ({
-                    ...prev,
-                    ...defaultValues
-                }));
-            }
+            setData(getInitialExportData(defaultValues));
             // If reports are provided, select all by default
             if (reports && reports.length > 0) {
                 const allIds = reports.map(r => r.id).filter((id): id is string => !!id);
@@ -94,6 +105,11 @@ export const ExportDialog = ({ open, onOpenChange, onConfirm, loading = false, d
                 return;
             }
             selectedReports = reports.filter(r => r.id && selectedReportIds.has(r.id));
+            const selectedRealReports = selectedReports.filter((report) => !report.section_name);
+            if (selectedRealReports.length === 0) {
+                showError(t('export.selectAtLeastOneReport'));
+                return;
+            }
         }
 
         // Find selected certifier to get signature URL
@@ -144,8 +160,12 @@ export const ExportDialog = ({ open, onOpenChange, onConfirm, loading = false, d
 
                     {/* Report Selection Section */}
                     {reports && reports.length > 0 && (() => {
-                        const waterReports = reports.filter(r => r.type_id === 1 || (!r.type_id && r.section_name && r.material_type_id === 1));
-                        const airReports = reports.filter(r => r.type_id === 2 || (!r.type_id && r.section_name && r.material_type_id === 2));
+                        const waterReports = reports.filter(
+                            (report) => report.type_id === 1 || (report.section_name && (report.material_type_id === 1 || report.type_id === 1))
+                        );
+                        const airReports = reports.filter(
+                            (report) => report.type_id === 2 || (report.section_name && (report.material_type_id === 2 || report.type_id === 2))
+                        );
 
                         return (
                             <div className="space-y-4">
@@ -168,7 +188,7 @@ export const ExportDialog = ({ open, onOpenChange, onConfirm, loading = false, d
                                         </h4>
                                         <div className="max-h-60 overflow-y-auto space-y-2">
                                             {waterReports.map((report) => {
-                                                const isSection = report.section_name && !report.draft_id;
+                                                const isSection = Boolean(report.section_name);
                                                 return (
                                                     <div key={report.id} className={`flex items-center space-x-2 ${isSection ? 'bg-blue-100 dark:bg-blue-900/40 py-2 px-2 rounded border-l-4 border-blue-600' : 'bg-card py-1.5 px-2 rounded'}`}>
                                                         <input
@@ -208,7 +228,7 @@ export const ExportDialog = ({ open, onOpenChange, onConfirm, loading = false, d
                                         </h4>
                                         <div className="max-h-60 overflow-y-auto space-y-2">
                                             {airReports.map((report) => {
-                                                const isSection = report.section_name && !report.draft_id;
+                                                const isSection = Boolean(report.section_name);
                                                 return (
                                                     <div key={report.id} className={`flex items-center space-x-2 ${isSection ? 'bg-purple-100 dark:bg-purple-900/40 py-2 px-2 rounded border-l-4 border-purple-600' : 'bg-card py-1.5 px-2 rounded'}`}>
                                                         <input
@@ -311,13 +331,15 @@ export const ExportDialog = ({ open, onOpenChange, onConfirm, loading = false, d
                             </div>
                             <div className="space-y-2">
                                 <label className="text-sm font-medium">{t('export.deviation')}</label>
-                                <textarea
-                                    className="flex min-h-[60px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                                <select
+                                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
                                     value={data.waterDeviation}
                                     onChange={(e) => setData({ ...data, waterDeviation: e.target.value })}
-                                    placeholder={t('export.deviationPlaceholder')}
                                     disabled={loading}
-                                />
+                                >
+                                    <option value={WATER_DEVIATION_OPTION_LOW_H2}>{t('export.waterDeviationOptionLowH2')}</option>
+                                    <option value={WATER_DEVIATION_OPTION_SOME_SECTIONS}>{t('export.waterDeviationOptionSomeSections')}</option>
+                                </select>
                             </div>
                         </div>
                     </div>
@@ -390,6 +412,3 @@ export const ExportDialog = ({ open, onOpenChange, onConfirm, loading = false, d
         </Dialog>
     );
 };
-
-
-

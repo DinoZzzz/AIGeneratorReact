@@ -57,16 +57,25 @@ export const enrichReports = async (reportsWithJoins: ReportFormWithJoins[]): Pr
     }
 };
 
+const sortByOrdinal = (a: ReportFormWithJoins, b: ReportFormWithJoins): number =>
+    (a.ordinal ?? Number.MAX_SAFE_INTEGER) - (b.ordinal ?? Number.MAX_SAFE_INTEGER);
+
+const isSectionRow = (report: ReportFormWithJoins): boolean => Boolean(report.section_name);
+const isAirSectionRow = (report: ReportFormWithJoins): boolean =>
+    isSectionRow(report) && (report.material_type_id === 2 || report.type_id === 2);
+const isWaterSectionRow = (report: ReportFormWithJoins): boolean =>
+    isSectionRow(report) && (report.material_type_id === 1 || report.type_id === 1);
+
 export const buildAirReportRows = (reportsWithJoins: ReportFormWithJoins[]): AirReportRow[] => {
     const sortedAirItems = reportsWithJoins
-        .filter(r => r.type_id === 2 || (!r.type_id && r.section_name && r.material_type_id === 2))
-        .sort((a, b) => a.ordinal - b.ordinal);
+        .filter(r => r.type_id === 2 || isAirSectionRow(r))
+        .sort(sortByOrdinal);
 
     const airReports: AirReportRow[] = [];
     let airOrdinal = 1;
 
     sortedAirItems.forEach((r) => {
-        if (r.section_name && !r.type_id) {
+        if (isSectionRow(r)) {
             airReports.push({
                 isSection: true,
                 isReport: false,
@@ -90,7 +99,7 @@ export const buildAirReportRows = (reportsWithJoins: ReportFormWithJoins[]): Air
         airReports.push({
             isSection: false,
             isReport: true,
-            ordinal: airOrdinal++,
+            ordinal: `${airOrdinal++}.`,
             stock: r.dionica || r.stock || '-',
             pipeLength: (r.draft_id === 4 || r.pipe_length === 0) ? '-' : formatNum(r.pipe_length, 2),
             procedureInfo: procText,
@@ -105,14 +114,14 @@ export const buildAirReportRows = (reportsWithJoins: ReportFormWithJoins[]): Air
 
 export const buildWaterReportRows = (reportsWithJoins: ReportFormWithJoins[]): WaterReportRow[] => {
     const sortedWaterItems = reportsWithJoins
-        .filter(r => r.type_id === 1 || (!r.type_id && r.section_name && r.material_type_id === 1))
-        .sort((a, b) => a.ordinal - b.ordinal);
+        .filter(r => r.type_id === 1 || isWaterSectionRow(r))
+        .sort(sortByOrdinal);
 
     const waterReports: WaterReportRow[] = [];
     let waterOrdinal = 1;
 
     sortedWaterItems.forEach((r) => {
-        if (r.section_name && !r.type_id) {
+        if (isSectionRow(r)) {
             waterReports.push({
                 isSection: true,
                 isReport: false,

@@ -8,7 +8,7 @@ import { isConflictDbError } from '../../lib/offlineConflict';
 import { findExistingReportExportId } from '../../lib/reportExportHistory';
 import { addToSyncQueue, saveManyToStore, saveToStore, STORES } from '../../lib/offlineDb';
 import { findRawTagPlacementIssues } from '../../utils/docxTemplate';
-import { formatDate, formatNum } from './helpers';
+import { formatDate, formatNum, sanitizeWordData } from './helpers';
 import { loadFile } from './templateLoader';
 import { createSoftBreakModule } from './softBreakModule';
 import { fetchDocumentData } from './dataPreparation';
@@ -19,6 +19,40 @@ export interface WordExportResult {
     historyConflictRecovered: boolean;
     historyQueued: boolean;
 }
+
+const LEGACY_ATTACHMENTS_PARAGRAPH_REGEX = /<w:p>(?:(?!<w:p>).)*?<w:t>%Attachments%<\/w:t>(?:(?!<w:p>).)*?<\/w:p>/s;
+
+const ATTACHMENTS_LOOP_BLOCK_XML = [
+    '<w:p>',
+    '<w:pPr><w:pStyle w:val="normal1"/><w:spacing w:lineRule="auto" w:line="240" w:before="0" w:after="0"/></w:pPr>',
+    '<w:r><w:t>{#attachments}</w:t></w:r>',
+    '</w:p>',
+    '<w:p>',
+    '<w:pPr><w:pStyle w:val="normal1"/><w:spacing w:lineRule="auto" w:line="240" w:before="200" w:after="0"/></w:pPr>',
+    '<w:r><w:rPr><w:b/><w:bCs/></w:rPr><w:t>Situacija</w:t></w:r>',
+    '</w:p>',
+    '<w:p>',
+    '<w:pPr><w:pStyle w:val="normal1"/><w:spacing w:lineRule="auto" w:line="240" w:before="80" w:after="0"/></w:pPr>',
+    '<w:r><w:t>{%image}</w:t></w:r>',
+    '</w:p>',
+    '<w:p>',
+    '<w:pPr><w:pStyle w:val="normal1"/><w:spacing w:lineRule="auto" w:line="240" w:before="0" w:after="0"/></w:pPr>',
+    '<w:r><w:t>{/attachments}</w:t></w:r>',
+    '</w:p>'
+].join('');
+
+const patchLegacyAttachmentsPlaceholder = (zip: { file: (name: string, data?: string) => { asText: () => string } | null }): void => {
+    const documentXml = zip.file('word/document.xml');
+    if (!documentXml) return;
+
+    const content = documentXml.asText();
+    if (!content.includes('%Attachments%')) return;
+
+    const patchedContent = content.replace(LEGACY_ATTACHMENTS_PARAGRAPH_REGEX, ATTACHMENTS_LOOP_BLOCK_XML);
+    if (patchedContent !== content) {
+        zip.file('word/document.xml', patchedContent);
+    }
+};
 
 interface QueuedExportHistoryPayload {
     exportPayload: Record<string, unknown> & {
@@ -89,6 +123,7 @@ export const generateWordDocument = async (
 
             // 2. Prepare the zip and validate
             const zip = new PizZip(templateContent);
+            patchLegacyAttachmentsPlaceholder(zip);
 
             if (!zip.files['word/document.xml']) {
                 throw new Error("The uploaded template is not a valid Word (.docx) file. It is missing 'word/document.xml'.");
@@ -138,37 +173,46 @@ export const generateWordDocument = async (
             const reportsWithJoins = reports as ReportFormWithJoins[];
             await enrichReports(reportsWithJoins);
             const firstReport = reportsWithJoins[0];
+            const actualReports = reportsWithJoins.filter((report) =>
+                !report.section_name &&
+                typeof report.type_id === 'number' &&
+                report.type_id > 0
+            );
+            if (actualReports.length === 0) {
+                throw new Error('No report rows selected');
+            }
+            const reportsForStats = actualReports;
 
             // 7. Build table rows
             const airReports = buildAirReportRows(reportsWithJoins);
             const waterReports = buildWaterReportRows(reportsWithJoins);
 
             // 8. Compute aggregation fields
-            const pipeReports = reportsWithJoins.filter(r => r.draft_id !== 1 && r.draft_id !== 4);
+            const pipeReports = reportsForStats.filter(r => r.draft_id !== 1 && r.draft_id !== 4);
             const totalLength = pipeReports.reduce((sum, r) => sum + (r.pipe_length || 0), 0);
 
-            const minDate = reportsWithJoins.reduce((min, r) => r.examination_date < min ? r.examination_date : min, reportsWithJoins[0].examination_date);
-            const maxDate = reportsWithJoins.reduce((max, r) => r.examination_date > max ? r.examination_date : max, reportsWithJoins[0].examination_date);
+            const minDate = reportsForStats.reduce((min, r) => r.examination_date < min ? r.examination_date : min, reportsForStats[0].examination_date);
+            const maxDate = reportsForStats.reduce((max, r) => r.examination_date > max ? r.examination_date : max, reportsForStats[0].examination_date);
             const dateRange = minDate === maxDate ? formatDate(minDate) : `${formatDate(minDate)} - ${formatDate(maxDate)}`;
 
-            const minTemp = Math.min(...reportsWithJoins.map(r => r.temperature));
-            const maxTemp = Math.max(...reportsWithJoins.map(r => r.temperature));
+            const minTemp = Math.min(...reportsForStats.map(r => r.temperature));
+            const maxTemp = Math.max(...reportsForStats.map(r => r.temperature));
             const tempRange = minTemp === maxTemp ? `${minTemp.toFixed(0)} ºC` : `${minTemp.toFixed(0)} - ${maxTemp.toFixed(0)} ºC`;
 
-            const satisfies = reportsWithJoins.every(r => r.satisfies);
+            const satisfies = reportsForStats.every(r => r.satisfies);
 
             const uniquePipeMaterials = Array.from(new Set(pipeReports.map(r => r.pipe_material?.name || r.pipe_material_id))).filter(Boolean).join(', ');
-            const uniquePaneMaterials = Array.from(new Set(reportsWithJoins.map(r => r.pane_material?.name || r.pane_material_id))).filter(Boolean).join(', ');
+            const uniquePaneMaterials = Array.from(new Set(reportsForStats.map(r => r.pane_material?.name || r.pane_material_id))).filter(Boolean).join(', ');
             const uniquePipeDiameters = Array.from(new Set(pipeReports.map(r => `ø ${r.pipe_diameter} mm`))).filter(d => d !== 'ø 0 mm' && d !== 'ø undefined mm').join(', ');
-            const uniquePaneDiameters = Array.from(new Set(reportsWithJoins.map(r => `ø ${r.pane_diameter} mm`))).filter(d => d !== 'ø 0 mm' && d !== 'ø undefined mm').join(', ');
+            const uniquePaneDiameters = Array.from(new Set(reportsForStats.map(r => `ø ${r.pane_diameter} mm`))).filter(d => d !== 'ø 0 mm' && d !== 'ø undefined mm').join(', ');
 
             // Build WaterMethodCriteria
             const criteriaList: string[] = [];
-            if (reportsWithJoins.some(r => r.draft_id === 1)) criteriaList.push('reviziono okno = 0,40 l/m²');
-            if (reportsWithJoins.some(r => r.draft_id === 2)) criteriaList.push('cjevovod = 0,15 l/m²');
-            if (reportsWithJoins.some(r => r.draft_id === 3)) criteriaList.push('cjevovod + reviziono okno = 0,20 l/m²');
-            if (reportsWithJoins.some(r => r.draft_id === 4)) criteriaList.push('slivnik = 0,40 l/m²');
-            if (reportsWithJoins.some(r => r.draft_id === 5)) criteriaList.push('cjevovod + slivnik = 0,20 l/m²');
+            if (reportsForStats.some(r => r.draft_id === 1)) criteriaList.push('reviziono okno = 0,40 l/m²');
+            if (reportsForStats.some(r => r.draft_id === 2)) criteriaList.push('cjevovod = 0,15 l/m²');
+            if (reportsForStats.some(r => r.draft_id === 3)) criteriaList.push('cjevovod + reviziono okno = 0,20 l/m²');
+            if (reportsForStats.some(r => r.draft_id === 4)) criteriaList.push('slivnik = 0,40 l/m²');
+            if (reportsForStats.some(r => r.draft_id === 5)) criteriaList.push('cjevovod + slivnik = 0,20 l/m²');
             const waterMethodCriteria = criteriaList.join(', ');
 
             // Table naming logic
@@ -177,8 +221,18 @@ export const generateWordDocument = async (
             const airMethodTableName = hasAirTests ? "Tablica br.1" : "";
             const waterMethodTableName = hasWaterTests ? (hasAirTests ? "Tablica br.2" : "Tablica br.1") : "";
 
-            const anyAirFailed = reportsWithJoins.filter(r => r.type_id === 2).some(r => !r.satisfies);
+            const anyAirFailed = reportsForStats.filter(r => r.type_id === 2).some(r => !r.satisfies);
             const airMethodSatisfies = anyAirFailed ? "ne zadovoljava" : "zadovoljava";
+            const unsatisfiedSections = reportsForStats
+                .filter((report) => !report.satisfies)
+                .map((report) => report.dionica || report.stock || '')
+                .filter(Boolean);
+            const uniqueUnsatisfiedSections = Array.from(new Set(unsatisfiedSections));
+            const unsatisfiedStocksText = satisfies
+                ? "Sve dionice zadovoljavaju uvjete vodonepropusnosti."
+                : uniqueUnsatisfiedSections.length > 0
+                    ? `Dionice ${uniqueUnsatisfiedSections.join(", ")} ne zadovoljavaju uvjete vodonepropusnosti.`
+                    : "Pojedine dionice ne zadovoljavaju uvjete vodonepropusnosti.";
 
             // Creator name
             const creatorFullName = docData.userProfile
@@ -190,11 +244,11 @@ export const generateWordDocument = async (
 
             // 9. Render the document
             const allAttachments = [...docData.attachments, ...docData.pdfReportImages];
-            doc.render({
+            const renderData = {
                 creator: creatorName,
                 certifier: metaData.certifierName,
-                constructionSitePart: metaData.constructionPart || "-",
-                currentDate: new Date().toLocaleDateString('hr-HR'),
+                constructionSitePart: metaData.constructionPart || "Sustav odvodnje odpadnih voda",
+                currentDate: formatDate(new Date()),
                 workOrder: docData.construction?.work_order || "-",
                 examinationDate: dateRange,
                 temperature: tempRange,
@@ -205,7 +259,7 @@ export const generateWordDocument = async (
                 customerDetailed: docData.customer ? `${docData.customer.name}, ${docData.customer.address || ''} ${docData.customer.location || ''}` : "-",
 
                 // Count all reports that include okno (1,3) or slivnik (4,5), exclude pipe-only (2) and other (6)
-                revisionPaneCount: reportsWithJoins.filter(r => r.draft_id === 1 || r.draft_id === 3 || r.draft_id === 4 || r.draft_id === 5).length + " kom.",
+                revisionPaneCount: reportsForStats.filter(r => r.draft_id === 1 || r.draft_id === 3 || r.draft_id === 4 || r.draft_id === 5).length + " kom.",
                 tubeLengthSum: totalLength === 0 ? "-" : formatNum(totalLength, 2) + " m",
                 drainage: metaData.drainage,
 
@@ -231,9 +285,7 @@ export const generateWordDocument = async (
                 waterMethodCriteria,
 
                 isUnsatisfied: !satisfies,
-                unsatisfiedStocks: satisfies
-                    ? "Sve dionice zadovoljavaju uvjete vodonepropusnosti."
-                    : "Dionice " + reportsWithJoins.filter(r => !r.satisfies).map(r => r.stock).join(", ") + " ne zadovoljavaju uvjete vodonepropusnosti.",
+                unsatisfiedStocks: unsatisfiedStocksText,
 
                 tubeMaterials: uniquePipeMaterials,
                 tubeDiameters: uniquePipeDiameters,
@@ -250,7 +302,9 @@ export const generateWordDocument = async (
 
                 certifierSignature: metaData.certifierSignatureUrl ? 'certifierSignature' : null,
                 hasCertifierSignature: !!metaData.certifierSignatureUrl && !!docData.imageMap['certifierSignature']
-            });
+            };
+
+            doc.render(sanitizeWordData(renderData));
 
             // 10. Output the document
             const blob = doc.getZip().generate({
@@ -307,7 +361,7 @@ export const generateWordDocument = async (
                     const exportPayload = {
                         certifier_id: userId,
                         user_id: userId,
-                        construction_part: metaData.constructionPart || 'Unknown Part',
+                        construction_part: metaData.constructionPart || 'Sustav odvodnje odpadnih voda',
                         construction_id: finalConstructionId,
                         customer_id: customerId,
                         type_id: typeId,

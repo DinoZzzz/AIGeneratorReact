@@ -452,6 +452,8 @@ export const en: Record<string, string> = {
     'export.remarkPlaceholder': 'Notes...',
     'export.deviation': 'Deviation',
     'export.deviationPlaceholder': 'Norm deviations...',
+    'export.waterDeviationOptionLowH2': 'h2 < 100 cm',
+    'export.waterDeviationOptionSomeSections': 'For specific sections h2 < 100 cm',
     'export.certifierName': 'Certifier Name',
     'export.certifierPlaceholder': 'Name of the person certifying...',
     'export.attachments': 'Attachments',

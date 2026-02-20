@@ -47,6 +47,8 @@ const generateWordDocument = async (reports: ReportForm[], metaData: ExportMetaD
     return gen(reports, metaData, userId);
 };
 
+const DEFAULT_CONSTRUCTION_PART = 'Sustav odvodnje odpadnih voda';
+
 export const ConstructionReports = () => {
     const { customerId, constructionId } = useParams();
     const navigate = useNavigate();
@@ -297,6 +299,46 @@ export const ConstructionReports = () => {
             } else {
                 reportsToExport = reports.filter(r => !r.section_name);
             }
+
+            const selectedIdsSet = new Set(
+                reportsToExport
+                    .map((report) => report.id)
+                    .filter((reportId): reportId is string => Boolean(reportId))
+            );
+            const sectionIdsToInclude = new Set<string>();
+            const orderedReports = [...reports].sort((a, b) => (a.ordinal || 0) - (b.ordinal || 0));
+            let activeWaterSectionId: string | undefined;
+            let activeAirSectionId: string | undefined;
+
+            orderedReports.forEach((report) => {
+                const isSection = Boolean(report.section_name);
+                if (isSection) {
+                    if (!report.id) return;
+                    if (report.material_type_id === 2 || report.type_id === 2) {
+                        activeAirSectionId = report.id;
+                    } else {
+                        activeWaterSectionId = report.id;
+                    }
+                    return;
+                }
+
+                if (!report.id || !selectedIdsSet.has(report.id)) {
+                    return;
+                }
+
+                const sectionId = report.type_id === 2 ? activeAirSectionId : activeWaterSectionId;
+                if (sectionId) {
+                    sectionIdsToInclude.add(sectionId);
+                }
+            });
+
+            if (sectionIdsToInclude.size > 0) {
+                reportsToExport = orderedReports.filter((report) =>
+                    Boolean(report.id) &&
+                    (selectedIdsSet.has(report.id) || sectionIdsToInclude.has(report.id))
+                );
+            }
+
             const exportResult = await generateWordDocument(reportsToExport, metaData, user?.id);
             setActionMessage(null);
             if (exportResult.historyConflictRecovered) {
@@ -482,7 +524,7 @@ export const ConstructionReports = () => {
                 onConfirm={handleExportConfirm}
                 loading={isExporting}
                 defaultValues={{
-                    constructionPart: construction.name
+                    constructionPart: DEFAULT_CONSTRUCTION_PART
                 }}
                 reports={selectedIds.size === 0 ? reports : undefined}
                 constructionId={constructionId!}

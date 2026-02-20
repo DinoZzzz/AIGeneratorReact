@@ -20,6 +20,9 @@ import {
     useUpdateReport
 } from '../hooks/useReports';
 
+const WATER_DEVIATION_OPTION_LOW_H2 = 'h2 < 100 cm';
+const WATER_DEVIATION_OPTION_SOME_SECTIONS = 'Kod pojedinih dionica h2 < 100 cm';
+
 // Dynamic import for PDF generation to reduce initial bundle size
 const generatePDF = async (report: Partial<ReportForm>, userProfile?: Profile) => {
     const { generatePDF: gen } = await import('../lib/pdfGenerator');
@@ -91,6 +94,7 @@ export const WaterMethodForm = () => {
     const [showMobileResults, setShowMobileResults] = useState(false);
     const [previousReport, setPreviousReport] = useState<ReportForm | null>(null);
     const initializedFromPreviousRef = useRef(false);
+    const lastAutoDeviationRef = useRef<string | null>(null);
 
     // Memoized calculations to prevent recalculation on every render
     const calculated = useMemo<CalculatedResults>(() => {
@@ -183,20 +187,29 @@ export const WaterMethodForm = () => {
 
     // Auto-fill deviation text based on schema conditions
     useEffect(() => {
-        // Auto-fill deviation text for Schema C when hydrostatic height < 100cm
+        let autoText: string | null = null;
+
         if (formData.draft_id === 2 && calculated.hydrostaticHeight < 1.0) {
-            const autoText = "Kod pojedinih dionica h2<100cm";
-            if (formData.deviation !== autoText) {
-                setFormData(prev => ({ ...prev, deviation: autoText }));
-            }
+            autoText = WATER_DEVIATION_OPTION_SOME_SECTIONS;
+        } else if (formData.draft_id === 3 && (formData.water_height || 0) <= 100) {
+            autoText = WATER_DEVIATION_OPTION_LOW_H2;
         }
 
-        // Auto-fill deviation text for Schema B when water height <= 100cm
-        if (formData.draft_id === 3 && (formData.water_height || 0) <= 100) {
-            const autoText = "Kod pojedinih dionica h2<100cm";
-            if (formData.deviation !== autoText) {
-                setFormData(prev => ({ ...prev, deviation: autoText }));
-            }
+        if (!autoText) {
+            return;
+        }
+
+        const currentDeviation = (formData.deviation || '').trim();
+        const lastAutoDeviation = (lastAutoDeviationRef.current || '').trim();
+
+        // Preserve manual user input, but keep auto suggestion synced while untouched.
+        if (currentDeviation && currentDeviation !== lastAutoDeviation) {
+            return;
+        }
+
+        if (currentDeviation !== autoText) {
+            lastAutoDeviationRef.current = autoText;
+            setFormData(prev => ({ ...prev, deviation: autoText }));
         }
     }, [formData.draft_id, formData.water_height, calculated.hydrostaticHeight, formData.deviation]);
 
@@ -205,12 +218,19 @@ export const WaterMethodForm = () => {
             const [draftData, matTypeData, materialData] = await Promise.all([
                 getLookupWithOfflineFallback<ReportDraft>('report_drafts', 'id'),
                 getLookupWithOfflineFallback<MaterialType>('material_types', 'id'),
-                getLookupWithOfflineFallback<Material>('materials', 'name')
+                getLookupWithOfflineFallback<Material>('materials', 'id')
             ]);
 
             setDrafts(draftData);
             setMaterialTypes(matTypeData);
-            setMaterials(materialData);
+            const uniqueMaterials = Array.from(
+                new Map(
+                    materialData
+                        .filter((material) => typeof material?.id === 'number')
+                        .map((material) => [material.id, material])
+                ).values()
+            );
+            setMaterials(uniqueMaterials);
         } catch (error) {
             const appError = errorHandler.handle(error, 'WaterMethodForm');
             showError(errorHandler.getUserMessage(appError));
@@ -237,12 +257,14 @@ export const WaterMethodForm = () => {
     useEffect(() => {
         if (isEditMode && loadedReport) {
             setFormData(loadedReport);
+            lastAutoDeviationRef.current = null;
         }
     }, [isEditMode, loadedReport]);
 
     useEffect(() => {
         initializedFromPreviousRef.current = false;
         setPreviousReport(null);
+        lastAutoDeviationRef.current = null;
     }, [constructionId, customerId, id]);
 
     useEffect(() => {
@@ -338,6 +360,7 @@ export const WaterMethodForm = () => {
                     examination_date: dataToSave.examination_date,
                     dionica: dataToSave.dionica || '',
                 });
+                lastAutoDeviationRef.current = null;
                 setStep(1);
                 navigate(`/customers/${customerId}/constructions/${constructionId}/reports/new/water`);
                 showSuccess(t('reports.form.saveSuccess'));
@@ -403,6 +426,30 @@ export const WaterMethodForm = () => {
     const isShaftRectangular = formData.material_type_id === 2;
     const showPipeFields = [2, 3, 5].includes(formData.draft_id || 0);
     const showGullyFields = [4, 5].includes(formData.draft_id || 0);
+    const isPipeOnlyDraft = formData.draft_id === 2;
+    const paneMaterials = useMemo(
+        () => materials.filter((material) => material.material_type_id === 1),
+        [materials]
+    );
+    const pipeMaterials = useMemo(
+        () => materials.filter((material) => material.material_type_id === 2),
+        [materials]
+    );
+    const selectedPaneMaterial = paneMaterials.find((material) => material.id === formData.pane_material_id);
+    const isConcretePaneMaterial = !isPipeOnlyDraft &&
+        !!selectedPaneMaterial?.name &&
+        /(beton|concrete)/i.test(selectedPaneMaterial.name);
+    const showHydrostaticHeight = formData.draft_id === 3 && calculated.hydrostaticHeight > 0;
+
+    useEffect(() => {
+        if (!isPipeOnlyDraft) return;
+        setFormData(prev => {
+            if (prev.material_type_id === 1) {
+                return prev;
+            }
+            return { ...prev, material_type_id: 1 };
+        });
+    }, [isPipeOnlyDraft]);
 
     if (isEditMode && isReportLoading) {
         return (
@@ -520,43 +567,47 @@ export const WaterMethodForm = () => {
                                             <option key={d.id} value={d.id}>{d.name}</option>
                                         ))}
                                     </Select>
-                                    <Select
-                                        label={formData.draft_id === 4 || formData.draft_id === 5 ? t('reports.form.gullyType') : t('reports.form.shaftType')}
-                                        name="material_type_id"
-                                        value={formData.material_type_id}
-                                        onChange={handleChange}
-                                    >
-                                        {materialTypes.length === 0 && (
-                                            <>
-                                                <option value={1}>{t('reports.form.round')}</option>
-                                                <option value={2}>{t('reports.form.rectangular')}</option>
-                                            </>
-                                        )}
-                                        {materialTypes.map(m => (
-                                            <option key={m.id} value={m.id}>{m.name}</option>
-                                        ))}
-                                    </Select>
-                                    <Select
-                                        label={formData.draft_id === 4 || formData.draft_id === 5 ? t('reports.form.gullyMaterial') : t('reports.form.shaftMaterial')}
-                                        name="pane_material_id"
-                                        value={formData.pane_material_id || (isShaftRound ? 1 : 6)}
-                                        onChange={handleChange}
-                                    >
-                                        {materials.length > 0 ? (
-                                            materials.map(m => (
+                                    {!isPipeOnlyDraft && (
+                                        <Select
+                                            label={formData.draft_id === 4 || formData.draft_id === 5 ? t('reports.form.gullyType') : t('reports.form.shaftType')}
+                                            name="material_type_id"
+                                            value={formData.material_type_id}
+                                            onChange={handleChange}
+                                        >
+                                            {materialTypes.length === 0 && (
+                                                <>
+                                                    <option value={1}>{t('reports.form.round')}</option>
+                                                    <option value={2}>{t('reports.form.rectangular')}</option>
+                                                </>
+                                            )}
+                                            {materialTypes.map(m => (
                                                 <option key={m.id} value={m.id}>{m.name}</option>
-                                            ))
-                                        ) : (
-                                            <option value={1}>{t('reports.form.standardMaterial')}</option>
-                                        )}
-                                    </Select>
+                                            ))}
+                                        </Select>
+                                    )}
+                                    {!isPipeOnlyDraft && (
+                                        <Select
+                                            label={formData.draft_id === 4 || formData.draft_id === 5 ? t('reports.form.gullyMaterial') : t('reports.form.shaftMaterial')}
+                                            name="pane_material_id"
+                                            value={formData.pane_material_id || paneMaterials[0]?.id || ''}
+                                            onChange={handleChange}
+                                        >
+                                            {paneMaterials.length > 0 ? (
+                                                paneMaterials.map(m => (
+                                                    <option key={m.id} value={m.id}>{m.name}</option>
+                                                ))
+                                            ) : (
+                                                <option value={1}>{t('reports.form.standardMaterial')}</option>
+                                            )}
+                                        </Select>
+                                    )}
                                 </div>
                             </div>
 
                             <div className="bg-card shadow-sm rounded-xl border border-border p-6">
                                 <h3 className="text-lg font-semibold text-foreground mb-4">{t('reports.form.dimensions')}</h3>
                                 <div className="space-y-4">
-                                    {isShaftRound && (
+                                    {isShaftRound && formData.draft_id !== 2 && (
                                         <Input
                                             label={formData.draft_id === 4 || formData.draft_id === 5 ? t('reports.form.gullyDiameter') : t('reports.form.paneDiameterMm')}
                                             type="number"
@@ -635,7 +686,7 @@ export const WaterMethodForm = () => {
                                         </>
                                     )}
 
-                                    {isShaftRound && (
+                                    {isShaftRound && !isPipeOnlyDraft && (
                                         <Input
                                             label={t('reports.form.roHeight')}
                                             type="number"
@@ -665,36 +716,29 @@ export const WaterMethodForm = () => {
                                             className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                                         />
                                     </div>
-                                    {(() => {
-                                        // Show saturation time only for concrete materials
-                                        const paneMaterial = materials.find(m => m.id === formData.pane_material_id);
-                                        const pipeMaterial = materials.find(m => m.id === formData.pipe_material_id);
-                                        const isConcrete = (paneMaterial?.name?.toLowerCase().includes('beton') || paneMaterial?.name?.toLowerCase().includes('concrete')) ||
-                                            (pipeMaterial?.name?.toLowerCase().includes('beton') || pipeMaterial?.name?.toLowerCase().includes('concrete'));
-                                        return isConcrete ? (
-                                            <div>
-                                                <label className="text-sm font-medium mb-1 block">{t('reports.form.saturationTime')}</label>
-                                                <input
-                                                    type="text"
-                                                    name="saturation_time"
-                                                    value={formData.saturation_time || '01:00:00'}
-                                                    onChange={handleChange}
-                                                    placeholder="01:00:00"
-                                                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                                                />
-                                            </div>
-                                        ) : null;
-                                    })()}
+                                    {isConcretePaneMaterial && (
+                                        <div>
+                                            <label className="text-sm font-medium mb-1 block">{t('reports.form.saturationTime')}</label>
+                                            <input
+                                                type="text"
+                                                name="saturation_time"
+                                                value={formData.saturation_time || '01:00:00'}
+                                                onChange={handleChange}
+                                                placeholder="01:00:00"
+                                                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                                            />
+                                        </div>
+                                    )}
                                     {showPipeFields && (
                                         <>
                                             <Select
                                                 label={t('reports.form.pipeMaterial')}
                                                 name="pipe_material_id"
-                                                value={formData.pipe_material_id || 1}
+                                                value={formData.pipe_material_id || pipeMaterials[0]?.id || ''}
                                                 onChange={handleChange}
                                             >
-                                                {materials.length > 0 ? (
-                                                    materials.map(m => (
+                                                {pipeMaterials.length > 0 ? (
+                                                    pipeMaterials.map(m => (
                                                         <option key={m.id} value={m.id}>{m.name}</option>
                                                     ))
                                                 ) : (
@@ -842,7 +886,7 @@ export const WaterMethodForm = () => {
                                         <ResultRow label={t('reports.form.totalWettedArea')} value={`${calculated.totalWettedArea.toFixed(2)} m`} />
                                         <ResultRow label={t('reports.form.allowedLossLiters')} value={`${calculated.allowedLossL.toFixed(2)} ${t('reports.form.volumeLossUnit')}`} />
                                         <ResultRow label={t('reports.form.allowedLossMm')} value={`${calculated.allowedLossMm.toFixed(2)} ${t('reports.form.waterLossUnitMm')}`} />
-                                        {showPipeFields && formData.draft_id !== 5 && calculated.hydrostaticHeight > 0 && (
+                                        {showHydrostaticHeight && (
                                             <ResultRow label={t('reports.form.hydrostaticHeight')} value={`${(calculated.hydrostaticHeight * 100).toFixed(0)} cm`} />
                                         )}
                                         <ResultRow label={t('reports.form.waterLoss')} value={`${calculated.waterLoss.toFixed(2)} ${t('reports.form.waterLossUnitMm')}`} />
@@ -922,7 +966,7 @@ export const WaterMethodForm = () => {
                                         <ResultRow label={t('reports.form.totalWettedArea')} value={`${calculated.totalWettedArea.toFixed(2)} m`} />
                                         <ResultRow label={t('reports.form.allowedLossLiters')} value={`${calculated.allowedLossL.toFixed(2)} ${t('reports.form.volumeLossUnit')}`} />
                                         <ResultRow label={t('reports.form.allowedLossMm')} value={`${calculated.allowedLossMm.toFixed(2)} ${t('reports.form.waterLossUnitMm')}`} />
-                                        {showPipeFields && formData.draft_id !== 5 && calculated.hydrostaticHeight > 0 && (
+                                        {showHydrostaticHeight && (
                                             <ResultRow label={t('reports.form.hydrostaticHeight')} value={`${(calculated.hydrostaticHeight * 100).toFixed(0)} cm`} />
                                         )}
                                         <ResultRow label={t('reports.form.waterLoss')} value={`${calculated.waterLoss.toFixed(2)} ${t('reports.form.waterLossUnitMm')}`} />

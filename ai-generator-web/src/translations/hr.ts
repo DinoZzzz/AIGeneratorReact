@@ -452,6 +452,8 @@ export const hr: Record<string, string> = {
     'export.remarkPlaceholder': 'Napomene...',
     'export.deviation': 'Odstupanje',
     'export.deviationPlaceholder': 'Odstupanja od norme...',
+    'export.waterDeviationOptionLowH2': 'h2 < 100 cm',
+    'export.waterDeviationOptionSomeSections': 'Kod pojedinih dionica h2 < 100 cm',
     'export.certifierName': 'Certifikator',
     'export.certifierPlaceholder': 'Ime i prezime certifikatora',
     'export.attachments': 'Prilozi',

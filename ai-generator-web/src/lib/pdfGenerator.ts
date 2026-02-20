@@ -1,5 +1,5 @@
 import jsPDF from 'jspdf';
-import type { ReportForm, Profile } from '../types';
+import type { ReportForm, Profile, Material, SchemeImage } from '../types';
 import * as calc from './calculations/report';
 import { RobotoRegular, RobotoBold } from './fonts/roboto';
 
@@ -43,21 +43,155 @@ const loadImage = (src: string): Promise<HTMLImageElement> => {
 
 const FORM_ISSUE_DATE = '01.05.2020.';
 
-const resolveSchemeNumberForReport = (report: Partial<ReportForm>): number => {
-    const draftId = Number(report.draft_id) || 1;
+const LEGACY_AIR_DRAFT_TO_SCHEME_NUMBER: Record<number, number> = {
+    2: 1, // Pipe only
+    3: 2, // Shaft + pipe
+    1: 3 // Shaft only
+};
 
+const AIR_DRAFT_TO_LETTER: Record<number, 'F' | 'G' | 'H'> = {
+    1: 'F', // Shaft only
+    2: 'G', // Pipe only
+    3: 'H' // Shaft + pipe
+};
+
+const getFallbackSchemeNumberForReport = (report: Partial<ReportForm>): number => {
+    const draftId = Number(report.draft_id) || 1;
     if (Number(report.type_id) === 2) {
-        // Air method scheme numbering:
-        // 1 = pipe only, 2 = shaft + pipe, 3 = shaft only
-        const airDraftToSchemeNumber: Record<number, number> = {
-            2: 1,
-            3: 2,
-            1: 3
+        return LEGACY_AIR_DRAFT_TO_SCHEME_NUMBER[draftId] || 1;
+    }
+    return draftId;
+};
+
+const getAirProcedureName = (report: Partial<ReportForm>): 'LA' | 'LB' | 'LC' | 'LD' => {
+    const joinedName = report.examination_procedure?.name?.toUpperCase() || '';
+    if (joinedName.includes('LB')) return 'LB';
+    if (joinedName.includes('LC')) return 'LC';
+    if (joinedName.includes('LD')) return 'LD';
+    if (joinedName.includes('LA')) return 'LA';
+
+    const procedureId = Number(report.examination_procedure_id) || 1;
+    const idToName: Record<number, 'LA' | 'LB' | 'LC' | 'LD'> = {
+        1: 'LA',
+        2: 'LB',
+        3: 'LC',
+        4: 'LD'
+    };
+    return idToName[procedureId] || 'LA';
+};
+
+const getFallbackAirSchemeNameByLetter = (letter: 'F' | 'G' | 'H'): string => {
+    const names: Record<'F' | 'G' | 'H', string> = {
+        F: 'Shema F - Ispitivanje okna',
+        G: 'Shema G - Ispitivanje cjevovoda',
+        H: 'Shema H - Ispitivanje okna i cjevovoda'
+    };
+    return names[letter];
+};
+
+const getFallbackSchemeName = (report: Partial<ReportForm>): string => {
+    if (Number(report.type_id) === 2) {
+        const draftId = Number(report.draft_id) || 1;
+        const procedureName = getAirProcedureName(report);
+        if (procedureName === 'LA' || procedureName === 'LB') {
+            const letter = AIR_DRAFT_TO_LETTER[draftId] || 'G';
+            return getFallbackAirSchemeNameByLetter(letter);
+        }
+
+        const airSchemeNames: Record<number, string> = {
+            1: 'Shema 1 - Ispitivanje cjevovoda',
+            2: 'Shema 2 - Ispitivanje okna i cjevovoda',
+            3: 'Shema 3 - Ispitivanje okna'
         };
-        return airDraftToSchemeNumber[draftId] || 1;
+        const schemeNumber = getFallbackSchemeNumberForReport(report);
+        return airSchemeNames[schemeNumber] || 'Nepoznata shema';
     }
 
-    return draftId;
+    const waterSchemeNames: Record<number, string> = {
+        1: 'Shema A - Ispitivanje okna',
+        2: 'Shema C - Ispitivanje cjevovoda',
+        3: 'Shema B - Ispitivanje okna i cjevovoda',
+        4: 'Shema D - Ispitivanje slivnika',
+        5: 'Shema E - Ispitivanje slivnika i cjevovoda'
+    };
+    const draftId = Number(report.draft_id) || 1;
+    return waterSchemeNames[draftId] || 'Nepoznata shema';
+};
+
+let materialsMapPromise: Promise<Map<number, string>> | null = null;
+
+const getMaterialNamesMap = async (): Promise<Map<number, string>> => {
+    if (!materialsMapPromise) {
+        materialsMapPromise = (async () => {
+            try {
+                const { getLookupWithOfflineFallback } = await import('../lib/offlineLookupCache');
+                const materials = await getLookupWithOfflineFallback<Material>('materials', 'id');
+                return new Map<number, string>(
+                    materials
+                        .filter((material) => typeof material?.id === 'number' && typeof material?.name === 'string')
+                        .map((material) => [material.id, material.name])
+                );
+            } catch {
+                return new Map<number, string>();
+            }
+        })();
+    }
+    return materialsMapPromise;
+};
+
+let airSchemesPromise: Promise<SchemeImage[]> | null = null;
+
+const getAirSchemes = async (): Promise<SchemeImage[]> => {
+    if (!airSchemesPromise) {
+        airSchemesPromise = (async () => {
+            try {
+                const { getSchemeImages } = await import('../services/schemeService');
+                const schemes = await getSchemeImages();
+                return schemes.filter((scheme) => scheme.method_type === 'air');
+            } catch {
+                return [];
+            }
+        })();
+    }
+    return airSchemesPromise;
+};
+
+const matchesAirSchemeLetter = (schemeName: string, letter: 'F' | 'G' | 'H'): boolean => {
+    const normalizedName = schemeName.toLowerCase().trim();
+    const normalizedLetter = letter.toLowerCase();
+    return (
+        normalizedName === normalizedLetter ||
+        normalizedName.includes(`shema ${normalizedLetter}`) ||
+        normalizedName.includes(`scheme ${normalizedLetter}`) ||
+        normalizedName.includes(`schema ${normalizedLetter}`)
+    );
+};
+
+interface ResolvedAirSchemeSelection {
+    schemeNumber: number;
+    fallbackName: string;
+}
+
+const resolveAirSchemeSelection = async (report: Partial<ReportForm>): Promise<ResolvedAirSchemeSelection> => {
+    const draftId = Number(report.draft_id) || 1;
+    const fallbackSchemeNumber = LEGACY_AIR_DRAFT_TO_SCHEME_NUMBER[draftId] || 1;
+    const procedureName = getAirProcedureName(report);
+
+    if (procedureName !== 'LA' && procedureName !== 'LB') {
+        return {
+            schemeNumber: fallbackSchemeNumber,
+            fallbackName: getFallbackSchemeName(report)
+        };
+    }
+
+    const targetLetter = AIR_DRAFT_TO_LETTER[draftId] || 'G';
+    const airSchemes = await getAirSchemes();
+    const matchedScheme = airSchemes.find((scheme) => matchesAirSchemeLetter(scheme.name || '', targetLetter));
+
+    return {
+        schemeNumber: matchedScheme?.scheme_number || fallbackSchemeNumber,
+        fallbackName: getFallbackAirSchemeNameByLetter(targetLetter)
+    };
 };
 
 export const generatePDF = async (report: Partial<ReportForm>, userProfile?: Profile) => {
@@ -102,51 +236,38 @@ export const generateBulkPDFAsBlob = async (reports: Partial<ReportForm>[], user
     return doc.output('blob');
 };
 
-// Helper to get scheme name
-const getSchemeName = (report: Partial<ReportForm>) => {
-    if (Number(report.type_id) === 2) {
-        const airSchemeNames: Record<number, string> = {
-            1: 'Shema 1 - Ispitivanje cjevovoda',
-            2: 'Shema 2 - Ispitivanje okna i cjevovoda',
-            3: 'Shema 3 - Ispitivanje okna'
-        };
-        const schemeNumber = resolveSchemeNumberForReport(report);
-        return airSchemeNames[schemeNumber] || 'Nepoznata shema';
-    }
-
-    const waterSchemeNames: Record<number, string> = {
-        1: 'Shema A - Ispitivanje okna',
-        2: 'Shema C - Ispitivanje cjevovoda',
-        3: 'Shema B - Ispitivanje okna i cjevovoda',
-        4: 'Shema D - Ispitivanje slivnika',
-        5: 'Shema E - Ispitivanje slivnika i cjevovoda'
-    };
-    const draftId = Number(report.draft_id) || 1;
-    return waterSchemeNames[draftId] || 'Nepoznata shema';
-};
-
 // Extracted rendering logic
 const renderReportPage = async (doc: jsPDF, report: Partial<ReportForm>, userProfile?: Profile, pageNum: number = 1, totalPages: number = 1) => {
     const pageWidth = doc.internal.pageSize.width;
     const pageHeight = doc.internal.pageSize.height;
     const reportTypeId = Number(report.type_id);
+    const methodType: 'water' | 'air' | undefined = reportTypeId === 1
+        ? 'water'
+        : reportTypeId === 2
+            ? 'air'
+            : undefined;
 
     // Load Assets
     let logoImg, sketchImg;
+    let schemeName = getFallbackSchemeName(report);
     try {
         logoImg = await loadImage('/assets/ai_icon.png');
-        const schemeNum = resolveSchemeNumberForReport(report);
-        const methodType: 'water' | 'air' | undefined = reportTypeId === 1
-            ? 'water'
-            : reportTypeId === 2
-                ? 'air'
-                : undefined;
+        let schemeNum = getFallbackSchemeNumberForReport(report);
+        if (methodType === 'air') {
+            const resolvedSelection = await resolveAirSchemeSelection(report);
+            schemeNum = resolvedSelection.schemeNumber;
+            schemeName = resolvedSelection.fallbackName;
+        }
 
         // Try to get custom scheme image from admin settings, with method-aware fallback
         let schemeImageUrl: string;
         try {
-            const { getSchemeImageUrl, getLocalSchemeAssetPath } = await import('../services/schemeService');
+            const { getSchemeImageUrl, getLocalSchemeAssetPath, getSchemeImage } = await import('../services/schemeService');
             try {
+                const schemeRecord = methodType ? await getSchemeImage(schemeNum, methodType) : null;
+                if (schemeRecord?.name) {
+                    schemeName = schemeRecord.name;
+                }
                 schemeImageUrl = await getSchemeImageUrl(schemeNum, methodType);
             } catch {
                 schemeImageUrl = getLocalSchemeAssetPath(schemeNum, methodType);
@@ -248,7 +369,6 @@ const renderReportPage = async (doc: jsPDF, report: Partial<ReportForm>, userPro
     doc.text(`Datum ispitivanja: ${report.examination_date || '-'}`, 40, currentY + 5);
 
     // Right side (Sketch label)
-    const schemeName = getSchemeName(report);
     doc.text(`Skica:  ${schemeName}`, 100, currentY);
 
     // Sketch Image
@@ -302,6 +422,21 @@ const renderReportPage = async (doc: jsPDF, report: Partial<ReportForm>, userPro
 
     const addLeft = (k: string, v: string, maxWidth?: number) => { drawLeftRow(k, v, leftY, maxWidth); leftY += 5; };
     const addRight = (k: string, v: string) => { drawRightRow(k, v, rightY); rightY += 5; };
+    const materialNames = await getMaterialNamesMap();
+    const resolveMaterialDisplayName = (
+        materialId: number,
+        joinedMaterialName?: string,
+        fallbackValue = '-'
+    ): string => {
+        if (materialId > 0) {
+            const cachedName = materialNames.get(materialId);
+            if (cachedName) return cachedName;
+        }
+        if (joinedMaterialName && joinedMaterialName.trim().length > 0) {
+            return joinedMaterialName;
+        }
+        return fallbackValue;
+    };
 
     // --- Left Column Inputs ---
     // Dionica - show full name without truncation
@@ -329,13 +464,12 @@ const renderReportPage = async (doc: jsPDF, report: Partial<ReportForm>, userPro
     }
 
     // Material Name Logic
-    let materialName = '-';
-    if (report.material_type_id === 1) { // Round
-        const mats = ['PVC', 'PE', 'PEHD', 'GRP'];
-        materialName = mats[(report.pane_material_id || 1) - 1] || 'PVC';
-    } else {
-        materialName = 'Armirano betonska';
-    }
+    const paneMaterialId = Number(report.pane_material_id) || 0;
+    const pipeMaterialId = Number(report.pipe_material_id) || 0;
+    const materialName = resolveMaterialDisplayName(
+        paneMaterialId,
+        report.pane_material?.name
+    );
     // Hide shaft/gully material for pipe-only inspections
     if (!isAirMethod && !isPipeOnly) {
         addLeft(materialLabel, materialName);
@@ -345,7 +479,7 @@ const renderReportPage = async (doc: jsPDF, report: Partial<ReportForm>, userPro
     if (typeId === 1) {
         if (report.material_type_id === 1) { // Round
             if (!isPipeOnly) { // Not Schema C (Pipe Only) - Schema C uses pane_diameter for main pipe
-                addLeft('Visina okna', `${Math.round(report.ro_height || 0)} cm`);
+                addLeft(heightLabel, `${Math.round(report.ro_height || 0)} cm`);
             }
 
             if (isPipeOnly) {
@@ -387,13 +521,17 @@ const renderReportPage = async (doc: jsPDF, report: Partial<ReportForm>, userPro
         addLeft('Metoda ispitivanja', procNames[report.examination_procedure_id || 1] || 'LA');
     }
 
-    addLeft('Trajanje', report.examination_duration || '-');
+    if (typeId === 1) {
+        addLeft('Trajanje', report.examination_duration || '-');
+    }
 
     // --- Right Column Inputs (Pipe Info) ---
     // Show pipe info for B(3), C(2), E(5) - only for Water Method
     if (typeId === 1 && [2, 3, 5].includes(draftId)) {
-        const pipeMats = ['PVC', 'PE', 'PEHD', 'GRP'];
-        const pipeMatName = pipeMats[(report.pipe_material_id || 1) - 1] || 'PVC';
+        const pipeMatName = resolveMaterialDisplayName(
+            pipeMaterialId,
+            report.pipe_material?.name
+        );
 
         addRight('Materijal cijevi', pipeMatName);
         addRight('Dužina cijevi', `${(report.pipe_length || 0).toFixed(1)} m`);
@@ -410,9 +548,11 @@ const renderReportPage = async (doc: jsPDF, report: Partial<ReportForm>, userPro
     if (typeId === 2) {
         if (airIncludesPipe) {
             // Show pipe material info if selected
-            if (report.pipe_material_id && report.pipe_material_id > 0) {
-                const airPipeMats: Record<number, string> = { 1: 'PVC', 2: 'Betonska', 3: 'PE', 4: 'PEHD' };
-                const pipeMat = airPipeMats[report.pipe_material_id] || 'PVC';
+            const pipeMat = resolveMaterialDisplayName(
+                pipeMaterialId,
+                report.pipe_material?.name
+            );
+            if (pipeMat !== '-') {
                 addRight('Materijal cijevi', pipeMat);
             }
 
@@ -426,9 +566,6 @@ const renderReportPage = async (doc: jsPDF, report: Partial<ReportForm>, userPro
 
         const stabTime = report.stabilization_time || '00:00';
         addRight('Vr. stabilizacije', stabTime.toString());
-
-        const examDuration = report.examination_duration || '00:00';
-        addRight('Trajanje', examDuration.toString());
 
         // Format required test time (convert minutes to mm:ss)
         const testTimeMins = report.required_test_time || 0;
@@ -508,12 +645,12 @@ const renderReportPage = async (doc: jsPDF, report: Partial<ReportForm>, userPro
         addRight('Vis. vode na poc.', `${Math.round(report.water_height_start || 0)} mm`);
         addRight('Vis. vode na kraju', `${Math.round(report.water_height_end || 0)} mm`);
 
-        if ([2, 3].includes(draftId) && hydrostaticHeight > 0) {
+        if (draftId === 3 && hydrostaticHeight > 0) {
             addRight('Hidrost. visina', `${(hydrostaticHeight * 100).toFixed(0)} cm`);
         }
 
         addRight('Gubitak vode', `${waterLoss.toFixed(1)} mm`);
-        addRight('ΔV', `${volLoss.toFixed(4)} l`);
+        addRight('\u0394V', `${volLoss.toFixed(4)} l`);
         addRight('Izmj. gubitak', `${result.toFixed(2)} l/m²`);
     } else if (typeId === 2) { // Air Method Results
         // Air method measurements are now in the input section above
@@ -522,7 +659,7 @@ const renderReportPage = async (doc: jsPDF, report: Partial<ReportForm>, userPro
 
         // Draw EN 1610 Table
         const tableY = currentY;
-        const tableWidth = 170;
+        const tableWidth = 152;
         const tableX = (pageWidth - tableWidth) / 2;
 
         doc.setDrawColor(0);
@@ -531,23 +668,21 @@ const renderReportPage = async (doc: jsPDF, report: Partial<ReportForm>, userPro
         // Main category headers
         doc.setFontSize(8);
         doc.setFont('Roboto', 'bold');
-        doc.text('SUHE BETONSKE CIJEVI', tableX + 42.5, tableY + 2, { align: 'center' });
-        doc.text('OSTALE CIJEVI', tableX + 127.5, tableY + 2, { align: 'center' });
+        doc.text('SUHE BETONSKE CIJEVI', tableX + 34.5, tableY + 2, { align: 'center' });
+        doc.text('OSTALE CIJEVI', tableX + 119.5, tableY + 2, { align: 'center' });
 
-        // Column configuration: DN(17) + 4 methods(13 each) + gap(32) + DN(17) + 4 methods(13 each)
-        const colWidths = [17, 13, 13, 13, 13, 32, 13, 13, 13, 13];
+        // Column configuration: DN + 4 methods + gap + DN + 4 methods
+        const colWidths = [17, 13, 13, 13, 13, 18, 13, 13, 13, 13, 13];
 
         let y = tableY + 6;
         doc.setFontSize(7);
 
-        // First header row - Methods and diameter column
-        doc.text('DN [mm]', tableX + 8.5, y, { align: 'center' });
+        // First header row - Methods
         doc.text('LA', tableX + 23.5, y, { align: 'center' });
         doc.text('LB', tableX + 36.5, y, { align: 'center' });
         doc.text('LC', tableX + 49.5, y, { align: 'center' });
         doc.text('LD', tableX + 62.5, y, { align: 'center' });
 
-        doc.text('DN [mm]', tableX + 93.5, y, { align: 'center' });
         doc.text('LA', tableX + 106.5, y, { align: 'center' });
         doc.text('LB', tableX + 119.5, y, { align: 'center' });
         doc.text('LC', tableX + 132.5, y, { align: 'center' });
@@ -600,6 +735,13 @@ const renderReportPage = async (doc: jsPDF, report: Partial<ReportForm>, userPro
         doc.text('Vrijeme ispitivanja t [min]', tableX + tableWidth / 2, y, { align: 'center' });
         doc.setFont('Roboto', 'normal');
 
+        // DN header row above diameter values
+        y += 4;
+        doc.setFont('Roboto', 'bold');
+        doc.setFontSize(7);
+        doc.text('DN [mm]', tableX + 8.5, y, { align: 'center' });
+        doc.text('DN [mm]', tableX + 93.5, y, { align: 'center' });
+
         // Data rows
         y += 4;
         doc.setFont('Roboto', 'normal');
@@ -650,12 +792,13 @@ const renderReportPage = async (doc: jsPDF, report: Partial<ReportForm>, userPro
         doc.line(tableX, tableY + 8, tableX + tableWidth, tableY + 8); // After methods
         doc.line(tableX, tableY + 15, tableX + tableWidth, tableY + 15); // After initial pressure
         doc.line(tableX, tableY + 22, tableX + tableWidth, tableY + 22); // After pressure drop
+        doc.line(tableX, tableY + 26, tableX + tableWidth, tableY + 26); // After time header
         doc.setLineWidth(0.25);
-        doc.line(tableX, tableY + 26, tableX + tableWidth, tableY + 26); // Before data (thicker)
+        doc.line(tableX, tableY + 30, tableX + tableWidth, tableY + 30); // Before data (thicker)
 
         // Thin lines between data rows
         doc.setLineWidth(0.1);
-        let rowLine = tableY + 30;
+        let rowLine = tableY + 34;
         for (let i = 0; i < rows.length - 1; i++) {
             doc.line(tableX, rowLine, tableX + tableWidth, rowLine);
             rowLine += 4;
