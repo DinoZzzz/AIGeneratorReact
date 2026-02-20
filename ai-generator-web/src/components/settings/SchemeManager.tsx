@@ -10,6 +10,7 @@ import {
     updateSchemeMetadata,
     resetSchemeImage,
     getSchemePublicUrl,
+    getLocalSchemeAssetPath,
     validateSchemeImage
 } from '../../services/schemeService';
 import type { SchemeImage } from '../../types';
@@ -49,10 +50,10 @@ const SchemeCard: React.FC<SchemeCardProps> = ({ scheme, isOnline, onSaveMetadat
     const [isDragging, setIsDragging] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    // Get current image URL
+    // Get current image URL (method-aware fallback)
     const currentImageUrl = scheme.file_path
         ? (scheme.file_path.startsWith('blob:') ? scheme.file_path : getSchemePublicUrl(scheme.file_path))
-        : `/assets/Scheme${scheme.scheme_number}.PNG`;
+        : getLocalSchemeAssetPath(scheme.scheme_number, scheme.method_type);
 
     const handleFileSelect = (file: File) => {
         const validation = validateSchemeImage(file);
@@ -221,7 +222,7 @@ const SchemeCard: React.FC<SchemeCardProps> = ({ scheme, isOnline, onSaveMetadat
                     alt={scheme.name}
                     className="w-full h-full object-contain bg-muted/30"
                     onError={(e) => {
-                        (e.target as HTMLImageElement).src = `/assets/Scheme${scheme.scheme_number}.PNG`;
+                        (e.target as HTMLImageElement).src = getLocalSchemeAssetPath(scheme.scheme_number, scheme.method_type);
                     }}
                 />
 

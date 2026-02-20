@@ -135,21 +135,30 @@ const renderReportPage = async (doc: jsPDF, report: Partial<ReportForm>, userPro
     try {
         logoImg = await loadImage('/assets/ai_icon.png');
         const schemeNum = resolveSchemeNumberForReport(report);
-        const methodType = report.type_id === 1
+        const methodType: 'water' | 'air' | undefined = report.type_id === 1
             ? 'water'
             : report.type_id === 2
                 ? 'air'
                 : undefined;
 
-        // Try to get custom scheme image from admin settings, with safe fallback
-        let schemeImageUrl = `/assets/Scheme${schemeNum}.PNG`;
+        // Try to get custom scheme image from admin settings, with method-aware fallback
+        let schemeImageUrl: string;
         try {
-            // Use dynamic import to avoid module initialization issues
-            const { getSchemeImageUrl } = await import('../services/schemeService');
-            schemeImageUrl = await getSchemeImageUrl(schemeNum, methodType);
+            const { getSchemeImageUrl, getLocalSchemeAssetPath } = await import('../services/schemeService');
+            try {
+                schemeImageUrl = await getSchemeImageUrl(schemeNum, methodType);
+            } catch {
+                schemeImageUrl = getLocalSchemeAssetPath(schemeNum, methodType);
+            }
         } catch {
-            // Fallback to local asset if schemeService fails
-            console.warn('Failed to get custom scheme image, using local asset');
+            // Dynamic import itself failed — inline method-aware fallback
+            if (methodType === 'air') {
+                const airAssets: Record<number, string> = { 1: '/assets/Scheme6.PNG', 2: '/assets/Scheme8.png', 3: '/assets/Scheme7.png' };
+                schemeImageUrl = airAssets[schemeNum] || '/assets/Scheme6.PNG';
+            } else {
+                schemeImageUrl = `/assets/Scheme${schemeNum}.PNG`;
+            }
+            console.warn('Failed to load schemeService, using local asset');
         }
 
         sketchImg = await loadImage(schemeImageUrl);

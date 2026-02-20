@@ -8,6 +8,33 @@ const ALLOWED_TYPES = ['image/png', 'image/jpeg', 'image/webp'];
 type SchemeMethodType = SchemeImage['method_type'];
 
 /**
+ * Air scheme local assets are not sequentially numbered after water,
+ * so we use an explicit mapping: scheme_number → local asset filename.
+ *   Air 1 (pipe)        → Scheme6.PNG
+ *   Air 2 (shaft+pipe)  → Scheme8.png
+ *   Air 3 (shaft)       → Scheme7.png
+ */
+const AIR_SCHEME_LOCAL_ASSETS: Record<number, string> = {
+    1: '/assets/Scheme6.PNG',
+    2: '/assets/Scheme8.png',
+    3: '/assets/Scheme7.png',
+};
+
+/**
+ * Get the correct local asset path for a scheme, accounting for method type.
+ * Water schemes use Scheme1-5.PNG, air schemes use the explicit mapping above.
+ */
+export const getLocalSchemeAssetPath = (
+    schemeNumber: number,
+    methodType?: SchemeMethodType
+): string => {
+    if (methodType === 'air') {
+        return AIR_SCHEME_LOCAL_ASSETS[schemeNumber] || '/assets/Scheme6.PNG';
+    }
+    return `/assets/Scheme${schemeNumber}.PNG`;
+};
+
+/**
  * Get all scheme images from the database
  */
 export const getSchemeImages = async (): Promise<SchemeImage[]> => {
@@ -96,6 +123,7 @@ export const getSchemeImageUrl = async (
     schemeNumber: number,
     methodType?: SchemeMethodType
 ): Promise<string> => {
+    const localFallback = getLocalSchemeAssetPath(schemeNumber, methodType);
     try {
         const scheme = await getSchemeImage(schemeNumber, methodType);
 
@@ -110,12 +138,10 @@ export const getSchemeImageUrl = async (
             }
         }
 
-        // Fallback to local asset
-        return `/assets/Scheme${schemeNumber}.PNG`;
+        return localFallback;
     } catch (error) {
         captureError(error instanceof Error ? error : new Error(`Error getting scheme ${schemeNumber} URL`), { service: 'schemeService', method: 'getSchemeImageUrl', schemeNumber, methodType });
-        // Fallback to local asset
-        return `/assets/Scheme${schemeNumber}.PNG`;
+        return localFallback;
     }
 };
 
