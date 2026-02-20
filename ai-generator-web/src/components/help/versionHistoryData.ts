@@ -7,6 +7,14 @@ export interface VersionHistoryItem {
 export function getVersionHistory(language: string): VersionHistoryItem[] {
     return language === 'hr' ? [
         {
+            version: '2.27.0',
+            date: '2026-02-20',
+            changes: [
+                'Ispravljen PDF prikaz za ispitivanja samo cjevovoda: podaci o oknu se više ne prikazuju kada nisu primjenjivi',
+                'Ojačana prisilna konverzija tipova u PDF generiranju radi stabilnijeg prikaza vrijednosti',
+            ]
+        },
+        {
             version: '2.26.0',
             date: '2026-02-10',
             changes: [
@@ -490,6 +498,14 @@ export function getVersionHistory(language: string): VersionHistoryItem[] {
         },
     ] : [
         // English version
+        {
+            version: '2.27.0',
+            date: '2026-02-20',
+            changes: [
+                'Fixed PDF rendering for pipeline-only inspections so shaft data is no longer shown when not applicable',
+                'Hardened type coercion in PDF generation to prevent invalid value rendering',
+            ]
+        },
         {
             version: '2.26.0',
             date: '2026-02-10',
