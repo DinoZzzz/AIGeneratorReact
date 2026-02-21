@@ -4,6 +4,7 @@ import type { Profile } from '../types';
 import { setUserContext, clearUserContext } from '../lib/sentry';
 import { clearStore, saveMetadata, STORES } from '../lib/offlineDb';
 import { prewarmLookupCache } from '../lib/offlineLookupCache';
+import { syncPushSubscriptionIfEnabled } from '../lib/notificationService';
 
 type Session = Awaited<ReturnType<typeof supabase.auth.getSession>>['data']['session'];
 type User = NonNullable<Session>['user'];
@@ -164,6 +165,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
         void warmLookups();
     }, [lowBandwidthMode, user]);
+
+    useEffect(() => {
+        if (!user?.id) return;
+        void syncPushSubscriptionIfEnabled(user.id);
+    }, [user?.id]);
 
     useEffect(() => {
         const handleOnline = () => {

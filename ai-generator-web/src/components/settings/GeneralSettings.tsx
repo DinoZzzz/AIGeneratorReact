@@ -1,17 +1,52 @@
-import { useState } from 'react';
-import { RefreshCw } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Bell, BellOff, RefreshCw } from 'lucide-react';
 import { useTheme, primaryColors } from '../../context/ThemeContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { useToast } from '../../context/ToastContext';
+import { useAuth } from '../../context/AuthContext';
 import { useQueryClient } from '@tanstack/react-query';
 import { errorHandler } from '../../lib/errorHandler';
+import {
+    getNotificationPermissionStatus,
+    isNotificationSupported,
+    isNotificationsEnabled,
+    isPushSupported,
+    isWebPushConfigured,
+    notificationEvents,
+    registerPushSubscription,
+    requestNotificationPermission,
+    setNotificationsEnabled,
+    showSystemNotification,
+    unregisterPushSubscription,
+} from '../../lib/notificationService';
 
 export const GeneralSettings = () => {
+    const { user } = useAuth();
     const { theme, setTheme, primaryColor, setPrimaryColor } = useTheme();
     const { language, setLanguage, t } = useLanguage();
     const { addToast } = useToast();
     const queryClient = useQueryClient();
     const [isClearing, setIsClearing] = useState(false);
+    const [notificationsEnabled, setNotificationsEnabledState] = useState(() => isNotificationsEnabled());
+    const [notificationPermission, setNotificationPermission] = useState(() => getNotificationPermissionStatus());
+
+    useEffect(() => {
+        const syncNotificationState = () => {
+            setNotificationsEnabledState(isNotificationsEnabled());
+            setNotificationPermission(getNotificationPermissionStatus());
+        };
+
+        syncNotificationState();
+        window.addEventListener('storage', syncNotificationState);
+        window.addEventListener(notificationEvents.changed, syncNotificationState as EventListener);
+        document.addEventListener('visibilitychange', syncNotificationState);
+
+        return () => {
+            window.removeEventListener('storage', syncNotificationState);
+            window.removeEventListener(notificationEvents.changed, syncNotificationState as EventListener);
+            document.removeEventListener('visibilitychange', syncNotificationState);
+        };
+    }, []);
 
     const handleClearCache = async () => {
         setIsClearing(true);
@@ -55,6 +90,75 @@ export const GeneralSettings = () => {
         }
     };
 
+    const handleEnableNotifications = async () => {
+        if (!isNotificationSupported() || !isPushSupported()) {
+            addToast(t('settings.notificationsUnsupportedToast'), 'error');
+            return;
+        }
+
+        if (!isWebPushConfigured()) {
+            addToast(t('settings.notificationsMissingConfigToast'), 'error');
+            return;
+        }
+
+        if (!user?.id) {
+            addToast(t('settings.notificationsUserMissingToast'), 'error');
+            return;
+        }
+
+        const permission = await requestNotificationPermission();
+        setNotificationPermission(permission);
+
+        if (permission !== 'granted') {
+            setNotificationsEnabled(false);
+            setNotificationsEnabledState(false);
+            addToast(t('settings.notificationsPermissionDeniedToast'), 'error');
+            return;
+        }
+
+        const result = await registerPushSubscription(user.id);
+        if (!result.success) {
+            addToast(t('settings.notificationsSubscriptionFailedToast'), 'error');
+            return;
+        }
+
+        setNotificationsEnabled(true);
+        setNotificationsEnabledState(true);
+        addToast(t('settings.notificationsEnabledToast'), 'success');
+    };
+
+    const handleDisableNotifications = async () => {
+        if (user?.id) {
+            await unregisterPushSubscription(user.id);
+        }
+        setNotificationsEnabled(false);
+        setNotificationsEnabledState(false);
+        addToast(t('settings.notificationsDisabledToast'), 'info');
+    };
+
+    const handleSendTestNotification = async () => {
+        const sent = await showSystemNotification({
+            title: t('settings.notificationsTestTitle'),
+            body: t('settings.notificationsTestBody'),
+            data: { url: '/settings' },
+            tag: 'notifications-test',
+        });
+
+        if (!sent) {
+            addToast(t('settings.notificationsTestFailed'), 'error');
+            return;
+        }
+
+        addToast(t('settings.notificationsTestSent'), 'success');
+    };
+
+    const notificationPermissionLabel = (() => {
+        if (notificationPermission === 'granted') return t('settings.notificationsPermissionGranted');
+        if (notificationPermission === 'denied') return t('settings.notificationsPermissionDenied');
+        if (notificationPermission === 'default') return t('settings.notificationsPermissionDefault');
+        return t('settings.notificationsPermissionUnsupported');
+    })();
+
     return (
         <div className="space-y-6 sm:space-y-8">
             {/* Language */}
@@ -81,6 +185,49 @@ export const GeneralSettings = () => {
                         {t('language.english')}
                     </button>
                 </div>
+            </section>
+
+            {/* Notifications */}
+            <section className="bg-card rounded-lg border border-border p-4 sm:p-6">
+                <h2 className="text-lg sm:text-xl font-semibold mb-2 text-foreground">{t('settings.notificationsTitle')}</h2>
+                <p className="text-xs sm:text-sm text-muted-foreground mb-4">{t('settings.notificationsDescription')}</p>
+
+                <p className="text-sm text-foreground mb-4">
+                    {t('settings.notificationsStatus')}: <span className="font-medium">{notificationPermissionLabel}</span>
+                </p>
+
+                <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
+                    {notificationsEnabled ? (
+                        <button
+                            onClick={handleDisableNotifications}
+                            className="inline-flex items-center justify-center w-full sm:w-auto px-4 py-2 text-sm font-medium text-muted-foreground bg-muted border border-border rounded-md hover:bg-muted/80 transition-colors"
+                        >
+                            <BellOff className="h-4 w-4 mr-2" />
+                            {t('settings.notificationsDisable')}
+                        </button>
+                    ) : (
+                        <button
+                            onClick={handleEnableNotifications}
+                            className="inline-flex items-center justify-center w-full sm:w-auto px-4 py-2 text-sm font-medium text-primary-foreground bg-primary border border-primary rounded-md hover:bg-primary/90 transition-colors"
+                        >
+                            <Bell className="h-4 w-4 mr-2" />
+                            {t('settings.notificationsEnable')}
+                        </button>
+                    )}
+
+                    {notificationsEnabled && notificationPermission === 'granted' && (
+                        <button
+                            onClick={handleSendTestNotification}
+                            className="inline-flex items-center justify-center w-full sm:w-auto px-4 py-2 text-sm font-medium text-foreground bg-background border border-border rounded-md hover:bg-accent transition-colors"
+                        >
+                            {t('settings.notificationsTestButton')}
+                        </button>
+                    )}
+                </div>
+
+                <p className="text-xs text-muted-foreground mt-3">
+                    {t('settings.notificationsMobileHint')}
+                </p>
             </section>
 
             {/* Cache Management Section */}

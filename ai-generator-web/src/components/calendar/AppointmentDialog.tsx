@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../ui/Dialog';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
@@ -41,6 +41,9 @@ export const AppointmentDialog = ({
     const [constructions, setConstructions] = useState<Construction[]>([]);
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
+    const [customerSearch, setCustomerSearch] = useState('');
+    const [isCustomerDropdownOpen, setIsCustomerDropdownOpen] = useState(false);
+    const customerSearchRef = useRef<HTMLDivElement | null>(null);
 
     const [formData, setFormData] = useState<Partial<Appointment> & { assignee_ids: string[] }>({
         title: '',
@@ -56,6 +59,18 @@ export const AppointmentDialog = ({
     });
 
     const isAdmin = profile?.role === 'admin';
+    const filteredCustomers = useMemo(() => {
+        const query = customerSearch.trim().toLowerCase();
+        if (!query) return customers;
+
+        return customers.filter((customer) => {
+            const searchableText = [customer.name, customer.work_order, customer.location]
+                .filter(Boolean)
+                .join(' ')
+                .toLowerCase();
+            return searchableText.includes(query);
+        });
+    }, [customerSearch, customers]);
 
     useEffect(() => {
         if (!open) return;
@@ -99,6 +114,8 @@ export const AppointmentDialog = ({
         if (appointment) {
             // Existing appointment: Start in view mode
             setIsEditing(false);
+            setIsCustomerDropdownOpen(false);
+            setCustomerSearch(appointment.customer?.name || '');
             setFormData({
                 ...appointment,
                 start: appointment.start ? new Date(appointment.start).toISOString().slice(0, 16) : '',
@@ -111,6 +128,8 @@ export const AppointmentDialog = ({
         } else {
             // New appointment: Start in edit mode
             setIsEditing(true);
+            setIsCustomerDropdownOpen(false);
+            setCustomerSearch('');
 
             // Default new appointment - STRICT 30 minute duration
             // We ignore selectedSlot.end to enforce the 30min rule requested by user
@@ -131,6 +150,28 @@ export const AppointmentDialog = ({
 
         return () => { cancelled = true; };
     }, [isOnline, open, appointment, profile, selectedSlot]);
+
+    useEffect(() => {
+        if (!open || !formData.customer_id) return;
+
+        const selectedCustomer = customers.find(customer => customer.id === formData.customer_id);
+        if (selectedCustomer && selectedCustomer.name !== customerSearch) {
+            setCustomerSearch(selectedCustomer.name);
+        }
+    }, [customerSearch, customers, formData.customer_id, open]);
+
+    useEffect(() => {
+        if (!open || !isCustomerDropdownOpen) return;
+
+        const handleOutsideClick = (event: MouseEvent) => {
+            if (!customerSearchRef.current?.contains(event.target as Node)) {
+                setIsCustomerDropdownOpen(false);
+            }
+        };
+
+        document.addEventListener('mousedown', handleOutsideClick);
+        return () => document.removeEventListener('mousedown', handleOutsideClick);
+    }, [isCustomerDropdownOpen, open]);
 
     // Load constructions when customer changes
     useEffect(() => {
@@ -278,6 +319,56 @@ export const AppointmentDialog = ({
         return constructions.find(c => c.id === formData.construction_id)?.name || '';
     };
 
+    const handleCustomerSearchChange = (value: string) => {
+        setCustomerSearch(value);
+        setIsCustomerDropdownOpen(true);
+
+        const trimmedValue = value.trim();
+        setFormData(prev => {
+            if (!trimmedValue) {
+                if (!prev.customer_id && !prev.construction_id) return prev;
+                return {
+                    ...prev,
+                    customer_id: '',
+                    construction_id: ''
+                };
+            }
+
+            const exactMatch = customers.find(
+                customer => customer.name.toLowerCase() === trimmedValue.toLowerCase()
+            );
+            if (!exactMatch) {
+                if (!prev.customer_id && !prev.construction_id) return prev;
+                return {
+                    ...prev,
+                    customer_id: '',
+                    construction_id: ''
+                };
+            }
+
+            if (prev.customer_id === exactMatch.id) return prev;
+            return {
+                ...prev,
+                customer_id: exactMatch.id,
+                construction_id: ''
+            };
+        });
+    };
+
+    const handleCustomerSelect = (customer?: Customer) => {
+        setFormData(prev => {
+            const nextCustomerId = customer?.id || '';
+            const shouldResetConstruction = prev.customer_id !== nextCustomerId;
+            return {
+                ...prev,
+                customer_id: nextCustomerId,
+                construction_id: shouldResetConstruction ? '' : (prev.construction_id || '')
+            };
+        });
+        setCustomerSearch(customer?.name || '');
+        setIsCustomerDropdownOpen(false);
+    };
+
     return (
         <>
             <Dialog open={open} onOpenChange={onOpenChange}>
@@ -418,18 +509,57 @@ export const AppointmentDialog = ({
                             </div>
 
                             <div className="space-y-2">
-                                <Label htmlFor="customer">{t('calendar.customer')} {t('common.optional')}</Label>
-                                <select
-                                    id="customer"
-                                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                                    value={formData.customer_id || ''}
-                                    onChange={e => setFormData({ ...formData, customer_id: e.target.value, construction_id: '' })}
-                                >
-                                    <option value="">{t('common.select')}</option>
-                                    {customers.map(c => (
-                                        <option key={c.id} value={c.id}>{c.name}</option>
-                                    ))}
-                                </select>
+                                <Label htmlFor="customer-search">{t('calendar.customer')} {t('common.optional')}</Label>
+                                <div ref={customerSearchRef} className="relative">
+                                    <input
+                                        id="customer-search"
+                                        type="text"
+                                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 pr-4 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                        placeholder={t('customers.search')}
+                                        value={customerSearch}
+                                        onFocus={() => setIsCustomerDropdownOpen(true)}
+                                        onChange={(e) => handleCustomerSearchChange(e.target.value)}
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Escape') {
+                                                setIsCustomerDropdownOpen(false);
+                                            }
+                                        }}
+                                    />
+
+                                    {isCustomerDropdownOpen && (
+                                        <div className="absolute z-50 mt-1 max-h-56 w-full overflow-y-auto rounded-md border border-input bg-background shadow-md">
+                                            <button
+                                                type="button"
+                                                className="w-full border-b border-border px-3 py-2 text-left text-sm font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                                                onClick={() => handleCustomerSelect()}
+                                            >
+                                                {t('common.select')}
+                                            </button>
+
+                                            {filteredCustomers.length > 0 ? (
+                                                filteredCustomers.map((customer) => (
+                                                    <button
+                                                        key={customer.id}
+                                                        type="button"
+                                                        className="w-full px-3 py-2 text-left text-sm hover:bg-accent hover:text-accent-foreground"
+                                                        onClick={() => handleCustomerSelect(customer)}
+                                                    >
+                                                        <span className="block truncate">{customer.name}</span>
+                                                        {customer.work_order && (
+                                                            <span className="block text-xs text-muted-foreground">
+                                                                {customer.work_order}
+                                                            </span>
+                                                        )}
+                                                    </button>
+                                                ))
+                                            ) : (
+                                                <div className="px-3 py-2 text-sm text-muted-foreground">
+                                                    {t('customers.none')}
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
                             </div>
 
                             {formData.customer_id && (
