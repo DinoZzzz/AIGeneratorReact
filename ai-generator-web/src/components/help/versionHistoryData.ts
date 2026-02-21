@@ -7,6 +7,20 @@ export interface VersionHistoryItem {
 export function getVersionHistory(language: string): VersionHistoryItem[] {
     return language === 'hr' ? [
         {
+            version: '2.28.0',
+            date: '2026-02-20',
+            changes: [
+                'PDF metoda zrak: LA/LB sada mapira sheme F/G/H iz administracije i prikazuje naziv sheme iz admina',
+                'PDF materijali (zrak + voda) sada koriste admin lookup za okno/slivnik i cijevi, uključujući LC',
+                'U metodi zrak uklonjeno je trajanje iz desnog stupca; EN 1610 tablica je preuređena (DN [mm] + red “Vrijeme ispitivanja”)',
+                'Metoda voda: shema C skriva polja okna i H2, slivnik koristi “Visina slivnika”, a ΔV znak je ispravljen',
+                'Water forma: uklonjeni duplikati materijala, odstupanje ostaje ručno izmjenjivo (soft suggestion), saturacija je samo za betonsko okno/slivnik',
+                'Word izvoz: sekcije su stabilno vidljive (uključujući selektivni export), a redni broj metode zrak je formatiran kao 1.',
+                'Word: “Dio građevine” ima default “Sustav odvodnje odpadnih voda” (editabilno), datumi su sanitizirani i standardizirani',
+                'Word: napomene se preuzimaju iz dijaloga, navode se nezadovoljene dionice, odstupanje vode je dropdown (2 opcije), a slike koriste naslov “Situacija”',
+            ]
+        },
+        {
             version: '2.27.0',
             date: '2026-02-20',
             changes: [
@@ -498,6 +512,20 @@ export function getVersionHistory(language: string): VersionHistoryItem[] {
         },
     ] : [
         // English version
+        {
+            version: '2.28.0',
+            date: '2026-02-20',
+            changes: [
+                'Air PDF: LA/LB now maps to F/G/H schemes from admin configuration and shows admin scheme names',
+                'PDF materials (air + water) now resolve from admin lookup for shaft/gully and pipe materials, including LC',
+                'Air PDF no longer shows duration in the right column; EN 1610 table layout was updated (DN [mm] + centered “Test time” row)',
+                'Water method: schema C hides shaft fields and H2, gully uses “Visina slivnika”, and ΔV rendering is fixed',
+                'Water form: material duplicates removed, deviation remains manually editable (soft suggestion), saturation shows only for concrete shaft/gully material',
+                'Word export: sections are reliably included (including selective export), and air method ordinals are formatted as 1.',
+                'Word: “Construction Part” defaults to “Sustav odvodnje odpadnih voda” (editable), and dates are sanitized/standardized',
+                'Word: remarks come from export dialog input, unsatisfied sections are listed, water deviation is a 2-option dropdown, and image captions use “Situacija”',
+            ]
+        },
         {
             version: '2.27.0',
             date: '2026-02-20',
