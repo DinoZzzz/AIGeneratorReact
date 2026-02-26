@@ -7,6 +7,20 @@ export interface VersionHistoryItem {
 export function getVersionHistory(language: string): VersionHistoryItem[] {
     return language === 'hr' ? [
         {
+            version: '2.29.0',
+            date: '2026-02-26',
+            changes: [
+                'Globalna pretraga: CommandPalette sada pretražuje i izvještaje (po dionici), s kategorijskim zaglavljima i offline fallbackom',
+                'Traka za pretragu dodana u desktop zaglavlje i mobilnu navigaciju za brži pristup pretazi (⌘K)',
+                'Popravljeno dupliciranje izvještaja: obrasci vode i zraka sada čitaju ?duplicate= parametar i kopiraju sve podatke',
+                'Skupne operacije: dodana mogućnost skupnog PDF izvoza na stranici svih izvještaja',
+                'Anotacija fotografija: novi alat za crtanje na slikama (olovka, pravokutnik, krug, strelica, tekst) s izvozom u punoj rezoluciji',
+                'Prikvačene stavke: novo sučelje za prikvačivanje omiljenih naručitelja i gradilišta na dashboard',
+                'Automatsko spremanje: obrasci vode i zraka automatski spremaju skicu svakih 30 sekundi s mogućnošću obnove',
+                'Push obavijesti: dodan server-side worker za slanje push notifikacija putem Railwaya',
+            ]
+        },
+        {
             version: '2.28.0',
             date: '2026-02-20',
             changes: [
@@ -512,6 +526,20 @@ export function getVersionHistory(language: string): VersionHistoryItem[] {
         },
     ] : [
         // English version
+        {
+            version: '2.29.0',
+            date: '2026-02-26',
+            changes: [
+                'Global search: CommandPalette now searches reports (by section name), with category headers and offline fallback',
+                'Search bar added to desktop header and mobile navigation for quick access to search (⌘K)',
+                'Fixed report duplication: water and air method forms now read the ?duplicate= parameter and copy all fields',
+                'Batch operations: added bulk PDF export on the all-reports page',
+                'Photo annotation: new canvas-based drawing tool (pen, rectangle, circle, arrow, text) with full-resolution export',
+                'Pinned items: new widget to pin favorite customers and constructions to the dashboard',
+                'Auto-save: water and air forms now auto-save drafts every 30 seconds with restore capability',
+                'Push notifications: added server-side Railway worker for sending push notifications',
+            ]
+        },
         {
             version: '2.28.0',
             date: '2026-02-20',

@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 
-import { Loader2, Trash2, Edit, FileText, Download } from 'lucide-react';
+import { Loader2, Trash2, Edit, FileText, Download, FileDown } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { cn } from '../lib/utils';
 import { Button } from '../components/ui/Button';
@@ -15,10 +15,15 @@ import { useToast } from '../context/ToastContext';
 import { useConfirm } from '../context/useConfirm';
 import { useLanguage } from '../context/LanguageContext';
 
-// Dynamic import for Word export to reduce initial bundle size
+// Dynamic imports for export to reduce initial bundle size
 const generateWordDocument = async (reports: ReportForm[], metaData: ExportMetaData, userId?: string) => {
     const { generateWordDocument: gen } = await import('../services/wordExportService');
     return gen(reports, metaData, userId);
+};
+
+const generateBulkPDF = async (reports: ReportForm[], filename: string) => {
+    const { generateBulkPDF: gen } = await import('../lib/pdfGenerator');
+    return gen(reports, filename);
 };
 
 export const Reports = () => {
@@ -95,6 +100,17 @@ export const Reports = () => {
         }
     }, [reports, selectedReports, user?.id, success, t, showError]);
 
+    const handleBulkPDF = useCallback(() => {
+        const selectedData = reports.filter(r => selectedReports.has(r.id) && !r.section_name);
+        if (selectedData.length === 0) return;
+        try {
+            generateBulkPDF(selectedData, `Reports_bulk_${Date.now()}.pdf`);
+        } catch (err) {
+            const appError = errorHandler.handle(err, 'ReportBulkPDF');
+            showError(errorHandler.getUserMessage(appError));
+        }
+    }, [reports, selectedReports, showError]);
+
     const handleDeleteSelected = useCallback(async () => {
         const count = selectedReports.size;
 
@@ -154,6 +170,14 @@ export const Reports = () => {
                         >
                             <Trash2 className="h-4 w-4 mr-2" />
                             {t('reports.delete')} ({selectedReports.size})
+                        </Button>
+                        <Button
+                            variant="outline"
+                            onClick={handleBulkPDF}
+                            className="flex-1 sm:flex-none"
+                        >
+                            <FileDown className="h-4 w-4 mr-2" />
+                            {t('reports.bulkExportPdf')} ({selectedReports.size})
                         </Button>
                         <Button
                             variant="outline"

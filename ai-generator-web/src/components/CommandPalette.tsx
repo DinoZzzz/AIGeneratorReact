@@ -6,7 +6,10 @@ import { useDebounce } from '../hooks/useDebounce';
 import { useRecentlyViewed } from '../hooks/useRecentlyViewed';
 import type { RecentItem } from '../hooks/useRecentlyViewed';
 import { useLanguage } from '../context/LanguageContext';
+import { useOffline } from '../context/OfflineContext';
+import { getAllFromStore, STORES } from '../lib/offlineDb';
 import { cn } from '../lib/utils';
+import type { Customer, Construction, ReportForm } from '../types';
 
 interface SearchResult {
     id: string;
@@ -21,6 +24,20 @@ interface CommandPaletteProps {
     onClose: () => void;
 }
 
+type GroupedResults = {
+    customers: SearchResult[];
+    constructions: SearchResult[];
+    reports: SearchResult[];
+};
+
+function groupResults(results: SearchResult[]): GroupedResults {
+    return {
+        customers: results.filter(r => r.type === 'customer'),
+        constructions: results.filter(r => r.type === 'construction'),
+        reports: results.filter(r => r.type === 'report'),
+    };
+}
+
 export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose }) => {
     const [query, setQuery] = useState('');
     const [results, setResults] = useState<SearchResult[]>([]);
@@ -29,6 +46,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose 
     const inputRef = useRef<HTMLInputElement>(null);
     const navigate = useNavigate();
     const { t } = useLanguage();
+    const { isOnline } = useOffline();
     const { items: recentItems } = useRecentlyViewed();
 
     const debouncedQuery = useDebounce(query, 200);
@@ -50,85 +68,173 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose 
             return;
         }
 
-        const search = async () => {
-            setLoading(true);
-            try {
-                const searchTerm = `%${debouncedQuery}%`;
-                const searchResults: SearchResult[] = [];
+        let cancelled = false;
 
-                // Search customers
-                const { data: customers } = await supabase
+        const searchOnline = async () => {
+            const searchTerm = `%${debouncedQuery}%`;
+            const searchResults: SearchResult[] = [];
+
+            const [
+                { data: customers },
+                { data: constructions },
+                { data: reports }
+            ] = await Promise.all([
+                supabase
                     .from('customers')
                     .select('id, name, work_order')
                     .or(`name.ilike.${searchTerm},work_order.ilike.${searchTerm}`)
-                    .limit(5);
-
-                if (customers) {
-                    searchResults.push(...customers.map(c => ({
-                        id: c.id,
-                        type: 'customer' as const,
-                        name: c.name,
-                        subtext: c.work_order || undefined,
-                        path: `/customers/${c.id}/constructions`
-                    })));
-                }
-
-                // Search constructions
-                const { data: constructions } = await supabase
+                    .limit(5),
+                supabase
                     .from('constructions')
                     .select('id, name, work_order, customer_id')
                     .or(`name.ilike.${searchTerm},work_order.ilike.${searchTerm}`)
-                    .limit(5);
+                    .limit(5),
+                supabase
+                    .from('report_forms')
+                    .select('id, dionica, type_id, customer_id, construction_id, section_name')
+                    .is('section_name', null)
+                    .ilike('dionica', searchTerm)
+                    .limit(5),
+            ]);
 
-                if (constructions) {
-                    searchResults.push(...constructions.map(c => ({
-                        id: c.id,
-                        type: 'construction' as const,
-                        name: c.name,
-                        subtext: c.work_order || undefined,
-                        path: `/customers/${c.customer_id}/constructions/${c.id}/reports`
+            if (customers) {
+                searchResults.push(...customers.map(c => ({
+                    id: c.id,
+                    type: 'customer' as const,
+                    name: c.name,
+                    subtext: c.work_order || undefined,
+                    path: `/customers/${c.id}/constructions`
+                })));
+            }
+
+            if (constructions) {
+                searchResults.push(...constructions.map(c => ({
+                    id: c.id,
+                    type: 'construction' as const,
+                    name: c.name,
+                    subtext: c.work_order || undefined,
+                    path: `/customers/${c.customer_id}/constructions/${c.id}/reports`
+                })));
+            }
+
+            if (reports) {
+                searchResults.push(...reports.map(r => ({
+                        id: r.id,
+                        type: 'report' as const,
+                        name: r.dionica || `Report ${r.id.slice(0, 8)}`,
+                        subtext: r.type_id === 1 ? 'Water' : 'Air',
+                        path: `/customers/${r.customer_id}/constructions/${r.construction_id}/reports/${r.type_id === 1 ? '' : 'air/'}${r.id}`
                     })));
-                }
+            }
 
-                setResults(searchResults);
-                setSelectedIndex(0);
+            return searchResults;
+        };
+
+        const searchOffline = async () => {
+            const lowerQuery = debouncedQuery.toLowerCase();
+            const searchResults: SearchResult[] = [];
+
+            const [customers, constructions, reports] = await Promise.all([
+                getAllFromStore<Customer>(STORES.CUSTOMERS),
+                getAllFromStore<Construction>(STORES.CONSTRUCTIONS),
+                getAllFromStore<ReportForm>(STORES.REPORTS),
+            ]);
+
+            const matchedCustomers = customers
+                .filter(c => c.name?.toLowerCase().includes(lowerQuery) || c.work_order?.toLowerCase().includes(lowerQuery))
+                .slice(0, 5);
+
+            searchResults.push(...matchedCustomers.map(c => ({
+                id: c.id,
+                type: 'customer' as const,
+                name: c.name,
+                subtext: c.work_order || undefined,
+                path: `/customers/${c.id}/constructions`
+            })));
+
+            const matchedConstructions = constructions
+                .filter(c => c.name?.toLowerCase().includes(lowerQuery) || c.work_order?.toLowerCase().includes(lowerQuery))
+                .slice(0, 5);
+
+            searchResults.push(...matchedConstructions.map(c => ({
+                id: c.id,
+                type: 'construction' as const,
+                name: c.name,
+                subtext: c.work_order || undefined,
+                path: `/customers/${c.customer_id}/constructions/${c.id}/reports`
+            })));
+
+            const matchedReports = reports
+                .filter(r => !r.section_name && r.dionica?.toLowerCase().includes(lowerQuery))
+                .slice(0, 5);
+
+            searchResults.push(...matchedReports.map(r => ({
+                id: r.id,
+                type: 'report' as const,
+                name: r.dionica || `Report ${r.id.slice(0, 8)}`,
+                subtext: r.type_id === 1 ? 'Water' : 'Air',
+                path: `/customers/${r.customer_id}/constructions/${r.construction_id}/reports/${r.type_id === 1 ? '' : 'air/'}${r.id}`
+            })));
+
+            return searchResults;
+        };
+
+        const doSearch = async () => {
+            setLoading(true);
+            try {
+                const searchResults = isOnline ? await searchOnline() : await searchOffline();
+                if (!cancelled) {
+                    setResults(searchResults);
+                    setSelectedIndex(0);
+                }
             } catch (error) {
                 console.error('Search error:', error);
+                // Fallback to offline search on error
+                try {
+                    const offlineResults = await searchOffline();
+                    if (!cancelled) {
+                        setResults(offlineResults);
+                        setSelectedIndex(0);
+                    }
+                } catch {
+                    // Give up
+                }
             } finally {
-                setLoading(false);
+                if (!cancelled) setLoading(false);
             }
         };
 
-        search();
-    }, [debouncedQuery]);
+        doSearch();
+        return () => { cancelled = true; };
+    }, [debouncedQuery, isOnline]);
 
     const handleSelect = useCallback((result: SearchResult | RecentItem) => {
         navigate(result.path);
         onClose();
     }, [navigate, onClose]);
 
-    const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
-        const items = query ? results : recentItems;
+    const flatItems = query ? results : recentItems;
 
+    const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
         if (e.key === 'ArrowDown') {
             e.preventDefault();
-            setSelectedIndex(i => Math.min(i + 1, items.length - 1));
+            setSelectedIndex(i => Math.min(i + 1, flatItems.length - 1));
         } else if (e.key === 'ArrowUp') {
             e.preventDefault();
             setSelectedIndex(i => Math.max(i - 1, 0));
         } else if (e.key === 'Enter') {
             e.preventDefault();
-            const item = items[selectedIndex];
+            const item = flatItems[selectedIndex];
             if (item) {
                 handleSelect(item);
             }
         }
-    }, [query, results, recentItems, selectedIndex, handleSelect]);
+    }, [flatItems, selectedIndex, handleSelect]);
 
     if (!isOpen) return null;
 
-    const displayItems = query ? results : recentItems;
     const showRecent = !query && recentItems.length > 0;
+    const grouped = query ? groupResults(results) : null;
 
     const getIcon = (type: string) => {
         switch (type) {
@@ -141,6 +247,80 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose 
             default:
                 return <FileText className="h-4 w-4" />;
         }
+    };
+
+    const getIconStyles = (type: string) => {
+        switch (type) {
+            case 'customer':
+                return "bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400";
+            case 'construction':
+                return "bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400";
+            case 'report':
+                return "bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400";
+            default:
+                return "bg-muted text-muted-foreground";
+        }
+    };
+
+    // Track flat index for keyboard navigation across groups
+    let flatIndex = -1;
+
+    const renderItem = (item: SearchResult | RecentItem) => {
+        flatIndex++;
+        const currentIndex = flatIndex;
+        return (
+            <button
+                key={`${item.type}-${item.id}`}
+                className={cn(
+                    "w-full flex items-center gap-3 px-4 py-3 text-left transition-colors",
+                    currentIndex === selectedIndex
+                        ? "bg-primary/10 text-primary"
+                        : "hover:bg-muted"
+                )}
+                onClick={() => handleSelect(item)}
+                onMouseEnter={() => setSelectedIndex(currentIndex)}
+            >
+                <span className={cn("flex-shrink-0 p-1.5 rounded-md", getIconStyles(item.type))}>
+                    {getIcon(item.type)}
+                </span>
+                <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-foreground truncate">
+                        {item.name}
+                    </p>
+                    {item.subtext && (
+                        <p className="text-xs text-muted-foreground truncate">
+                            {item.subtext}
+                        </p>
+                    )}
+                </div>
+                <ArrowRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+            </button>
+        );
+    };
+
+    const renderGrouped = () => {
+        if (!grouped) return null;
+        flatIndex = -1;
+
+        const sections: { key: string; label: string; items: SearchResult[] }[] = [
+            { key: 'customers', label: t('commandPalette.customers'), items: grouped.customers },
+            { key: 'constructions', label: t('commandPalette.constructions'), items: grouped.constructions },
+            { key: 'reports', label: t('commandPalette.reports'), items: grouped.reports },
+        ];
+
+        return sections.map(section => {
+            if (section.items.length === 0) return null;
+            return (
+                <div key={section.key}>
+                    <div className="px-4 py-2">
+                        <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                            {section.label}
+                        </span>
+                    </div>
+                    {section.items.map(item => renderItem(item))}
+                </div>
+            );
+        });
     };
 
     return (
@@ -161,7 +341,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose 
                             ref={inputRef}
                             type="text"
                             className="h-14 w-full border-0 bg-transparent pl-3 pr-4 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-0"
-                            placeholder={t('commandPalette.searchPlaceholder') || 'Search customers, constructions...'}
+                            placeholder={t('commandPalette.searchPlaceholder') || 'Search customers, constructions, reports...'}
                             value={query}
                             onChange={(e) => setQuery(e.target.value)}
                             onKeyDown={handleKeyDown}
@@ -189,47 +369,19 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose 
                         )}
 
                         {!loading && showRecent && (
-                            <div className="px-3 py-2">
-                                <div className="flex items-center gap-2 px-2 py-1 text-xs font-medium text-muted-foreground uppercase">
-                                    <Clock className="h-3 w-3" />
-                                    {t('commandPalette.recent') || 'Recently Viewed'}
+                            <>
+                                <div className="px-3 py-2">
+                                    <div className="flex items-center gap-2 px-2 py-1 text-xs font-medium text-muted-foreground uppercase">
+                                        <Clock className="h-3 w-3" />
+                                        {t('commandPalette.recent') || 'Recently Viewed'}
+                                    </div>
                                 </div>
-                            </div>
+                                {(() => { flatIndex = -1; return null; })()}
+                                {recentItems.map(item => renderItem(item))}
+                            </>
                         )}
 
-                        {!loading && displayItems.map((item, index) => (
-                            <button
-                                key={`${item.type}-${item.id}`}
-                                className={cn(
-                                    "w-full flex items-center gap-3 px-4 py-3 text-left transition-colors",
-                                    index === selectedIndex
-                                        ? "bg-primary/10 text-primary"
-                                        : "hover:bg-muted"
-                                )}
-                                onClick={() => handleSelect(item)}
-                                onMouseEnter={() => setSelectedIndex(index)}
-                            >
-                                <span className={cn(
-                                    "flex-shrink-0 p-1.5 rounded-md",
-                                    item.type === 'customer' && "bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400",
-                                    item.type === 'construction' && "bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400",
-                                    item.type === 'report' && "bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400"
-                                )}>
-                                    {getIcon(item.type)}
-                                </span>
-                                <div className="flex-1 min-w-0">
-                                    <p className="text-sm font-medium text-foreground truncate">
-                                        {item.name}
-                                    </p>
-                                    {item.subtext && (
-                                        <p className="text-xs text-muted-foreground truncate">
-                                            {item.subtext}
-                                        </p>
-                                    )}
-                                </div>
-                                <ArrowRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                            </button>
-                        ))}
+                        {!loading && query && results.length > 0 && renderGrouped()}
 
                         {!loading && !query && recentItems.length === 0 && (
                             <div className="px-4 py-8 text-center text-sm text-muted-foreground">

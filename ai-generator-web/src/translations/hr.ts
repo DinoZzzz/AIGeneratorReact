@@ -753,4 +753,42 @@ export const hr: Record<string, string> = {
     'commandPalette.select': 'Odaberi',
     'commandPalette.close': 'Zatvori',
     'commandPalette.typeToSearch': 'Upišite za pretragu...',
+    'commandPalette.customers': 'Kupci',
+    'commandPalette.constructions': 'Gradilišta',
+    'commandPalette.reports': 'Izvještaji',
+
+    // Auto-save & Draft
+    'form.draftFound': 'Pronađena je nespremljena skica. Želite li je vratiti?',
+    'form.restoreDraft': 'Vrati',
+    'form.discardDraft': 'Odbaci',
+    'form.draftRestored': 'Skica uspješno vraćena.',
+    'form.autoSaved': 'Skica automatski spremljena',
+    'form.duplicated': 'Izvještaj dupliciran — uredite i spremite kao novi.',
+
+    // Pinned Items
+    'dashboard.pinnedItems': 'Prikvačeno',
+    'dashboard.pinEmpty': 'Prikvačite najčešće korištene kupce i gradilišta za brzi pristup.',
+    'dashboard.pin': 'Prikvači',
+    'dashboard.unpin': 'Otkvači',
+
+    // Batch Operations
+    'reports.selectAll': 'Odaberi sve',
+    'reports.deselectAll': 'Poništi odabir',
+    'reports.bulkExportPdf': 'Izvezi PDF',
+    'reports.bulkDelete': 'Obriši odabrano',
+
+    // Photo Annotation
+    'annotation.title': 'Označi sliku',
+    'annotation.save': 'Spremi oznake',
+    'annotation.cancel': 'Odustani',
+    'annotation.draw': 'Crtaj',
+    'annotation.rectangle': 'Pravokutnik',
+    'annotation.circle': 'Krug',
+    'annotation.arrow': 'Strelica',
+    'annotation.text': 'Tekst',
+    'annotation.undo': 'Poništi',
+    'annotation.redo': 'Ponovi',
+    'annotation.clear': 'Obriši sve',
+    'annotation.saved': 'Označena slika spremljena.',
+    'annotation.textPrompt': 'Unesite tekst oznake:',
 };

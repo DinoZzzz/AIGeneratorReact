@@ -28,13 +28,15 @@ import {
     CloudOff,
     Clock,
     Building2,
-    FileText
+    FileText,
+    Search,
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { getUnsyncedChangeCount, requiresOfflineSignOutConfirmation } from '../lib/offlineSignOutGuard';
 import { prefetchCommonRoutes } from '../lib/routePrefetch';
 import { isConflictErrorMessage } from '../lib/offlineConflict';
 import { UserAvatar } from './ui/UserAvatar';
+import { useKeyboardShortcuts } from '../context/KeyboardShortcutsContext';
 
 interface LayoutProps {
     children: React.ReactNode;
@@ -132,6 +134,7 @@ export const Layout = ({ children }: LayoutProps) => {
     } = useOffline();
     const confirm = useConfirm();
     const { items: recentItems } = useRecentlyViewed();
+    const { openCommandPalette } = useKeyboardShortcuts();
     const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
     const [showMobileSyncDetails, setShowMobileSyncDetails] = useState(false);
@@ -410,10 +413,32 @@ export const Layout = ({ children }: LayoutProps) => {
             {/* Main Content */}
             <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
                 {/* Mobile Header - Sticky & Dynamic Title */}
-                <div className="lg:hidden sticky top-0 z-30 flex items-center justify-center h-16 px-4 bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60 border-b border-border">
+                <div className="lg:hidden sticky top-0 z-30 flex items-center justify-between h-16 px-4 bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60 border-b border-border">
+                    <div className="w-10" />
                     <span className="text-lg font-semibold text-foreground truncate max-w-[200px]">
                         {currentPage.name}
                     </span>
+                    <button
+                        onClick={openCommandPalette}
+                        className="p-2 rounded-lg hover:bg-muted transition-colors"
+                        aria-label="Search"
+                    >
+                        <Search className="h-5 w-5 text-muted-foreground" />
+                    </button>
+                </div>
+
+                {/* Desktop Search Bar */}
+                <div className="hidden lg:block px-8 pt-6 pb-0">
+                    <button
+                        onClick={openCommandPalette}
+                        className="w-full max-w-md flex items-center gap-3 px-4 py-2.5 rounded-lg border border-border bg-muted/50 hover:bg-muted text-muted-foreground text-sm transition-colors"
+                    >
+                        <Search className="h-4 w-4" />
+                        <span className="flex-1 text-left">{t('commandPalette.searchPlaceholder')}</span>
+                        <kbd className="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 rounded bg-background border border-border text-xs font-mono">
+                            ⌘K
+                        </kbd>
+                    </button>
                 </div>
 
                 {/* Page Content */}

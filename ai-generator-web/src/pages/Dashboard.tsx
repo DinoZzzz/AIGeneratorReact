@@ -9,6 +9,7 @@ import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { DashboardStats } from '../components/dashboard/DashboardStats';
 import { DashboardCustomersTable } from '../components/dashboard/DashboardCustomersTable';
+import { PinnedItems } from '../components/dashboard/PinnedItems';
 import { StatsCardsSkeleton } from '../components/skeletons/CardSkeleton';
 
 // Dashboard stats query
@@ -103,6 +104,9 @@ export const Dashboard = () => {
                     bgColor="bg-emerald-100"
                 />
             </div>
+
+            {/* Pinned Items */}
+            <PinnedItems />
 
             {/* Charts & Stats Row */}
             <DashboardStats />

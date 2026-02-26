@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { Input } from '../components/ui/Input';
 import { Select } from '../components/ui/Select';
 import { Button } from '../components/ui/Button';
@@ -13,6 +13,7 @@ import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { errorHandler } from '../lib/errorHandler';
 import { getLookupWithOfflineFallback } from '../lib/offlineLookupCache';
+import { useAutoSave } from '../hooks/useAutoSave';
 import {
     useCreateReport,
     useReport,
@@ -85,6 +86,9 @@ export const WaterMethodForm = () => {
     } = useReportsByConstruction(constructionId || '');
     const createReportMutation = useCreateReport();
     const updateReportMutation = useUpdateReport();
+    const [searchParams] = useSearchParams();
+    const duplicateId = searchParams.get('duplicate');
+    const { data: duplicateSource } = useReport(duplicateId || '');
     const [formData, setFormData] = useState<Partial<ReportForm>>(initialState);
     const [drafts, setDrafts] = useState<ReportDraft[]>([]);
     const [materialTypes, setMaterialTypes] = useState<MaterialType[]>([]);
@@ -93,8 +97,51 @@ export const WaterMethodForm = () => {
     const [dionicaError, setDionicaError] = useState<string>('');
     const [showMobileResults, setShowMobileResults] = useState(false);
     const [previousReport, setPreviousReport] = useState<ReportForm | null>(null);
+    const [showRestoreBanner, setShowRestoreBanner] = useState(false);
     const initializedFromPreviousRef = useRef(false);
+    const initializedFromDuplicateRef = useRef(false);
     const lastAutoDeviationRef = useRef<string | null>(null);
+
+    // Auto-save drafts
+    const autoSaveKey = `water_${constructionId || 'unknown'}_${id || 'new'}`;
+    const { restoredData, clearSavedData, lastSaved, dismissRestore } = useAutoSave(autoSaveKey, formData);
+
+    // Show restore banner on mount if there's saved data
+    useEffect(() => {
+        if (restoredData && !isEditMode && !duplicateId) {
+            setShowRestoreBanner(true);
+        }
+    }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+    const handleRestoreDraft = () => {
+        if (restoredData) {
+            setFormData(restoredData);
+            showSuccess(t('form.draftRestored'));
+        }
+        setShowRestoreBanner(false);
+        dismissRestore();
+    };
+
+    const handleDiscardDraft = () => {
+        setShowRestoreBanner(false);
+        clearSavedData();
+        dismissRestore();
+    };
+
+    // Duplicate report handling
+    useEffect(() => {
+        if (duplicateSource && !initializedFromDuplicateRef.current) {
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            const { id: _id, ordinal: _ord, created_at: _ca, updated_at: _ua, ...rest } = duplicateSource;
+            setFormData(prev => ({
+                ...prev,
+                ...rest,
+                examination_date: new Date().toISOString().split('T')[0],
+            }));
+            initializedFromDuplicateRef.current = true;
+            showSuccess(t('form.duplicated'));
+        }
+    }, [duplicateSource]); // eslint-disable-line react-hooks/exhaustive-deps
 
     // Memoized calculations to prevent recalculation on every render
     const calculated = useMemo<CalculatedResults>(() => {
@@ -352,6 +399,8 @@ export const WaterMethodForm = () => {
                 await updateReportMutation.mutateAsync({ id: reportId, report: dataToSave as Partial<ReportForm> });
             }
 
+            clearSavedData();
+
             if (!shouldRedirect) {
                 setFormData({
                     ...initialState,
@@ -461,6 +510,28 @@ export const WaterMethodForm = () => {
 
     return (
         <div className="w-full max-w-[1800px] mx-auto px-4 sm:px-6 space-y-6 sm:space-y-8 pb-24 lg:pb-0">
+            {/* Auto-save restore banner */}
+            {showRestoreBanner && (
+                <div className="flex items-center justify-between gap-3 px-4 py-3 rounded-lg border border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-900/20">
+                    <p className="text-sm text-blue-800 dark:text-blue-300">{t('form.draftFound')}</p>
+                    <div className="flex gap-2 flex-shrink-0">
+                        <Button variant="outline" size="sm" onClick={handleDiscardDraft}>
+                            <X className="h-3 w-3 mr-1" />
+                            {t('form.discardDraft')}
+                        </Button>
+                        <Button size="sm" onClick={handleRestoreDraft}>
+                            <Check className="h-3 w-3 mr-1" />
+                            {t('form.restoreDraft')}
+                        </Button>
+                    </div>
+                </div>
+            )}
+
+            {/* Auto-save indicator */}
+            {lastSaved && !showRestoreBanner && (
+                <p className="text-xs text-muted-foreground text-right">{t('form.autoSaved')}</p>
+            )}
+
             <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-4">
                     <Button variant="ghost" size="icon" onClick={handleBack}>

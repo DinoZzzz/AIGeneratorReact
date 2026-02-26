@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Loader2, ArrowLeft, Archive } from 'lucide-react';
+import { Loader2, ArrowLeft, Archive, Pin, PinOff } from 'lucide-react';
 import type { ReportForm, ReportFile, Profile } from '../types';
 import { ExportDialog } from '../components/ExportDialog';
 import type { ExportMetaData } from '../components/ExportDialog';
@@ -8,6 +8,7 @@ import { Breadcrumbs } from '../components/ui/Breadcrumbs';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { useRecentlyViewed } from '../hooks/useRecentlyViewed';
+import { usePinnedItems } from '../hooks/usePinnedItems';
 import { supabase } from '../lib/supabase';
 import type { DragEndEvent } from '@dnd-kit/core';
 import { arrayMove } from '@dnd-kit/sortable';
@@ -56,6 +57,7 @@ export const ConstructionReports = () => {
     const { t } = useLanguage();
     const { isOnline } = useOffline();
     const { addItem: addRecentItem } = useRecentlyViewed();
+    const { isPinned, togglePin } = usePinnedItems();
     const { success: showSuccess } = useToast();
     const handleError = useHandleError();
     const confirm = useConfirm();
@@ -492,7 +494,25 @@ export const ConstructionReports = () => {
                         <ArrowLeft className="h-6 w-6" />
                     </button>
                     <div>
-                        <h1 className="text-2xl font-bold text-foreground">{t('reports.title')}</h1>
+                        <div className="flex items-center gap-2">
+                            <h1 className="text-2xl font-bold text-foreground">{t('reports.title')}</h1>
+                            <button
+                                onClick={() => togglePin({
+                                    id: constructionId!,
+                                    type: 'construction',
+                                    name: construction.name,
+                                    subtext: construction.work_order || undefined,
+                                    path: `/customers/${customerId}/constructions/${constructionId}/reports`,
+                                })}
+                                className="p-1.5 rounded-md hover:bg-muted transition-colors"
+                                title={isPinned(constructionId!, 'construction') ? t('dashboard.unpin') : t('dashboard.pin')}
+                            >
+                                {isPinned(constructionId!, 'construction')
+                                    ? <PinOff className="h-4 w-4 text-primary" />
+                                    : <Pin className="h-4 w-4 text-muted-foreground" />
+                                }
+                            </button>
+                        </div>
                         <p className="text-sm text-muted-foreground line-clamp-1 md:line-clamp-none">
                             {t('constructions.for')} {construction.name} ({construction.work_order}) - {customer.name}
                         </p>

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Upload, X, Image as ImageIcon, FileText } from 'lucide-react';
+import { Upload, X, Image as ImageIcon, FileText, Pencil } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import type { ReportFile } from '../types';
 import { useToast } from '../context/ToastContext';
@@ -7,6 +7,7 @@ import { useConfirm } from '../context/useConfirm';
 import { useLanguage } from '../context/LanguageContext';
 import { useOffline } from '../context/OfflineContext';
 import { errorHandler, isNetworkError } from '../lib/errorHandler';
+import { ImageAnnotator } from './ImageAnnotator';
 import {
   STORES,
   addToSyncQueue,
@@ -30,6 +31,7 @@ export function FileUploader({ constructionId, onUploadComplete, onDelete, files
   const [uploading, setUploading] = useState(false);
   const [dragActive, setDragActive] = useState(false);
   const [description, setDescription] = useState('');
+  const [annotatingFile, setAnnotatingFile] = useState<ReportFile | null>(null);
 
   const queueUploadOffline = async (file: File, fileType: 'image' | 'pdf') => {
     const tempId = `temp_file_${crypto.randomUUID()}`;
@@ -276,8 +278,35 @@ export function FileUploader({ constructionId, onUploadComplete, onDelete, files
     }
   };
 
+  const getImageUrl = (file: ReportFile): string => {
+    if (file.file_path.startsWith('blob:') || file.file_path.startsWith('http')) {
+      return file.file_path;
+    }
+    const { data } = supabase.storage.from('report-files').getPublicUrl(file.file_path);
+    return data.publicUrl;
+  };
+
+  const handleAnnotationSave = async (blob: Blob) => {
+    const annotatedFile = new File(
+      [blob],
+      `annotated_${annotatingFile?.file_name || 'image.png'}`,
+      { type: 'image/png' }
+    );
+    setAnnotatingFile(null);
+    await handleUpload(annotatedFile);
+    showSuccess(t('annotation.saved'));
+  };
+
   return (
     <div className="space-y-4">
+      {/* Image Annotator */}
+      {annotatingFile && (
+        <ImageAnnotator
+          imageUrl={getImageUrl(annotatingFile)}
+          onSave={handleAnnotationSave}
+          onCancel={() => setAnnotatingFile(null)}
+        />
+      )}
       {/* Upload Area */}
       <div
         className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
@@ -344,14 +373,26 @@ export function FileUploader({ constructionId, onUploadComplete, onDelete, files
                     )}
                   </div>
                 </div>
-                <button
-                  onClick={() => handleDelete(file)}
-                  className="text-red-600 hover:text-red-800"
-                  title={t('fileUploader.deleteFile')}
-                  aria-label={t('fileUploader.deleteFile')}
-                >
-                  <X className="h-5 w-5" />
-                </button>
+                <div className="flex items-center gap-2">
+                  {(file.file_type ?? file.type) === 'image' && (
+                    <button
+                      onClick={() => setAnnotatingFile(file)}
+                      className="text-blue-600 hover:text-blue-800"
+                      title={t('annotation.title')}
+                      aria-label={t('annotation.title')}
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </button>
+                  )}
+                  <button
+                    onClick={() => handleDelete(file)}
+                    className="text-red-600 hover:text-red-800"
+                    title={t('fileUploader.deleteFile')}
+                    aria-label={t('fileUploader.deleteFile')}
+                  >
+                    <X className="h-5 w-5" />
+                  </button>
+                </div>
               </div>
             ))}
           </div>

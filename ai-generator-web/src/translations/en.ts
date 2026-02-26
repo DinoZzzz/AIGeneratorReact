@@ -753,4 +753,42 @@ export const en: Record<string, string> = {
     'commandPalette.select': 'Select',
     'commandPalette.close': 'Close',
     'commandPalette.typeToSearch': 'Type to search...',
+    'commandPalette.customers': 'Customers',
+    'commandPalette.constructions': 'Constructions',
+    'commandPalette.reports': 'Reports',
+
+    // Auto-save & Draft
+    'form.draftFound': 'An unsaved draft was found. Would you like to restore it?',
+    'form.restoreDraft': 'Restore',
+    'form.discardDraft': 'Discard',
+    'form.draftRestored': 'Draft restored successfully.',
+    'form.autoSaved': 'Draft auto-saved',
+    'form.duplicated': 'Report duplicated — edit and save as new.',
+
+    // Pinned Items
+    'dashboard.pinnedItems': 'Pinned',
+    'dashboard.pinEmpty': 'Pin your most-used customers and constructions for quick access.',
+    'dashboard.pin': 'Pin',
+    'dashboard.unpin': 'Unpin',
+
+    // Batch Operations
+    'reports.selectAll': 'Select all',
+    'reports.deselectAll': 'Deselect all',
+    'reports.bulkExportPdf': 'Export PDF',
+    'reports.bulkDelete': 'Delete selected',
+
+    // Photo Annotation
+    'annotation.title': 'Annotate Image',
+    'annotation.save': 'Save annotation',
+    'annotation.cancel': 'Cancel',
+    'annotation.draw': 'Draw',
+    'annotation.rectangle': 'Rectangle',
+    'annotation.circle': 'Circle',
+    'annotation.arrow': 'Arrow',
+    'annotation.text': 'Text',
+    'annotation.undo': 'Undo',
+    'annotation.redo': 'Redo',
+    'annotation.clear': 'Clear all',
+    'annotation.saved': 'Annotated image saved.',
+    'annotation.textPrompt': 'Enter text label:',
 };
