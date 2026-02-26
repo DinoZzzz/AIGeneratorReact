@@ -185,7 +185,7 @@ export function ImageAnnotator({ imageUrl, onSave, onCancel }: ImageAnnotatorPro
                     break;
             }
         }
-    }, [image, annotations, currentAnnotation]);
+    }, [image, annotations, currentAnnotation, canvasSize]);
 
     useEffect(() => {
         redraw();
