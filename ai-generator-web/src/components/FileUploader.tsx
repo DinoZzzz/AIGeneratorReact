@@ -398,11 +398,16 @@ export function FileUploader({ constructionId, onUploadComplete, onDelete, files
       throw new Error('Cannot overwrite file with non-storage path');
     }
 
+    const inferredExtension = sourceFile.file_name.split('.').pop()?.toLowerCase();
+    const fallbackExtension = annotatedFile.type === 'image/jpeg' ? 'jpg' : 'png';
+    const fileExtension = inferredExtension && inferredExtension.length > 0 ? inferredExtension : fallbackExtension;
+    const newStoragePath = `${sourceFile.construction_id || constructionId}/${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExtension}`;
+
     const { error: storageError } = await supabase.storage
       .from('report-files')
-      .upload(sourceFile.file_path, annotatedFile, {
+      .upload(newStoragePath, annotatedFile, {
         cacheControl: '3600',
-        upsert: true,
+        upsert: false,
         contentType: annotatedFile.type,
       });
 
@@ -412,6 +417,7 @@ export function FileUploader({ constructionId, onUploadComplete, onDelete, files
     const { data: updatedRecord, error: dbError } = await supabase
       .from('report_files')
       .update({
+        file_path: newStoragePath,
         file_name: sourceFile.file_name,
         description: nextDescription,
         file_type: 'image',
@@ -420,10 +426,14 @@ export function FileUploader({ constructionId, onUploadComplete, onDelete, files
       .select()
       .single();
 
-    if (dbError) throw dbError;
+    if (dbError) {
+      await supabase.storage.from('report-files').remove([newStoragePath]);
+      throw dbError;
+    }
 
     const normalizedRecord = (updatedRecord as ReportFile) || {
       ...sourceFile,
+      file_path: newStoragePath,
       file_type: 'image',
       description: nextDescription,
     };
@@ -432,6 +442,14 @@ export function FileUploader({ constructionId, onUploadComplete, onDelete, files
       ...normalizedRecord,
       _synced: true,
     });
+
+    if (sourceFile.file_path !== newStoragePath) {
+      try {
+        await supabase.storage.from('report-files').remove([sourceFile.file_path]);
+      } catch {
+        // Non-blocking cleanup: DB already points to the new file path.
+      }
+    }
 
     if (onUploadComplete) {
       onUploadComplete(normalizedRecord);
