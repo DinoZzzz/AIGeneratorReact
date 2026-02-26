@@ -397,6 +397,7 @@ export function ImageAnnotator({ imageUrl, onSave, onCancel }: ImageAnnotatorPro
                         {tools.map(t => (
                             <button
                                 key={t.id}
+                                type="button"
                                 onClick={() => setTool(t.id)}
                                 className={cn(
                                     "p-2 rounded-md transition-colors",
@@ -416,6 +417,7 @@ export function ImageAnnotator({ imageUrl, onSave, onCancel }: ImageAnnotatorPro
                         {COLORS.map(c => (
                             <button
                                 key={c}
+                                type="button"
                                 onClick={() => setColor(c)}
                                 className={cn(
                                     "w-6 h-6 rounded-full border-2 transition-transform",
@@ -431,6 +433,7 @@ export function ImageAnnotator({ imageUrl, onSave, onCancel }: ImageAnnotatorPro
                         {LINE_WIDTHS.map(w => (
                             <button
                                 key={w}
+                                type="button"
                                 onClick={() => setLineWidth(w)}
                                 className={cn(
                                     "p-2 rounded-md transition-colors",
@@ -449,6 +452,7 @@ export function ImageAnnotator({ imageUrl, onSave, onCancel }: ImageAnnotatorPro
                     {/* Undo/Redo */}
                     <div className="flex gap-1">
                         <button
+                            type="button"
                             onClick={undo}
                             disabled={annotations.length === 0}
                             className="p-2 rounded-md hover:bg-muted disabled:opacity-30 text-muted-foreground"
@@ -457,6 +461,7 @@ export function ImageAnnotator({ imageUrl, onSave, onCancel }: ImageAnnotatorPro
                             <Undo2 className="h-4 w-4" />
                         </button>
                         <button
+                            type="button"
                             onClick={redo}
                             disabled={redoStack.length === 0}
                             className="p-2 rounded-md hover:bg-muted disabled:opacity-30 text-muted-foreground"
@@ -465,6 +470,7 @@ export function ImageAnnotator({ imageUrl, onSave, onCancel }: ImageAnnotatorPro
                             <Redo2 className="h-4 w-4" />
                         </button>
                         <button
+                            type="button"
                             onClick={clearAll}
                             disabled={annotations.length === 0}
                             className="p-2 rounded-md hover:bg-muted disabled:opacity-30 text-muted-foreground"
@@ -476,11 +482,11 @@ export function ImageAnnotator({ imageUrl, onSave, onCancel }: ImageAnnotatorPro
                 </div>
 
                 <div className="flex gap-2">
-                    <Button variant="outline" size="sm" onClick={onCancel}>
+                    <Button type="button" variant="outline" size="sm" onClick={onCancel}>
                         <X className="h-4 w-4 mr-1" />
                         {t('annotation.cancel')}
                     </Button>
-                    <Button size="sm" onClick={handleSave} disabled={annotations.length === 0}>
+                    <Button type="button" size="sm" onClick={handleSave} disabled={annotations.length === 0}>
                         <Save className="h-4 w-4 mr-1" />
                         {t('annotation.save')}
                     </Button>

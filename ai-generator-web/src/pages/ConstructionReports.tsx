@@ -232,11 +232,11 @@ export const ConstructionReports = () => {
     }, []);
 
     const handleFileUploaded = (file: ReportFile) => {
-        setUploadedFiles([file, ...uploadedFiles]);
+        setUploadedFiles(prev => [file, ...prev.filter(existingFile => existingFile.id !== file.id)]);
     };
 
     const handleFileDeleted = (fileId: string) => {
-        setUploadedFiles(uploadedFiles.filter(f => f.id !== fileId));
+        setUploadedFiles(prev => prev.filter(f => f.id !== fileId));
     };
 
     // Report operations

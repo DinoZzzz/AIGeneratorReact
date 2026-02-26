@@ -33,6 +33,8 @@ export function FileUploader({ constructionId, onUploadComplete, onDelete, files
   const [description, setDescription] = useState('');
   const [annotatingFile, setAnnotatingFile] = useState<ReportFile | null>(null);
 
+  const getFileDescription = (fileName: string, fallback?: string) => fallback || fileName;
+
   const queueUploadOffline = async (file: File, fileType: 'image' | 'pdf') => {
     const tempId = `temp_file_${crypto.randomUUID()}`;
     const now = new Date().toISOString();
@@ -286,15 +288,202 @@ export function FileUploader({ constructionId, onUploadComplete, onDelete, files
     return data.publicUrl;
   };
 
+  const queueAnnotatedReplacementForTempFile = async (sourceFile: ReportFile, annotatedFile: File) => {
+    const nextBlobUrl = URL.createObjectURL(annotatedFile);
+    const nextDescription = getFileDescription(sourceFile.file_name, sourceFile.description);
+    const updatedFile: ReportFile = {
+      ...sourceFile,
+      file_path: nextBlobUrl,
+      file_type: 'image',
+      description: nextDescription,
+    };
+
+    await saveToStore(STORES.REPORT_FILES, {
+      ...updatedFile,
+      _is_offline: true,
+      _synced: false,
+    });
+
+    await removeSyncOperationsForEntity(STORES.UPLOADS, sourceFile.id);
+    await addToSyncQueue(
+      STORES.UPLOADS,
+      'create',
+      {
+        kind: 'report_file_upload',
+        construction_id: sourceFile.construction_id || constructionId,
+        report_id: sourceFile.report_id,
+        file_name: updatedFile.file_name,
+        description: nextDescription,
+        file_type: 'image',
+        mime_type: annotatedFile.type,
+        blob: annotatedFile,
+      },
+      sourceFile.id
+    );
+
+    if (sourceFile.file_path.startsWith('blob:') && sourceFile.file_path !== nextBlobUrl) {
+      URL.revokeObjectURL(sourceFile.file_path);
+    }
+
+    if (onUploadComplete) {
+      onUploadComplete(updatedFile);
+    }
+  };
+
+  const queueAnnotatedReplacementForExistingFile = async (sourceFile: ReportFile, annotatedFile: File) => {
+    const tempId = `temp_file_${crypto.randomUUID()}`;
+    const now = new Date().toISOString();
+    const blobUrl = URL.createObjectURL(annotatedFile);
+    const nextDescription = getFileDescription(sourceFile.file_name, sourceFile.description);
+
+    const replacementRecord: ReportFile = {
+      id: tempId,
+      construction_id: sourceFile.construction_id || constructionId,
+      report_id: sourceFile.report_id,
+      file_path: blobUrl,
+      file_name: sourceFile.file_name,
+      description: nextDescription,
+      file_type: 'image',
+      created_at: now,
+    };
+
+    await deleteFromStore(STORES.REPORT_FILES, sourceFile.id);
+    await saveToStore(STORES.REPORT_FILES, {
+      ...replacementRecord,
+      _is_offline: true,
+      _synced: false,
+    });
+
+    await addToSyncQueue(
+      STORES.UPLOADS,
+      'create',
+      {
+        kind: 'report_file_upload',
+        construction_id: replacementRecord.construction_id,
+        report_id: replacementRecord.report_id,
+        file_name: replacementRecord.file_name,
+        description: nextDescription,
+        file_type: 'image',
+        mime_type: annotatedFile.type,
+        blob: annotatedFile,
+      },
+      tempId
+    );
+
+    await addToSyncQueue(
+      STORES.UPLOADS,
+      'delete',
+      {
+        kind: 'report_file_delete',
+        file_id: sourceFile.id,
+        file_path: sourceFile.file_path,
+      },
+      sourceFile.id
+    );
+
+    if (sourceFile.file_path.startsWith('blob:')) {
+      URL.revokeObjectURL(sourceFile.file_path);
+    }
+
+    if (onDelete) {
+      onDelete(sourceFile.id);
+    }
+    if (onUploadComplete) {
+      onUploadComplete(replacementRecord);
+    }
+  };
+
+  const replaceAnnotatedFileOnline = async (sourceFile: ReportFile, annotatedFile: File) => {
+    if (sourceFile.file_path.startsWith('blob:') || sourceFile.file_path.startsWith('http')) {
+      throw new Error('Cannot overwrite file with non-storage path');
+    }
+
+    const { error: storageError } = await supabase.storage
+      .from('report-files')
+      .upload(sourceFile.file_path, annotatedFile, {
+        cacheControl: '3600',
+        upsert: true,
+        contentType: annotatedFile.type,
+      });
+
+    if (storageError) throw storageError;
+
+    const nextDescription = getFileDescription(sourceFile.file_name, sourceFile.description);
+    const { data: updatedRecord, error: dbError } = await supabase
+      .from('report_files')
+      .update({
+        file_name: sourceFile.file_name,
+        description: nextDescription,
+        file_type: 'image',
+      })
+      .eq('id', sourceFile.id)
+      .select()
+      .single();
+
+    if (dbError) throw dbError;
+
+    const normalizedRecord = (updatedRecord as ReportFile) || {
+      ...sourceFile,
+      file_type: 'image',
+      description: nextDescription,
+    };
+
+    await saveToStore(STORES.REPORT_FILES, {
+      ...normalizedRecord,
+      _synced: true,
+    });
+
+    if (onUploadComplete) {
+      onUploadComplete(normalizedRecord);
+    }
+  };
+
   const handleAnnotationSave = async (blob: Blob) => {
+    const sourceFile = annotatingFile;
+    if (!sourceFile) return;
+
     const annotatedFile = new File(
       [blob],
-      `annotated_${annotatingFile?.file_name || 'image.png'}`,
+      sourceFile.file_name || 'image.png',
       { type: 'image/png' }
     );
     setAnnotatingFile(null);
-    await handleUpload(annotatedFile);
-    showSuccess(t('annotation.saved'));
+
+    try {
+      setUploading(true);
+
+      if (sourceFile.id.startsWith('temp_file_')) {
+        await queueAnnotatedReplacementForTempFile(sourceFile, annotatedFile);
+        showSuccess(t('annotation.saved'));
+        return;
+      }
+
+      if (!isOnline) {
+        await queueAnnotatedReplacementForExistingFile(sourceFile, annotatedFile);
+        showSuccess(t('annotation.saved'));
+        return;
+      }
+
+      await replaceAnnotatedFileOnline(sourceFile, annotatedFile);
+      showSuccess(t('annotation.saved'));
+    } catch (error) {
+      if (isNetworkError(error) && !sourceFile.id.startsWith('temp_file_')) {
+        try {
+          await queueAnnotatedReplacementForExistingFile(sourceFile, annotatedFile);
+          showSuccess(t('annotation.saved'));
+          return;
+        } catch (queueError) {
+          const queueAppError = errorHandler.handle(queueError, 'FileUploader.queueAnnotationReplace');
+          showError(errorHandler.getUserMessage(queueAppError));
+          return;
+        }
+      }
+
+      const appError = errorHandler.handle(error, 'FileUploader.annotation');
+      showError(errorHandler.getUserMessage(appError));
+    } finally {
+      setUploading(false);
+    }
   };
 
   return (
