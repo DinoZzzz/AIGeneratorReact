@@ -54,6 +54,8 @@ export const Toast: React.FC<ToastProps> = ({ id, type, message, onClose, durati
     return (
         <div
             {...handlers}
+            role={type === 'error' ? 'alert' : 'status'}
+            aria-live={type === 'error' ? 'assertive' : 'polite'}
             className={cn(
                 "max-w-md w-full shadow-lg rounded-lg pointer-events-auto border overflow-hidden touch-pan-y",
                 "transform transition-all duration-300 ease-out",

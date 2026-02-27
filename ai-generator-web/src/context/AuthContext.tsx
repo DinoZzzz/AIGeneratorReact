@@ -5,6 +5,7 @@ import { setUserContext, clearUserContext } from '../lib/sentry';
 import { clearStore, saveMetadata, STORES } from '../lib/offlineDb';
 import { prewarmLookupCache } from '../lib/offlineLookupCache';
 import { syncPushSubscriptionIfEnabled } from '../lib/notificationService';
+import { registerSession, updateLastActive, revokeCurrentSession } from '../services/sessionService';
 
 type Session = Awaited<ReturnType<typeof supabase.auth.getSession>>['data']['session'];
 type User = NonNullable<Session>['user'];
@@ -138,6 +139,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                     id: session.user.id,
                     email: session.user.email,
                 });
+                // Track device session
+                if (_event === 'SIGNED_IN' || _event === 'INITIAL_SESSION') {
+                    void registerSession(session.user.id);
+                } else if (_event === 'TOKEN_REFRESHED') {
+                    void updateLastActive(session.user.id);
+                }
             } else {
                 setProfile(null);
                 // Clear Sentry user context on logout
@@ -185,6 +192,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     const signOut = async () => {
         try {
+            // Remove current device session before signing out
+            if (user?.id) {
+                await revokeCurrentSession(user.id).catch(() => {});
+            }
             await supabase.auth.signOut();
         } finally {
             warmedLookupUserRef.current = null;

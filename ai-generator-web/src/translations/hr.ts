@@ -771,6 +771,30 @@ export const hr: Record<string, string> = {
     'dashboard.pin': 'Prikvači',
     'dashboard.unpin': 'Otkvači',
 
+    // Dashboard Widgets
+    'dashboard.recentReports': 'Nedavni obrasci',
+    'dashboard.quickActions': 'Brze akcije',
+    'dashboard.activityFeed': 'Aktivnost',
+    'dashboard.customize': 'Prilagodi',
+    'dashboard.showWidgets': 'Prikaži / Sakrij widgete',
+    'dashboard.noActivity': 'Nema nedavne aktivnosti.',
+    'dashboard.activityCreated': 'Kreirano',
+    'dashboard.activityUpdated': 'Ažurirano',
+    'dashboard.quickNewCustomer': 'Novi naručitelj',
+    'dashboard.quickNewReport': 'Obrasci',
+    'dashboard.quickNewAppointment': 'Kalendar',
+    'dashboard.quickSearch': 'Pretraži',
+
+    // Active Sessions
+    'settings.activeSessions': 'Aktivne sesije',
+    'settings.activeSessionsDescription': 'Upravljajte uređajima na kojima ste trenutno prijavljeni.',
+    'settings.currentSession': 'Ovaj uređaj',
+    'settings.lastActive': 'Zadnja aktivnost',
+    'settings.revokeSession': 'Odjavi',
+    'settings.sessionRevoked': 'Sesija uspješno opozvana.',
+    'settings.sessionRevokeFailed': 'Opoziv sesije nije uspio.',
+    'settings.noSessions': 'Nema aktivnih sesija.',
+
     // Batch Operations
     'reports.selectAll': 'Odaberi sve',
     'reports.deselectAll': 'Poništi odabir',

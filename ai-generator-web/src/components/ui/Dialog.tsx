@@ -3,6 +3,8 @@ import { useEffect, useRef } from "react";
 import { cn } from "../../lib/utils";
 import { X } from "lucide-react";
 
+const DialogTitleIdContext = React.createContext<string>('');
+
 interface DialogProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
@@ -62,6 +64,7 @@ export const Dialog = ({ open, onOpenChange, children }: DialogProps) => {
 
 export const DialogContent = ({ className, children, ...props }: React.HTMLAttributes<HTMLDivElement>) => {
     const contentRef = useRef<HTMLDivElement>(null);
+    const titleId = React.useId();
 
     useEffect(() => {
         // Auto-focus first focusable element inside dialog
@@ -74,18 +77,21 @@ export const DialogContent = ({ className, children, ...props }: React.HTMLAttri
     }, []);
 
     return (
-        <div
-            ref={contentRef}
-            role="dialog"
-            aria-modal="true"
-            className={cn(
-                "relative z-50 grid w-full max-w-lg gap-4 border bg-background p-6 shadow-lg duration-200 sm:rounded-lg h-full sm:h-auto overflow-y-auto rounded-t-xl sm:rounded-t-lg animate-scale-in",
-                className
-            )}
-            {...props}
-        >
-            {children}
-        </div>
+        <DialogTitleIdContext.Provider value={titleId}>
+            <div
+                ref={contentRef}
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby={titleId}
+                className={cn(
+                    "relative z-50 grid w-full max-w-lg gap-4 border bg-background p-6 shadow-lg duration-200 sm:rounded-lg h-full sm:h-auto overflow-y-auto rounded-t-xl sm:rounded-t-lg animate-scale-in",
+                    className
+                )}
+                {...props}
+            >
+                {children}
+            </div>
+        </DialogTitleIdContext.Provider>
     );
 };
 
@@ -110,9 +116,16 @@ export const DialogHeader = ({ className, onClose, children, ...props }: DialogH
     );
 };
 
-export const DialogTitle = ({ className, ...props }: React.HTMLAttributes<HTMLHeadingElement>) => {
+export const DialogTitle = ({ className, children, ...props }: React.HTMLAttributes<HTMLHeadingElement>) => {
+    const titleId = React.useContext(DialogTitleIdContext);
     return (
-        <h2 className={cn("text-lg font-semibold leading-none tracking-tight text-foreground", className)} {...props} />
+        <h2
+            id={titleId}
+            className={cn("text-lg font-semibold leading-none tracking-tight text-foreground", className)}
+            {...props}
+        >
+            {children}
+        </h2>
     );
 };
 

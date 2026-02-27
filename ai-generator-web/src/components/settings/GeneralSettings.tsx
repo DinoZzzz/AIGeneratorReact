@@ -19,6 +19,7 @@ import {
     showSystemNotification,
     unregisterPushSubscription,
 } from '../../lib/notificationService';
+import { ActiveSessions } from './ActiveSessions';
 
 export const GeneralSettings = () => {
     const { user } = useAuth();
@@ -229,6 +230,9 @@ export const GeneralSettings = () => {
                     {t('settings.notificationsMobileHint')}
                 </p>
             </section>
+
+            {/* Active Sessions */}
+            <ActiveSessions />
 
             {/* Cache Management Section */}
             <section className="bg-card rounded-lg border border-border p-4 sm:p-6">

@@ -10,7 +10,12 @@ import { useLanguage } from '../context/LanguageContext';
 import { DashboardStats } from '../components/dashboard/DashboardStats';
 import { DashboardCustomersTable } from '../components/dashboard/DashboardCustomersTable';
 import { PinnedItems } from '../components/dashboard/PinnedItems';
+import { RecentReports } from '../components/dashboard/RecentReports';
+import { QuickActions } from '../components/dashboard/QuickActions';
+import { ActivityFeed } from '../components/dashboard/ActivityFeed';
+import { DashboardCustomizer } from '../components/dashboard/DashboardCustomizer';
 import { StatsCardsSkeleton } from '../components/skeletons/CardSkeleton';
+import { useDashboardLayout } from '../hooks/useDashboardLayout';
 
 // Dashboard stats query
 const useDashboardStats = () => {
@@ -41,6 +46,7 @@ export const Dashboard = () => {
     const { user, profile } = useAuth();
     const { t } = useLanguage();
     const { data: stats = { customers: 0, constructions: 0, reports: 0 }, isLoading: loading } = useDashboardStats();
+    const { isVisible } = useDashboardLayout();
 
     const getUserName = () => {
         if (!user) return 'Korisnik';
@@ -76,6 +82,7 @@ export const Dashboard = () => {
                         {formatTodayLong()}
                     </p>
                 </div>
+                <DashboardCustomizer />
             </div>
 
             {/* Stats Grid (Summary Cards) */}
@@ -105,14 +112,25 @@ export const Dashboard = () => {
                 />
             </div>
 
+            {/* Quick Actions */}
+            {isVisible('quickActions') && <QuickActions />}
+
             {/* Pinned Items */}
-            <PinnedItems />
+            {isVisible('pinnedItems') && <PinnedItems />}
+
+            {/* Recent Reports + Activity Feed */}
+            {(isVisible('recentReports') || isVisible('activityFeed')) && (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    {isVisible('recentReports') && <RecentReports />}
+                    {isVisible('activityFeed') && <ActivityFeed />}
+                </div>
+            )}
 
             {/* Charts & Stats Row */}
-            <DashboardStats />
+            {isVisible('dashboardStats') && <DashboardStats />}
 
             {/* Main Content: Customers Table */}
-            <DashboardCustomersTable />
+            {isVisible('customersTable') && <DashboardCustomersTable />}
         </div>
     );
 };

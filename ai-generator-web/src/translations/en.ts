@@ -771,6 +771,30 @@ export const en: Record<string, string> = {
     'dashboard.pin': 'Pin',
     'dashboard.unpin': 'Unpin',
 
+    // Dashboard Widgets
+    'dashboard.recentReports': 'Recent Reports',
+    'dashboard.quickActions': 'Quick Actions',
+    'dashboard.activityFeed': 'Activity',
+    'dashboard.customize': 'Customize',
+    'dashboard.showWidgets': 'Show / Hide widgets',
+    'dashboard.noActivity': 'No recent activity.',
+    'dashboard.activityCreated': 'Created',
+    'dashboard.activityUpdated': 'Updated',
+    'dashboard.quickNewCustomer': 'New Customer',
+    'dashboard.quickNewReport': 'Reports',
+    'dashboard.quickNewAppointment': 'Calendar',
+    'dashboard.quickSearch': 'Search',
+
+    // Active Sessions
+    'settings.activeSessions': 'Active Sessions',
+    'settings.activeSessionsDescription': 'Manage devices where your account is currently signed in.',
+    'settings.currentSession': 'This device',
+    'settings.lastActive': 'Last active',
+    'settings.revokeSession': 'Sign out',
+    'settings.sessionRevoked': 'Session revoked successfully.',
+    'settings.sessionRevokeFailed': 'Failed to revoke session.',
+    'settings.noSessions': 'No active sessions found.',
+
     // Batch Operations
     'reports.selectAll': 'Select all',
     'reports.deselectAll': 'Deselect all',

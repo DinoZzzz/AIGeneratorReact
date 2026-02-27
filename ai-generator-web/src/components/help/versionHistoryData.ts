@@ -7,6 +7,21 @@ export interface VersionHistoryItem {
 export function getVersionHistory(language: string): VersionHistoryItem[] {
     return language === 'hr' ? [
         {
+            version: '2.30.0',
+            date: '2026-02-27',
+            changes: [
+                'Upravljanje sesijama na više uređaja: nova tablica user_sessions s RLS pravilima, praćenje uređaja po prijavi/osvježavanju tokena i brisanje sesije pri odjavi',
+                'Novi odjeljak "Aktivne sesije" u postavkama: prikaz svih prijavljenih uređaja s mogućnošću udaljene odjave',
+                'Dashboard widgeti: dodani Brze akcije (novi naručitelj, obrasci, kalendar, pretraga), Nedavni obrasci (zadnjih 5 s statusom) i Aktivnost (zadnjih 10 ažuriranja)',
+                'Prilagodba dashboarda: gumb za prilagodbu s mogućnošću prikazivanja/skrivanja pojedinih widgeta (spremljeno u localStorage)',
+                'Pristupačnost – Stepper: zamjena div+onClick sa semantičkim nav>ol>li>button elementima, dodan aria-current="step"',
+                'Pristupačnost – Toast: dodani role="alert"/"status" i aria-live atributi ovisno o tipu obavijesti',
+                'Pristupačnost – Dialog: aria-labelledby povezuje DialogContent s DialogTitle putem React konteksta i useId()',
+                'Dodani eslint-plugin-jsx-a11y i @axe-core/playwright; ESLint konfiguracija proširena s jsx-a11y pravilima',
+                'Dodan E2E test pristupačnosti (axe-core) za stranicu prijave (WCAG 2.0 AA)',
+            ]
+        },
+        {
             version: '2.29.0',
             date: '2026-02-26',
             changes: [
@@ -526,6 +541,21 @@ export function getVersionHistory(language: string): VersionHistoryItem[] {
         },
     ] : [
         // English version
+        {
+            version: '2.30.0',
+            date: '2026-02-27',
+            changes: [
+                'Multi-device session management: new user_sessions table with RLS policies, device tracking on sign-in/token refresh, and session cleanup on sign-out',
+                'New "Active Sessions" section in settings: view all logged-in devices with remote sign-out capability',
+                'Dashboard widgets: added Quick Actions (new customer, reports, calendar, search), Recent Reports (last 5 with status), and Activity Feed (last 10 updates)',
+                'Dashboard customization: gear button with show/hide toggles per widget, persisted to localStorage',
+                'Accessibility – Stepper: replaced div+onClick with semantic nav>ol>li>button elements, added aria-current="step"',
+                'Accessibility – Toast: added role="alert"/"status" and aria-live attributes based on toast type',
+                'Accessibility – Dialog: aria-labelledby now links DialogContent to DialogTitle via React context and useId()',
+                'Added eslint-plugin-jsx-a11y and @axe-core/playwright; ESLint config extended with jsx-a11y recommended rules',
+                'Added E2E accessibility test (axe-core) for login page (WCAG 2.0 AA)',
+            ]
+        },
         {
             version: '2.29.0',
             date: '2026-02-26',
