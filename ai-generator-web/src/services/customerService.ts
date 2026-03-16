@@ -127,10 +127,10 @@ export const customerService = {
             .single();
 
         if (error) {
-            captureError(error, { service: 'customerService', method: 'getById', id });
             if (error.code === 'PGRST116') {
                 throw new NotFoundError('Customer');
             }
+            captureError(error, { service: 'customerService', method: 'getById', id });
             throw new AppError(error.message, 'SUPABASE_ERROR', 500);
         }
         return data;

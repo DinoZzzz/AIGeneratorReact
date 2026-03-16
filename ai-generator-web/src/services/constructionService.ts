@@ -31,10 +31,10 @@ export const constructionService = {
             .single();
 
         if (error) {
-            captureError(error, { service: 'constructionService', method: 'getById', id });
             if (error.code === 'PGRST116') {
                 throw new NotFoundError('Construction');
             }
+            captureError(error, { service: 'constructionService', method: 'getById', id });
             throw new AppError(error.message, 'SUPABASE_ERROR', 500);
         }
         return data as Construction;

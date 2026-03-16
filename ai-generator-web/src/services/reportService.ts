@@ -69,7 +69,6 @@ export const reportService = {
 
         if (error) {
             if (error.code === 'PGRST116') {
-                captureError(error, { service: 'reportService', method: 'getById', id, errorType: 'NotFound' });
                 throw new NotFoundError('Report');
             }
             captureError(error, { service: 'reportService', method: 'getById', id });

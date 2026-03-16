@@ -9,6 +9,18 @@ const isExternalDomMutationNotFoundError = (value: unknown): boolean => {
     return message.includes('insertbefore') || message.includes('removechild');
 };
 
+// Fallback check using serialized event data (covers cases where the original
+// DOMException instance is lost, e.g. when re-thrown through React ErrorBoundary)
+const isDomMutationErrorInEvent = (event: Parameters<NonNullable<Parameters<typeof Sentry.init>[0]['beforeSend']>>[0]): boolean => {
+    const exceptions = event.exception?.values;
+    if (!exceptions) return false;
+    return exceptions.some(ex =>
+        ex.type === 'NotFoundError' &&
+        typeof ex.value === 'string' &&
+        (ex.value.includes('insertBefore') || ex.value.includes('removeChild'))
+    );
+};
+
 export const initSentry = () => {
     const dsn = import.meta.env.VITE_SENTRY_DSN;
 
@@ -62,7 +74,7 @@ export const initSentry = () => {
         beforeSend(event, hint) {
             // Browser translators/extensions can mutate DOM outside React and trigger benign
             // NotFoundError insertBefore/removeChild crashes during reconciliation.
-            if (isExternalDomMutationNotFoundError(hint.originalException)) {
+            if (isExternalDomMutationNotFoundError(hint.originalException) || isDomMutationErrorInEvent(event)) {
                 return null;
             }
 
