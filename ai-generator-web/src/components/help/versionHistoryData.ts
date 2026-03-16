@@ -7,6 +7,16 @@ export interface VersionHistoryItem {
 export function getVersionHistory(language: string): VersionHistoryItem[] {
     return language === 'hr' ? [
         {
+            version: '2.31.0',
+            date: '2026-03-16',
+            changes: [
+                'Ispravljena greška "User already registered" pri kreiranju ispitivača s već registriranim emailom — sada prikazuje jasnu poruku umjesto generičke greške',
+                'Uklanjeno nepotrebno prijavljivanje očekivanih grešaka u Sentry (registrirani email, PGRST116 not-found)',
+                'Poboljšano upravljanje greškama Edge Function-a za resetiranje lozinke — prikazuju se stvarni detalji greške umjesto generičke poruke',
+                'Poboljšan Sentry filter za DOM mutacije: pokriva slučajeve kad se NotFoundError ponovno baci kroz React ErrorBoundary',
+            ]
+        },
+        {
             version: '2.30.0',
             date: '2026-02-27',
             changes: [
@@ -541,6 +551,16 @@ export function getVersionHistory(language: string): VersionHistoryItem[] {
         },
     ] : [
         // English version
+        {
+            version: '2.31.0',
+            date: '2026-03-16',
+            changes: [
+                'Fixed "User already registered" error when creating an examiner with an already registered email — now shows a clear message instead of a generic error',
+                'Stopped reporting expected errors to Sentry (registered email, PGRST116 not-found)',
+                'Improved Edge Function error handling for password reset — actual error details are now shown instead of a generic message',
+                'Improved Sentry DOM mutation filter: covers cases where NotFoundError is re-thrown through React ErrorBoundary',
+            ]
+        },
         {
             version: '2.30.0',
             date: '2026-02-27',
