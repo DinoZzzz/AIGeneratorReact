@@ -7,6 +7,18 @@ export interface VersionHistoryItem {
 export function getVersionHistory(language: string): VersionHistoryItem[] {
     return language === 'hr' ? [
         {
+            version: '2.32.0',
+            date: '2026-03-16',
+            changes: [
+                'Dodano 64 nova unit testa za kalkulacije vode i zraka (getCriteria, gubitak vode/zraka, omočene površine, end-to-end provjere svih 5 shema)',
+                'Dodana AdminRoute zaštita — /examiners ruta sada preusmjerava ne-admine na početnu stranicu',
+                'Nova 404 stranica s dvojezičnom podrškom (HR/EN) i catch-all rutom za nepostojeće URL-ove',
+                'Dodano upozorenje pri napuštanju stranice s nespremljenim promjenama u obrascima vode i zraka (beforeunload)',
+                'Migrirano 33 inline prijevoda iz Layout.tsx u i18n sustav (offline.* namespace) — uklonjen duplicirani offlineTranslations objekt',
+                'Premješten @types/react-big-calendar iz dependencies u devDependencies',
+            ]
+        },
+        {
             version: '2.31.0',
             date: '2026-03-16',
             changes: [
@@ -551,6 +563,18 @@ export function getVersionHistory(language: string): VersionHistoryItem[] {
         },
     ] : [
         // English version
+        {
+            version: '2.32.0',
+            date: '2026-03-16',
+            changes: [
+                'Added 64 new unit tests for water and air calculations (getCriteria, water/air loss, wetted surfaces, end-to-end validation for all 5 schemas)',
+                'Added AdminRoute guard — /examiners route now redirects non-admin users to the home page',
+                'New 404 Not Found page with bilingual support (HR/EN) and catch-all route for unknown URLs',
+                'Added unsaved changes warning when leaving water and air method forms with unsubmitted data (beforeunload)',
+                'Migrated 33 inline translations from Layout.tsx to the i18n system (offline.* namespace) — removed duplicate offlineTranslations object',
+                'Moved @types/react-big-calendar from dependencies to devDependencies',
+            ]
+        },
         {
             version: '2.31.0',
             date: '2026-03-16',

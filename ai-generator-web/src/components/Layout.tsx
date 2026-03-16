@@ -42,74 +42,7 @@ interface LayoutProps {
     children: React.ReactNode;
 }
 
-const offlineTranslations = {
-    hr: {
-        online: 'Online',
-        offline: 'Offline',
-        pendingChanges: 'promjena na čekanju',
-        syncing: 'Sinkronizacija...',
-        tapToSync: 'Sinkroniziraj',
-        failedChanges: 'neuspjelih promjena',
-        localOnlyChanges: 'lokalnih promjena',
-        details: 'Detalji',
-        retry: 'Ponovi',
-        discard: 'Odbaci',
-        restore: 'Vrati',
-        localOnlyTitle: 'Lokalno bez sinkronizacije',
-        discardConfirmTitle: 'Odbaciti sinkronizaciju za ovu promjenu?',
-        discardConfirmDescription: 'Promjena će ostati samo lokalno na ovom uređaju i neće se poslati u bazu.',
-        customers: 'Naručitelji',
-        constructions: 'Gradilišta',
-        reports: 'Izvještaji',
-        appointments: 'Termin',
-        messages: 'Poruke',
-        examiners: 'Ispitivači',
-        materials: 'Materijali',
-        reportFiles: 'Privitci',
-        schemeImages: 'Sheme',
-        certifiers: 'Certifikatori',
-        exportHistory: 'Povijest izvoza',
-        uploads: 'Prijenosi datoteka',
-        create: 'kreiranje',
-        update: 'ažuriranje',
-        delete: 'brisanje',
-        useServerVersion: 'Koristi server',
-        keepLocalVersion: 'Zadrži lokalno',
-    },
-    en: {
-        online: 'Online',
-        offline: 'Offline',
-        pendingChanges: 'pending changes',
-        syncing: 'Syncing...',
-        tapToSync: 'Sync now',
-        failedChanges: 'failed changes',
-        localOnlyChanges: 'local-only changes',
-        details: 'Details',
-        retry: 'Retry',
-        discard: 'Discard',
-        restore: 'Restore',
-        localOnlyTitle: 'Local-only (excluded from sync)',
-        discardConfirmTitle: 'Discard sync for this change?',
-        discardConfirmDescription: 'The change will stay local on this device and will not be sent to the database.',
-        customers: 'Customers',
-        constructions: 'Constructions',
-        reports: 'Reports',
-        appointments: 'Appointments',
-        messages: 'Messages',
-        examiners: 'Examiners',
-        materials: 'Materials',
-        reportFiles: 'Attachments',
-        schemeImages: 'Schemes',
-        certifiers: 'Certifiers',
-        exportHistory: 'Export history',
-        uploads: 'File uploads',
-        create: 'create',
-        update: 'update',
-        delete: 'delete',
-        useServerVersion: 'Use server',
-        keepLocalVersion: 'Keep local',
-    },
-};
+
 
 export const Layout = ({ children }: LayoutProps) => {
     const { signOut, user, profile, lowBandwidthMode } = useAuth();
@@ -139,7 +72,7 @@ export const Layout = ({ children }: LayoutProps) => {
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
     const [showMobileSyncDetails, setShowMobileSyncDetails] = useState(false);
 
-    const ot = offlineTranslations[language as keyof typeof offlineTranslations] || offlineTranslations.en;
+    const ot = (key: string) => t(`offline.${key}`);
 
     // Prefetch common routes during idle time for faster navigation
     useEffect(() => {
@@ -205,29 +138,29 @@ export const Layout = ({ children }: LayoutProps) => {
     const getStoreLabel = (store: StoreName) => {
         switch (store) {
             case 'customers':
-                return ot.customers;
+                return ot('customers');
             case 'constructions':
-                return ot.constructions;
+                return ot('constructions');
             case 'reports':
-                return ot.reports;
+                return ot('reports');
             case 'appointments':
-                return ot.appointments;
+                return ot('appointments');
             case 'messages':
-                return ot.messages;
+                return ot('messages');
             case 'examiners':
-                return ot.examiners;
+                return ot('examiners');
             case 'materials':
-                return ot.materials;
+                return ot('materials');
             case 'report_files':
-                return ot.reportFiles;
+                return ot('reportFiles');
             case 'scheme_images':
-                return ot.schemeImages;
+                return ot('schemeImages');
             case 'certifiers':
-                return ot.certifiers;
+                return ot('certifiers');
             case 'export_history':
-                return ot.exportHistory;
+                return ot('exportHistory');
             case 'uploads':
-                return ot.uploads;
+                return ot('uploads');
             default:
                 return store;
         }
@@ -236,11 +169,11 @@ export const Layout = ({ children }: LayoutProps) => {
     const getOperationLabel = (operation: 'create' | 'update' | 'delete') => {
         switch (operation) {
             case 'create':
-                return ot.create;
+                return ot('create');
             case 'update':
-                return ot.update;
+                return ot('update');
             case 'delete':
-                return ot.delete;
+                return ot('delete');
             default:
                 return operation;
         }
@@ -248,9 +181,9 @@ export const Layout = ({ children }: LayoutProps) => {
 
     const handleDiscardFailedOperation = async (operationId: string) => {
         const shouldDiscard = await confirm({
-            title: ot.discardConfirmTitle,
-            description: ot.discardConfirmDescription,
-            confirmLabel: ot.discard,
+            title: ot('discardConfirmTitle'),
+            description: ot('discardConfirmDescription'),
+            confirmLabel: ot('discard'),
             cancelLabel: t('common.cancel'),
             variant: 'destructive',
         });
@@ -473,16 +406,16 @@ export const Layout = ({ children }: LayoutProps) => {
                                     {syncStatus?.inProgress ? (
                                         <span className="flex items-center gap-1">
                                             <RefreshCw className="h-3 w-3 animate-spin" />
-                                            {ot.syncing} ({syncStatus.completed}/{syncStatus.total})
+                                            {ot('syncing')} ({syncStatus.completed}/{syncStatus.total})
                                         </span>
                                     ) : !isOnline ? (
-                                        ot.offline
+                                        ot('offline')
                                     ) : pendingChanges > 0 ? (
-                                        `${pendingChanges} ${ot.pendingChanges}`
+                                        `${pendingChanges} ${ot('pendingChanges')}`
                                     ) : discardedChanges > 0 ? (
-                                        `${discardedChanges} ${ot.localOnlyChanges}`
+                                        `${discardedChanges} ${ot('localOnlyChanges')}`
                                     ) : (
-                                        ot.online
+                                        ot('online')
                                     )}
                                 </span>
                             </div>
@@ -492,7 +425,7 @@ export const Layout = ({ children }: LayoutProps) => {
                                         onClick={() => setShowMobileSyncDetails(prev => !prev)}
                                         className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-900/40 rounded-md hover:bg-amber-200 dark:hover:bg-amber-900 transition-colors"
                                     >
-                                        {ot.details}
+                                        {ot('details')}
                                     </button>
                                 )}
                                 {isOnline && pendingChanges > 0 && !syncStatus?.inProgress && (
@@ -501,7 +434,7 @@ export const Layout = ({ children }: LayoutProps) => {
                                         className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/50 rounded-md hover:bg-blue-200 dark:hover:bg-blue-900 transition-colors"
                                     >
                                         <RefreshCw className="h-3 w-3" />
-                                        {ot.tapToSync}
+                                        {ot('tapToSync')}
                                     </button>
                                 )}
                             </div>
@@ -510,7 +443,7 @@ export const Layout = ({ children }: LayoutProps) => {
                             <div className="mt-2 max-h-44 overflow-y-auto space-y-2">
                                 {failedChanges > 0 && (
                                     <p className="text-[11px] text-red-600 dark:text-red-400">
-                                        {failedChanges} {ot.failedChanges}
+                                        {failedChanges} {ot('failedChanges')}
                                     </p>
                                 )}
                                 {failedOperations.slice(0, 4).map((operation) => (
@@ -526,13 +459,13 @@ export const Layout = ({ children }: LayoutProps) => {
                                                 onClick={() => retryFailedOperation(operation.id)}
                                                 className="px-2 py-1 text-[11px] rounded bg-amber-600 hover:bg-amber-700 text-white"
                                             >
-                                                {ot.retry}
+                                                {ot('retry')}
                                             </button>
                                             <button
                                                 onClick={() => void handleDiscardFailedOperation(operation.id)}
                                                 className="px-2 py-1 text-[11px] rounded bg-destructive hover:bg-destructive/90 text-destructive-foreground"
                                             >
-                                                {ot.discard}
+                                                {ot('discard')}
                                             </button>
                                             {isConflictErrorMessage(operation.error) && (
                                                 <>
@@ -540,13 +473,13 @@ export const Layout = ({ children }: LayoutProps) => {
                                                         onClick={() => resolveConflictPreferLocal(operation.id)}
                                                         className="px-2 py-1 text-[11px] rounded bg-emerald-600 hover:bg-emerald-700 text-white"
                                                     >
-                                                        {ot.keepLocalVersion}
+                                                        {ot('keepLocalVersion')}
                                                     </button>
                                                     <button
                                                         onClick={() => resolveConflictUseServer(operation.id)}
                                                         className="px-2 py-1 text-[11px] rounded bg-blue-600 hover:bg-blue-700 text-white"
                                                     >
-                                                        {ot.useServerVersion}
+                                                        {ot('useServerVersion')}
                                                     </button>
                                                 </>
                                             )}
@@ -555,7 +488,7 @@ export const Layout = ({ children }: LayoutProps) => {
                                 ))}
                                 {discardedChanges > 0 && (
                                     <p className="text-[11px] text-amber-700 dark:text-amber-300">
-                                        {discardedChanges} {ot.localOnlyChanges}
+                                        {discardedChanges} {ot('localOnlyChanges')}
                                     </p>
                                 )}
                                 {discardedOperations.slice(0, 4).map((operation) => (
@@ -564,14 +497,14 @@ export const Layout = ({ children }: LayoutProps) => {
                                             {getStoreLabel(operation.store)} - {getOperationLabel(operation.operation)}
                                         </p>
                                         <p className="text-[11px] text-muted-foreground line-clamp-2 break-all mt-1">
-                                            {operation.error || ot.localOnlyTitle}
+                                            {operation.error || ot('localOnlyTitle')}
                                         </p>
                                         <div className="mt-2 flex gap-2">
                                             <button
                                                 onClick={() => restoreDiscardedOperation(operation.id)}
                                                 className="px-2 py-1 text-[11px] rounded bg-blue-600 hover:bg-blue-700 text-white"
                                             >
-                                                {ot.restore}
+                                                {ot('restore')}
                                             </button>
                                         </div>
                                     </div>
@@ -650,17 +583,17 @@ export const Layout = ({ children }: LayoutProps) => {
                                                 !isOnline ? "text-orange-700 dark:text-orange-400" : "text-yellow-700 dark:text-yellow-400"
                                             )}>
                                                 {!isOnline
-                                                    ? ot.offline
+                                                    ? ot('offline')
                                                     : pendingChanges > 0
-                                                        ? `${pendingChanges} ${ot.pendingChanges}`
+                                                        ? `${pendingChanges} ${ot('pendingChanges')}`
                                                         : discardedChanges > 0
-                                                            ? `${discardedChanges} ${ot.localOnlyChanges}`
-                                                            : ot.online}
+                                                            ? `${discardedChanges} ${ot('localOnlyChanges')}`
+                                                            : ot('online')}
                                             </p>
                                             {syncStatus?.inProgress && (
                                                 <p className="text-xs text-muted-foreground flex items-center gap-1">
                                                     <RefreshCw className="h-3 w-3 animate-spin" />
-                                                    {ot.syncing} ({syncStatus.completed}/{syncStatus.total})
+                                                    {ot('syncing')} ({syncStatus.completed}/{syncStatus.total})
                                                 </p>
                                             )}
                                         </div>
@@ -671,7 +604,7 @@ export const Layout = ({ children }: LayoutProps) => {
                                                 onClick={() => setShowMobileSyncDetails(prev => !prev)}
                                                 className="px-3 py-1.5 text-sm font-medium text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-900/40 rounded-md hover:bg-amber-200 dark:hover:bg-amber-900 transition-colors"
                                             >
-                                                {ot.details}
+                                                {ot('details')}
                                             </button>
                                         )}
                                         {isOnline && pendingChanges > 0 && !syncStatus?.inProgress && (
@@ -680,7 +613,7 @@ export const Layout = ({ children }: LayoutProps) => {
                                                 className="flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 transition-colors"
                                             >
                                                 <RefreshCw className="h-4 w-4" />
-                                                {ot.tapToSync}
+                                                {ot('tapToSync')}
                                             </button>
                                         )}
                                     </div>
@@ -689,7 +622,7 @@ export const Layout = ({ children }: LayoutProps) => {
                                     <div className="mt-3 max-h-64 overflow-y-auto space-y-2">
                                         {failedChanges > 0 && (
                                             <p className="text-xs text-red-600 dark:text-red-400">
-                                                {failedChanges} {ot.failedChanges}
+                                                {failedChanges} {ot('failedChanges')}
                                             </p>
                                         )}
                                         {failedOperations.slice(0, 8).map((operation) => (
@@ -705,13 +638,13 @@ export const Layout = ({ children }: LayoutProps) => {
                                                         onClick={() => retryFailedOperation(operation.id)}
                                                         className="px-2 py-1 text-xs rounded bg-amber-600 hover:bg-amber-700 text-white"
                                                     >
-                                                        {ot.retry}
+                                                        {ot('retry')}
                                                     </button>
                                                     <button
                                                         onClick={() => void handleDiscardFailedOperation(operation.id)}
                                                         className="px-2 py-1 text-xs rounded bg-destructive hover:bg-destructive/90 text-destructive-foreground"
                                                     >
-                                                        {ot.discard}
+                                                        {ot('discard')}
                                                     </button>
                                                     {isConflictErrorMessage(operation.error) && (
                                                         <>
@@ -719,13 +652,13 @@ export const Layout = ({ children }: LayoutProps) => {
                                                                 onClick={() => resolveConflictPreferLocal(operation.id)}
                                                                 className="px-2 py-1 text-xs rounded bg-emerald-600 hover:bg-emerald-700 text-white"
                                                             >
-                                                                {ot.keepLocalVersion}
+                                                                {ot('keepLocalVersion')}
                                                             </button>
                                                             <button
                                                                 onClick={() => resolveConflictUseServer(operation.id)}
                                                                 className="px-2 py-1 text-xs rounded bg-blue-600 hover:bg-blue-700 text-white"
                                                             >
-                                                                {ot.useServerVersion}
+                                                                {ot('useServerVersion')}
                                                             </button>
                                                         </>
                                                     )}
@@ -734,7 +667,7 @@ export const Layout = ({ children }: LayoutProps) => {
                                         ))}
                                         {discardedChanges > 0 && (
                                             <p className="text-xs text-amber-700 dark:text-amber-300">
-                                                {discardedChanges} {ot.localOnlyChanges}
+                                                {discardedChanges} {ot('localOnlyChanges')}
                                             </p>
                                         )}
                                         {discardedOperations.slice(0, 8).map((operation) => (
@@ -743,14 +676,14 @@ export const Layout = ({ children }: LayoutProps) => {
                                                     {getStoreLabel(operation.store)} - {getOperationLabel(operation.operation)}
                                                 </p>
                                                 <p className="text-xs text-muted-foreground line-clamp-2 break-all mt-1">
-                                                    {operation.error || ot.localOnlyTitle}
+                                                    {operation.error || ot('localOnlyTitle')}
                                                 </p>
                                                 <div className="mt-2 flex gap-2">
                                                     <button
                                                         onClick={() => restoreDiscardedOperation(operation.id)}
                                                         className="px-2 py-1 text-xs rounded bg-blue-600 hover:bg-blue-700 text-white"
                                                     >
-                                                        {ot.restore}
+                                                        {ot('restore')}
                                                     </button>
                                                 </div>
                                             </div>

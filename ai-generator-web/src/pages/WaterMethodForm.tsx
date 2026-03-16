@@ -14,6 +14,7 @@ import { useToast } from '../context/ToastContext';
 import { errorHandler } from '../lib/errorHandler';
 import { getLookupWithOfflineFallback } from '../lib/offlineLookupCache';
 import { useAutoSave } from '../hooks/useAutoSave';
+import { useUnsavedChanges } from '../hooks/useUnsavedChanges';
 import {
     useCreateReport,
     useReport,
@@ -98,9 +99,13 @@ export const WaterMethodForm = () => {
     const [showMobileResults, setShowMobileResults] = useState(false);
     const [previousReport, setPreviousReport] = useState<ReportForm | null>(null);
     const [showRestoreBanner, setShowRestoreBanner] = useState(false);
+    const [hasUserEdited, setHasUserEdited] = useState(false);
     const initializedFromPreviousRef = useRef(false);
     const initializedFromDuplicateRef = useRef(false);
     const lastAutoDeviationRef = useRef<string | null>(null);
+
+    // Warn user when leaving page with unsaved changes
+    useUnsavedChanges(hasUserEdited);
 
     // Auto-save drafts
     const autoSaveKey = `water_${constructionId || 'unknown'}_${id || 'new'}`;
@@ -372,6 +377,7 @@ export const WaterMethodForm = () => {
             ...prev,
             [name]: finalValue
         }));
+        setHasUserEdited(true);
     };
 
     const saveReport = async (shouldRedirect: boolean) => {

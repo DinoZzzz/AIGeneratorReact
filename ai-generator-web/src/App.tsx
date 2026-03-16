@@ -5,6 +5,7 @@ import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { OfflineProvider } from './context/OfflineContext';
 import { Layout } from './components/Layout';
+import { AdminRoute } from './components/AdminRoute';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { OfflineIndicator } from './components/OfflineIndicator';
 import { Loader2 } from 'lucide-react';
@@ -35,6 +36,7 @@ const Analytics = lazy(() => import('./pages/Analytics').then(m => ({ default: m
 const Profile = lazy(() => import('./pages/Profile').then(m => ({ default: m.ProfilePage })));
 const Chat = lazy(() => import('./pages/Chat').then(m => ({ default: m.Chat })));
 const Calendar = lazy(() => import('./pages/Calendar').then(m => ({ default: m.Calendar })));
+const NotFound = lazy(() => import('./pages/NotFound').then(m => ({ default: m.NotFound })));
 
 // Loading fallback component
 const LoadingFallback = () => (
@@ -96,7 +98,7 @@ function App() {
                                     <Route path="/" element={<Home />} />
                                     <Route path="/history" element={<History />} />
                                     <Route path="/history/:id" element={<HistoryDetails />} />
-                                    <Route path="/examiners" element={<Examiners />} />
+                                    <Route path="/examiners" element={<AdminRoute><Examiners /></AdminRoute>} />
                                     <Route path="/settings" element={<Settings />} />
                                     <Route path="/analytics" element={<Analytics />} />
                                     <Route path="/help" element={<Help />} />
@@ -121,7 +123,7 @@ function App() {
                                     <Route path="/customers/:customerId/constructions/:constructionId/reports/new/air" element={<AirMethodForm />} />
                                     <Route path="/customers/:customerId/constructions/:constructionId/reports/:id" element={<WaterMethodForm />} />
                                     <Route path="/customers/:customerId/constructions/:constructionId/reports/air/:id" element={<AirMethodForm />} />
-                                    {/* Add other routes here */}
+                                    <Route path="*" element={<NotFound />} />
                                   </Routes>
                                 </Suspense>
                               </ErrorBoundary>
