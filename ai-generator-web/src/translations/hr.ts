@@ -210,6 +210,7 @@ export const hr: Record<string, string> = {
     'examiners.dialog.passwordTooShort': 'Lozinka mora imati najmanje 8 znakova',
     'examiners.dialog.accreditationRequired': 'Molimo odaberite barem jednu akreditaciju',
     'examiners.dialog.saveFailed': 'Spremanje ispitivača nije uspjelo',
+    'examiners.dialog.emailAlreadyRegistered': 'Korisnik s ovom email adresom je već registriran. Molimo koristite drugu email adresu.',
     'examiners.dialog.weakPassword': 'Lozinka je preslaba. Molimo odaberite jaču lozinku.',
     'examiners.dialog.passwordTip1': 'Koristite najmanje 8 znakova',
     'examiners.dialog.passwordTip2': 'Uključite velika i mala slova',

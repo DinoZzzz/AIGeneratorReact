@@ -210,6 +210,7 @@ export const en: Record<string, string> = {
     'examiners.dialog.passwordTooShort': 'Password must be at least 8 characters long',
     'examiners.dialog.accreditationRequired': 'Please select at least one accreditation',
     'examiners.dialog.saveFailed': 'Failed to save examiner',
+    'examiners.dialog.emailAlreadyRegistered': 'A user with this email is already registered. Please use a different email address.',
     'examiners.dialog.weakPassword': 'Password is too weak. Please choose a stronger password.',
     'examiners.dialog.passwordTip1': 'Use at least 8 characters',
     'examiners.dialog.passwordTip2': 'Include uppercase and lowercase letters',

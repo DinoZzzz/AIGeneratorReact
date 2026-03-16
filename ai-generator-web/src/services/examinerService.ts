@@ -91,6 +91,12 @@ export const examinerService = {
                 if (isWeakPasswordAuthError(authError)) {
                     throw authError;
                 }
+                // "User already registered" is an expected user error, not a bug — don't report to Sentry
+                if (authError.message === 'User already registered') {
+                    const err = new Error('User already registered');
+                    (err as Error & { code: string }).code = 'user_already_registered';
+                    throw err;
+                }
                 captureError(authError, { service: 'examinerService', method: 'saveExaminer', step: 'signUp' });
                 throw authError;
             }
@@ -174,8 +180,13 @@ export const examinerService = {
                 if (isWeakPasswordAuthError(passwordError)) {
                     throw passwordError;
                 }
+                // When edge function returns non-2xx, the actual error details may be in `data`
+                const detailedMessage = data?.error || data?.message || passwordError.message;
+                if (detailedMessage && isWeakPasswordAuthError({ code: 'weak_password', message: detailedMessage })) {
+                    throw createWeakPasswordError(detailedMessage);
+                }
                 const error = new Error(
-                    passwordError.message ||
+                    detailedMessage ||
                     'Unable to update password. Make sure the Edge Function is deployed.'
                 );
                 captureError(error, { service: 'examinerService', method: 'saveExaminer', step: 'passwordReset', userId: profile.id });

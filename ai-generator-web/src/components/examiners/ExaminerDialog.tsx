@@ -129,6 +129,8 @@ export const ExaminerDialog = ({ open, onOpenChange, examiner, onSave, reportTyp
         } catch (err) {
             if (isWeakPasswordAuthError(err)) {
                 setError(t('examiners.dialog.weakPassword'));
+            } else if (err instanceof Error && (err as Error & { code?: string }).code === 'user_already_registered') {
+                setError(t('examiners.dialog.emailAlreadyRegistered'));
             } else {
                 setError(t('examiners.dialog.saveFailed'));
             }
