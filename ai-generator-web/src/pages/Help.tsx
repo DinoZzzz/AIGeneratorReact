@@ -22,9 +22,7 @@ export const Help = () => {
             <div>
                 <h1 className="text-3xl font-bold text-foreground">{t('help.title')}</h1>
                 <p className="text-muted-foreground mt-2">
-                    {language === 'hr'
-                        ? 'Pronađite odgovore na najčešća pitanja o korištenju sustava'
-                        : 'Find answers to frequently asked questions about using the system'}
+                    {t('help.description')}
                 </p>
             </div>
 

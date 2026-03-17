@@ -4,9 +4,7 @@ import { Button } from '../components/ui/Button';
 import { useLanguage } from '../context/LanguageContext';
 
 export const NotFound = () => {
-    const { language } = useLanguage();
-
-    const isHr = language === 'hr';
+    const { t } = useLanguage();
 
     return (
         <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4 space-y-6">
@@ -17,16 +15,14 @@ export const NotFound = () => {
             <div className="space-y-2">
                 <h1 className="text-4xl font-bold text-foreground">404</h1>
                 <p className="text-lg text-muted-foreground max-w-md">
-                    {isHr
-                        ? 'Stranica koju tražite ne postoji ili je premještena.'
-                        : 'The page you are looking for doesn\'t exist or has been moved.'}
+                    {t('notFound.description')}
                 </p>
             </div>
 
             <Link to="/">
                 <Button size="lg">
                     <Home className="h-4 w-4 mr-2" />
-                    {isHr ? 'Povratak na početnu' : 'Back to Home'}
+                    {t('notFound.backHome')}
                 </Button>
             </Link>
         </div>

@@ -144,7 +144,7 @@ export const Customers = () => {
                                 }}
                                 className="inline-flex items-center px-4 py-2 border border-input rounded-md text-sm font-medium bg-card text-foreground hover:bg-accent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                             >
-                                <option value="">All Years</option>
+                                <option value="">{t('customers.allYears')}</option>
                                 {Array.from({ length: new Date().getFullYear() - 2019 }, (_, i) => new Date().getFullYear() - i).map(year => (
                                     <option key={year} value={year}>{year}</option>
                                 ))}

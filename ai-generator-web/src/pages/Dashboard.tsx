@@ -49,11 +49,11 @@ export const Dashboard = () => {
     const { isVisible } = useDashboardLayout();
 
     const getUserName = () => {
-        if (!user) return 'Korisnik';
+        if (!user) return t('dashboard.defaultUser');
         if (profile?.name) {
             return profile.last_name ? `${profile.name} ${profile.last_name}` : profile.name;
         }
-        return user.email?.split('@')[0] || 'Korisnik';
+        return user.email?.split('@')[0] || t('dashboard.defaultUser');
     };
 
     if (loading) {

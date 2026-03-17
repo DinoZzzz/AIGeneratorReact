@@ -48,7 +48,7 @@ export const Layout = ({ children }: LayoutProps) => {
     const { signOut, user, profile, lowBandwidthMode } = useAuth();
     const navigate = useNavigate();
     const location = useLocation();
-    const { t, language } = useLanguage();
+    const { t } = useLanguage();
     const {
         isOnline,
         pendingChanges,
@@ -83,12 +83,8 @@ export const Layout = ({ children }: LayoutProps) => {
         const unsyncedCount = getUnsyncedChangeCount(pendingChanges, discardedChanges);
         if (requiresOfflineSignOutConfirmation(pendingChanges, discardedChanges)) {
             const hasConfirmedSignOut = await confirm({
-                title: language === 'hr'
-                    ? 'Odjava će obrisati nesinkronizirane promjene'
-                    : 'Sign out will remove unsynced offline changes',
-                description: language === 'hr'
-                    ? `Imate ${unsyncedCount} nesinkroniziranih/lokalnih promjena. Ako se sada odjavite, te promjene će biti izgubljene.`
-                    : `You have ${unsyncedCount} unsynced/local changes. If you sign out now, those changes will be lost.`,
+                title: t('signOut.offlineTitle'),
+                description: t('signOut.offlineDescription').replace('{count}', String(unsyncedCount)),
                 confirmLabel: t('nav.signOut'),
                 cancelLabel: t('common.cancel'),
                 variant: 'destructive',
@@ -210,8 +206,8 @@ export const Layout = ({ children }: LayoutProps) => {
                         <button
                             onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
                             className="p-1.5 hover:bg-accent rounded-lg transition-colors text-muted-foreground hover:text-foreground"
-                            title={isSidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-                            aria-label={isSidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+                            title={isSidebarCollapsed ? t('sidebar.expand') : t('sidebar.collapse')}
+                            aria-label={isSidebarCollapsed ? t('sidebar.expand') : t('sidebar.collapse')}
                         >
                             {isSidebarCollapsed ? (
                                 <ChevronRight className="h-5 w-5" />
@@ -293,7 +289,7 @@ export const Layout = ({ children }: LayoutProps) => {
                                     <Link
                                         to="/profile"
                                         className="flex items-center justify-center mb-3 hover:bg-accent rounded-lg py-2 transition-colors group"
-                                        title="Profile"
+                                        title={t('common.profile')}
                                     >
                                         <UserAvatar
                                             src={profile?.avatar_url}
@@ -306,7 +302,7 @@ export const Layout = ({ children }: LayoutProps) => {
                                     <button
                                         onClick={handleSignOut}
                                         className="w-full flex items-center justify-center px-3 py-2 text-sm font-medium text-destructive rounded-lg hover:bg-destructive/10 transition-colors"
-                                        title="Sign Out"
+                                        title={t('nav.signOut')}
                                     >
                                         <LogOut className="h-5 w-5" />
                                     </button>
@@ -354,7 +350,7 @@ export const Layout = ({ children }: LayoutProps) => {
                     <button
                         onClick={openCommandPalette}
                         className="p-2 rounded-lg hover:bg-muted transition-colors"
-                        aria-label="Search"
+                        aria-label={t('common.search')}
                     >
                         <Search className="h-5 w-5 text-muted-foreground" />
                     </button>
@@ -541,7 +537,7 @@ export const Layout = ({ children }: LayoutProps) => {
                         className="flex flex-col items-center justify-center min-w-[60px] px-2 py-2 rounded-lg transition-colors text-muted-foreground"
                     >
                         <MoreHorizontal className="h-6 w-6 mb-1" />
-                        <span className="text-xs font-medium">More</span>
+                        <span className="text-xs font-medium">{t('nav.more')}</span>
                     </button>
                 </nav>
             </div>
@@ -551,7 +547,7 @@ export const Layout = ({ children }: LayoutProps) => {
                 <div className="lg:hidden fixed inset-0 z-50 bg-background animate-scale-in">
                     {/* Header */}
                     <div className="flex items-center justify-between h-16 px-4 border-b border-border bg-card">
-                        <span className="text-lg font-semibold text-foreground">Menu</span>
+                        <span className="text-lg font-semibold text-foreground">{t('nav.menu')}</span>
                         <button
                             onClick={() => setIsMoreMenuOpen(false)}
                             className="p-2 -mr-2 text-muted-foreground"

@@ -489,7 +489,7 @@ export const ConstructionReports = () => {
                     <button
                         onClick={() => navigate(`/customers/${customerId}/constructions`)}
                         className="p-2 rounded-full hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
-                        aria-label="Go back to constructions"
+                        aria-label={t('constructions.goBack')}
                     >
                         <ArrowLeft className="h-6 w-6" />
                     </button>

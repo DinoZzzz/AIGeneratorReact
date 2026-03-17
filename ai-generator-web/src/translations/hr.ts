@@ -12,6 +12,9 @@ export const hr: Record<string, string> = {
     'nav.chat': 'Chat',
     'nav.calendar': 'Kalendar',
     'nav.recent': 'Nedavno',
+    'nav.menu': 'Izbornik',
+    'nav.more': 'Više',
+    'nav.closeMenu': 'Zatvori izbornik',
 
     // Settings
     'settings.language': 'Jezik',
@@ -81,6 +84,7 @@ export const hr: Record<string, string> = {
     'history.allUsers': 'Svi ispitivači',
     'history.page': 'Stranica',
     'history.of': 'od',
+    'history.goBack': 'Povratak na povijest',
 
     // Export Details
     'exportDetails.title': 'Detalji izvoza',
@@ -119,8 +123,21 @@ export const hr: Record<string, string> = {
     'exportDetails.exportFailed': 'Neuspjeli izvoz. Pokušajte ponovno.',
     'exportDetails.wordFailed': 'Neuspjeli izvoz Word dokumenta. Pokušajte ponovno.',
 
+    // Login
+    'login.welcome': 'Dobro došli natrag',
+    'login.subtitle': 'Prijavite se u svoj račun za nastavak',
+    'login.emailLabel': 'Email ili korisničko ime',
+    'login.emailPlaceholder': 'vi@primjer.com ili korisničko ime',
+    'login.passwordLabel': 'Lozinka',
+    'login.signIn': 'Prijava',
+    'login.lowBandwidth': 'Mod slabog interneta',
+    'login.usernameNotFound': 'Korisničko ime nije pronađeno. Koristite email adresu za prijavu.',
+    'login.usernameNoEmail': 'Korisničko ime pronađeno, ali nema pridruženi email. Kontaktirajte podršku.',
+    'login.invalidCredentials': 'Neispravni podaci. Provjerite korisničko ime/email i lozinku.',
+
     // Dashboard
     'dashboard.welcome': 'Pozdrav',
+    'dashboard.defaultUser': 'Korisnik',
     'dashboard.ready': 'Vaš generator je spreman.',
     'dashboard.totalCustomers': 'Ukupno naručitelja',
     'dashboard.activeSites': 'Aktivna gradilišta',
@@ -171,6 +188,8 @@ export const hr: Record<string, string> = {
     'common.undo': 'Poništi',
     'common.unknownError': 'Došlo je do nepoznate greške',
     'common.home': 'Početna',
+    'common.profile': 'Profil',
+    'common.goBack': 'Idi natrag',
 
     // Examiners
     'examiners.title': 'Ispitivači',
@@ -259,6 +278,8 @@ export const hr: Record<string, string> = {
     'customers.placeholderPostal': 'Poštanski broj',
     'customers.deleteSuccess': 'Naručitelj uspješno obrisan.',
     'customers.sortByActivity': 'Poredaj po aktivnosti',
+    'customers.allYears': 'Sve godine',
+    'customers.goBack': 'Povratak na naručitelje',
 
     // Reports
     'reports.title': 'Obrasci',
@@ -463,6 +484,8 @@ export const hr: Record<string, string> = {
     'constructions.filterActive': 'Aktivna',
     'constructions.filterArchived': 'Arhivirana',
     'constructions.archivedBadge': 'ARHIVIRANO',
+    'constructions.customerNotFound': 'Naručitelj nije pronađen',
+    'constructions.goBack': 'Povratak na gradilišta',
 
     // Export
     'export.includePdfs': 'Dodaj PDF-ove obrazaca na kraj dokumenta',
@@ -593,8 +616,13 @@ export const hr: Record<string, string> = {
     'profile.saveFailed': 'Spremanje profila nije uspjelo',
     'profile.emailReadOnly': 'Email adresu nije moguće mijenjati. Kontaktirajte administratora za promjenu.',
 
+    // Not Found
+    'notFound.description': 'Stranica koju tražite ne postoji ili je premještena.',
+    'notFound.backHome': 'Povratak na početnu',
+
     // Help
     'help.title': 'Pomoć',
+    'help.description': 'Pronađite odgovore na najčešća pitanja o korištenju sustava',
     'help.comingSoon': 'Pomoć i dokumentacija stižu uskoro...',
     'help.tabs.faq': 'Najčešća pitanja',
     'help.tabs.support': 'Podrška',
@@ -816,6 +844,14 @@ export const hr: Record<string, string> = {
     'annotation.clear': 'Obriši sve',
     'annotation.saved': 'Označena slika spremljena.',
     'annotation.textPrompt': 'Unesite tekst oznake:',
+
+    // Sidebar
+    'sidebar.expand': 'Proširi izbornik',
+    'sidebar.collapse': 'Smanji izbornik',
+
+    // Sign out confirmation
+    'signOut.offlineTitle': 'Odjava će obrisati nesinkronizirane promjene',
+    'signOut.offlineDescription': 'Imate {count} nesinkroniziranih/lokalnih promjena. Ako se sada odjavite, te promjene će biti izgubljene.',
 
     // Offline / Sync
     'offline.online': 'Online',

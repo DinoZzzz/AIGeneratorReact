@@ -7,6 +7,17 @@ export interface VersionHistoryItem {
 export function getVersionHistory(language: string): VersionHistoryItem[] {
     return language === 'hr' ? [
         {
+            version: '2.33.0',
+            date: '2026-03-17',
+            changes: [
+                'Dodana obavijest o ažuriranju aplikacije — umjesto automatskog reloada, korisnik sada vidi banner s opcijama "Ažuriraj sada" ili "Kasnije"',
+                'Prevedeni svi hardkodirani stringovi na stranicu za prijavu (naslov, oznake polja, poruke o greškama) — sada koriste i18n sustav',
+                'Prevedena 404 stranica, opis pomoći, sign-out potvrda, bočni izbornik i mobilna navigacija na i18n sustav',
+                'Dodano ~30 novih prijevodnih ključeva (login.*, notFound.*, sidebar.*, signOut.*, nav.menu/more, customers.allYears, constructions.customerNotFound, itd.)',
+                'Prevedeni aria-label atributi na gumbovima za navigaciju natrag (CustomerForm, ConstructionForm, ConstructionReports, HistoryDetails)',
+            ]
+        },
+        {
             version: '2.32.0',
             date: '2026-03-16',
             changes: [
@@ -563,6 +574,17 @@ export function getVersionHistory(language: string): VersionHistoryItem[] {
         },
     ] : [
         // English version
+        {
+            version: '2.33.0',
+            date: '2026-03-17',
+            changes: [
+                'Added app update notification — instead of auto-reloading, users now see a banner with "Update now" or "Later" options',
+                'Translated all hardcoded strings on the login page (title, field labels, error messages) — now uses the i18n system',
+                'Translated the 404 page, help description, sign-out confirmation, sidebar, and mobile navigation to the i18n system',
+                'Added ~30 new translation keys (login.*, notFound.*, sidebar.*, signOut.*, nav.menu/more, customers.allYears, constructions.customerNotFound, etc.)',
+                'Translated aria-label attributes on back navigation buttons (CustomerForm, ConstructionForm, ConstructionReports, HistoryDetails)',
+            ]
+        },
         {
             version: '2.32.0',
             date: '2026-03-16',

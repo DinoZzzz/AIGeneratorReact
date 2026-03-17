@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 import { Lock } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
@@ -13,6 +14,7 @@ export const Login = () => {
     const [error, setError] = useState<string | null>(null);
     const navigate = useNavigate();
     const { lowBandwidthMode, setLowBandwidthMode } = useAuth();
+    const { t } = useLanguage();
     const isMountedRef = useRef(true);
 
     useEffect(() => {
@@ -42,11 +44,11 @@ export const Login = () => {
                     .single();
 
                 if (lookupError) {
-                    throw new Error('Username not found. Please use your email address to login.');
+                    throw new Error(t('login.usernameNotFound'));
                 }
 
                 if (!data?.email) {
-                    throw new Error('Username found but no email associated. Please contact support.');
+                    throw new Error(t('login.usernameNoEmail'));
                 }
 
                 emailToUse = data.email;
@@ -64,7 +66,7 @@ export const Login = () => {
             // Use generic error message to prevent user enumeration attacks
             // Don't reveal whether username/email exists or if password is wrong
             if (isMountedRef.current) {
-                setError('Invalid credentials. Please check your username/email and password.');
+                setError(t('login.invalidCredentials'));
             }
         } finally {
             if (isMountedRef.current) {
@@ -86,10 +88,10 @@ export const Login = () => {
                     </div>
                 </div>
                 <h2 className="mt-6 text-center text-2xl sm:text-3xl font-extrabold text-foreground tracking-tight">
-                    Welcome back
+                    {t('login.welcome')}
                 </h2>
                 <p className="mt-2 text-center text-sm text-muted-foreground">
-                    Sign in to your account to continue
+                    {t('login.subtitle')}
                 </p>
             </div>
 
@@ -109,10 +111,10 @@ export const Login = () => {
                                 type="text"
                                 autoComplete="username"
                                 required
-                                label="Email or Username"
+                                label={t('login.emailLabel')}
                                 value={identifier}
                                 onChange={(e) => setIdentifier(e.target.value)}
-                                placeholder="you@example.com or username"
+                                placeholder={t('login.emailPlaceholder')}
                             />
                         </div>
 
@@ -123,7 +125,7 @@ export const Login = () => {
                                 type="password"
                                 autoComplete="current-password"
                                 required
-                                label="Password"
+                                label={t('login.passwordLabel')}
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
                                 placeholder="••••••••"
@@ -136,7 +138,7 @@ export const Login = () => {
                                 className="w-full"
                                 loading={loading}
                             >
-                                Sign in
+                                {t('login.signIn')}
                             </Button>
                         </div>
 
@@ -149,7 +151,7 @@ export const Login = () => {
                                 onChange={(e) => setLowBandwidthMode(e.target.checked)}
                             />
                             <label htmlFor="lowBandwidth" className="text-sm text-muted-foreground cursor-pointer select-none">
-                                Low Bandwidth Mode (Mod slabog interneta)
+                                {t('login.lowBandwidth')}
                             </label>
                         </div>
                     </form>

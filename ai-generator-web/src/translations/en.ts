@@ -12,6 +12,9 @@ export const en: Record<string, string> = {
     'nav.chat': 'Chat',
     'nav.calendar': 'Calendar',
     'nav.recent': 'Recent',
+    'nav.menu': 'Menu',
+    'nav.more': 'More',
+    'nav.closeMenu': 'Close menu',
 
     // Settings
     'settings.language': 'Language',
@@ -81,6 +84,7 @@ export const en: Record<string, string> = {
     'history.allUsers': 'All Examiners',
     'history.page': 'Page',
     'history.of': 'of',
+    'history.goBack': 'Go back to history',
 
     // Export Details
     'exportDetails.title': 'Export Details',
@@ -119,8 +123,21 @@ export const en: Record<string, string> = {
     'exportDetails.exportFailed': 'Failed to export. Please try again.',
     'exportDetails.wordFailed': 'Failed to export Word document. Please try again.',
 
+    // Login
+    'login.welcome': 'Welcome back',
+    'login.subtitle': 'Sign in to your account to continue',
+    'login.emailLabel': 'Email or Username',
+    'login.emailPlaceholder': 'you@example.com or username',
+    'login.passwordLabel': 'Password',
+    'login.signIn': 'Sign in',
+    'login.lowBandwidth': 'Low Bandwidth Mode',
+    'login.usernameNotFound': 'Username not found. Please use your email address to login.',
+    'login.usernameNoEmail': 'Username found but no email associated. Please contact support.',
+    'login.invalidCredentials': 'Invalid credentials. Please check your username/email and password.',
+
     // Dashboard
     'dashboard.welcome': 'Hello',
+    'dashboard.defaultUser': 'User',
     'dashboard.ready': 'Your generator is ready.',
     'dashboard.totalCustomers': 'Total Customers',
     'dashboard.activeSites': 'Active Sites',
@@ -171,6 +188,8 @@ export const en: Record<string, string> = {
     'common.undo': 'Undo',
     'common.unknownError': 'An unknown error occurred',
     'common.home': 'Home',
+    'common.profile': 'Profile',
+    'common.goBack': 'Go back',
 
     // Examiners
     'examiners.title': 'Examiners',
@@ -259,6 +278,8 @@ export const en: Record<string, string> = {
     'customers.placeholderPostal': 'Postal Code',
     'customers.deleteSuccess': 'Customer deleted successfully.',
     'customers.sortByActivity': 'Sort by Activity',
+    'customers.allYears': 'All Years',
+    'customers.goBack': 'Go back to customers',
 
     // Reports
     'reports.title': 'Reports',
@@ -463,6 +484,8 @@ export const en: Record<string, string> = {
     'constructions.filterActive': 'Active',
     'constructions.filterArchived': 'Archived',
     'constructions.archivedBadge': 'ARCHIVED',
+    'constructions.customerNotFound': 'Customer not found',
+    'constructions.goBack': 'Go back to constructions',
 
     // Export
     'export.includePdfs': 'Include PDFs of reports at the end of document',
@@ -593,8 +616,13 @@ export const en: Record<string, string> = {
     'profile.saveFailed': 'Failed to save profile',
     'profile.emailReadOnly': 'Email address cannot be changed. Contact administrator for changes.',
 
+    // Not Found
+    'notFound.description': 'The page you are looking for doesn\'t exist or has been moved.',
+    'notFound.backHome': 'Back to Home',
+
     // Help
     'help.title': 'Help',
+    'help.description': 'Find answers to frequently asked questions about using the system',
     'help.comingSoon': 'Help and documentation coming soon...',
     'help.tabs.faq': 'FAQ',
     'help.tabs.support': 'Support',
@@ -816,6 +844,14 @@ export const en: Record<string, string> = {
     'annotation.clear': 'Clear all',
     'annotation.saved': 'Annotated image saved.',
     'annotation.textPrompt': 'Enter text label:',
+
+    // Sidebar
+    'sidebar.expand': 'Expand sidebar',
+    'sidebar.collapse': 'Collapse sidebar',
+
+    // Sign out confirmation
+    'signOut.offlineTitle': 'Sign out will remove unsynced offline changes',
+    'signOut.offlineDescription': 'You have {count} unsynced/local changes. If you sign out now, those changes will be lost.',
 
     // Offline / Sync
     'offline.online': 'Online',
