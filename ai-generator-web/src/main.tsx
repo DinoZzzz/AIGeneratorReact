@@ -78,11 +78,10 @@ const setupModuleLoadRecovery = () => {
 
 setupModuleLoadRecovery()
 
-// Register service worker with automatic updates
+// Register service worker – notify user instead of auto-reloading
 const updateSW = registerSW({
   onNeedRefresh() {
-    // Automatically refresh when new version is available
-    updateSW(true)
+    window.dispatchEvent(new CustomEvent('sw-update-available'))
   },
   onOfflineReady() {
     // App is ready to work offline
@@ -90,6 +89,12 @@ const updateSW = registerSW({
   // Check for updates immediately and periodically
   immediate: true,
 })
+
+// Expose so the React UpdatePrompt component can trigger the reload
+declare global {
+  interface Window { __updateSW: typeof updateSW }
+}
+window.__updateSW = updateSW
 
 const registerBackgroundSync = async () => {
   if (!('serviceWorker' in navigator)) return

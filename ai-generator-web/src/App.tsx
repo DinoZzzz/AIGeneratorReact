@@ -15,6 +15,7 @@ import { LanguageProvider } from './context/LanguageContext';
 import { KeyboardShortcutsProvider } from './context/KeyboardShortcutsContext';
 import { ConfirmDialogProvider } from './context/ConfirmDialogContext';
 import { queryClient } from './lib/queryClient';
+import { UpdatePrompt } from './components/ui/UpdatePrompt';
 
 // Lazy load all page components
 const Login = lazy(() => import('./pages/Login').then(m => ({ default: m.Login })));
@@ -134,6 +135,7 @@ function App() {
                     </Routes>
                     </Suspense>
                     <OfflineIndicator />
+                    <UpdatePrompt />
                     </KeyboardShortcutsProvider>
                   </Router>
                 </ConfirmDialogProvider>

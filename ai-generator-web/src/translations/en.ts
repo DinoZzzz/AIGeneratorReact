@@ -849,4 +849,9 @@ export const en: Record<string, string> = {
     'offline.delete': 'delete',
     'offline.useServerVersion': 'Use server',
     'offline.keepLocalVersion': 'Keep local',
+
+    // Update prompt
+    'update.available': 'A new version of the app is available.',
+    'update.action': 'Update now',
+    'update.dismiss': 'Later',
 };

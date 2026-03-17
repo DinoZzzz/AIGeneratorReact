@@ -849,4 +849,9 @@ export const hr: Record<string, string> = {
     'offline.delete': 'brisanje',
     'offline.useServerVersion': 'Koristi server',
     'offline.keepLocalVersion': 'Zadrži lokalno',
+
+    // Update prompt
+    'update.available': 'Dostupna je nova verzija aplikacije.',
+    'update.action': 'Ažuriraj sada',
+    'update.dismiss': 'Kasnije',
 };
