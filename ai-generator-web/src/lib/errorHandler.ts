@@ -49,6 +49,28 @@ export class NetworkError extends AppError {
 }
 
 /**
+ * Detect auth/JWT errors from Supabase PostgREST or auth layer.
+ * Covers PGRST303 (JWT expired), PGRST301 (JWT invalid), and Supabase auth errors.
+ */
+export function isAuthError(error: unknown): boolean {
+  if (error instanceof AuthError) return true;
+
+  if (error instanceof Error) {
+    const msg = error.message.toLowerCase();
+    if (msg.includes('jwt expired') || msg.includes('invalid jwt') || msg.includes('jwt claim')) return true;
+    if (error.name === 'PGRST303' || error.name === 'AuthSessionMissingError') return true;
+  }
+
+  // Raw Supabase PostgREST error object
+  if (typeof error === 'object' && error !== null && 'code' in error) {
+    const code = (error as { code: string }).code;
+    if (code === 'PGRST303' || code === 'PGRST301') return true;
+  }
+
+  return false;
+}
+
+/**
  * Detect network errors from fetch failures, CORS issues, and offline scenarios.
  * Checks TypeError (common for fetch failures), error.cause chain, and error.name.
  */

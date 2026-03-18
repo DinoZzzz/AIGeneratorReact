@@ -178,6 +178,22 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         void syncPushSubscriptionIfEnabled(user.id);
     }, [user?.id]);
 
+    // Proactively refresh session when tab becomes visible to prevent JWT expiry
+    // after the browser has suspended background timers (e.g. laptop lid closed)
+    useEffect(() => {
+        const handleVisibilityChange = () => {
+            if (document.visibilityState !== 'visible' || !session?.expires_at) return;
+            // Refresh if the token expires within the next 5 minutes
+            const expiresInMs = session.expires_at * 1000 - Date.now();
+            if (expiresInMs < 5 * 60 * 1000) {
+                void supabase.auth.refreshSession();
+            }
+        };
+
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+        return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+    }, [session?.expires_at]);
+
     useEffect(() => {
         const handleOnline = () => {
             if (user && !lowBandwidthMode) {
