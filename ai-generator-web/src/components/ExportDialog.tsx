@@ -8,7 +8,7 @@ import { certifierService } from '../services/certifierService';
 import { useCertifiers } from '../hooks/useCertifiers';
 import { useToast } from '../context/ToastContext';
 
-const DEFAULT_CONSTRUCTION_PART = 'Sustav odvodnje odpadnih voda';
+const DEFAULT_CONSTRUCTION_PART = 'Sustav odvodnje otpadnih voda';
 const WATER_DEVIATION_OPTION_LOW_H2 = 'h2 < 100 cm';
 const WATER_DEVIATION_OPTION_SOME_SECTIONS = 'Kod pojedinih dionica h2 < 100 cm';
 const LEGACY_WATER_DEVIATION_OPTION_SOME_SECTIONS = 'Kod pojedinih dionica h2<100cm';
@@ -69,21 +69,16 @@ export const ExportDialog = ({ open, onOpenChange, onConfirm, loading = false, d
     const [selectedReportIds, setSelectedReportIds] = useState<Set<string>>(new Set());
     const { data: certifiers = [] } = useCertifiers();
 
-    // Set default certifier when certifiers load
-    useEffect(() => {
-        if (open && certifiers.length > 0 && !data.certifierName) {
-            const defaultCertifier = certifiers.find(c => c.is_default) || certifiers[0];
-            setData(prev => ({
-                ...prev,
-                certifierName: certifierService.getDisplayName(defaultCertifier)
-            }));
-        }
-    }, [certifiers, data.certifierName, open]);
-
-    // Update state when defaultValues change or dialog opens
+    // Reset state when dialog opens + set default certifier
     useEffect(() => {
         if (open) {
-            setData(getInitialExportData(defaultValues));
+            const initial = getInitialExportData(defaultValues);
+            // Set default certifier if available and no explicit default provided
+            if (!initial.certifierName && certifiers.length > 0) {
+                const defaultCertifier = certifiers.find(c => c.is_default) || certifiers[0];
+                initial.certifierName = certifierService.getDisplayName(defaultCertifier);
+            }
+            setData(initial);
             // If reports are provided, select all by default
             if (reports && reports.length > 0) {
                 const allIds = reports.map(r => r.id).filter((id): id is string => !!id);
@@ -94,6 +89,17 @@ export const ExportDialog = ({ open, onOpenChange, onConfirm, loading = false, d
         }
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [open]);
+
+    // Set default certifier when certifiers load after dialog is already open
+    useEffect(() => {
+        if (open && certifiers.length > 0 && !data.certifierName) {
+            const defaultCertifier = certifiers.find(c => c.is_default) || certifiers[0];
+            setData(prev => ({
+                ...prev,
+                certifierName: certifierService.getDisplayName(defaultCertifier)
+            }));
+        }
+    }, [certifiers, data.certifierName, open]);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();

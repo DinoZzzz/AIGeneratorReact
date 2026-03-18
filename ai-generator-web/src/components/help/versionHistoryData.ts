@@ -7,6 +7,14 @@ export interface VersionHistoryItem {
 export function getVersionHistory(language: string): VersionHistoryItem[] {
     return language === 'hr' ? [
         {
+            version: '2.34.0',
+            date: '2026-03-18',
+            changes: [
+                'Ispravljen pravopisni nedostatak: "Odpadnih voda" → "Otpadnih voda" u dijalogu za izvoz i Word dokumentu',
+                'Ispravljen bug u dijalogu za izvoz: "Pregledao i odobrio" sada ispravno povlači zadanog ispitivača pri otvaranju dijaloga',
+            ]
+        },
+        {
             version: '2.33.0',
             date: '2026-03-17',
             changes: [
@@ -574,6 +582,14 @@ export function getVersionHistory(language: string): VersionHistoryItem[] {
         },
     ] : [
         // English version
+        {
+            version: '2.34.0',
+            date: '2026-03-18',
+            changes: [
+                'Fixed typo: "Odpadnih voda" → "Otpadnih voda" in export dialog and Word document',
+                'Fixed export dialog bug: "Reviewed and approved" now correctly loads the default certifier when opening the dialog',
+            ]
+        },
         {
             version: '2.33.0',
             date: '2026-03-17',

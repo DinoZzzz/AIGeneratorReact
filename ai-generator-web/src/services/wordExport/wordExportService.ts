@@ -247,7 +247,7 @@ export const generateWordDocument = async (
             const renderData = {
                 creator: creatorName,
                 certifier: metaData.certifierName,
-                constructionSitePart: metaData.constructionPart || "Sustav odvodnje odpadnih voda",
+                constructionSitePart: metaData.constructionPart || "Sustav odvodnje otpadnih voda",
                 currentDate: formatDate(new Date()),
                 workOrder: docData.construction?.work_order || "-",
                 examinationDate: dateRange,
@@ -361,7 +361,7 @@ export const generateWordDocument = async (
                     const exportPayload = {
                         certifier_id: userId,
                         user_id: userId,
-                        construction_part: metaData.constructionPart || 'Sustav odvodnje odpadnih voda',
+                        construction_part: metaData.constructionPart || 'Sustav odvodnje otpadnih voda',
                         construction_id: finalConstructionId,
                         customer_id: customerId,
                         type_id: typeId,

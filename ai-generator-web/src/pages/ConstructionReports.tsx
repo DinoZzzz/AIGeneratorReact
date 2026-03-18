@@ -48,7 +48,7 @@ const generateWordDocument = async (reports: ReportForm[], metaData: ExportMetaD
     return gen(reports, metaData, userId);
 };
 
-const DEFAULT_CONSTRUCTION_PART = 'Sustav odvodnje odpadnih voda';
+const DEFAULT_CONSTRUCTION_PART = 'Sustav odvodnje otpadnih voda';
 
 export const ConstructionReports = () => {
     const { customerId, constructionId } = useParams();
