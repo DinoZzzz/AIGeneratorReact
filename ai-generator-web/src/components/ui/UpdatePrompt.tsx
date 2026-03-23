@@ -47,13 +47,21 @@ export const UpdatePrompt = () => {
         };
     }, [checkVersion]);
 
-    const handleUpdate = () => {
-        // Try SW update first, then hard reload as fallback
-        if (window.__updateSW) {
-            window.__updateSW(true);
-        } else {
-            window.location.reload();
+    const handleUpdate = async () => {
+        // Clear all SW caches + unregister SW, then reload fresh
+        try {
+            if ('caches' in window) {
+                const names = await caches.keys();
+                await Promise.all(names.map(n => caches.delete(n)));
+            }
+            if ('serviceWorker' in navigator) {
+                const regs = await navigator.serviceWorker.getRegistrations();
+                await Promise.all(regs.map(r => r.unregister()));
+            }
+        } catch {
+            // Best-effort — proceed with reload regardless
         }
+        window.location.href = window.location.origin + window.location.pathname;
     };
 
     if (!show) return null;

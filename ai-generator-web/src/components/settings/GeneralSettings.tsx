@@ -77,11 +77,23 @@ export const GeneralSettings = () => {
             // Clear sessionStorage
             sessionStorage.clear();
 
+            // Clear ALL Service Worker caches (precache + runtime)
+            if ('caches' in window) {
+                const cacheNames = await caches.keys();
+                await Promise.all(cacheNames.map(name => caches.delete(name)));
+            }
+
+            // Unregister service worker so reload fetches fresh files from server
+            if ('serviceWorker' in navigator) {
+                const registrations = await navigator.serviceWorker.getRegistrations();
+                await Promise.all(registrations.map(r => r.unregister()));
+            }
+
             addToast(t('settings.cacheCleared'), 'success');
 
-            // Reload the page to reset all state
+            // Hard reload bypassing any remaining cache
             setTimeout(() => {
-                window.location.reload();
+                window.location.href = window.location.origin + window.location.pathname;
             }, 500);
         } catch (error) {
             const appError = errorHandler.handle(error, 'GeneralSettings');
