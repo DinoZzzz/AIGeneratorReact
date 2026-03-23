@@ -7,31 +7,9 @@ export interface InputProps
 }
 
 const Input = React.forwardRef<HTMLInputElement, InputProps>(
-    ({ className, type, label, id, onFocus, ...props }, ref) => {
+    ({ className, type, label, id, ...props }, ref) => {
         // Generate a unique ID if not provided
         const inputId = id || (label ? `input-${label.toLowerCase().replace(/\s+/g, '-')}` : undefined);
-
-        // Handle focus - clear zero values on focus for better mobile UX
-        // This allows users to start typing immediately without having to delete 0 first
-        const handleFocus = (e: React.FocusEvent<HTMLInputElement>) => {
-            if (type === 'number') {
-                const value = e.target.value;
-                const numValue = parseFloat(value);
-                if (value === '0' || value === '0.00' || value === '0.0' || numValue === 0) {
-                    // Clear the value on focus so user can type fresh
-                    e.target.value = '';
-                    // Also trigger a synthetic change event if there's an onChange handler
-                    const nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')?.set;
-                    if (nativeInputValueSetter) {
-                        nativeInputValueSetter.call(e.target, '');
-                        const inputEvent = new Event('input', { bubbles: true });
-                        e.target.dispatchEvent(inputEvent);
-                    }
-                }
-            }
-            // Call the original onFocus if provided
-            onFocus?.(e);
-        };
 
         return (
             <div className="space-y-2">
@@ -51,7 +29,6 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
                         className
                     )}
                     ref={ref}
-                    onFocus={handleFocus}
                     {...props}
                 />
             </div>

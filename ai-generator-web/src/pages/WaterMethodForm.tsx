@@ -39,21 +39,21 @@ const initialState: Partial<ReportForm> = {
     material_type_id: 1, // Shaft
     pane_material_id: 1,
     pipe_material_id: 1,
-    temperature: 0,
-    pipe_length: 0,
-    pipe_diameter: 0,
-    pane_width: 0,
-    pane_length: 0,
-    pane_height: 0,
-    water_height: 0,
-    water_height_start: 0,
-    water_height_end: 0,
-    pressure_start: 0,
-    pressure_end: 0,
-    pane_diameter: 0,
-    ro_height: 0,
-    depositional_height: 0,
-    pipeline_slope: 0,
+    temperature: '' as unknown as number,
+    pipe_length: '' as unknown as number,
+    pipe_diameter: '' as unknown as number,
+    pane_width: '' as unknown as number,
+    pane_length: '' as unknown as number,
+    pane_height: '' as unknown as number,
+    water_height: '' as unknown as number,
+    water_height_start: '' as unknown as number,
+    water_height_end: '' as unknown as number,
+    pressure_start: '' as unknown as number,
+    pressure_end: '' as unknown as number,
+    pane_diameter: '' as unknown as number,
+    ro_height: '' as unknown as number,
+    depositional_height: '' as unknown as number,
+    pipeline_slope: '' as unknown as number,
     examination_date: new Date().toISOString().split('T')[0],
     examination_duration: '00:30:00', // Default 30 minutes
     saturation_time: '01:00:00', // Default 1 hour
@@ -364,7 +364,7 @@ export const WaterMethodForm = () => {
         let finalValue: string | number | boolean = value;
 
         if (type === 'number') {
-            finalValue = parseFloat(value) || 0;
+            finalValue = value === '' ? '' : parseFloat(value);
         } else if (['draft_id', 'material_type_id', 'pane_material_id', 'pipe_material_id'].includes(name)) {
             finalValue = parseInt(value, 10) || 0;
         }
@@ -408,12 +408,15 @@ export const WaterMethodForm = () => {
             clearSavedData();
 
             if (!shouldRedirect) {
+                // Pre-fill new form with all data from saved report so user only tweaks what changed
+                // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                const { id: _savedId, ordinal: _ord, created_at: _ca, updated_at: _ua, satisfies: _sat, ...carryOver } = dataToSave;
                 setFormData({
                     ...initialState,
-                    customer_id: dataToSave.customer_id,
-                    construction_id: dataToSave.construction_id,
-                    examination_date: dataToSave.examination_date,
-                    dionica: dataToSave.dionica || '',
+                    ...carryOver,
+                    // Reset measurement fields that are unique per section
+                    water_height_start: '' as unknown as number,
+                    water_height_end: '' as unknown as number,
                 });
                 lastAutoDeviationRef.current = null;
                 setStep(1);

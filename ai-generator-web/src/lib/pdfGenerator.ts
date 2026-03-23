@@ -470,8 +470,8 @@ const renderReportPage = async (doc: jsPDF, report: Partial<ReportForm>, userPro
         paneMaterialId,
         report.pane_material?.name
     );
-    // Hide shaft/gully material for pipe-only inspections
-    if (!isAirMethod && !isPipeOnly) {
+    // Show shaft/gully material when the test includes a shaft
+    if ((!isAirMethod && !isPipeOnly) || (isAirMethod && airIncludesShaft)) {
         addLeft(materialLabel, materialName);
     }
 

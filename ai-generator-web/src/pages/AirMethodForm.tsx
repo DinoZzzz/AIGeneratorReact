@@ -36,17 +36,18 @@ const initialState: Partial<ReportForm> = {
     draft_id: 1,
     material_type_id: 1, // Shaft
     examination_procedure_id: 1, // LA
+    pane_material_id: 1,
     pipe_material_id: 0,
     dionica: '',
-    temperature: 0,
-    pipe_length: 0,
-    pipe_diameter: 0,
-    pane_width: 0,
-    pane_length: 0,
-    pressure_start: 0,
-    pressure_end: 0,
-    pane_diameter: 0,
-    pane_height: 0,
+    temperature: '' as unknown as number,
+    pipe_length: '' as unknown as number,
+    pipe_diameter: '' as unknown as number,
+    pane_width: '' as unknown as number,
+    pane_length: '' as unknown as number,
+    pressure_start: '' as unknown as number,
+    pressure_end: '' as unknown as number,
+    pane_diameter: '' as unknown as number,
+    pane_height: '' as unknown as number,
     satisfies: false,
     examination_date: new Date().toISOString().split('T')[0],
     examination_start_time: '',
@@ -271,6 +272,12 @@ export const AirMethodForm = () => {
             setMaterialTypes(matTypeData);
             setMaterials(materialsData);
 
+            if (!formData.pane_material_id) {
+                const paneMats = materialsData.filter(m => m.material_type_id === 1);
+                if (paneMats.length > 0) {
+                    setFormData(prev => ({ ...prev, pane_material_id: paneMats[0].id }));
+                }
+            }
             if (!formData.pipe_material_id) {
                 const pipeMaterials = materialsData.filter(m => m.material_type_id === 2);
                 if (pipeMaterials.length > 0) {
@@ -335,6 +342,7 @@ export const AirMethodForm = () => {
                 examination_date: lastReport.examination_date || prev.examination_date,
                 temperature: lastReport.temperature || prev.temperature,
                 examination_procedure_id: lastReport.examination_procedure_id || prev.examination_procedure_id,
+                pane_material_id: lastReport.pane_material_id || prev.pane_material_id,
                 pipe_material_id: lastReport.pipe_material_id || prev.pipe_material_id,
             }));
             initializedFromPreviousRef.current = true;
@@ -377,8 +385,8 @@ export const AirMethodForm = () => {
         let finalValue: string | number | boolean = value;
 
         if (type === 'number') {
-            finalValue = parseFloat(value) || 0;
-        } else if (['draft_id', 'material_type_id', 'examination_procedure_id', 'pipe_material_id'].includes(name)) {
+            finalValue = value === '' ? '' : parseFloat(value);
+        } else if (['draft_id', 'material_type_id', 'examination_procedure_id', 'pane_material_id', 'pipe_material_id'].includes(name)) {
             finalValue = parseInt(value, 10) || 0;
         }
 
@@ -422,15 +430,15 @@ export const AirMethodForm = () => {
             clearSavedData();
 
             if (!shouldRedirect) {
+                // Pre-fill new form with all data from saved report so user only tweaks what changed
+                // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                const { id: _savedId, ordinal: _ord, created_at: _ca, updated_at: _ua, satisfies: _sat, allowed_loss: _al, pressure_loss: _pl, required_test_time: _rtt, ...carryOver } = dataToSave;
                 setFormData({
                     ...initialState,
-                    customer_id: dataToSave.customer_id,
-                    construction_id: dataToSave.construction_id,
-                    examination_date: dataToSave.examination_date,
-                    examination_procedure_id: dataToSave.examination_procedure_id,
-                    draft_id: dataToSave.draft_id,
-                    material_type_id: dataToSave.material_type_id,
-                    dionica: dataToSave.dionica || '', // Carry over dionica from previous report
+                    ...carryOver,
+                    // Reset measurement fields that are unique per section
+                    pressure_start: '' as unknown as number,
+                    pressure_end: '' as unknown as number,
                 });
                 setStep(1);
                 navigate(`/customers/${customerId}/constructions/${constructionId}/reports/new/air`);
@@ -479,6 +487,7 @@ export const AirMethodForm = () => {
                 ...prev,
                 draft_id: previousReport.draft_id || prev.draft_id,
                 material_type_id: previousReport.material_type_id || prev.material_type_id,
+                pane_material_id: previousReport.pane_material_id || prev.pane_material_id,
                 pane_diameter: previousReport.pane_diameter || prev.pane_diameter,
                 pane_width: previousReport.pane_width || prev.pane_width,
                 pane_length: previousReport.pane_length || prev.pane_length,
@@ -488,6 +497,11 @@ export const AirMethodForm = () => {
             }));
         }
     };
+
+    const paneMaterials = useMemo(
+        () => materials.filter((material) => material.material_type_id === 1),
+        [materials]
+    );
 
     const isShaftRound = formData.material_type_id === 1;
     const isShaftRectangular = formData.material_type_id === 2;
@@ -648,6 +662,22 @@ export const AirMethodForm = () => {
                                                 .map(m => (
                                                     <option key={m.id} value={m.id}>{m.name}</option>
                                                 ))}
+                                        </Select>
+                                    )}
+                                    {includesShaft && (
+                                        <Select
+                                            label={t('reports.form.shaftMaterial')}
+                                            name="pane_material_id"
+                                            value={formData.pane_material_id || paneMaterials[0]?.id || ''}
+                                            onChange={handleChange}
+                                        >
+                                            {paneMaterials.length > 0 ? (
+                                                paneMaterials.map(m => (
+                                                    <option key={m.id} value={m.id}>{m.name}</option>
+                                                ))
+                                            ) : (
+                                                <option value={1}>{t('reports.form.standardMaterial')}</option>
+                                            )}
                                         </Select>
                                     )}
                                     <Select

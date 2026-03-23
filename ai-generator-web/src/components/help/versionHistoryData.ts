@@ -7,6 +7,16 @@ export interface VersionHistoryItem {
 export function getVersionHistory(language: string): VersionHistoryItem[] {
     return language === 'hr' ? [
         {
+            version: '2.35.0',
+            date: '2026-03-23',
+            changes: [
+                'Uklonjena nula iz svih numeričkih polja — polja su sada prazna pri otvaranju forme',
+                '"Spremi i novi" sada kopira sve podatke prethodnog izvještaja u novu formu (dionica, shema, dimenzije, materijali, temperatura...) — korisnik samo mijenja što je potrebno',
+                'Dodano polje "Materijal okna" u formu za ispitivanje zrakom (vidljivo kad shema uključuje okno)',
+                'Materijal okna se sada prikazuje u PDF i Word izvještaju za ispitivanje zrakom',
+            ]
+        },
+        {
             version: '2.34.0',
             date: '2026-03-18',
             changes: [
@@ -582,6 +592,16 @@ export function getVersionHistory(language: string): VersionHistoryItem[] {
         },
     ] : [
         // English version
+        {
+            version: '2.35.0',
+            date: '2026-03-23',
+            changes: [
+                'Removed default zero from all number input fields — fields are now empty when opening a form',
+                '"Save & New" now copies all data from the previous report into the new form (section, schema, dimensions, materials, temperature...) — users only change what\'s needed',
+                'Added "Shaft material" field to the air method form (visible when the schema includes a shaft)',
+                'Shaft material now appears in PDF and Word reports for air method tests',
+            ]
+        },
         {
             version: '2.34.0',
             date: '2026-03-18',
