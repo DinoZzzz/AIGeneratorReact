@@ -31,18 +31,19 @@ const generatePDF = async (report: Partial<ReportForm>, userProfile?: Profile) =
     return gen(report, userProfile);
 };
 
-// Numeric fields that should be coerced from '' to 0 before saving to DB
-const NUMERIC_FIELDS: (keyof ReportForm)[] = [
-    'temperature', 'pipe_length', 'pipe_diameter', 'pane_width', 'pane_length',
-    'pane_height', 'water_height', 'water_height_start', 'water_height_end',
-    'pressure_start', 'pressure_end', 'pane_diameter', 'ro_height',
-    'depositional_height', 'pipeline_slope',
-];
+// String/non-numeric fields that should NOT be coerced to 0
+const STRING_FIELDS = new Set([
+    'id', 'user_id', 'customer_id', 'construction_id',
+    'dionica', 'section_name', 'stock', 'remark', 'deviation',
+    'examination_date', 'examination_duration', 'examination_start_time',
+    'examination_end_time', 'saturation_time', 'stabilization_time',
+    'created_at', 'updated_at',
+]);
 
-const sanitizeNumericFields = (data: Record<string, unknown>) => {
+const sanitizeForDb = (data: Record<string, unknown>) => {
     const sanitized = { ...data };
-    for (const key of NUMERIC_FIELDS) {
-        if (sanitized[key] === '' || sanitized[key] === undefined) {
+    for (const key of Object.keys(sanitized)) {
+        if (sanitized[key] === '' && !STRING_FIELDS.has(key)) {
             sanitized[key] = 0;
         }
     }
@@ -409,7 +410,7 @@ export const WaterMethodForm = () => {
             // Remove id from formData to avoid sending undefined id when creating
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
             const { id: _formId, ...formDataWithoutId } = formData;
-            const dataToSave = sanitizeNumericFields({
+            const dataToSave = sanitizeForDb({
                 ...formDataWithoutId,
                 satisfies: calculated.satisfies,
                 customer_id: customerId || formData.customer_id,

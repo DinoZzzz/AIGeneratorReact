@@ -30,16 +30,19 @@ const generatePDF = async (report: Partial<ReportForm>, userProfile?: Profile) =
     return gen(report, userProfile);
 };
 
-// Numeric fields that should be coerced from '' to 0 before saving to DB
-const NUMERIC_FIELDS: (keyof ReportForm)[] = [
-    'temperature', 'pipe_length', 'pipe_diameter', 'pane_width', 'pane_length',
-    'pane_height', 'pressure_start', 'pressure_end', 'pane_diameter',
-];
+// String/non-numeric fields that should NOT be coerced to 0
+const STRING_FIELDS = new Set([
+    'id', 'user_id', 'customer_id', 'construction_id',
+    'dionica', 'section_name', 'stock', 'remark', 'deviation',
+    'examination_date', 'examination_duration', 'examination_start_time',
+    'examination_end_time', 'saturation_time', 'stabilization_time',
+    'created_at', 'updated_at',
+]);
 
-const sanitizeNumericFields = (data: Record<string, unknown>) => {
+const sanitizeForDb = (data: Record<string, unknown>) => {
     const sanitized = { ...data };
-    for (const key of NUMERIC_FIELDS) {
-        if (sanitized[key] === '' || sanitized[key] === undefined) {
+    for (const key of Object.keys(sanitized)) {
+        if (sanitized[key] === '' && !STRING_FIELDS.has(key)) {
             sanitized[key] = 0;
         }
     }
@@ -426,7 +429,7 @@ export const AirMethodForm = () => {
 
         try {
             setLoading(true);
-            const dataToSave = sanitizeNumericFields({
+            const dataToSave = sanitizeForDb({
                 ...formData,
                 satisfies: calculated.satisfies,
                 allowed_loss: calculated.allowedLoss,
