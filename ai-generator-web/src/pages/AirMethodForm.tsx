@@ -30,6 +30,22 @@ const generatePDF = async (report: Partial<ReportForm>, userProfile?: Profile) =
     return gen(report, userProfile);
 };
 
+// Numeric fields that should be coerced from '' to 0 before saving to DB
+const NUMERIC_FIELDS: (keyof ReportForm)[] = [
+    'temperature', 'pipe_length', 'pipe_diameter', 'pane_width', 'pane_length',
+    'pane_height', 'pressure_start', 'pressure_end', 'pane_diameter',
+];
+
+const sanitizeNumericFields = (data: Record<string, unknown>) => {
+    const sanitized = { ...data };
+    for (const key of NUMERIC_FIELDS) {
+        if (sanitized[key] === '' || sanitized[key] === undefined) {
+            sanitized[key] = 0;
+        }
+    }
+    return sanitized;
+};
+
 // Initial empty state
 const initialState: Partial<ReportForm> = {
     type_id: 2, // Air
@@ -410,7 +426,7 @@ export const AirMethodForm = () => {
 
         try {
             setLoading(true);
-            const dataToSave = {
+            const dataToSave = sanitizeNumericFields({
                 ...formData,
                 satisfies: calculated.satisfies,
                 allowed_loss: calculated.allowedLoss,
@@ -419,7 +435,7 @@ export const AirMethodForm = () => {
                 customer_id: (customerId && customerId !== 'undefined') ? customerId : (formData.customer_id || undefined),
                 construction_id: (constructionId && constructionId !== 'undefined') ? constructionId : (formData.construction_id || undefined),
                 type_id: 2
-            };
+            });
 
             if (!isEditMode) {
                 await createReportMutation.mutateAsync(dataToSave as Partial<ReportForm>);

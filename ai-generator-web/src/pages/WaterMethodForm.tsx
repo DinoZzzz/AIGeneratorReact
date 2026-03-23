@@ -31,6 +31,24 @@ const generatePDF = async (report: Partial<ReportForm>, userProfile?: Profile) =
     return gen(report, userProfile);
 };
 
+// Numeric fields that should be coerced from '' to 0 before saving to DB
+const NUMERIC_FIELDS: (keyof ReportForm)[] = [
+    'temperature', 'pipe_length', 'pipe_diameter', 'pane_width', 'pane_length',
+    'pane_height', 'water_height', 'water_height_start', 'water_height_end',
+    'pressure_start', 'pressure_end', 'pane_diameter', 'ro_height',
+    'depositional_height', 'pipeline_slope',
+];
+
+const sanitizeNumericFields = (data: Record<string, unknown>) => {
+    const sanitized = { ...data };
+    for (const key of NUMERIC_FIELDS) {
+        if (sanitized[key] === '' || sanitized[key] === undefined) {
+            sanitized[key] = 0;
+        }
+    }
+    return sanitized;
+};
+
 // Initial empty state
 const initialState: Partial<ReportForm> = {
     type_id: 1, // Water
@@ -391,13 +409,13 @@ export const WaterMethodForm = () => {
             // Remove id from formData to avoid sending undefined id when creating
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
             const { id: _formId, ...formDataWithoutId } = formData;
-            const dataToSave = {
+            const dataToSave = sanitizeNumericFields({
                 ...formDataWithoutId,
                 satisfies: calculated.satisfies,
                 customer_id: customerId || formData.customer_id,
                 construction_id: constructionId || formData.construction_id,
                 type_id: 1
-            };
+            });
 
             if (!isEditMode) {
                 await createReportMutation.mutateAsync(dataToSave as Partial<ReportForm>);
