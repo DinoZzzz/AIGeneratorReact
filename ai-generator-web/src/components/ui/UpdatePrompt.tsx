@@ -1,17 +1,60 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { RefreshCw, X } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
 import { cn } from '../../lib/utils';
+
+const VERSION_CHECK_INTERVAL = 30 * 60 * 1000; // 30 minutes
+
+function isNewer(deployed: string, running: string): boolean {
+    const d = deployed.split('.').map(Number);
+    const r = running.split('.').map(Number);
+    for (let i = 0; i < Math.max(d.length, r.length); i++) {
+        if ((d[i] || 0) > (r[i] || 0)) return true;
+        if ((d[i] || 0) < (r[i] || 0)) return false;
+    }
+    return false;
+}
 
 export const UpdatePrompt = () => {
     const [show, setShow] = useState(false);
     const { t } = useLanguage();
 
+    const checkVersion = useCallback(async () => {
+        try {
+            const res = await fetch(`/version.json?t=${Date.now()}`);
+            if (!res.ok) return;
+            const data = await res.json();
+            if (data.version && isNewer(data.version, __APP_VERSION__)) {
+                setShow(true);
+            }
+        } catch {
+            // Network error — skip silently
+        }
+    }, []);
+
     useEffect(() => {
+        // Listen for SW-based update detection
         const handler = () => setShow(true);
         window.addEventListener('sw-update-available', handler);
-        return () => window.removeEventListener('sw-update-available', handler);
-    }, []);
+
+        // Also check version.json directly (catches stale SW scenarios)
+        checkVersion();
+        const interval = setInterval(checkVersion, VERSION_CHECK_INTERVAL);
+
+        return () => {
+            window.removeEventListener('sw-update-available', handler);
+            clearInterval(interval);
+        };
+    }, [checkVersion]);
+
+    const handleUpdate = () => {
+        // Try SW update first, then hard reload as fallback
+        if (window.__updateSW) {
+            window.__updateSW(true);
+        } else {
+            window.location.reload();
+        }
+    };
 
     if (!show) return null;
 
@@ -39,7 +82,7 @@ export const UpdatePrompt = () => {
                     {t('update.dismiss')}
                 </button>
                 <button
-                    onClick={() => window.__updateSW?.(true)}
+                    onClick={handleUpdate}
                     className="rounded-md bg-green-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-green-700 transition-colors"
                 >
                     {t('update.action')}

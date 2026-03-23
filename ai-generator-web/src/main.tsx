@@ -86,6 +86,12 @@ const updateSW = registerSW({
   onOfflineReady() {
     // App is ready to work offline
   },
+  onRegisteredSW(_swUrl, registration) {
+    // Periodically check for new service worker (every hour)
+    if (registration) {
+      setInterval(() => registration.update(), 60 * 60 * 1000)
+    }
+  },
   // Check for updates immediately and periodically
   immediate: true,
 })

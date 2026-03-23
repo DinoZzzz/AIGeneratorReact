@@ -2,9 +2,32 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 import { visualizer } from 'rollup-plugin-visualizer'
+import { readFileSync, writeFileSync, mkdirSync } from 'fs'
+import type { Plugin } from 'vite'
+
+// Read version from package.json
+const pkg = JSON.parse(readFileSync('./package.json', 'utf-8'))
+
+// Vite plugin: write version.json to dist/ after build
+function generateVersionFile(): Plugin {
+  return {
+    name: 'generate-version-file',
+    writeBundle(options) {
+      const dir = options.dir || 'dist'
+      mkdirSync(dir, { recursive: true })
+      writeFileSync(
+        `${dir}/version.json`,
+        JSON.stringify({ version: pkg.version, buildTime: new Date().toISOString() })
+      )
+    },
+  }
+}
 
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => ({
+  define: {
+    '__APP_VERSION__': JSON.stringify(pkg.version),
+  },
   plugins: [
     react({
       jsxRuntime: 'automatic'
@@ -48,13 +71,14 @@ export default defineConfig(({ mode }) => ({
       },
       injectManifest: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2,json}'],
-        globIgnores: ['**/stats.html'], // Exclude bundle stats from service worker cache
+        globIgnores: ['**/stats.html', '**/version.json'], // Exclude from SW cache so version.json is always fetched fresh
         maximumFileSizeToCacheInBytes: 8 * 1024 * 1024,
       },
       devOptions: {
         enabled: true
       }
-    })
+    }),
+    generateVersionFile(),
   ],
   resolve: {
     alias: {
