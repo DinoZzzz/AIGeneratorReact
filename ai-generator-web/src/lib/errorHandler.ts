@@ -1,4 +1,5 @@
 import { captureError } from './sentry';
+import { supabase } from './supabase';
 
 export class AppError extends Error {
   public code: string;
@@ -68,6 +69,22 @@ export function isAuthError(error: unknown): boolean {
   }
 
   return false;
+}
+
+/**
+ * Run a Supabase call, and on JWT expiry refresh the session and retry once.
+ * Covers the race where a token expires between the proactive visibility-change
+ * refresh and the request actually firing.
+ */
+export async function withAuthRetry<T>(fn: () => Promise<T>): Promise<T> {
+  try {
+    return await fn();
+  } catch (error) {
+    if (!isAuthError(error)) throw error;
+    const { error: refreshError } = await supabase.auth.refreshSession();
+    if (refreshError) throw error;
+    return await fn();
+  }
 }
 
 /**
