@@ -8,23 +8,11 @@ import { RobotoRegular, RobotoBold } from './fonts/roboto';
  * Generates PDF reports with Croatian character support using Roboto font
  */
 
-// Flag to track if fonts are registered
-let fontsRegistered = false;
-
-// Register Roboto fonts with jsPDF (only once)
 const registerFonts = (doc: jsPDF) => {
-    if (!fontsRegistered) {
-        // Add Roboto Regular
-        doc.addFileToVFS('Roboto-Regular.ttf', RobotoRegular);
-        doc.addFont('Roboto-Regular.ttf', 'Roboto', 'normal');
-
-        // Add Roboto Bold
-        doc.addFileToVFS('Roboto-Bold.ttf', RobotoBold);
-        doc.addFont('Roboto-Bold.ttf', 'Roboto', 'bold');
-
-        fontsRegistered = true;
-    }
-    // Set Roboto as default font
+    doc.addFileToVFS('Roboto-Regular.ttf', RobotoRegular);
+    doc.addFont('Roboto-Regular.ttf', 'Roboto', 'normal');
+    doc.addFileToVFS('Roboto-Bold.ttf', RobotoBold);
+    doc.addFont('Roboto-Bold.ttf', 'Roboto', 'bold');
     doc.setFont('Roboto');
 };
 
