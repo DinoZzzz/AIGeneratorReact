@@ -204,7 +204,17 @@ export const generateWordDocument = async (
             const uniquePipeMaterials = Array.from(new Set(pipeReports.map(r => r.pipe_material?.name || r.pipe_material_id))).filter(Boolean).join(', ');
             const uniquePaneMaterials = Array.from(new Set(reportsForStats.map(r => r.pane_material?.name || r.pane_material_id))).filter(Boolean).join(', ');
             const uniquePipeDiameters = Array.from(new Set(pipeReports.map(r => `ø ${r.pipe_diameter} mm`))).filter(d => d !== 'ø 0 mm' && d !== 'ø undefined mm').join(', ');
-            const uniquePaneDiameters = Array.from(new Set(reportsForStats.map(r => `ø ${r.pane_diameter} mm`))).filter(d => d !== 'ø 0 mm' && d !== 'ø undefined mm').join(', ');
+            const paneDimensionLabels = reportsForStats.map(r => {
+                if (r.material_type_id === 2) {
+                    const w = r.pane_width || 0;
+                    const l = r.pane_length || 0;
+                    const h = r.pane_height || 0;
+                    return w > 0 || l > 0 || h > 0 ? `${w}×${l}×${h} cm` : '';
+                }
+                const d = r.pane_diameter || 0;
+                return d > 0 ? `ø ${d} mm` : '';
+            }).filter(Boolean);
+            const uniquePaneDiameters = Array.from(new Set(paneDimensionLabels)).join(', ');
 
             // Build WaterMethodCriteria
             const criteriaList: string[] = [];
