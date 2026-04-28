@@ -87,9 +87,13 @@ const updateSW = registerSW({
     // App is ready to work offline
   },
   onRegisteredSW(_swUrl, registration) {
-    // Periodically check for new service worker (every hour)
+    // Periodically check for new service worker (every hour).
+    // update() rejects on transient fetch failures; swallow so it doesn't
+    // surface as an unhandled rejection (Sentry noise).
     if (registration) {
-      setInterval(() => registration.update(), 60 * 60 * 1000)
+      setInterval(() => {
+        registration.update().catch(() => {})
+      }, 60 * 60 * 1000)
     }
   },
   // Check for updates immediately and periodically
