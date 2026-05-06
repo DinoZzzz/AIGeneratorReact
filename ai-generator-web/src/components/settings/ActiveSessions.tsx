@@ -3,6 +3,7 @@ import { useLanguage } from '../../context/LanguageContext';
 import { useActiveSessions, useRevokeSession } from '../../hooks/useActiveSessions';
 import { useToast } from '../../context/ToastContext';
 import { formatDistanceToNow } from 'date-fns';
+import { enUS, hr } from 'date-fns/locale';
 
 function getDeviceIcon(os: string | null) {
     if (!os) return Globe;
@@ -12,10 +13,11 @@ function getDeviceIcon(os: string | null) {
 }
 
 export const ActiveSessions = () => {
-    const { t } = useLanguage();
+    const { t, language } = useLanguage();
     const { sessions, isLoading, currentDeviceId } = useActiveSessions();
     const { mutate: revokeSession, isPending: isRevoking } = useRevokeSession();
     const { addToast } = useToast();
+    const dateFnsLocale = language === 'hr' ? hr : enUS;
 
     const handleRevoke = (sessionId: string) => {
         revokeSession(sessionId, {
@@ -67,7 +69,7 @@ export const ActiveSessions = () => {
                                         )}
                                     </div>
                                     <p className="text-xs text-muted-foreground">
-                                        {t('settings.lastActive')}: {formatDistanceToNow(new Date(session.last_active_at), { addSuffix: true })}
+                                        {t('settings.lastActive')}: {formatDistanceToNow(new Date(session.last_active_at), { addSuffix: true, locale: dateFnsLocale })}
                                     </p>
                                 </div>
                                 {!isCurrent && (

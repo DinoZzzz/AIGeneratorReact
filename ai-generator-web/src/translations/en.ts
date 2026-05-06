@@ -190,6 +190,25 @@ export const en: Record<string, string> = {
     'common.home': 'Home',
     'common.profile': 'Profile',
     'common.goBack': 'Go back',
+    'common.showing': 'Showing',
+    'common.of': 'of',
+    'common.pagination': 'Pagination',
+    'common.breadcrumb': 'Breadcrumb',
+    'common.progress': 'Progress',
+    'common.closeDialog': 'Close dialog',
+    'common.closeNotification': 'Close notification',
+    'common.closeResults': 'Close results',
+    'common.moreOptions': 'More options',
+    'common.completed': 'Completed',
+    'common.current': 'Current',
+    'common.upcoming': 'Upcoming',
+
+    // Error Boundary
+    'errorBoundary.title': 'Something went wrong',
+    'errorBoundary.description': 'We apologize for the inconvenience. The application encountered an unexpected error.',
+    'errorBoundary.stackTrace': 'Stack trace',
+    'errorBoundary.tryAgain': 'Try again',
+    'errorBoundary.goToDashboard': 'Go to Dashboard',
 
     // Examiners
     'examiners.title': 'Examiners',
@@ -280,6 +299,13 @@ export const en: Record<string, string> = {
     'customers.sortByActivity': 'Sort by Activity',
     'customers.allYears': 'All Years',
     'customers.goBack': 'Go back to customers',
+    'customers.nameExists': 'Customer name already exists',
+    'customers.nameRequired': 'Name is required',
+    'customers.workOrderExists': 'Work order already exists',
+    'customers.workOrderRequired': 'Work order is required',
+    'customers.locationRequired': 'Location is required',
+    'customers.addressRequired': 'Address is required',
+    'customers.postalCodeRequired': 'Postal code is required',
 
     // Reports
     'reports.title': 'Reports',
@@ -483,6 +509,10 @@ export const en: Record<string, string> = {
     'constructions.filterAll': 'All',
     'constructions.filterActive': 'Active',
     'constructions.filterArchived': 'Archived',
+    'constructions.nameRequired': 'Name is required',
+    'constructions.workOrderExists': 'Work order already exists',
+    'constructions.workOrderRequired': 'Work order is required',
+    'constructions.locationRequired': 'Location is required',
     'constructions.archivedBadge': 'ARCHIVED',
     'constructions.customerNotFound': 'Customer not found',
     'constructions.goBack': 'Go back to constructions',
@@ -774,7 +804,7 @@ export const en: Record<string, string> = {
     'schemeManager.onlineRequired': 'This action requires an internet connection.',
 
     // Command Palette
-    'commandPalette.searchPlaceholder': 'Search customers, constructions...',
+    'commandPalette.searchPlaceholder': 'Search customers, constructions, reports...',
     'commandPalette.searching': 'Searching...',
     'commandPalette.noResults': 'No results found',
     'commandPalette.recent': 'Recently Viewed',
@@ -826,6 +856,7 @@ export const en: Record<string, string> = {
 
     // Batch Operations
     'reports.selectAll': 'Select all',
+    'reports.selectReport': 'Select report',
     'reports.deselectAll': 'Deselect all',
     'reports.bulkExportPdf': 'Export PDF',
     'reports.bulkDelete': 'Delete selected',

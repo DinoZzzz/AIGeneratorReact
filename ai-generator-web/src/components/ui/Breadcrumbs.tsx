@@ -15,7 +15,7 @@ interface BreadcrumbsProps {
 export const Breadcrumbs: React.FC<BreadcrumbsProps> = ({ items }) => {
     const { t } = useLanguage();
     return (
-        <nav className="flex mb-4" aria-label="Breadcrumb">
+        <nav className="flex mb-4" aria-label={t('common.breadcrumb')}>
             <ol className="flex items-center space-x-2">
                 <li>
                     <div>

@@ -2,6 +2,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { MoreHorizontal } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { OfflineStatusBar } from './OfflineStatusBar';
+import { useLanguage } from '../../context/LanguageContext';
 
 interface NavItem {
     name: string;
@@ -35,6 +36,7 @@ export const MobileBottomNav = ({
     offlineTranslations
 }: MobileBottomNavProps) => {
     const location = useLocation();
+    const { t } = useLanguage();
 
     return (
         <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-card border-t border-border shadow-lg">
@@ -73,10 +75,10 @@ export const MobileBottomNav = ({
                 <button
                     onClick={onMoreClick}
                     className="flex flex-col items-center justify-center min-w-[60px] px-2 py-2 rounded-lg transition-colors text-muted-foreground"
-                    aria-label="More options"
+                    aria-label={t('common.moreOptions')}
                 >
                     <MoreHorizontal className="h-6 w-6 mb-1" />
-                    <span className="text-xs font-medium">More</span>
+                    <span className="text-xs font-medium">{t('nav.more')}</span>
                 </button>
             </nav>
         </div>

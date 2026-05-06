@@ -60,11 +60,11 @@ export const MobileMoreMenu = ({
         <div className="lg:hidden fixed inset-0 z-50 bg-background animate-scale-in">
             {/* Header */}
             <div className="flex items-center justify-between h-16 px-4 border-b border-border bg-card">
-                <span className="text-lg font-semibold text-foreground">Menu</span>
+                <span className="text-lg font-semibold text-foreground">{t('nav.menu')}</span>
                 <button
                     onClick={onClose}
                     className="p-2 -mr-2 text-muted-foreground"
-                    aria-label="Close menu"
+                    aria-label={t('nav.closeMenu')}
                 >
                     <X className="h-6 w-6" />
                 </button>
@@ -120,7 +120,7 @@ export const MobileMoreMenu = ({
                                 {profile?.avatar_url ? (
                                     <img
                                         src={profile.avatar_url}
-                                        alt="Profile"
+                                        alt={t('common.profile')}
                                         className="h-full w-full object-cover"
                                         loading="lazy"
                                     />

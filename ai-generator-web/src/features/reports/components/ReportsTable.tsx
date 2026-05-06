@@ -163,11 +163,12 @@ export const ReportsTable = ({
                                                 className="rounded border-input text-primary focus:ring-ring h-5 w-5"
                                                 checked={report.id ? selectedIds.has(report.id) : false}
                                                 onChange={() => report.id && onToggleSelect(report.id)}
+                                                aria-label={t('reports.selectReport')}
                                             />
                                         </div>
                                         <div>
                                             <div className="font-medium text-foreground">
-                                                {report.type_id === 1 ? report.draft?.name || '-' : `Air - ${report.draft?.name || '-'}`}
+                                                {report.type_id === 1 ? report.draft?.name || '-' : `${t('reports.air')} - ${report.draft?.name || '-'}`}
                                             </div>
                                             <div className="text-xs text-muted-foreground">
                                                 {new Date(report.examination_date).toLocaleDateString()}
@@ -298,7 +299,7 @@ export const ReportsTable = ({
                                                             className="rounded border-input text-primary focus:ring-ring"
                                                             checked={report.id ? selectedIds.has(report.id) : false}
                                                             onChange={() => report.id && onToggleSelect(report.id)}
-                                                            aria-label={`Select report ${report.draft?.name || ''} - ${new Date(report.examination_date).toLocaleDateString()}`}
+                                                            aria-label={`${t('reports.selectReport')} ${report.draft?.name || ''} - ${new Date(report.examination_date).toLocaleDateString()}`}
                                                         />
                                                     </td>
                                                     <td className="px-6 py-4 whitespace-nowrap text-muted-foreground cursor-grab active:cursor-grabbing" {...attributes} {...listeners} aria-label={t('reports.dragToReorder')}>

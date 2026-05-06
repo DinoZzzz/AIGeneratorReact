@@ -73,6 +73,9 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose 
         const searchOnline = async () => {
             const searchTerm = `%${debouncedQuery}%`;
             const searchResults: SearchResult[] = [];
+            const reportLabel = t('exportDetails.report');
+            const waterLabel = t('reports.water');
+            const airLabel = t('reports.air');
 
             const [
                 { data: customers },
@@ -121,8 +124,8 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose 
                 searchResults.push(...reports.map(r => ({
                         id: r.id,
                         type: 'report' as const,
-                        name: r.dionica || `Report ${r.id.slice(0, 8)}`,
-                        subtext: r.type_id === 1 ? 'Water' : 'Air',
+                        name: r.dionica || `${reportLabel} ${r.id.slice(0, 8)}`,
+                        subtext: r.type_id === 1 ? waterLabel : airLabel,
                         path: `/customers/${r.customer_id}/constructions/${r.construction_id}/reports/${r.type_id === 1 ? '' : 'air/'}${r.id}`
                     })));
             }
@@ -133,6 +136,9 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose 
         const searchOffline = async () => {
             const lowerQuery = debouncedQuery.toLowerCase();
             const searchResults: SearchResult[] = [];
+            const reportLabel = t('exportDetails.report');
+            const waterLabel = t('reports.water');
+            const airLabel = t('reports.air');
 
             const [customers, constructions, reports] = await Promise.all([
                 getAllFromStore<Customer>(STORES.CUSTOMERS),
@@ -171,8 +177,8 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose 
             searchResults.push(...matchedReports.map(r => ({
                 id: r.id,
                 type: 'report' as const,
-                name: r.dionica || `Report ${r.id.slice(0, 8)}`,
-                subtext: r.type_id === 1 ? 'Water' : 'Air',
+                name: r.dionica || `${reportLabel} ${r.id.slice(0, 8)}`,
+                subtext: r.type_id === 1 ? waterLabel : airLabel,
                 path: `/customers/${r.customer_id}/constructions/${r.construction_id}/reports/${r.type_id === 1 ? '' : 'air/'}${r.id}`
             })));
 
@@ -206,7 +212,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose 
 
         doSearch();
         return () => { cancelled = true; };
-    }, [debouncedQuery, isOnline]);
+    }, [debouncedQuery, isOnline, t]);
 
     const handleSelect = useCallback((result: SearchResult | RecentItem) => {
         navigate(result.path);
@@ -341,7 +347,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose 
                             ref={inputRef}
                             type="text"
                             className="h-14 w-full border-0 bg-transparent pl-3 pr-4 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-0"
-                            placeholder={t('commandPalette.searchPlaceholder') || 'Search customers, constructions, reports...'}
+                            placeholder={t('commandPalette.searchPlaceholder')}
                             value={query}
                             onChange={(e) => setQuery(e.target.value)}
                             onKeyDown={handleKeyDown}
@@ -349,6 +355,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose 
                         <button
                             onClick={onClose}
                             className="p-1 rounded-md hover:bg-muted transition-colors"
+                            aria-label={t('common.close')}
                         >
                             <X className="h-5 w-5 text-muted-foreground" />
                         </button>
@@ -358,13 +365,13 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose 
                     <div className="max-h-80 overflow-y-auto py-2">
                         {loading && (
                             <div className="px-4 py-8 text-center text-sm text-muted-foreground">
-                                {t('commandPalette.searching') || 'Searching...'}
+                                {t('commandPalette.searching')}
                             </div>
                         )}
 
                         {!loading && query && results.length === 0 && (
                             <div className="px-4 py-8 text-center text-sm text-muted-foreground">
-                                {t('commandPalette.noResults') || 'No results found'}
+                                {t('commandPalette.noResults')}
                             </div>
                         )}
 
@@ -373,7 +380,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose 
                                 <div className="px-3 py-2">
                                     <div className="flex items-center gap-2 px-2 py-1 text-xs font-medium text-muted-foreground uppercase">
                                         <Clock className="h-3 w-3" />
-                                        {t('commandPalette.recent') || 'Recently Viewed'}
+                                        {t('commandPalette.recent')}
                                     </div>
                                 </div>
                                 {(() => { flatIndex = -1; return null; })()}
@@ -385,7 +392,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose 
 
                         {!loading && !query && recentItems.length === 0 && (
                             <div className="px-4 py-8 text-center text-sm text-muted-foreground">
-                                {t('commandPalette.typeToSearch') || 'Type to search...'}
+                                {t('commandPalette.typeToSearch')}
                             </div>
                         )}
                     </div>
@@ -395,15 +402,15 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose 
                         <div className="flex items-center gap-4">
                             <span className="flex items-center gap-1">
                                 <kbd className="px-1.5 py-0.5 rounded bg-muted font-mono">↑↓</kbd>
-                                {t('commandPalette.navigate') || 'Navigate'}
+                                {t('commandPalette.navigate')}
                             </span>
                             <span className="flex items-center gap-1">
                                 <kbd className="px-1.5 py-0.5 rounded bg-muted font-mono">↵</kbd>
-                                {t('commandPalette.select') || 'Select'}
+                                {t('commandPalette.select')}
                             </span>
                             <span className="flex items-center gap-1">
                                 <kbd className="px-1.5 py-0.5 rounded bg-muted font-mono">Esc</kbd>
-                                {t('commandPalette.close') || 'Close'}
+                                {t('commandPalette.close')}
                             </span>
                         </div>
                     </div>

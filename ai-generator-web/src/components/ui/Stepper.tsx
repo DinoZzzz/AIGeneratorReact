@@ -1,6 +1,7 @@
 
 import { Check } from 'lucide-react';
 import { cn } from '../../lib/utils';
+import { useLanguage } from '../../context/LanguageContext';
 
 interface StepperProps {
     steps: string[];
@@ -9,8 +10,10 @@ interface StepperProps {
 }
 
 export const Stepper = ({ steps, currentStep, onStepClick }: StepperProps) => {
+    const { t } = useLanguage();
+
     return (
-        <nav aria-label="Progress" className="w-full py-4">
+        <nav aria-label={t('common.progress')} className="w-full py-4">
             <ol className="flex items-center justify-center">
                 {steps.map((step, index) => {
                     const isCompleted = index < currentStep;
@@ -49,7 +52,7 @@ export const Stepper = ({ steps, currentStep, onStepClick }: StepperProps) => {
                                     )}
                                     onClick={() => onStepClick(index)}
                                     aria-current={isCurrent ? 'step' : undefined}
-                                    aria-label={`${step} (${isCompleted ? 'completed' : isCurrent ? 'current' : 'upcoming'})`}
+                                    aria-label={`${step} (${isCompleted ? t('common.completed') : isCurrent ? t('common.current') : t('common.upcoming')})`}
                                 >
                                     {stepContent}
                                 </button>

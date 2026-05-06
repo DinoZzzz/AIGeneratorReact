@@ -45,7 +45,7 @@ export function getFaqCategories(language: string): FAQCategory[] {
             items: [
                 {
                     question: "Kako generirati Word izvještaj?",
-                    answer: "1. Na stranici gradilišta, odaberite obrasce (ili ostavite neoznačeno za sve)\n2. Kliknite 'Generiraj izvještaj'\n3. Ispunite metadata:\n   - Dio gradilišta\n   - Odvodnja\n   - Napomene i odstupanja\n   - Ime ovlaštene osobe\n4. Dodajte fotografije/dokumente u 'Prilozi' sekciju (opcionalno)\n5. Kliknite 'Export Report'\n\nWord dokument će se automatski preuzeti."
+                    answer: "1. Na stranici gradilišta, odaberite obrasce (ili ostavite neoznačeno za sve)\n2. Kliknite 'Generiraj izvještaj'\n3. Ispunite metapodatke:\n   - Dio gradilišta\n   - Odvodnja\n   - Napomene i odstupanja\n   - Ime ovlaštene osobe\n4. Dodajte fotografije/dokumente u sekciju 'Prilozi' (opcionalno)\n5. Kliknite 'Izvezi izvještaj'\n\nWord dokument će se automatski preuzeti."
                 },
                 {
                     question: "Kako dodati fotografije u izvještaj?",
@@ -53,7 +53,7 @@ export function getFaqCategories(language: string): FAQCategory[] {
                 },
                 {
                     question: "Kako izvesti PDF?",
-                    answer: "1. Na stranici gradilišta, pronađite obrazac\n2. Kliknite ikonu 'Izvoz PDF' pokraj obrasca\n3. PDF će se automatski preuzeti\n\nZa više obrazaca:\n1. Odaberite obrasce checkboxovima\n2. Kliknite 'Izvoz odabranih' ili 'Izvoz svih'\n3. PDF bundle će se preuzeti"
+                    answer: "1. Na stranici gradilišta, pronađite obrazac\n2. Kliknite ikonu 'Izvoz PDF' pokraj obrasca\n3. PDF će se automatski preuzeti\n\nZa više obrazaca:\n1. Odaberite obrasce potvrdnim okvirima\n2. Kliknite 'Izvoz odabranih' ili 'Izvoz svih'\n3. PDF paket će se preuzeti"
                 },
                 {
                     question: "Koji podaci se uključuju u Word izvještaj?",

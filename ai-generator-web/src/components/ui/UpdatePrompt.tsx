@@ -99,7 +99,7 @@ export const UpdatePrompt = () => {
             <button
                 onClick={() => setShow(false)}
                 className="absolute -top-2 -right-2 rounded-full bg-card border p-1 shadow-sm hover:bg-muted transition-colors sm:hidden"
-                aria-label="Close"
+                aria-label={t('common.close')}
             >
                 <X className="h-3 w-3" />
             </button>

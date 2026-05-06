@@ -288,7 +288,7 @@ export const Reports = () => {
                                         className="rounded border-gray-300"
                                         checked={reports.length > 0 && selectedReports.size === reports.length}
                                         onChange={toggleAll}
-                                        aria-label="Select all reports"
+                                        aria-label={t('reports.selectAll')}
                                     />
                                 </th>
                                 <th scope="col" className="w-24 px-3 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
@@ -328,7 +328,7 @@ export const Reports = () => {
                                                 className="rounded border-gray-300"
                                                 checked={selectedReports.has(report.id)}
                                                 onChange={() => toggleSelection(report.id)}
-                                                aria-label={`Select report ${report.construction?.name || ''} - ${new Date(report.examination_date).toLocaleDateString()}`}
+                                                aria-label={`${t('reports.selectReport')} ${report.construction?.name || ''} - ${new Date(report.examination_date).toLocaleDateString()}`}
                                             />
                                         </td>
                                         <td className="px-3 py-4 text-sm text-foreground">
@@ -341,7 +341,7 @@ export const Reports = () => {
                                             </div>
                                         </td>
                                         <td className="px-3 py-4 text-sm text-muted-foreground">
-                                            <span className="block truncate" title={`${report.type_id === 1 ? 'Water' : 'Air'} - ${report.draft?.name || ''}`}>{report.type_id === 1 ? t('reports.water') : t('reports.air')} - {report.draft?.name}</span>
+                                            <span className="block truncate" title={`${report.type_id === 1 ? t('reports.water') : t('reports.air')} - ${report.draft?.name || ''}`}>{report.type_id === 1 ? t('reports.water') : t('reports.air')} - {report.draft?.name}</span>
                                         </td>
                                         <td className="px-3 py-4">
                                             <span className={cn(

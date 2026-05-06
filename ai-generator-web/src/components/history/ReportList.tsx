@@ -284,7 +284,7 @@ export const ReportList = ({
                                                             onClick={() => formId && onNavigateToReport(formId, item.type_id)}
                                                             disabled={!formId}
                                                             className="text-muted-foreground hover:text-foreground inline-flex items-center disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                                                            title="Edit report"
+                                                            title={t('exportDetails.edit')}
                                                         >
                                                             <Pencil className="h-4 w-4 mr-1" /> {t('exportDetails.edit')}
                                                         </button>

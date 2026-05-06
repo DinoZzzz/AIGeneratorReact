@@ -5,6 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../../lib/supabase';
 import { useLanguage } from '../../context/LanguageContext';
 import { formatDistanceToNow } from 'date-fns';
+import { enUS, hr } from 'date-fns/locale';
 
 interface ActivityItem {
     id: string;
@@ -36,8 +37,9 @@ const useRecentActivity = () => {
 };
 
 const ActivityFeedComponent = () => {
-    const { t } = useLanguage();
+    const { t, language } = useLanguage();
     const { data: activities = [], isLoading } = useRecentActivity();
+    const dateFnsLocale = language === 'hr' ? hr : enUS;
 
     if (isLoading) {
         return (
@@ -98,7 +100,7 @@ const ActivityFeedComponent = () => {
                                 </div>
                                 <span className="flex-shrink-0 flex items-center gap-1 text-xs text-muted-foreground">
                                     <Clock className="h-3 w-3" />
-                                    {formatDistanceToNow(new Date(item.updated_at), { addSuffix: true })}
+                                    {formatDistanceToNow(new Date(item.updated_at), { addSuffix: true, locale: dateFnsLocale })}
                                 </span>
                             </Link>
                         );

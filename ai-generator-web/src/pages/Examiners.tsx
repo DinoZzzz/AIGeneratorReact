@@ -444,7 +444,7 @@ export const Examiners = () => {
                                                     )}
                                                 </span>
                                                 {examiner.role === 'admin' && (
-                                                    <span className="text-xs text-primary font-medium">Administrator</span>
+                                                    <span className="text-xs text-primary font-medium">{t('examiners.admin')}</span>
                                                 )}
                                             </div>
                                         </td>
@@ -486,7 +486,7 @@ export const Examiners = () => {
                 {totalPages > 1 && (
                     <div className="px-4 py-3 border-t border-border flex items-center justify-between">
                         <div className="text-sm text-muted-foreground">
-                            {t('common.showing') || 'Showing'} {((currentPage - 1) * pageSize) + 1}-{Math.min(currentPage * pageSize, filteredExaminers.length)} {t('common.of') || 'of'} {filteredExaminers.length}
+                            {t('common.showing')} {((currentPage - 1) * pageSize) + 1}-{Math.min(currentPage * pageSize, filteredExaminers.length)} {t('common.of')} {filteredExaminers.length}
                         </div>
                         <div className="flex items-center space-x-2">
                             <Button

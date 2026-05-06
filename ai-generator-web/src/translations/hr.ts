@@ -190,6 +190,25 @@ export const hr: Record<string, string> = {
     'common.home': 'Početna',
     'common.profile': 'Profil',
     'common.goBack': 'Idi natrag',
+    'common.showing': 'Prikazujem',
+    'common.of': 'od',
+    'common.pagination': 'Straničenje',
+    'common.breadcrumb': 'Navigacijska putanja',
+    'common.progress': 'Napredak',
+    'common.closeDialog': 'Zatvori dijalog',
+    'common.closeNotification': 'Zatvori obavijest',
+    'common.closeResults': 'Zatvori rezultate',
+    'common.moreOptions': 'Više opcija',
+    'common.completed': 'Dovršeno',
+    'common.current': 'Trenutno',
+    'common.upcoming': 'Nadolazeće',
+
+    // Error Boundary
+    'errorBoundary.title': 'Nešto je pošlo po krivu',
+    'errorBoundary.description': 'Ispričavamo se zbog neugodnosti. Aplikacija je naišla na neočekivanu grešku.',
+    'errorBoundary.stackTrace': 'Trag stoga',
+    'errorBoundary.tryAgain': 'Pokušaj ponovno',
+    'errorBoundary.goToDashboard': 'Idi na platformu',
 
     // Examiners
     'examiners.title': 'Ispitivači',
@@ -280,6 +299,13 @@ export const hr: Record<string, string> = {
     'customers.sortByActivity': 'Poredaj po aktivnosti',
     'customers.allYears': 'Sve godine',
     'customers.goBack': 'Povratak na naručitelje',
+    'customers.nameExists': 'Naručitelj s tim nazivom već postoji',
+    'customers.nameRequired': 'Naziv je obavezan',
+    'customers.workOrderExists': 'Radni nalog već postoji',
+    'customers.workOrderRequired': 'Radni nalog je obavezan',
+    'customers.locationRequired': 'Lokacija je obavezna',
+    'customers.addressRequired': 'Adresa je obavezna',
+    'customers.postalCodeRequired': 'Poštanski broj je obavezan',
 
     // Reports
     'reports.title': 'Obrasci',
@@ -483,6 +509,10 @@ export const hr: Record<string, string> = {
     'constructions.filterAll': 'Sve',
     'constructions.filterActive': 'Aktivna',
     'constructions.filterArchived': 'Arhivirana',
+    'constructions.nameRequired': 'Naziv je obavezan',
+    'constructions.workOrderExists': 'Radni nalog već postoji',
+    'constructions.workOrderRequired': 'Radni nalog je obavezan',
+    'constructions.locationRequired': 'Lokacija je obavezna',
     'constructions.archivedBadge': 'ARHIVIRANO',
     'constructions.customerNotFound': 'Naručitelj nije pronađen',
     'constructions.goBack': 'Povratak na gradilišta',
@@ -774,7 +804,7 @@ export const hr: Record<string, string> = {
     'schemeManager.onlineRequired': 'Ova radnja zahtijeva internetsku vezu.',
 
     // Command Palette
-    'commandPalette.searchPlaceholder': 'Pretraži kupce, gradilišta...',
+    'commandPalette.searchPlaceholder': 'Pretraži naručitelje, gradilišta, obrasce...',
     'commandPalette.searching': 'Pretraživanje...',
     'commandPalette.noResults': 'Nema rezultata',
     'commandPalette.recent': 'Nedavno pregledano',
@@ -782,7 +812,7 @@ export const hr: Record<string, string> = {
     'commandPalette.select': 'Odaberi',
     'commandPalette.close': 'Zatvori',
     'commandPalette.typeToSearch': 'Upišite za pretragu...',
-    'commandPalette.customers': 'Kupci',
+    'commandPalette.customers': 'Naručitelji',
     'commandPalette.constructions': 'Gradilišta',
     'commandPalette.reports': 'Izvještaji',
 
@@ -796,7 +826,7 @@ export const hr: Record<string, string> = {
 
     // Pinned Items
     'dashboard.pinnedItems': 'Prikvačeno',
-    'dashboard.pinEmpty': 'Prikvačite najčešće korištene kupce i gradilišta za brzi pristup.',
+    'dashboard.pinEmpty': 'Prikvačite najčešće korištene naručitelje i gradilišta za brzi pristup.',
     'dashboard.pin': 'Prikvači',
     'dashboard.unpin': 'Otkvači',
 
@@ -826,6 +856,7 @@ export const hr: Record<string, string> = {
 
     // Batch Operations
     'reports.selectAll': 'Odaberi sve',
+    'reports.selectReport': 'Odaberi obrazac',
     'reports.deselectAll': 'Poništi odabir',
     'reports.bulkExportPdf': 'Izvezi PDF',
     'reports.bulkDelete': 'Obriši odabrano',

@@ -1,6 +1,7 @@
 import { Link, useLocation } from 'react-router-dom';
 import { LogOut, ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '../../lib/utils';
+import { useLanguage } from '../../context/LanguageContext';
 
 interface NavItem {
     name: string;
@@ -34,6 +35,7 @@ export const DesktopSidebar = ({
     lowBandwidthMode
 }: DesktopSidebarProps) => {
     const location = useLocation();
+    const { t } = useLanguage();
 
     return (
         <div className={cn(
@@ -52,7 +54,7 @@ export const DesktopSidebar = ({
                     <button
                         onClick={onToggleCollapse}
                         className="p-1.5 hover:bg-accent rounded-lg transition-colors text-muted-foreground hover:text-foreground"
-                        aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+                        aria-label={isCollapsed ? t('sidebar.expand') : t('sidebar.collapse')}
                     >
                         {isCollapsed ? (
                             <ChevronRight className="h-5 w-5" />
@@ -111,13 +113,13 @@ export const DesktopSidebar = ({
                                 <Link
                                     to="/profile"
                                     className="flex items-center justify-center mb-3 hover:bg-accent rounded-lg py-2 transition-colors group"
-                                    title="Profile"
+                                    title={t('common.profile')}
                                 >
                                     <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden">
                                         {profile?.avatar_url ? (
                                             <img
                                                 src={profile.avatar_url}
-                                                alt="Profile"
+                                                alt={t('common.profile')}
                                                 className="h-full w-full object-cover"
                                                 loading="lazy"
                                             />
@@ -131,7 +133,7 @@ export const DesktopSidebar = ({
                                 <button
                                     onClick={onSignOut}
                                     className="w-full flex items-center justify-center px-3 py-2 text-sm font-medium text-destructive rounded-lg hover:bg-destructive/10 transition-colors"
-                                    aria-label="Sign Out"
+                                    aria-label={t('nav.signOut')}
                                 >
                                     <LogOut className="h-5 w-5" />
                                 </button>
@@ -142,11 +144,11 @@ export const DesktopSidebar = ({
                                     <div className="flex-shrink-0">
                                         <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden">
                                             {profile?.avatar_url ? (
-                                                <img
-                                                    src={profile.avatar_url}
-                                                    alt="Profile"
-                                                    className="h-full w-full object-cover"
-                                                    loading="lazy"
+                                                    <img
+                                                        src={profile.avatar_url}
+                                                        alt={t('common.profile')}
+                                                        className="h-full w-full object-cover"
+                                                        loading="lazy"
                                                 />
                                             ) : (
                                                 <span className="text-primary font-medium text-sm">

@@ -94,10 +94,10 @@ export function getVersionHistory(language: string): VersionHistoryItem[] {
                 'PDF materijali (zrak + voda) sada koriste admin lookup za okno/slivnik i cijevi, uključujući LC',
                 'U metodi zrak uklonjeno je trajanje iz desnog stupca; EN 1610 tablica je preuređena (DN [mm] + red “Vrijeme ispitivanja”)',
                 'Metoda voda: shema C skriva polja okna i H2, slivnik koristi “Visina slivnika”, a ΔV znak je ispravljen',
-                'Water forma: uklonjeni duplikati materijala, odstupanje ostaje ručno izmjenjivo (soft suggestion), saturacija je samo za betonsko okno/slivnik',
+                'Forma vode: uklonjeni duplikati materijala, odstupanje ostaje ručno izmjenjivo (blagi prijedlog), saturacija je samo za betonsko okno/slivnik',
                 'Word izvoz: sekcije su stabilno vidljive (uključujući selektivni export), a redni broj metode zrak je formatiran kao 1.',
-                'Word: “Dio građevine” ima default “Sustav odvodnje odpadnih voda” (editabilno), datumi su sanitizirani i standardizirani',
-                'Word: napomene se preuzimaju iz dijaloga, navode se nezadovoljene dionice, odstupanje vode je dropdown (2 opcije), a slike koriste naslov “Situacija”',
+                'Word: “Dio građevine” ima zadanu vrijednost “Sustav odvodnje odpadnih voda” (uredivo), datumi su sanitizirani i standardizirani',
+                'Word: napomene se preuzimaju iz dijaloga, navode se nezadovoljene dionice, odstupanje vode je padajući izbornik (2 opcije), a slike koriste naslov “Situacija”',
             ]
         },
         {
@@ -209,7 +209,7 @@ export function getVersionHistory(language: string): VersionHistoryItem[] {
             changes: [
                 'Ispravljen dozvoljeni gubitak u Word tablici za metodu zraka (koristi izračunatu vrijednost umjesto statičke)',
                 'Automatsko popunjavanje trajanja ispitivanja iz EN 1610 tablice prema promjeru i metodi',
-                'Vrijeme stabilizacije: +/- kontrola s default 5 min',
+                'Vrijeme stabilizacije: +/- kontrola sa zadanih 5 min',
                 'Prijenos dionice na sljedeći obrazac pri spremanju',
                 'Poboljšan unos na mobitelu: polje se čisti kad ima vrijednost 0',
                 'Uklonjene decimale iz PDF izvoza (osim za kritične vrijednosti)',
@@ -272,7 +272,7 @@ export function getVersionHistory(language: string): VersionHistoryItem[] {
                 'Skraćeni dugački tekstovi u stupcima s tooltip prikazom punog teksta',
                 'Fade-in animacija za overlay dijaloga',
                 'Tranzicija prozirnosti tablice tijekom pozadinskog osvježavanja podataka',
-                'Aria-label na svim checkboxovima za bolju pristupačnost',
+                'Aria-label atributi na svim potvrdnim okvirima za bolju pristupačnost',
                 'Oznaka aria-disabled na arhiviranim građevinama',
                 'Focus-visible prstenovi na akcijskim gumbima i linkovima u tablicama',
             ]
@@ -335,7 +335,7 @@ export function getVersionHistory(language: string): VersionHistoryItem[] {
                 'Refaktoriranje velikih komponenata za bolju čitljivost i održavanje koda',
                 'Razdvojene stranice: ConstructionReports, Settings, Help, HistoryDetails',
                 'Razdvojen wordExportService u modularne datoteke',
-                'Uklonjeno dupliciranje koda u tablicama izvješća (Air/Water)',
+                'Uklonjeno dupliciranje koda u tablicama izvješća (zrak/voda)',
             ]
         },
         {

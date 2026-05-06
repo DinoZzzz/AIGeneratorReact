@@ -44,9 +44,10 @@ const useDashboardStats = () => {
 
 export const Dashboard = () => {
     const { user, profile } = useAuth();
-    const { t } = useLanguage();
+    const { t, language } = useLanguage();
     const { data: stats = { customers: 0, constructions: 0, reports: 0 }, isLoading: loading } = useDashboardStats();
     const { isVisible } = useDashboardLayout();
+    const dateLocale = language === 'en' ? 'en-US' : 'hr-HR';
 
     const getUserName = () => {
         if (!user) return t('dashboard.defaultUser');
@@ -79,7 +80,7 @@ export const Dashboard = () => {
                 <div>
                     <h1 className="text-3xl font-bold tracking-tight text-foreground">{t('dashboard.welcome')}, {getUserName()}</h1>
                     <p className="text-muted-foreground mt-1">
-                        {formatTodayLong()}
+                        {formatTodayLong(dateLocale)}
                     </p>
                 </div>
                 <DashboardCustomizer />
