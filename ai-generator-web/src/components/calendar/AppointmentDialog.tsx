@@ -585,10 +585,10 @@ export const AppointmentDialog = ({
                                     id="location"
                                     value={formData.location || ''}
                                     onChange={e => setFormData({ ...formData, location: e.target.value })}
-                                    placeholder={t('calendar.locationPlaceholder') || 'Enter location'}
+                                    placeholder={t('calendar.locationPlaceholder')}
                                 />
                                 <p className="text-xs text-muted-foreground">
-                                    {t('calendar.locationHint') || 'Auto-filled from construction site'}
+                                    {t('calendar.locationHint')}
                                 </p>
                             </div>
 
@@ -683,8 +683,8 @@ export const AppointmentDialog = ({
                     open={deleteDialogOpen}
                     onConfirm={() => { handleDeleteConfirm(); setDeleteDialogOpen(false); }}
                     onCancel={() => setDeleteDialogOpen(false)}
-                    title={t('calendar.deleteDialogTitle') || 'Confirm Deletion'}
-                    description={t('calendar.deleteDialogMessage') || 'Are you sure you want to delete this appointment?'}
+                    title={t('calendar.deleteDialogTitle')}
+                    description={t('calendar.deleteDialogMessage')}
                     confirmLabel={t('common.delete')}
                     cancelLabel={t('common.cancel')}
                     variant="destructive"
@@ -699,7 +699,7 @@ export const AppointmentDialog = ({
                             </>
                         )}
                     </div>
-                    <p className="text-destructive font-medium mt-3">{t('calendar.deleteWarning') || 'This action cannot be undone.'}</p>
+                    <p className="text-destructive font-medium mt-3">{t('calendar.deleteWarning')}</p>
                 </ConfirmDialog>
             )}
         </>

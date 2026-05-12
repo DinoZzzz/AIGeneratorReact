@@ -339,7 +339,7 @@ export const Examiners = () => {
                                     </div>
                                     {examiner.role === 'admin' && (
                                         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
-                                            Admin
+                                            {t('examiners.admin')}
                                         </span>
                                     )}
                                 </div>
@@ -444,7 +444,7 @@ export const Examiners = () => {
                                                     )}
                                                 </span>
                                                 {examiner.role === 'admin' && (
-                                                    <span className="text-xs text-primary font-medium">Administrator</span>
+                                                    <span className="text-xs text-primary font-medium">{t('examiners.admin')}</span>
                                                 )}
                                             </div>
                                         </td>
@@ -486,7 +486,7 @@ export const Examiners = () => {
                 {totalPages > 1 && (
                     <div className="px-4 py-3 border-t border-border flex items-center justify-between">
                         <div className="text-sm text-muted-foreground">
-                            {t('common.showing') || 'Showing'} {((currentPage - 1) * pageSize) + 1}-{Math.min(currentPage * pageSize, filteredExaminers.length)} {t('common.of') || 'of'} {filteredExaminers.length}
+                            {t('common.showing')} {((currentPage - 1) * pageSize) + 1}-{Math.min(currentPage * pageSize, filteredExaminers.length)} {t('common.of')} {filteredExaminers.length}
                         </div>
                         <div className="flex items-center space-x-2">
                             <Button
@@ -526,8 +526,8 @@ export const Examiners = () => {
                     open={deleteDialogOpen}
                     onConfirm={() => { handleDeleteConfirm(); setDeleteDialogOpen(false); }}
                     onCancel={() => setDeleteDialogOpen(false)}
-                    title={t('examiners.deleteDialogTitle') || 'Confirm Deletion'}
-                    description={t('examiners.deleteDialogMessage') || 'Are you sure you want to delete this examiner?'}
+                    title={t('examiners.deleteDialogTitle')}
+                    description={t('examiners.deleteDialogMessage')}
                     confirmLabel={t('common.delete')}
                     cancelLabel={t('common.cancel')}
                     variant="destructive"
@@ -540,7 +540,7 @@ export const Examiners = () => {
                         <p className="text-xs text-muted-foreground mt-2 mb-1">{t('examiners.email')}:</p>
                         <p className="font-semibold text-foreground">{examinerToDelete.email}</p>
                     </div>
-                    <p className="text-destructive font-medium mt-3">{t('examiners.deleteWarning') || 'This action cannot be undone.'}</p>
+                    <p className="text-destructive font-medium mt-3">{t('examiners.deleteWarning')}</p>
                 </ConfirmDialog>
             )}
         </div>

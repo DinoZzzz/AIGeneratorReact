@@ -1,5 +1,6 @@
 import * as React from "react";
 import { cn } from "../../lib/utils";
+import { useLanguage } from "../../context/LanguageContext";
 import {
     User,
     Ghost,
@@ -111,6 +112,7 @@ export function UserAvatar({
     className,
 }: UserAvatarProps) {
     const [imageError, setImageError] = React.useState(false);
+    const { t } = useLanguage();
 
     // Use id, email, or name as seed for consistent random icon/color
     const seed = id || email || name || "default";
@@ -137,7 +139,7 @@ export function UserAvatar({
             >
                 <img
                     src={src}
-                    alt={name || "Profile"}
+                    alt={name || t('profile.avatarAlt')}
                     className="h-full w-full object-cover"
                     onError={() => setImageError(true)}
                 />

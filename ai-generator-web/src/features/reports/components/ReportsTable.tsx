@@ -167,7 +167,7 @@ export const ReportsTable = ({
                                         </div>
                                         <div>
                                             <div className="font-medium text-foreground">
-                                                {report.type_id === 1 ? report.draft?.name || '-' : `Air - ${report.draft?.name || '-'}`}
+                                                {report.type_id === 1 ? report.draft?.name || '-' : `${t('reports.air')} - ${report.draft?.name || '-'}`}
                                             </div>
                                             <div className="text-xs text-muted-foreground">
                                                 {new Date(report.examination_date).toLocaleDateString()}
@@ -208,7 +208,7 @@ export const ReportsTable = ({
                                     <button
                                         onClick={() => onDuplicate(report)}
                                         className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded-full transition-colors"
-                                        title={t('reports.duplicate') || 'Duplicate'}
+                                        title={t('reports.duplicate')}
                                     >
                                         <Copy className="h-4 w-4" />
                                     </button>
@@ -238,7 +238,7 @@ export const ReportsTable = ({
                                         className="rounded border-input text-primary focus:ring-ring"
                                         checked={allNonSectionsSelected}
                                         onChange={handleSelectAll}
-                                        aria-label={`Select all ${title} reports`}
+                                        aria-label={`${t('reports.selectAllReports')} - ${title}`}
                                     />
                                 </th>
                                 <th className="w-10 px-6 py-3"></th>
@@ -298,7 +298,7 @@ export const ReportsTable = ({
                                                             className="rounded border-input text-primary focus:ring-ring"
                                                             checked={report.id ? selectedIds.has(report.id) : false}
                                                             onChange={() => report.id && onToggleSelect(report.id)}
-                                                            aria-label={`Select report ${report.draft?.name || ''} - ${new Date(report.examination_date).toLocaleDateString()}`}
+                                                            aria-label={`${t('reports.selectReport')} ${report.draft?.name || ''} - ${new Date(report.examination_date).toLocaleDateString()}`}
                                                         />
                                                     </td>
                                                     <td className="px-6 py-4 whitespace-nowrap text-muted-foreground cursor-grab active:cursor-grabbing" {...attributes} {...listeners} aria-label={t('reports.dragToReorder')}>
@@ -341,7 +341,7 @@ export const ReportsTable = ({
                                                         <button
                                                             onClick={() => onDuplicate(report)}
                                                             className="text-muted-foreground hover:text-foreground inline-flex items-center action-link"
-                                                            title={t('reports.duplicate') || 'Duplicate'}
+                                                            title={t('reports.duplicate')}
                                                         >
                                                             <Copy className="h-4 w-4" />
                                                         </button>

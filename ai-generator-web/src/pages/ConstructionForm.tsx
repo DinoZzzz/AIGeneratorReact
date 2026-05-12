@@ -110,7 +110,7 @@ export const ConstructionForm = () => {
                 id === 'new' ? undefined : id
             );
             if (workOrderExists) {
-                setErrors(prev => ({ ...prev, work_order: t('constructions.workOrderExists') || 'Work order already exists' }));
+                setErrors(prev => ({ ...prev, work_order: t('constructions.workOrderExists') }));
             }
         } catch (error) {
             console.warn('Could not validate work order uniqueness:', error);
@@ -137,12 +137,12 @@ export const ConstructionForm = () => {
         let isValid = true;
 
         if (!formData.name?.trim()) {
-            newErrors.name = t('constructions.nameRequired') || 'Name is required';
+            newErrors.name = t('constructions.nameRequired');
             isValid = false;
         }
 
         if (!formData.work_order?.trim()) {
-            newErrors.work_order = t('constructions.workOrderRequired') || 'Work order is required';
+            newErrors.work_order = t('constructions.workOrderRequired');
             isValid = false;
         } else if (customerId) {
             if (isOnline) {
@@ -154,7 +154,7 @@ export const ConstructionForm = () => {
                         id === 'new' ? undefined : id
                     );
                     if (workOrderExists) {
-                        newErrors.work_order = t('constructions.workOrderExists') || 'Work order already exists';
+                        newErrors.work_order = t('constructions.workOrderExists');
                         isValid = false;
                     }
                 } catch (error) {
@@ -171,7 +171,7 @@ export const ConstructionForm = () => {
                              c.id !== id
                     );
                     if (workOrderExists) {
-                        newErrors.work_order = t('constructions.workOrderExists') || 'Work order already exists';
+                        newErrors.work_order = t('constructions.workOrderExists');
                         isValid = false;
                     }
                 } catch (error) {
@@ -182,7 +182,7 @@ export const ConstructionForm = () => {
         }
 
         if (!formData.location?.trim()) {
-            newErrors.location = t('constructions.locationRequired') || 'Location is required';
+            newErrors.location = t('constructions.locationRequired');
             isValid = false;
         }
 

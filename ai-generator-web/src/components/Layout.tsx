@@ -250,7 +250,7 @@ export const Layout = ({ children }: LayoutProps) => {
                             <div className="pt-4 mt-4 border-t border-border">
                                 <div className="flex items-center gap-2 px-4 py-2 text-xs font-medium text-muted-foreground uppercase">
                                     <Clock className="h-3 w-3" />
-                                    {t('nav.recent') || 'Recent'}
+                                    {t('nav.recent')}
                                 </div>
                                 {recentItems.slice(0, 5).map((item) => {
                                     const Icon = item.type === 'customer' ? Users : item.type === 'construction' ? Building2 : FileText;
@@ -448,7 +448,7 @@ export const Layout = ({ children }: LayoutProps) => {
                                             {getStoreLabel(operation.store)} - {getOperationLabel(operation.operation)}
                                         </p>
                                         <p className="text-[11px] text-muted-foreground line-clamp-2 break-all mt-1">
-                                            {operation.error || 'Unknown error'}
+                                            {operation.error || t('common.unknownError')}
                                         </p>
                                         <div className="mt-2 flex gap-2">
                                             <button
@@ -535,6 +535,7 @@ export const Layout = ({ children }: LayoutProps) => {
                     <button
                         onClick={() => setIsMoreMenuOpen(true)}
                         className="flex flex-col items-center justify-center min-w-[60px] px-2 py-2 rounded-lg transition-colors text-muted-foreground"
+                        aria-label={t('nav.moreOptions')}
                     >
                         <MoreHorizontal className="h-6 w-6 mb-1" />
                         <span className="text-xs font-medium">{t('nav.more')}</span>
@@ -551,6 +552,7 @@ export const Layout = ({ children }: LayoutProps) => {
                         <button
                             onClick={() => setIsMoreMenuOpen(false)}
                             className="p-2 -mr-2 text-muted-foreground"
+                            aria-label={t('nav.closeMenu')}
                         >
                             <X className="h-6 w-6" />
                         </button>
@@ -627,7 +629,7 @@ export const Layout = ({ children }: LayoutProps) => {
                                                     {getStoreLabel(operation.store)} - {getOperationLabel(operation.operation)}
                                                 </p>
                                                 <p className="text-xs text-muted-foreground line-clamp-2 break-all mt-1">
-                                                    {operation.error || 'Unknown error'}
+                                                    {operation.error || t('common.unknownError')}
                                                 </p>
                                                 <div className="mt-2 flex gap-2">
                                                     <button

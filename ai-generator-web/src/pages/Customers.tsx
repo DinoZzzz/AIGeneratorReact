@@ -88,7 +88,7 @@ export const Customers = () => {
         if (await confirm({ title: t('customers.deleteConfirm'), variant: 'destructive' })) {
             try {
                 await deleteMutation.mutateAsync(id);
-                success(t('customers.deleteSuccess') || 'Customer deleted successfully');
+                success(t('customers.deleteSuccess'));
             } catch (err) {
                 const appError = errorHandler.handle(err, 'CustomerDelete');
                 showError(errorHandler.getUserMessage(appError));
@@ -347,7 +347,7 @@ export const Customers = () => {
                                 </p>
                             </div>
                             <div>
-                                <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                                <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label={t('common.pagination')}>
                                     <button
                                         onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                                         disabled={currentPage === 1}

@@ -45,7 +45,7 @@ export function getFaqCategories(language: string): FAQCategory[] {
             items: [
                 {
                     question: "Kako generirati Word izvještaj?",
-                    answer: "1. Na stranici gradilišta, odaberite obrasce (ili ostavite neoznačeno za sve)\n2. Kliknite 'Generiraj izvještaj'\n3. Ispunite metadata:\n   - Dio gradilišta\n   - Odvodnja\n   - Napomene i odstupanja\n   - Ime ovlaštene osobe\n4. Dodajte fotografije/dokumente u 'Prilozi' sekciju (opcionalno)\n5. Kliknite 'Export Report'\n\nWord dokument će se automatski preuzeti."
+                    answer: "1. Na stranici gradilišta odaberite obrasce (ili ostavite neoznačeno za sve)\n2. Kliknite 'Generiraj izvještaj'\n3. Ispunite metapodatke:\n   - Dio gradilišta\n   - Odvodnja\n   - Napomene i odstupanja\n   - Ime ovlaštene osobe\n4. Dodajte fotografije/dokumente u sekciju 'Prilozi' (opcionalno)\n5. Kliknite 'Izvezi'\n\nWord dokument će se automatski preuzeti."
                 },
                 {
                     question: "Kako dodati fotografije u izvještaj?",

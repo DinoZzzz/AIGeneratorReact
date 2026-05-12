@@ -123,6 +123,7 @@ export const ReportList = ({
                                             className="rounded border-input text-primary focus:ring-ring h-5 w-5"
                                             checked={isSelected}
                                             onChange={() => formId && onToggleSelect(formId)}
+                                            aria-label={`${t('reports.selectReport')} ${item.report_form.section_name}`}
                                         />
                                     </div>
                                     <div className="flex-1 text-center">
@@ -200,6 +201,7 @@ export const ReportList = ({
                                         className="rounded border-input text-primary focus:ring-ring"
                                         checked={allNonSectionsSelected}
                                         onChange={handleSelectAll}
+                                        aria-label={`${t('reports.selectAllReports')} - ${title}`}
                                     />
                                 </th>
                                 <th className="w-10 px-6 py-3"></th>
@@ -257,6 +259,7 @@ export const ReportList = ({
                                                             className="rounded border-input text-primary focus:ring-ring"
                                                             checked={isSelected}
                                                             onChange={() => formId && onToggleSelect(formId)}
+                                                            aria-label={`${t('reports.selectReport')} #${displayOrdinal}`}
                                                         />
                                                     </td>
                                                     <td className="px-6 py-4 whitespace-nowrap text-muted-foreground cursor-grab active:cursor-grabbing" {...attributes} {...listeners}>
@@ -284,7 +287,7 @@ export const ReportList = ({
                                                             onClick={() => formId && onNavigateToReport(formId, item.type_id)}
                                                             disabled={!formId}
                                                             className="text-muted-foreground hover:text-foreground inline-flex items-center disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                                                            title="Edit report"
+                                                            title={t('exportDetails.edit')}
                                                         >
                                                             <Pencil className="h-4 w-4 mr-1" /> {t('exportDetails.edit')}
                                                         </button>

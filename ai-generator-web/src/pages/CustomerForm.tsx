@@ -70,7 +70,7 @@ export const CustomerForm = () => {
         try {
             const nameExists = await customerService.checkNameExists(name, id === 'new' ? undefined : id);
             if (nameExists) {
-                setErrors(prev => ({ ...prev, name: t('customers.nameExists') || 'Customer name already exists' }));
+                setErrors(prev => ({ ...prev, name: t('customers.nameExists') }));
             }
         } catch (error) {
             console.warn('Could not validate name uniqueness:', error);
@@ -83,7 +83,7 @@ export const CustomerForm = () => {
         try {
             const workOrderExists = await customerService.checkWorkOrderExists(workOrder, id === 'new' ? undefined : id);
             if (workOrderExists) {
-                setErrors(prev => ({ ...prev, work_order: t('customers.workOrderExists') || 'Work order already exists' }));
+                setErrors(prev => ({ ...prev, work_order: t('customers.workOrderExists') }));
             }
         } catch (error) {
             console.warn('Could not validate work order uniqueness:', error);
@@ -115,14 +115,14 @@ export const CustomerForm = () => {
         let isValid = true;
 
         if (!formData.name?.trim()) {
-            newErrors.name = t('customers.nameRequired') || 'Name is required';
+            newErrors.name = t('customers.nameRequired');
             isValid = false;
         } else if (isOnline) {
             // Only check server-side uniqueness when online
             try {
                 const nameExists = await customerService.checkNameExists(formData.name, id === 'new' ? undefined : id);
                 if (nameExists) {
-                    newErrors.name = t('customers.nameExists') || 'Customer name already exists';
+                    newErrors.name = t('customers.nameExists');
                     isValid = false;
                 }
             } catch (error) {
@@ -137,7 +137,7 @@ export const CustomerForm = () => {
                     c => c.name?.toLowerCase() === formData.name?.toLowerCase() && c.id !== id
                 );
                 if (nameExists) {
-                    newErrors.name = t('customers.nameExists') || 'Customer name already exists';
+                    newErrors.name = t('customers.nameExists');
                     isValid = false;
                 }
             } catch (error) {
@@ -147,14 +147,14 @@ export const CustomerForm = () => {
         }
 
         if (!formData.work_order?.trim()) {
-            newErrors.work_order = t('customers.workOrderRequired') || 'Work order is required';
+            newErrors.work_order = t('customers.workOrderRequired');
             isValid = false;
         } else if (isOnline) {
             // Only check server-side uniqueness when online
             try {
                 const workOrderExists = await customerService.checkWorkOrderExists(formData.work_order, id === 'new' ? undefined : id);
                 if (workOrderExists) {
-                    newErrors.work_order = t('customers.workOrderExists') || 'Work order already exists';
+                    newErrors.work_order = t('customers.workOrderExists');
                     isValid = false;
                 }
             } catch (error) {
@@ -169,7 +169,7 @@ export const CustomerForm = () => {
                     c => c.work_order?.toLowerCase() === formData.work_order?.toLowerCase() && c.id !== id
                 );
                 if (workOrderExists) {
-                    newErrors.work_order = t('customers.workOrderExists') || 'Work order already exists';
+                    newErrors.work_order = t('customers.workOrderExists');
                     isValid = false;
                 }
             } catch (error) {
@@ -179,17 +179,17 @@ export const CustomerForm = () => {
         }
 
         if (!formData.location?.trim()) {
-            newErrors.location = t('customers.locationRequired') || 'Location is required';
+            newErrors.location = t('customers.locationRequired');
             isValid = false;
         }
 
         if (!formData.address?.trim()) {
-            newErrors.address = t('customers.addressRequired') || 'Address is required';
+            newErrors.address = t('customers.addressRequired');
             isValid = false;
         }
 
         if (!formData.postal_code?.trim()) {
-            newErrors.postal_code = t('customers.postalCodeRequired') || 'Postal code is required';
+            newErrors.postal_code = t('customers.postalCodeRequired');
             isValid = false;
         }
 

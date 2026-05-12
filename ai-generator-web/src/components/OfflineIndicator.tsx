@@ -22,6 +22,7 @@ const translations = {
     failedItems: 'Neuspjele promjene',
     retryOne: 'Ponovi',
     discardOne: 'Odbaci',
+    cancel: 'Odustani',
     customers: 'Naručitelji',
     constructions: 'Gradilišta',
     reports: 'Izvještaji',
@@ -57,6 +58,7 @@ const translations = {
     failedItems: 'Failed changes',
     retryOne: 'Retry',
     discardOne: 'Discard',
+    cancel: 'Cancel',
     customers: 'Customers',
     constructions: 'Constructions',
     reports: 'Reports',
@@ -330,7 +332,7 @@ export const OfflineIndicator = () => {
                             title: t.discardConfirmTitle,
                             description: t.discardConfirmDescription,
                             confirmLabel: t.discardOne,
-                            cancelLabel: language === 'hr' ? 'Odustani' : 'Cancel',
+                            cancelLabel: t.cancel,
                             variant: 'destructive',
                           });
                           if (!shouldDiscard) return;

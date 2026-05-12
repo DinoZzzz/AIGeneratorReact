@@ -168,15 +168,15 @@ export const AirMethodForm = () => {
         return [
             {
                 id: AIR_DRAFT_PIPE_ONLY,
-                label: draftLabelById.get(AIR_DRAFT_PIPE_ONLY) || (t('reports.form.airScheme1PipeOnly') || 'Shema 1 - Ispitivanje cjevovoda')
+                label: draftLabelById.get(AIR_DRAFT_PIPE_ONLY) || t('reports.form.airScheme1PipeOnly')
             },
             {
                 id: AIR_DRAFT_SHAFT_AND_PIPE,
-                label: draftLabelById.get(AIR_DRAFT_SHAFT_AND_PIPE) || (t('reports.form.airScheme2ShaftPipe') || 'Shema 2 - Ispitivanje okna i cjevovoda')
+                label: draftLabelById.get(AIR_DRAFT_SHAFT_AND_PIPE) || t('reports.form.airScheme2ShaftPipe')
             },
             {
                 id: AIR_DRAFT_SHAFT_ONLY,
-                label: draftLabelById.get(AIR_DRAFT_SHAFT_ONLY) || (t('reports.form.airScheme3ShaftOnly') || 'Shema 3 - Ispitivanje okna')
+                label: draftLabelById.get(AIR_DRAFT_SHAFT_ONLY) || t('reports.form.airScheme3ShaftOnly')
             }
         ];
     }, [drafts, t]);

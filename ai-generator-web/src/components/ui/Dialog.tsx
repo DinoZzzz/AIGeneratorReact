@@ -2,6 +2,7 @@ import * as React from "react";
 import { useEffect, useRef } from "react";
 import { cn } from "../../lib/utils";
 import { X } from "lucide-react";
+import { useLanguage } from "../../context/LanguageContext";
 
 const DialogTitleIdContext = React.createContext<string>('');
 
@@ -100,13 +101,15 @@ interface DialogHeaderProps extends React.HTMLAttributes<HTMLDivElement> {
 }
 
 export const DialogHeader = ({ className, onClose, children, ...props }: DialogHeaderProps) => {
+    const { t } = useLanguage();
+
     return (
         <div className={cn("flex flex-col space-y-1.5 text-center sm:text-left relative", className)} {...props}>
             {onClose && (
                 <button
                     onClick={onClose}
                     className="absolute -top-2 -right-2 sm:top-0 sm:right-0 p-1.5 rounded-full hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
-                    aria-label="Close dialog"
+                    aria-label={t('common.closeDialog')}
                 >
                     <X className="h-5 w-5" />
                 </button>

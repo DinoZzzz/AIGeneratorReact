@@ -14,6 +14,7 @@ export const hr: Record<string, string> = {
     'nav.recent': 'Nedavno',
     'nav.menu': 'Izbornik',
     'nav.more': 'Više',
+    'nav.moreOptions': 'Više opcija',
     'nav.closeMenu': 'Zatvori izbornik',
 
     // Settings
@@ -187,9 +188,21 @@ export const hr: Record<string, string> = {
     'common.viewProfile': 'Pogledaj profil',
     'common.undo': 'Poništi',
     'common.unknownError': 'Došlo je do nepoznate greške',
+    'common.unknown': 'Nepoznato',
     'common.home': 'Početna',
     'common.profile': 'Profil',
     'common.goBack': 'Idi natrag',
+    'common.showing': 'Prikazujem',
+    'common.of': 'od',
+    'common.closeDialog': 'Zatvori dijalog',
+    'common.closeNotification': 'Zatvori obavijest',
+    'common.closeResults': 'Zatvori rezultate',
+    'common.progress': 'Napredak',
+    'common.breadcrumb': 'Navigacijska putanja',
+    'common.pagination': 'Straničenje',
+    'common.completed': 'dovršeno',
+    'common.current': 'trenutno',
+    'common.upcoming': 'nadolazeće',
 
     // Examiners
     'examiners.title': 'Ispitivači',
@@ -280,6 +293,13 @@ export const hr: Record<string, string> = {
     'customers.sortByActivity': 'Poredaj po aktivnosti',
     'customers.allYears': 'Sve godine',
     'customers.goBack': 'Povratak na naručitelje',
+    'customers.nameExists': 'Naručitelj s tim nazivom već postoji',
+    'customers.workOrderExists': 'Radni nalog već postoji',
+    'customers.nameRequired': 'Naziv je obavezan',
+    'customers.workOrderRequired': 'Radni nalog je obavezan',
+    'customers.locationRequired': 'Lokacija je obavezna',
+    'customers.addressRequired': 'Adresa je obavezna',
+    'customers.postalCodeRequired': 'Poštanski broj je obavezan',
 
     // Reports
     'reports.title': 'Obrasci',
@@ -299,6 +319,9 @@ export const hr: Record<string, string> = {
     'reports.waterMethod': 'Metoda vode',
     'reports.airMethod': 'Metoda zraka',
     'reports.addSection': 'Dodaj sekciju',
+    'reports.section': 'Sekcija',
+    'reports.waterSection': 'Sekcija vode',
+    'reports.airSection': 'Sekcija zraka',
     'reports.enterSectionName': 'Unesite naziv sekcije:',
     'reports.generateReports': 'Generiraj izvještaj',
     'reports.generate': 'Generiraj',
@@ -323,6 +346,11 @@ export const hr: Record<string, string> = {
     'reports.exportHistoryQueued': 'Obrazac uspješno izvezen. Spremanje u povijest je na čekanju i sinkronizirat će se kad se vrati veza.',
     'reports.noReports': 'Nema pronađenih obrazaca',
     'reports.reportsFromConstructions': 'Obrasci se kreiraju iz gradilišta.',
+    'reports.construction': 'Gradilište',
+    'reports.selectAllReports': 'Odaberi sve obrasce',
+    'reports.selectReport': 'Odaberi obrazac',
+    'reports.noAccreditations': 'Nema dostupnih akreditacija',
+    'reports.noAccreditationsTitle': 'Nemate nijednu akreditaciju',
 
     // Report Form
     'reports.form.editTitle': 'Uredi obrazac',
@@ -447,6 +475,10 @@ export const hr: Record<string, string> = {
     'chat.deleteConfirm': 'Jeste li sigurni da želite obrisati ovu poruku?',
     'chat.noMessages': 'Nema poruka',
     'chat.startConversation': 'Započnite razgovor s timom',
+    'chat.justNow': 'Upravo sada',
+    'chat.minutesAgo': 'prije {count} min',
+    'chat.hoursAgo': 'prije {count} h',
+    'chat.daysAgo': 'prije {count} d',
 
     // Constructions
     'constructions.title': 'Gradilišta',
@@ -486,6 +518,10 @@ export const hr: Record<string, string> = {
     'constructions.archivedBadge': 'ARHIVIRANO',
     'constructions.customerNotFound': 'Naručitelj nije pronađen',
     'constructions.goBack': 'Povratak na gradilišta',
+    'constructions.workOrderExists': 'Radni nalog već postoji',
+    'constructions.nameRequired': 'Naziv je obavezan',
+    'constructions.workOrderRequired': 'Radni nalog je obavezan',
+    'constructions.locationRequired': 'Lokacija je obavezna',
 
     // Export
     'export.includePdfs': 'Dodaj PDF-ove obrazaca na kraj dokumenta',
@@ -615,10 +651,18 @@ export const hr: Record<string, string> = {
     'profile.saved': 'Profil uspješno spremljen',
     'profile.saveFailed': 'Spremanje profila nije uspjelo',
     'profile.emailReadOnly': 'Email adresu nije moguće mijenjati. Kontaktirajte administratora za promjenu.',
+    'profile.avatarAlt': 'Profil',
 
     // Not Found
     'notFound.description': 'Stranica koju tražite ne postoji ili je premještena.',
     'notFound.backHome': 'Povratak na početnu',
+
+    // Error Boundary
+    'errorBoundary.title': 'Došlo je do greške',
+    'errorBoundary.description': 'Ispričavamo se zbog neugodnosti. Aplikacija je naišla na neočekivanu grešku.',
+    'errorBoundary.stackTrace': 'Trag greške',
+    'errorBoundary.tryAgain': 'Pokušaj ponovno',
+    'errorBoundary.goToDashboard': 'Idi na početnu',
 
     // Help
     'help.title': 'Pomoć',
@@ -650,6 +694,10 @@ export const hr: Record<string, string> = {
     'help.support.validation.title': 'Molimo unesite naslov',
     'help.support.validation.description': 'Molimo unesite opis',
     'help.support.validation.fileSize': 'Datoteka je prevelika (maks. 5 MB)',
+    'help.additionalTitle': 'Trebate dodatnu pomoć?',
+    'help.additionalDescription': 'Ako niste pronašli odgovor na svoje pitanje, pošaljite nam zahtjev za podršku.',
+    'help.versionLabel': 'Verzija',
+    'help.versionDescription': 'Pregled svih značajnih promjena i poboljšanja',
 
     // Calendar
     'calendar.title': 'Kalendar Ispitivanja',
@@ -854,8 +902,8 @@ export const hr: Record<string, string> = {
     'signOut.offlineDescription': 'Imate {count} nesinkroniziranih/lokalnih promjena. Ako se sada odjavite, te promjene će biti izgubljene.',
 
     // Offline / Sync
-    'offline.online': 'Online',
-    'offline.offline': 'Offline',
+    'offline.online': 'Na mreži',
+    'offline.offline': 'Izvan mreže',
     'offline.pendingChanges': 'promjena na čekanju',
     'offline.syncing': 'Sinkronizacija...',
     'offline.tapToSync': 'Sinkroniziraj',

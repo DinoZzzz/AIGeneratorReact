@@ -14,6 +14,7 @@ export const en: Record<string, string> = {
     'nav.recent': 'Recent',
     'nav.menu': 'Menu',
     'nav.more': 'More',
+    'nav.moreOptions': 'More options',
     'nav.closeMenu': 'Close menu',
 
     // Settings
@@ -187,9 +188,21 @@ export const en: Record<string, string> = {
     'common.viewProfile': 'View Profile',
     'common.undo': 'Undo',
     'common.unknownError': 'An unknown error occurred',
+    'common.unknown': 'Unknown',
     'common.home': 'Home',
     'common.profile': 'Profile',
     'common.goBack': 'Go back',
+    'common.showing': 'Showing',
+    'common.of': 'of',
+    'common.closeDialog': 'Close dialog',
+    'common.closeNotification': 'Close notification',
+    'common.closeResults': 'Close results',
+    'common.progress': 'Progress',
+    'common.breadcrumb': 'Breadcrumb',
+    'common.pagination': 'Pagination',
+    'common.completed': 'completed',
+    'common.current': 'current',
+    'common.upcoming': 'upcoming',
 
     // Examiners
     'examiners.title': 'Examiners',
@@ -280,6 +293,13 @@ export const en: Record<string, string> = {
     'customers.sortByActivity': 'Sort by Activity',
     'customers.allYears': 'All Years',
     'customers.goBack': 'Go back to customers',
+    'customers.nameExists': 'Customer name already exists',
+    'customers.workOrderExists': 'Work order already exists',
+    'customers.nameRequired': 'Name is required',
+    'customers.workOrderRequired': 'Work order is required',
+    'customers.locationRequired': 'Location is required',
+    'customers.addressRequired': 'Address is required',
+    'customers.postalCodeRequired': 'Postal code is required',
 
     // Reports
     'reports.title': 'Reports',
@@ -299,6 +319,9 @@ export const en: Record<string, string> = {
     'reports.waterMethod': 'Water Method',
     'reports.airMethod': 'Air Method',
     'reports.addSection': 'Add Section',
+    'reports.section': 'Section',
+    'reports.waterSection': 'Water Section',
+    'reports.airSection': 'Air Section',
     'reports.enterSectionName': 'Enter section name:',
     'reports.generateReports': 'Generate Reports',
     'reports.generate': 'Generate',
@@ -323,6 +346,11 @@ export const en: Record<string, string> = {
     'reports.exportHistoryQueued': 'Report exported successfully. History save is queued and will sync when online.',
     'reports.noReports': 'No reports found',
     'reports.reportsFromConstructions': 'Reports are created from construction sites.',
+    'reports.construction': 'Construction',
+    'reports.selectAllReports': 'Select all reports',
+    'reports.selectReport': 'Select report',
+    'reports.noAccreditations': 'No accreditations available',
+    'reports.noAccreditationsTitle': 'You don\'t have any accreditations',
 
     // Report Form
     'reports.form.editTitle': 'Edit Report',
@@ -447,6 +475,10 @@ export const en: Record<string, string> = {
     'chat.deleteConfirm': 'Are you sure you want to delete this message?',
     'chat.noMessages': 'No messages yet',
     'chat.startConversation': 'Start the conversation with your team',
+    'chat.justNow': 'Just now',
+    'chat.minutesAgo': '{count}m ago',
+    'chat.hoursAgo': '{count}h ago',
+    'chat.daysAgo': '{count}d ago',
 
     // Constructions
     'constructions.title': 'Construction Sites',
@@ -486,6 +518,10 @@ export const en: Record<string, string> = {
     'constructions.archivedBadge': 'ARCHIVED',
     'constructions.customerNotFound': 'Customer not found',
     'constructions.goBack': 'Go back to constructions',
+    'constructions.workOrderExists': 'Work order already exists',
+    'constructions.nameRequired': 'Name is required',
+    'constructions.workOrderRequired': 'Work order is required',
+    'constructions.locationRequired': 'Location is required',
 
     // Export
     'export.includePdfs': 'Include PDFs of reports at the end of document',
@@ -615,10 +651,18 @@ export const en: Record<string, string> = {
     'profile.saved': 'Profile saved successfully',
     'profile.saveFailed': 'Failed to save profile',
     'profile.emailReadOnly': 'Email address cannot be changed. Contact administrator for changes.',
+    'profile.avatarAlt': 'Profile',
 
     // Not Found
     'notFound.description': 'The page you are looking for doesn\'t exist or has been moved.',
     'notFound.backHome': 'Back to Home',
+
+    // Error Boundary
+    'errorBoundary.title': 'Something went wrong',
+    'errorBoundary.description': 'We apologize for the inconvenience. The application encountered an unexpected error.',
+    'errorBoundary.stackTrace': 'Stack trace',
+    'errorBoundary.tryAgain': 'Try again',
+    'errorBoundary.goToDashboard': 'Go to Dashboard',
 
     // Help
     'help.title': 'Help',
@@ -650,6 +694,10 @@ export const en: Record<string, string> = {
     'help.support.validation.title': 'Please enter a title',
     'help.support.validation.description': 'Please enter a description',
     'help.support.validation.fileSize': 'File is too large (max. 5 MB)',
+    'help.additionalTitle': 'Need Additional Help?',
+    'help.additionalDescription': 'If you haven\'t found the answer to your question, send us a support request.',
+    'help.versionLabel': 'Version',
+    'help.versionDescription': 'Overview of all significant changes and improvements',
 
     // Calendar
     'calendar.title': 'Examination Calendar',

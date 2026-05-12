@@ -383,23 +383,23 @@ export const MaterialsManager = ({ isAdmin }: MaterialsManagerProps) => {
                 open={deleteDialogOpen}
                 onConfirm={() => { handleDeleteConfirm(); setDeleteDialogOpen(false); }}
                 onCancel={() => setDeleteDialogOpen(false)}
-                title={t('materials.deleteDialogTitle') || 'Confirm Deletion'}
-                description={t('materials.deleteDialogMessage') || 'Are you sure you want to delete this material?'}
-                confirmLabel={t('materials.confirmDelete') || 'Delete Material'}
-                cancelLabel={t('materials.cancel') || 'Cancel'}
+                title={t('materials.deleteDialogTitle')}
+                description={t('materials.deleteDialogMessage')}
+                confirmLabel={t('materials.confirmDelete')}
+                cancelLabel={t('materials.cancel')}
                 variant="destructive"
             >
                 <div className="bg-muted/50 p-3 rounded-lg border border-border">
-                    <p className="text-xs text-muted-foreground mb-1">{t('materials.materialType') || 'Material type'}:</p>
+                    <p className="text-xs text-muted-foreground mb-1">{t('materials.materialType')}:</p>
                     <p className="font-semibold text-foreground">
                         {materialToDelete?.material_type_id === 1
                             ? t('materials.shaftSingular') || 'material for shaft'
                             : t('materials.pipeSingular') || 'material for pipe'}
                     </p>
-                    <p className="text-xs text-muted-foreground mt-2 mb-1">{t('materials.materialName') || 'Material name'}:</p>
+                    <p className="text-xs text-muted-foreground mt-2 mb-1">{t('materials.materialName')}:</p>
                     <p className="font-semibold text-foreground">{materialToDelete?.name || ''}</p>
                 </div>
-                <p className="text-destructive font-medium mt-3">{t('materials.deleteWarning') || 'This action cannot be undone.'}</p>
+                <p className="text-destructive font-medium mt-3">{t('materials.deleteWarning')}</p>
             </ConfirmDialog>
         </>
     );

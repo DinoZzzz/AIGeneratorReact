@@ -1,6 +1,7 @@
 import { GitBranch } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import type { VersionHistoryItem } from './versionHistoryData';
+import { useLanguage } from '../../context/LanguageContext';
 
 interface VersionHistoryProps {
     versionHistory: VersionHistoryItem[];
@@ -8,17 +9,17 @@ interface VersionHistoryProps {
 }
 
 export const VersionHistory = ({ versionHistory, language }: VersionHistoryProps) => {
+    const { t } = useLanguage();
+
     return (
         <div className="space-y-6">
             <div className="text-center mb-8">
                 <div className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 rounded-full text-primary font-medium">
                     <GitBranch className="h-5 w-5" />
-                    {language === 'hr' ? 'Verzija' : 'Version'} {versionHistory[0]?.version}
+                    {t('help.versionLabel')} {versionHistory[0]?.version}
                 </div>
                 <p className="text-muted-foreground mt-2">
-                    {language === 'hr'
-                        ? 'Pregled svih značajnih promjena i poboljšanja'
-                        : 'Overview of all significant changes and improvements'}
+                    {t('help.versionDescription')}
                 </p>
             </div>
 

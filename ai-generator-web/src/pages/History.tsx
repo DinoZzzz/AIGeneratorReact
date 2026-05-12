@@ -137,7 +137,7 @@ export const History = () => {
     }, [loadData]);
 
     const handleDelete = async (id: string) => {
-        if (!(await confirm({ title: t('history.deleteConfirm') || 'Are you sure you want to delete this report export?', variant: 'destructive' }))) return;
+        if (!(await confirm({ title: t('history.deleteConfirm'), variant: 'destructive' }))) return;
         try {
             if (isOnline) {
                 try {

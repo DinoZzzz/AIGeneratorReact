@@ -266,18 +266,18 @@ export const Chat = () => {
         const hours = Math.floor(diff / 3600000);
         const days = Math.floor(diff / 86400000);
 
-        if (minutes < 1) return 'Just now';
-        if (minutes < 60) return `${minutes}m ago`;
-        if (hours < 24) return `${hours}h ago`;
-        if (days < 7) return `${days}d ago`;
+        if (minutes < 1) return t('chat.justNow');
+        if (minutes < 60) return t('chat.minutesAgo').replace('{count}', String(minutes));
+        if (hours < 24) return t('chat.hoursAgo').replace('{count}', String(hours));
+        if (days < 7) return t('chat.daysAgo').replace('{count}', String(days));
         return date.toLocaleDateString();
     };
 
     const getUserName = (msg: Message) => {
         const u = msg.user;
-        if (!u) return 'Unknown';
+        if (!u) return t('common.unknown');
         const fullName = [u.name, u.last_name].filter(Boolean).join(' ');
-        return fullName || u.email || 'Unknown';
+        return fullName || u.email || t('common.unknown');
     };
 
     return (

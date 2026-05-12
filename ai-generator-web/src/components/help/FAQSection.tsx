@@ -4,12 +4,11 @@ import type { FAQCategory } from './faqData';
 
 interface FAQSectionProps {
     faqCategories: FAQCategory[];
-    language: string;
     onSwitchToSupport: () => void;
     t: (key: string) => string;
 }
 
-export const FAQSection = ({ faqCategories, language, onSwitchToSupport, t }: FAQSectionProps) => {
+export const FAQSection = ({ faqCategories, onSwitchToSupport, t }: FAQSectionProps) => {
     const [openCategories, setOpenCategories] = useState<Set<number>>(new Set([0]));
     const [openQuestions, setOpenQuestions] = useState<Set<string>>(new Set());
 
@@ -99,12 +98,10 @@ export const FAQSection = ({ faqCategories, language, onSwitchToSupport, t }: FA
             {/* Contact Support */}
             <div className="bg-primary/10 border border-primary/20 rounded-lg p-6">
                 <h3 className="text-lg font-semibold text-foreground mb-2">
-                    {language === 'hr' ? 'Trebate dodatnu pomoć?' : 'Need Additional Help?'}
+                    {t('help.additionalTitle')}
                 </h3>
                 <p className="text-muted-foreground mb-4">
-                    {language === 'hr'
-                        ? 'Ako niste pronašli odgovor na svoje pitanje, pošaljite nam zahtjev za podršku.'
-                        : 'If you haven\'t found the answer to your question, send us a support request.'}
+                    {t('help.additionalDescription')}
                 </p>
                 <button
                     onClick={onSwitchToSupport}

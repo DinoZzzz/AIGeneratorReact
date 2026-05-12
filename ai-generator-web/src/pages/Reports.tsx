@@ -225,6 +225,7 @@ export const Reports = () => {
                                                 className="rounded border-gray-300 h-5 w-5"
                                                 checked={selectedReports.has(report.id)}
                                                 onChange={() => toggleSelection(report.id)}
+                                                aria-label={`${t('reports.selectReport')} ${report.construction?.name || ''} - ${new Date(report.examination_date).toLocaleDateString()}`}
                                             />
                                         </div>
                                         <div>
@@ -242,7 +243,7 @@ export const Reports = () => {
                                             ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
                                             : "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400"
                                     )}>
-                                        {report.satisfies ? 'Satisfies' : 'Failed'}
+                                        {report.satisfies ? t('reports.satisfies') : t('reports.failed')}
                                     </span>
                                 </div>
 
@@ -251,7 +252,7 @@ export const Reports = () => {
                                         {report.construction?.name || '-'}
                                     </div>
                                     <div className="text-xs text-muted-foreground">
-                                        Work Order: {report.construction?.work_order || '-'}
+                                        {t('customers.workOrder')}: {report.construction?.work_order || '-'}
                                     </div>
                                 </div>
 
@@ -288,14 +289,14 @@ export const Reports = () => {
                                         className="rounded border-gray-300"
                                         checked={reports.length > 0 && selectedReports.size === reports.length}
                                         onChange={toggleAll}
-                                        aria-label="Select all reports"
+                                        aria-label={t('reports.selectAllReports')}
                                     />
                                 </th>
                                 <th scope="col" className="w-24 px-3 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                                     {t('reports.date')}
                                 </th>
                                 <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                                    Construction
+                                    {t('reports.construction')}
                                 </th>
                                 <th scope="col" className="w-40 px-3 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                                     {t('reports.type')}
@@ -328,7 +329,7 @@ export const Reports = () => {
                                                 className="rounded border-gray-300"
                                                 checked={selectedReports.has(report.id)}
                                                 onChange={() => toggleSelection(report.id)}
-                                                aria-label={`Select report ${report.construction?.name || ''} - ${new Date(report.examination_date).toLocaleDateString()}`}
+                                                aria-label={`${t('reports.selectReport')} ${report.construction?.name || ''} - ${new Date(report.examination_date).toLocaleDateString()}`}
                                             />
                                         </td>
                                         <td className="px-3 py-4 text-sm text-foreground">
@@ -341,7 +342,7 @@ export const Reports = () => {
                                             </div>
                                         </td>
                                         <td className="px-3 py-4 text-sm text-muted-foreground">
-                                            <span className="block truncate" title={`${report.type_id === 1 ? 'Water' : 'Air'} - ${report.draft?.name || ''}`}>{report.type_id === 1 ? t('reports.water') : t('reports.air')} - {report.draft?.name}</span>
+                                            <span className="block truncate" title={`${report.type_id === 1 ? t('reports.water') : t('reports.air')} - ${report.draft?.name || ''}`}>{report.type_id === 1 ? t('reports.water') : t('reports.air')} - {report.draft?.name}</span>
                                         </td>
                                         <td className="px-3 py-4">
                                             <span className={cn(

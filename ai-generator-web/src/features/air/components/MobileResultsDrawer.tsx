@@ -49,7 +49,7 @@ export const MobileResultsDrawer = ({
                     <div className="bg-card w-full max-w-md rounded-t-xl p-6 space-y-6 animate-in slide-in-from-bottom duration-200 border-t border-border shadow-2xl" onClick={e => e.stopPropagation()}>
                         <div className="flex items-center justify-between mb-2">
                             <h3 className="text-lg font-semibold">{t('reports.form.calculatedResults')}</h3>
-                            <Button variant="ghost" size="icon" onClick={() => setShowMobileResults(false)} className="-mr-2">
+                            <Button variant="ghost" size="icon" onClick={() => setShowMobileResults(false)} className="-mr-2" aria-label={t('common.closeResults')}>
                                 <X className="h-5 w-5" />
                             </Button>
                         </div>

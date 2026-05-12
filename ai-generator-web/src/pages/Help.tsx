@@ -70,7 +70,6 @@ export const Help = () => {
             {activeTab === 'faq' ? (
                 <FAQSection
                     faqCategories={faqCategories}
-                    language={language}
                     onSwitchToSupport={() => setActiveTab('support')}
                     t={t}
                 />

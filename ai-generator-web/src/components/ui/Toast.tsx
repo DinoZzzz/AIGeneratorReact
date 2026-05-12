@@ -88,7 +88,7 @@ export const Toast: React.FC<ToastProps> = ({ id, type, message, onClose, durati
                     <button
                         className="flex-shrink-0 rounded-md p-1 hover:bg-black/5 dark:hover:bg-white/10 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
                         onClick={() => onClose(id)}
-                        aria-label="Close notification"
+                        aria-label={t('common.closeNotification')}
                     >
                         <X className="h-4 w-4 opacity-60 hover:opacity-100 transition-opacity" />
                     </button>
