@@ -549,6 +549,8 @@ export const en: Record<string, string> = {
     'export.exporting': 'Exporting...',
     'export.exportReport': 'Export Report',
     'export.selectAtLeastOneReport': 'Please select at least one report to export.',
+    'export.slovenianLanguage': 'Export in Slovenian language',
+    'export.slovenianLanguageHelp': 'PDF report content will be in Slovenian',
 
     // File Uploader
     'fileUploader.invalidFileType': 'Only images (JPG, PNG) and PDF files are allowed',

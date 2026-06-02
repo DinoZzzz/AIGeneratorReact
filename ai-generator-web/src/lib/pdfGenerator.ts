@@ -2,6 +2,7 @@ import jsPDF from 'jspdf';
 import type { ReportForm, Profile, Material, SchemeImage } from '../types';
 import * as calc from './calculations/report';
 import { RobotoRegular, RobotoBold } from './fonts/roboto';
+import { getPdfLabels, type PdfExportLanguage, type PdfLabels } from './pdfLabels';
 
 /**
  * PDF Generator for Water and Air Method Reports
@@ -68,42 +69,25 @@ const getAirProcedureName = (report: Partial<ReportForm>): 'LA' | 'LB' | 'LC' | 
     return idToName[procedureId] || 'LA';
 };
 
-const getFallbackAirSchemeNameByLetter = (letter: 'F' | 'G' | 'H'): string => {
-    const names: Record<'F' | 'G' | 'H', string> = {
-        F: 'Shema F - Ispitivanje okna',
-        G: 'Shema G - Ispitivanje cjevovoda',
-        H: 'Shema H - Ispitivanje okna i cjevovoda'
-    };
-    return names[letter];
+const getFallbackAirSchemeNameByLetter = (letter: 'F' | 'G' | 'H', labels: PdfLabels): string => {
+    return labels.airLetterSchemes[letter] || labels.unknownScheme;
 };
 
-const getFallbackSchemeName = (report: Partial<ReportForm>): string => {
+const getFallbackSchemeName = (report: Partial<ReportForm>, labels: PdfLabels): string => {
     if (Number(report.type_id) === 2) {
         const draftId = Number(report.draft_id) || 1;
         const procedureName = getAirProcedureName(report);
         if (procedureName === 'LA' || procedureName === 'LB') {
             const letter = AIR_DRAFT_TO_LETTER[draftId] || 'G';
-            return getFallbackAirSchemeNameByLetter(letter);
+            return getFallbackAirSchemeNameByLetter(letter, labels);
         }
 
-        const airSchemeNames: Record<number, string> = {
-            1: 'Shema 1 - Ispitivanje cjevovoda',
-            2: 'Shema 2 - Ispitivanje okna i cjevovoda',
-            3: 'Shema 3 - Ispitivanje okna'
-        };
         const schemeNumber = getFallbackSchemeNumberForReport(report);
-        return airSchemeNames[schemeNumber] || 'Nepoznata shema';
+        return labels.airSchemes[schemeNumber] || labels.unknownScheme;
     }
 
-    const waterSchemeNames: Record<number, string> = {
-        1: 'Shema A - Ispitivanje okna',
-        2: 'Shema C - Ispitivanje cjevovoda',
-        3: 'Shema B - Ispitivanje okna i cjevovoda',
-        4: 'Shema D - Ispitivanje slivnika',
-        5: 'Shema E - Ispitivanje slivnika i cjevovoda'
-    };
     const draftId = Number(report.draft_id) || 1;
-    return waterSchemeNames[draftId] || 'Nepoznata shema';
+    return labels.waterSchemes[draftId] || labels.unknownScheme;
 };
 
 let materialsMapPromise: Promise<Map<number, string>> | null = null;
@@ -160,7 +144,7 @@ interface ResolvedAirSchemeSelection {
     fallbackName: string;
 }
 
-const resolveAirSchemeSelection = async (report: Partial<ReportForm>): Promise<ResolvedAirSchemeSelection> => {
+const resolveAirSchemeSelection = async (report: Partial<ReportForm>, labels: PdfLabels): Promise<ResolvedAirSchemeSelection> => {
     const draftId = Number(report.draft_id) || 1;
     const fallbackSchemeNumber = LEGACY_AIR_DRAFT_TO_SCHEME_NUMBER[draftId] || 1;
     const procedureName = getAirProcedureName(report);
@@ -168,7 +152,7 @@ const resolveAirSchemeSelection = async (report: Partial<ReportForm>): Promise<R
     if (procedureName !== 'LA' && procedureName !== 'LB') {
         return {
             schemeNumber: fallbackSchemeNumber,
-            fallbackName: getFallbackSchemeName(report)
+            fallbackName: getFallbackSchemeName(report, labels)
         };
     }
 
@@ -178,21 +162,21 @@ const resolveAirSchemeSelection = async (report: Partial<ReportForm>): Promise<R
 
     return {
         schemeNumber: matchedScheme?.scheme_number || fallbackSchemeNumber,
-        fallbackName: getFallbackAirSchemeNameByLetter(targetLetter)
+        fallbackName: getFallbackAirSchemeNameByLetter(targetLetter, labels)
     };
 };
 
-export const generatePDF = async (report: Partial<ReportForm>, userProfile?: Profile) => {
+export const generatePDF = async (report: Partial<ReportForm>, userProfile?: Profile, language?: PdfExportLanguage) => {
     const doc = new jsPDF({
         putOnlyUsedFonts: true,
         compress: true
     });
     registerFonts(doc);
-    await renderReportPage(doc, report, userProfile, 1, 1);
+    await renderReportPage(doc, report, userProfile, 1, 1, language);
     doc.save(`report_${report.id || 'new'}.pdf`);
 };
 
-export const generateBulkPDF = async (reports: Partial<ReportForm>[], filename: string = 'reports_bundle.pdf', userProfile?: Profile) => {
+export const generateBulkPDF = async (reports: Partial<ReportForm>[], filename: string = 'reports_bundle.pdf', userProfile?: Profile, language?: PdfExportLanguage) => {
     const doc = new jsPDF({
         putOnlyUsedFonts: true,
         compress: true
@@ -203,12 +187,12 @@ export const generateBulkPDF = async (reports: Partial<ReportForm>[], filename: 
         if (i > 0) {
             doc.addPage();
         }
-        await renderReportPage(doc, reports[i], userProfile, i + 1, totalPages);
+        await renderReportPage(doc, reports[i], userProfile, i + 1, totalPages, language);
     }
     doc.save(filename);
 };
 
-export const generateBulkPDFAsBlob = async (reports: Partial<ReportForm>[], userProfile?: Profile): Promise<Blob> => {
+export const generateBulkPDFAsBlob = async (reports: Partial<ReportForm>[], userProfile?: Profile, language?: PdfExportLanguage): Promise<Blob> => {
     const doc = new jsPDF({
         putOnlyUsedFonts: true,
         compress: true
@@ -219,13 +203,14 @@ export const generateBulkPDFAsBlob = async (reports: Partial<ReportForm>[], user
         if (i > 0) {
             doc.addPage();
         }
-        await renderReportPage(doc, reports[i], userProfile, i + 1, totalPages);
+        await renderReportPage(doc, reports[i], userProfile, i + 1, totalPages, language);
     }
     return doc.output('blob');
 };
 
 // Extracted rendering logic
-const renderReportPage = async (doc: jsPDF, report: Partial<ReportForm>, userProfile?: Profile, pageNum: number = 1, totalPages: number = 1) => {
+const renderReportPage = async (doc: jsPDF, report: Partial<ReportForm>, userProfile?: Profile, pageNum: number = 1, totalPages: number = 1, language?: PdfExportLanguage) => {
+    const labels = getPdfLabels(language);
     const pageWidth = doc.internal.pageSize.width;
     const pageHeight = doc.internal.pageSize.height;
     const reportTypeId = Number(report.type_id);
@@ -237,12 +222,12 @@ const renderReportPage = async (doc: jsPDF, report: Partial<ReportForm>, userPro
 
     // Load Assets
     let logoImg, sketchImg;
-    let schemeName = getFallbackSchemeName(report);
+    let schemeName = getFallbackSchemeName(report, labels);
     try {
         logoImg = await loadImage('/assets/ai_icon.png');
         let schemeNum = getFallbackSchemeNumberForReport(report);
         if (methodType === 'air') {
-            const resolvedSelection = await resolveAirSchemeSelection(report);
+            const resolvedSelection = await resolveAirSchemeSelection(report, labels);
             schemeNum = resolvedSelection.schemeNumber;
             schemeName = resolvedSelection.fallbackName;
         }
@@ -286,19 +271,23 @@ const renderReportPage = async (doc: jsPDF, report: Partial<ReportForm>, userPro
     const centerX = (60 + 135) / 2; // Center between the two lines
     doc.setFontSize(8);
     doc.setFont('Roboto', 'normal');
-    // Using D with stroke as workaround for Đ since standard fonts don't support it
-    const fullText = 'GRAĐEVINSKI LABORATORIJ';
-    const textWidth = doc.getTextWidth(fullText.replace('Đ', 'D'));
-    const startX = centerX - (textWidth / 2);
 
-    doc.text('GRA', startX, 20);
-    const graWidth = doc.getTextWidth('GRA');
-    doc.text('D', startX + graWidth, 20);
-    const dWidth = doc.getTextWidth('D');
-    // Draw the stroke through D
-    doc.setLineWidth(0.3);
-    doc.line(startX + graWidth + 0.3, 19, startX + graWidth + dWidth - 0.3, 19);
-    doc.text('EVINSKI LABORATORIJ', startX + graWidth + dWidth, 20);
+    if (labels.hasSpecialD) {
+        // Croatian: special rendering for Đ character
+        const fullText = labels.labTitle;
+        const textWidth = doc.getTextWidth(fullText.replace('Đ', 'D'));
+        const startX = centerX - (textWidth / 2);
+        doc.text('GRA', startX, 20);
+        const graWidth = doc.getTextWidth('GRA');
+        doc.text('D', startX + graWidth, 20);
+        const dWidth = doc.getTextWidth('D');
+        doc.setLineWidth(0.3);
+        doc.line(startX + graWidth + 0.3, 19, startX + graWidth + dWidth - 0.3, 19);
+        doc.text('EVINSKI LABORATORIJ', startX + graWidth + dWidth, 20);
+    } else {
+        // Slovenian and others: simple centered text
+        doc.text(labels.labTitle, centerX, 20, { align: 'center' });
+    }
 
     doc.setFont('Roboto', 'bold');
     doc.setFontSize(9);
@@ -316,9 +305,7 @@ const renderReportPage = async (doc: jsPDF, report: Partial<ReportForm>, userPro
     // Title (Right) - Top section
     doc.setFontSize(8);
     doc.setFont('Roboto', 'bold');
-    const title = reportTypeId === 1
-        ? 'ISPITIVANJE\nVODONEPROPUSNOSTI\nCJEVOVODA CIJEVI I\nKONTROLNA OKNA\nPREMA HRN EN\n1610:2015 - L'
-        : 'ISPITIVANJE\nVODONEPROPUSNOSTI\nCJEVOVODA\nMETODA ZRAK\nPREMA HRN EN\n1610:2015 - L';
+    const title = reportTypeId === 1 ? labels.waterTitle : labels.airTitle;
 
     const titleLines = title.split('\n');
     let titleY = 17;
@@ -330,15 +317,15 @@ const renderReportPage = async (doc: jsPDF, report: Partial<ReportForm>, userPro
     // Meta Info (Far Right) - Separate column
     doc.setFontSize(8);
     doc.setFont('Roboto', 'bold');
-    doc.text(`Stranica: ${pageNum}/${totalPages}`, pageWidth - 15, 17, { align: 'right' });
+    doc.text(`${labels.pageLabel}: ${pageNum}/${totalPages}`, pageWidth - 15, 17, { align: 'right' });
     doc.setFont('Roboto', 'normal');
     doc.text('OB 21-2', pageWidth - 15, 22, { align: 'right' });
-    doc.text('Izdanje: 2', pageWidth - 15, 27, { align: 'right' });
-    doc.text(`Datum obrasca: ${FORM_ISSUE_DATE}`, pageWidth - 15, 32, { align: 'right' });
+    doc.text(`${labels.editionLabel}: 2`, pageWidth - 15, 27, { align: 'right' });
+    doc.text(`${labels.formDateLabel}: ${FORM_ISSUE_DATE}`, pageWidth - 15, 32, { align: 'right' });
 
     // --- Status Banner ---
     const satisfies = report.satisfies;
-    const statusText = satisfies ? 'ZADOVOLJAVA' : 'NE ZADOVOLJAVA';
+    const statusText = satisfies ? labels.satisfies : labels.notSatisfies;
     const statusColor = satisfies ? '#008000' : '#FF0000';
 
     doc.setFontSize(16);
@@ -353,11 +340,11 @@ const renderReportPage = async (doc: jsPDF, report: Partial<ReportForm>, userPro
     doc.setFont('Roboto', 'normal');
 
     // Left side
-    doc.text(`Temperatura: ${report.temperature} °C`, 40, currentY);
-    doc.text(`Datum ispitivanja: ${report.examination_date || '-'}`, 40, currentY + 5);
+    doc.text(`${labels.temperature}: ${report.temperature} °C`, 40, currentY);
+    doc.text(`${labels.examDate}: ${report.examination_date || '-'}`, 40, currentY + 5);
 
     // Right side (Sketch label)
-    doc.text(`Skica:  ${schemeName}`, 100, currentY);
+    doc.text(`${labels.sketch}:  ${schemeName}`, 100, currentY);
 
     // Sketch Image
     if (sketchImg) {
@@ -428,7 +415,7 @@ const renderReportPage = async (doc: jsPDF, report: Partial<ReportForm>, userPro
 
     // --- Left Column Inputs ---
     // Dionica - show full name without truncation
-    addLeft('Dionica', report.dionica || '-');
+    addLeft(labels.section, report.dionica || '-');
 
     const typeId = Number(report.type_id);
     const draftId = Number(report.draft_id) || 1;
@@ -439,16 +426,16 @@ const renderReportPage = async (doc: jsPDF, report: Partial<ReportForm>, userPro
     const airIncludesPipe = isAirMethod && (isAirPipeOnly || isAirShaftAndPipe);
     const isPipeOnly = draftId === 2; // Schema C (water) or pipe-only (air)
     const isGully = typeId === 1 && (draftId === 4 || draftId === 5);
-    const typeLabel = isGully ? 'Tip slivnika' : 'Tip okna';
-    const materialLabel = isGully ? 'Materijal slivnika' : 'Materijal okna';
-    const widthLabel = isGully ? 'Širina slivnika' : 'Širina okna';
-    const lengthLabel = isGully ? 'Dužina slivnika' : 'Dužina okna';
-    const heightLabel = isGully ? 'Visina slivnika' : 'Visina okna';
-    const diameterLabel = isGully ? 'Promjer slivnika' : 'Promjer okna';
+    const typeLabel = isGully ? labels.gullyType : labels.shaftType;
+    const materialLabel = isGully ? labels.gullyMaterial : labels.shaftMaterial;
+    const widthLabel = isGully ? labels.gullyWidth : labels.shaftWidth;
+    const lengthLabel = isGully ? labels.gullyLength : labels.shaftLength;
+    const heightLabel = isGully ? labels.gullyHeight : labels.shaftHeight;
+    const diameterLabel = isGully ? labels.gullyDiameter : labels.shaftDiameter;
 
     // Hide shaft/gully type for pipe-only inspections (water Schema C, air pipe-only)
     if (!isPipeOnly && (!isAirMethod || airIncludesShaft)) {
-        addLeft(typeLabel, report.material_type_id === 1 ? 'Okrugli' : 'Kvadratni');
+        addLeft(typeLabel, report.material_type_id === 1 ? labels.round : labels.rectangular);
     }
 
     // Material Name Logic
@@ -471,16 +458,16 @@ const renderReportPage = async (doc: jsPDF, report: Partial<ReportForm>, userPro
             }
 
             if (isPipeOnly) {
-                addLeft('Promjer gl. cijevi', `${(report.pane_diameter || 0).toFixed(0)} mm`);
+                addLeft(labels.mainPipeDiameter, `${(report.pane_diameter || 0).toFixed(0)} mm`);
             } else {
                 addLeft(diameterLabel, `${(report.pane_diameter || 0).toFixed(0)} mm`);
             }
         } else {
             if (isPipeOnly) {
                 // Schema C Rectangular uses Channel dimensions
-                addLeft('Širina kanala', `${Math.round(report.pane_width || 0)} cm`);
-                addLeft('Dužina kanala', `${Math.round(report.pane_length || 0)} cm`);
-                addLeft('Visina kanala', `${Math.round(report.pane_height || 0)} cm`);
+                addLeft(labels.channelWidth, `${Math.round(report.pane_width || 0)} cm`);
+                addLeft(labels.channelLength, `${Math.round(report.pane_length || 0)} cm`);
+                addLeft(labels.channelHeight, `${Math.round(report.pane_height || 0)} cm`);
             } else {
                 addLeft(widthLabel, `${Math.round(report.pane_width || 0)} cm`);
                 addLeft(lengthLabel, `${Math.round(report.pane_length || 0)} cm`);
@@ -489,28 +476,28 @@ const renderReportPage = async (doc: jsPDF, report: Partial<ReportForm>, userPro
         }
     } else if (airIncludesShaft) {
         if (report.material_type_id === 1) {
-            addLeft('Promjer okna', `${(report.pane_diameter || 0).toFixed(0)} mm`);
+            addLeft(labels.shaftDiameter, `${(report.pane_diameter || 0).toFixed(0)} mm`);
         } else {
-            addLeft('Širina okna', `${Math.round(report.pane_width || 0)} cm`);
-            addLeft('Dužina okna', `${Math.round(report.pane_length || 0)} cm`);
-            addLeft('Visina okna', `${Math.round(report.pane_height || 0)} cm`);
+            addLeft(labels.shaftWidth, `${Math.round(report.pane_width || 0)} cm`);
+            addLeft(labels.shaftLength, `${Math.round(report.pane_length || 0)} cm`);
+            addLeft(labels.shaftHeight, `${Math.round(report.pane_height || 0)} cm`);
         }
     }
 
 
     // Water Method specific
     if (typeId === 1) {
-        addLeft('Visina vode', `${Math.round(report.water_height || 0)} cm`);
+        addLeft(labels.waterHeight, `${Math.round(report.water_height || 0)} cm`);
     }
 
     // Air Method specific
     if (typeId === 2) {
         const procNames: Record<number, string> = { 1: 'LA', 2: 'LB', 3: 'LC', 4: 'LD' };
-        addLeft('Metoda ispitivanja', procNames[report.examination_procedure_id || 1] || 'LA');
+        addLeft(labels.testMethod, procNames[report.examination_procedure_id || 1] || 'LA');
     }
 
     if (typeId === 1) {
-        addLeft('Trajanje', report.examination_duration || '-');
+        addLeft(labels.duration, report.examination_duration || '-');
     }
 
     // --- Right Column Inputs (Pipe Info) ---
@@ -521,15 +508,15 @@ const renderReportPage = async (doc: jsPDF, report: Partial<ReportForm>, userPro
             report.pipe_material?.name
         );
 
-        addRight('Materijal cijevi', pipeMatName);
-        addRight('Dužina cijevi', `${(report.pipe_length || 0).toFixed(1)} m`);
-        addRight('Promjer cijevi', `${(report.pipe_diameter || 0).toFixed(0)} mm`);
+        addRight(labels.pipeMaterial, pipeMatName);
+        addRight(labels.pipeLength, `${(report.pipe_length || 0).toFixed(1)} m`);
+        addRight(labels.pipeDiameter, `${(report.pipe_diameter || 0).toFixed(0)} mm`);
 
         if ([4, 5].includes(draftId)) { // D or E
-            addRight('Taložna visina', `${Math.round(report.depositional_height || 0)} cm`);
+            addRight(labels.deposHeight, `${Math.round(report.depositional_height || 0)} cm`);
         }
 
-        addRight('Nagib', `${(report.pipeline_slope || 0).toFixed(1)} %`);
+        addRight(labels.slope, `${(report.pipeline_slope || 0).toFixed(1)} %`);
     }
 
     // For Air Method, show measurements in the right column
@@ -541,29 +528,29 @@ const renderReportPage = async (doc: jsPDF, report: Partial<ReportForm>, userPro
                 report.pipe_material?.name
             );
             if (pipeMat !== '-') {
-                addRight('Materijal cijevi', pipeMat);
+                addRight(labels.pipeMaterial, pipeMat);
             }
 
             if (report.pipe_length && report.pipe_length > 0) {
-                addRight('Dužina cijevi', `${(report.pipe_length).toFixed(1)} m`);
+                addRight(labels.pipeLength, `${(report.pipe_length).toFixed(1)} m`);
             }
             if (report.pipe_diameter && report.pipe_diameter > 0) {
-                addRight('Promjer cijevi', `${(report.pipe_diameter).toFixed(0)} mm`);
+                addRight(labels.pipeDiameter, `${(report.pipe_diameter).toFixed(0)} mm`);
             }
         }
 
         const stabTime = report.stabilization_time || '00:00';
-        addRight('Vr. stabilizacije', stabTime.toString());
+        addRight(labels.stabTime, stabTime.toString());
 
         // Format required test time (convert minutes to mm:ss)
         const testTimeMins = report.required_test_time || 0;
         const testMins = Math.floor(testTimeMins);
         const testSecs = Math.round((testTimeMins - testMins) * 60);
-        addRight('Vr. ispitivanja', `${testMins}m ${testSecs.toString().padStart(2, '0')}s`);
+        addRight(labels.testTime, `${testMins}m ${testSecs.toString().padStart(2, '0')}s`);
 
-        addRight('Tlak poc.', `${(report.pressure_start || 0).toFixed(1)} mbar`);
-        addRight('Tlak kraj', `${(report.pressure_end || 0).toFixed(1)} mbar`);
-        addRight('Pad tlaka', `${(report.pressure_loss || 0).toFixed(1)} mbar`);
+        addRight(labels.pressureStart, `${(report.pressure_start || 0).toFixed(1)} mbar`);
+        addRight(labels.pressureEnd, `${(report.pressure_end || 0).toFixed(1)} mbar`);
+        addRight(labels.pressureLoss, `${(report.pressure_loss || 0).toFixed(1)} mbar`);
     }
 
     // Sync Y for Results
@@ -611,35 +598,35 @@ const renderReportPage = async (doc: jsPDF, report: Partial<ReportForm>, userPro
 
         // Display Results (Left Column) - Use shorter labels to fit
         if (draftId === 1 || draftId === 3 || draftId === 4 || draftId === 5) {
-            const label = (draftId === 4 || draftId === 5) ? 'Om. povr. slivnika' : 'Om. povr. okna';
+            const label = (draftId === 4 || draftId === 5) ? labels.wettedGullySurface : labels.wettedShaftSurface;
             addLeft(label, `${wettedShaft.toFixed(1)} m²`);
         } else if (draftId === 2) {
             if (report.material_type_id === 2) {
-                addLeft('Om. povr. kanala', `${wettedShaft.toFixed(1)} m²`);
+                addLeft(labels.wettedChannelSurface, `${wettedShaft.toFixed(1)} m²`);
             } else {
-                addLeft('Om. povr. okna', `${wettedShaft.toFixed(1)} m²`);
+                addLeft(labels.wettedShaftSurface, `${wettedShaft.toFixed(1)} m²`);
             }
         }
 
         if ([2, 3, 5].includes(draftId)) {
-            addLeft('Om. povr. cijevi', `${wettedPipe.toFixed(1)} m²`);
+            addLeft(labels.wettedPipeSurface, `${wettedPipe.toFixed(1)} m²`);
         }
 
-        addLeft('Ukupna om. povr.', `${totalArea.toFixed(1)} m²`);
-        addLeft('Dozv. gubitak (l)', `${allowedLossL.toFixed(1)} l`);
-        addLeft('Dozv. gubitak (mm)', `${allowedLossMm.toFixed(1)} mm`);
+        addLeft(labels.totalWettedSurface, `${totalArea.toFixed(1)} m²`);
+        addLeft(labels.allowedLossL, `${allowedLossL.toFixed(1)} l`);
+        addLeft(labels.allowedLossMm, `${allowedLossMm.toFixed(1)} mm`);
 
         // Display Results (Right Column) - Use shorter labels
-        addRight('Vis. vode na poc.', `${Math.round(report.water_height_start || 0)} mm`);
-        addRight('Vis. vode na kraju', `${Math.round(report.water_height_end || 0)} mm`);
+        addRight(labels.waterLevelStart, `${Math.round(report.water_height_start || 0)} mm`);
+        addRight(labels.waterLevelEnd, `${Math.round(report.water_height_end || 0)} mm`);
 
         if (draftId === 3 && hydrostaticHeight > 0) {
-            addRight('Hidrost. visina', `${(hydrostaticHeight * 100).toFixed(0)} cm`);
+            addRight(labels.hydroHeight, `${(hydrostaticHeight * 100).toFixed(0)} cm`);
         }
 
-        addRight('Gubitak vode', `${waterLoss.toFixed(1)} mm`);
+        addRight(labels.waterLoss, `${waterLoss.toFixed(1)} mm`);
         addRight('\u0394V', `${volLoss.toFixed(4)} l`);
-        addRight('Izmj. gubitak', `${result.toFixed(2)} l/m²`);
+        addRight(labels.measuredLoss, `${result.toFixed(2)} l/m²`);
     } else if (typeId === 2) { // Air Method Results
         // Air method measurements are now in the input section above
         // Sync Y for table
@@ -656,8 +643,8 @@ const renderReportPage = async (doc: jsPDF, report: Partial<ReportForm>, userPro
         // Main category headers
         doc.setFontSize(8);
         doc.setFont('Roboto', 'bold');
-        doc.text('SUHE BETONSKE CIJEVI', tableX + 34.5, tableY + 2, { align: 'center' });
-        doc.text('OSTALE CIJEVI', tableX + 119.5, tableY + 2, { align: 'center' });
+        doc.text(labels.dryConcrPipes, tableX + 34.5, tableY + 2, { align: 'center' });
+        doc.text(labels.otherPipes, tableX + 119.5, tableY + 2, { align: 'center' });
 
         // Column configuration: DN + 4 methods + gap + DN + 4 methods
         const colWidths = [17, 13, 13, 13, 13, 18, 13, 13, 13, 13, 13];
@@ -680,10 +667,10 @@ const renderReportPage = async (doc: jsPDF, report: Partial<ReportForm>, userPro
         y += 7;
         doc.setFontSize(5.5);
         doc.setFont('Roboto', 'normal');
-        doc.text('Poc. tlak', tableX + 8.5, y - 1.5, { align: 'center' });
-        doc.text('p0 [mbar]', tableX + 8.5, y + 1.5, { align: 'center' });
-        doc.text('Poc. tlak', tableX + 93.5, y - 1.5, { align: 'center' });
-        doc.text('p0 [mbar]', tableX + 93.5, y + 1.5, { align: 'center' });
+        doc.text(labels.initPressureLabel, tableX + 8.5, y - 1.5, { align: 'center' });
+        doc.text(labels.pMbar, tableX + 8.5, y + 1.5, { align: 'center' });
+        doc.text(labels.initPressureLabel, tableX + 93.5, y - 1.5, { align: 'center' });
+        doc.text(labels.pMbar, tableX + 93.5, y + 1.5, { align: 'center' });
         doc.setFontSize(7);
         doc.setFont('Roboto', 'bold');
         doc.text('10', tableX + 23.5, y, { align: 'center' });
@@ -700,10 +687,10 @@ const renderReportPage = async (doc: jsPDF, report: Partial<ReportForm>, userPro
         y += 7;
         doc.setFontSize(5.5);
         doc.setFont('Roboto', 'normal');
-        doc.text('Dozv. pad', tableX + 8.5, y - 1.5, { align: 'center' });
-        doc.text('dp [mbar]', tableX + 8.5, y + 1.5, { align: 'center' });
-        doc.text('Dozv. pad', tableX + 93.5, y - 1.5, { align: 'center' });
-        doc.text('dp [mbar]', tableX + 93.5, y + 1.5, { align: 'center' });
+        doc.text(labels.allowedDropLabel, tableX + 8.5, y - 1.5, { align: 'center' });
+        doc.text(labels.dpMbar, tableX + 8.5, y + 1.5, { align: 'center' });
+        doc.text(labels.allowedDropLabel, tableX + 93.5, y - 1.5, { align: 'center' });
+        doc.text(labels.dpMbar, tableX + 93.5, y + 1.5, { align: 'center' });
         doc.setFontSize(7);
         doc.setFont('Roboto', 'bold');
         doc.text('2,5', tableX + 23.5, y, { align: 'center' });
@@ -720,15 +707,15 @@ const renderReportPage = async (doc: jsPDF, report: Partial<ReportForm>, userPro
         y += 4;
         doc.setFont('Roboto', 'bold');
         doc.setFontSize(7);
-        doc.text('Vrijeme ispitivanja t [min]', tableX + tableWidth / 2, y, { align: 'center' });
+        doc.text(labels.testTimeTMin, tableX + tableWidth / 2, y, { align: 'center' });
         doc.setFont('Roboto', 'normal');
 
         // DN header row above diameter values
         y += 4;
         doc.setFont('Roboto', 'bold');
         doc.setFontSize(7);
-        doc.text('DN [mm]', tableX + 8.5, y, { align: 'center' });
-        doc.text('DN [mm]', tableX + 93.5, y, { align: 'center' });
+        doc.text(labels.dnMm, tableX + 8.5, y, { align: 'center' });
+        doc.text(labels.dnMm, tableX + 93.5, y, { align: 'center' });
 
         // Data rows
         y += 4;
@@ -802,14 +789,14 @@ const renderReportPage = async (doc: jsPDF, report: Partial<ReportForm>, userPro
 
     doc.setFontSize(10);
     doc.setFont('Roboto', 'normal');
-    doc.text('Napomena:', 20, currentY);
+    doc.text(`${labels.remark}:`, 20, currentY);
     if (report.remark) {
         doc.setFont('Roboto', 'bold');
         doc.text(report.remark, 20, currentY + 5, { maxWidth: 80 });
     }
 
     doc.setFont('Roboto', 'normal');
-    doc.text('Odstupanje od norme:', 110, currentY);
+    doc.text(`${labels.normDeviation}:`, 110, currentY);
     if (report.deviation) {
         doc.setFont('Roboto', 'bold');
         doc.text(report.deviation, 110, currentY + 5, { maxWidth: 80 });
@@ -817,6 +804,6 @@ const renderReportPage = async (doc: jsPDF, report: Partial<ReportForm>, userPro
 
     doc.setFontSize(12);
     doc.setFont('Roboto', 'bold');
-    const displayName = userProfile ? `${userProfile.name} ${userProfile.last_name}` : 'Nepoznat korisnik';
-    doc.text(`Izradio: ${displayName}`, pageWidth / 2, pageHeight - 20, { align: 'center' });
+    const displayName = userProfile ? `${userProfile.name} ${userProfile.last_name}` : labels.unknownUser;
+    doc.text(`${labels.createdBy}: ${displayName}`, pageWidth / 2, pageHeight - 20, { align: 'center' });
 };

@@ -149,7 +149,7 @@ export const fetchDocumentData = async (
         try {
             const { generateBulkPDFAsBlob } = await import('../../lib/pdfGenerator');
             const pdfBlob = await traceAsync('generatePDF', 'export.pdf', () =>
-                generateBulkPDFAsBlob(reports, userProfile as Profile | undefined)
+                generateBulkPDFAsBlob(reports, userProfile as Profile | undefined, metaData.exportLanguage || 'hr')
             );
 
             const pdfImages = await traceAsync('convertPdfToImages', 'export.convert', () =>

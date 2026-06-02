@@ -549,6 +549,8 @@ export const hr: Record<string, string> = {
     'export.exporting': 'Izvoz u tijeku...',
     'export.exportReport': 'Izvezi',
     'export.selectAtLeastOneReport': 'Molimo odaberite barem jedan izvještaj za izvoz.',
+    'export.slovenianLanguage': 'Izvezi na slovenskom jeziku',
+    'export.slovenianLanguageHelp': 'Sadržaj PDF obrazaca bit će na slovenskom jeziku',
 
     // File Uploader
     'fileUploader.invalidFileType': 'Samo slike (JPG, PNG) i PDF datoteke su dozvoljene',
