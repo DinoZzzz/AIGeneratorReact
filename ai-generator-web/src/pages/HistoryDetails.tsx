@@ -14,6 +14,7 @@ import { arrayMove } from '@dnd-kit/sortable';
 import { useUpdateReportOrder } from '../hooks/useReports';
 import { ReportList } from '../components/history/ReportList';
 import { AttachmentsGallery } from '../components/history/AttachmentsGallery';
+import { PdfLanguageDialog } from '../components/PdfLanguageDialog';
 import { useHandleError } from '../hooks/useHandleError';
 import { errorHandler, isNetworkError } from '../lib/errorHandler';
 import { useOffline } from '../context/OfflineContext';
@@ -40,6 +41,7 @@ export const HistoryDetails = () => {
     const [downloadingFormId, setDownloadingFormId] = useState<string | null>(null);
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
     const [isExporting, setIsExporting] = useState(false);
+    const [pdfLanguageDialogOpen, setPdfLanguageDialogOpen] = useState(false);
     const [actionMessage, setActionMessage] = useState<{ text: string; type: 'info' | 'error' } | null>(null);
     const [reportFiles, setReportFiles] = useState<ReportFile[]>([]);
 
@@ -206,9 +208,12 @@ export const HistoryDetails = () => {
         }
     };
 
-    const handleBulkExport = async () => {
+    const handleBulkExport = () => {
         if (forms.length === 0 || !exportData) return;
+        setPdfLanguageDialogOpen(true);
+    };
 
+    const handlePdfLanguageConfirm = async (lang: 'hr' | 'sl') => {
         setIsExporting(true);
         setActionMessage({ text: t('exportDetails.generatingPdf'), type: 'info' });
         try {
@@ -228,7 +233,7 @@ export const HistoryDetails = () => {
             if (orderedReports.length === 0) throw new Error('No reports found');
 
             const { generateBulkPDF } = await import('../lib/pdfGenerator');
-            generateBulkPDF(orderedReports, `${exportData.construction_part}_Reports.pdf`, profile || undefined);
+            await generateBulkPDF(orderedReports, `${exportData.construction_part}_Reports.pdf`, profile || undefined, lang);
             setActionMessage(null);
         } catch (error) {
             setActionMessage({ text: errorHandler.getUserMessage(errorHandler.handle(error, 'HistoryDetails')), type: 'error' });
@@ -556,6 +561,11 @@ export const HistoryDetails = () => {
                 onNavigateToReport={handleNavigateToReport}
                 onDragEnd={handleDragEnd}
                 t={t}
+            />
+            <PdfLanguageDialog
+                open={pdfLanguageDialogOpen}
+                onOpenChange={setPdfLanguageDialogOpen}
+                onConfirm={handlePdfLanguageConfirm}
             />
         </div>
     );

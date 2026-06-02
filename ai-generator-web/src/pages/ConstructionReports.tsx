@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { Loader2, ArrowLeft, Archive, Pin, PinOff } from 'lucide-react';
 import type { ReportForm, ReportFile, Profile } from '../types';
 import { ExportDialog } from '../components/ExportDialog';
+import { PdfLanguageDialog } from '../components/PdfLanguageDialog';
 import type { ExportMetaData } from '../components/ExportDialog';
 import { Breadcrumbs } from '../components/ui/Breadcrumbs';
 import { useAuth } from '../context/AuthContext';
@@ -38,9 +39,9 @@ const generatePDF = async (report: ReportForm, userProfile?: Profile) => {
     return gen(report, userProfile);
 };
 
-const generateBulkPDF = async (reports: ReportForm[], filename: string, userProfile?: Profile) => {
+const generateBulkPDF = async (reports: ReportForm[], filename: string, userProfile?: Profile, language?: 'hr' | 'sl') => {
     const { generateBulkPDF: gen } = await import('../lib/pdfGenerator');
-    return gen(reports, filename, userProfile);
+    return gen(reports, filename, userProfile, language);
 };
 
 const generateWordDocument = async (reports: ReportForm[], metaData: ExportMetaData, userId?: string) => {
@@ -79,6 +80,7 @@ export const ConstructionReports = () => {
     const [isNewReportOpen, setIsNewReportOpen] = useState(false);
     const [isAddSectionOpen, setIsAddSectionOpen] = useState(false);
     const [exportDialogOpen, setExportDialogOpen] = useState(false);
+    const [pdfLanguageDialogOpen, setPdfLanguageDialogOpen] = useState(false);
     const [isExporting, setIsExporting] = useState(false);
     const [actionMessage, setActionMessage] = useState<{ text: string; type: 'info' | 'error' } | null>(null);
     const [uploadedFiles, setUploadedFiles] = useState<ReportFile[]>([]);
@@ -276,12 +278,16 @@ export const ConstructionReports = () => {
 
     const handleBulkExport = () => {
         if (reports.length === 0) return;
+        setPdfLanguageDialogOpen(true);
+    };
+
+    const handlePdfLanguageConfirm = (lang: 'hr' | 'sl') => {
         const reportsToExport = selectedIds.size > 0
             ? reports.filter(r => r.id && selectedIds.has(r.id) && !r.section_name)
             : reports.filter(r => !r.section_name);
         setActionMessage({ text: 'Generating PDF export...', type: 'info' });
         try {
-            generateBulkPDF(reportsToExport, `Reports_${construction?.work_order || 'bundle'}.pdf`, profile || undefined);
+            generateBulkPDF(reportsToExport, `Reports_${construction?.work_order || 'bundle'}.pdf`, profile || undefined, lang);
             setActionMessage(null);
         } catch (error) {
             const appError = errorHandler.handle(error, 'ConstructionReports');
@@ -551,6 +557,12 @@ export const ConstructionReports = () => {
                 uploadedFiles={uploadedFiles}
                 onFileUploaded={handleFileUploaded}
                 onFileDeleted={handleFileDeleted}
+            />
+
+            <PdfLanguageDialog
+                open={pdfLanguageDialogOpen}
+                onOpenChange={setPdfLanguageDialogOpen}
+                onConfirm={handlePdfLanguageConfirm}
             />
 
             <ReportsFilterBar

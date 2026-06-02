@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from './ui/Dialog';
 import { Button } from './ui/Button';
 import type { User, ReportForm, ReportFile } from '../types';
@@ -9,7 +9,6 @@ import { useCertifiers } from '../hooks/useCertifiers';
 import { useToast } from '../context/ToastContext';
 
 const DEFAULT_CONSTRUCTION_PART = 'Sustav odvodnje otpadnih voda';
-const DEFAULT_CONSTRUCTION_PART_SL = 'Sistem odvajanja odpadnih voda';
 const WATER_DEVIATION_OPTION_LOW_H2 = 'h2 < 100 cm';
 const WATER_DEVIATION_OPTION_SOME_SECTIONS = 'Kod pojedinih dionica h2 < 100 cm';
 const LEGACY_WATER_DEVIATION_OPTION_SOME_SECTIONS = 'Kod pojedinih dionica h2<100cm';
@@ -38,7 +37,6 @@ export interface ExportMetaData {
     certifierName: string;
     certifierSignatureUrl?: string;
     includePdfs?: boolean;
-    exportLanguage?: 'hr' | 'sl';
 }
 
 const normalizeWaterDeviation = (value?: string): string => {
@@ -61,7 +59,6 @@ const getInitialExportData = (defaultValues?: Partial<ExportMetaData>): ExportMe
     waterDeviation: normalizeWaterDeviation(defaultValues?.waterDeviation),
     certifierName: defaultValues?.certifierName || '',
     includePdfs: defaultValues?.includePdfs ?? false,
-    exportLanguage: defaultValues?.exportLanguage || 'hr',
 });
 
 export const ExportDialog = ({ open, onOpenChange, onConfirm, loading = false, defaultValues, reports, constructionId, uploadedFiles = [], onFileUploaded, onFileDeleted }: ExportDialogProps) => {
@@ -387,36 +384,6 @@ export const ExportDialog = ({ open, onOpenChange, onConfirm, loading = false, d
                             />
                         </div>
                     )}
-
-                    {/* Slovenian Language Option */}
-                    <div className="space-y-2 border-t border-border pt-4">
-                        <div className="flex items-start space-x-3">
-                            <input
-                                type="checkbox"
-                                id="exportSlovenian"
-                                checked={data.exportLanguage === 'sl'}
-                                onChange={(e) => {
-                                    const newLang = e.target.checked ? 'sl' : 'hr';
-                                    const updatedData = { ...data, exportLanguage: newLang as 'hr' | 'sl' };
-                                    // Auto-switch default construction part
-                                    if (newLang === 'sl' && data.constructionPart === DEFAULT_CONSTRUCTION_PART) {
-                                        updatedData.constructionPart = DEFAULT_CONSTRUCTION_PART_SL;
-                                    } else if (newLang === 'hr' && data.constructionPart === DEFAULT_CONSTRUCTION_PART_SL) {
-                                        updatedData.constructionPart = DEFAULT_CONSTRUCTION_PART;
-                                    }
-                                    setData(updatedData);
-                                }}
-                                className="rounded border-input text-primary focus:ring-ring mt-0.5"
-                                disabled={loading}
-                            />
-                            <div className="flex-1">
-                                <label htmlFor="exportSlovenian" className="text-sm font-medium leading-none cursor-pointer">
-                                    {t('export.slovenianLanguage')}
-                                </label>
-                                <p className="text-xs text-muted-foreground mt-1">{t('export.slovenianLanguageHelp')}</p>
-                            </div>
-                        </div>
-                    </div>
 
                     {/* PDF Inclusion Option */}
                     {reports && reports.length > 0 && (

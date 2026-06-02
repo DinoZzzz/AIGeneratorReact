@@ -551,6 +551,12 @@ export const hr: Record<string, string> = {
     'export.selectAtLeastOneReport': 'Molimo odaberite barem jedan izvještaj za izvoz.',
     'export.slovenianLanguage': 'Izvezi na slovenskom jeziku',
     'export.slovenianLanguageHelp': 'Sadržaj PDF obrazaca bit će na slovenskom jeziku',
+    'pdfLanguageDialog.title': 'Jezik za izvoz PDF-a',
+    'pdfLanguageDialog.description': 'Odaberite jezik na kojem želite izvesti PDF izvještaje:',
+    'pdfLanguageDialog.croatian': 'Hrvatski',
+    'pdfLanguageDialog.slovenian': 'Slovenski',
+    'pdfLanguageDialog.confirm': 'Izvezi',
+    'pdfLanguageDialog.cancel': 'Odustani',
 
     // File Uploader
     'fileUploader.invalidFileType': 'Samo slike (JPG, PNG) i PDF datoteke su dozvoljene',
