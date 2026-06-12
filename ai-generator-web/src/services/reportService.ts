@@ -1,220 +1,163 @@
 import { supabase } from '../lib/supabase';
-import { captureError } from '../lib/sentry';
 import type { ReportForm } from '../types';
-import { AppError, NotFoundError, isAuthError, withAuthRetry } from '../lib/errorHandler';
+import { execQuery, execQueryRaw } from '../lib/serviceHelpers';
+
+const SERVICE = 'reportService';
+
+const LIST_SELECT = `
+            *,
+            construction:constructions(name, work_order),
+            draft:report_drafts(name)
+          `;
 
 export const reportService = {
     async getAll() {
-        return withAuthRetry(async () => {
-            const { data, error } = await supabase
+        const data = await execQuery({ service: SERVICE, method: 'getAll' }, () =>
+            supabase
                 .from('report_forms')
-                .select(`
-            *,
-            construction:constructions(name, work_order),
-            draft:report_drafts(name)
-          `)
-                .order('created_at', { ascending: false });
-
-            if (error) {
-                if (isAuthError(error)) throw error;
-                captureError(error, { service: 'reportService', method: 'getAll' });
-                throw new AppError(error.message, 'SUPABASE_ERROR', 500);
-            }
-            return data as ReportForm[];
-        });
+                .select(LIST_SELECT)
+                .order('created_at', { ascending: false })
+        );
+        return data as ReportForm[];
     },
 
     async getPaginated(page: number = 1, pageSize: number = 15) {
-        return withAuthRetry(async () => {
-            const from = (page - 1) * pageSize;
-            const to = from + pageSize - 1;
+        const from = (page - 1) * pageSize;
+        const to = from + pageSize - 1;
 
-            const { data, error, count } = await supabase
-                .from('report_forms')
-                .select(`
-            *,
-            construction:constructions(name, work_order),
-            draft:report_drafts(name)
-          `, { count: 'exact' })
-                .order('created_at', { ascending: false })
-                .range(from, to);
-
-            if (error) {
-                if (isAuthError(error)) throw error;
-                captureError(error, { service: 'reportService', method: 'getPaginated', page, pageSize });
-                throw new AppError(error.message, 'SUPABASE_ERROR', 500);
-            }
-            return { data: data as ReportForm[], count: count || 0 };
-        });
+        const { data, count } = await execQueryRaw(
+            { service: SERVICE, method: 'getPaginated', page, pageSize },
+            () =>
+                supabase
+                    .from('report_forms')
+                    .select(LIST_SELECT, { count: 'exact' })
+                    .order('created_at', { ascending: false })
+                    .range(from, to)
+        );
+        return { data: data as ReportForm[], count: count || 0 };
     },
 
     async getByConstruction(constructionId: string) {
-        return withAuthRetry(async () => {
-            const { data, error } = await supabase
-                .from('report_forms')
-                .select(`
-            *,
-            construction:constructions(name, work_order),
-            draft:report_drafts(name)
-          `)
-                .eq('construction_id', constructionId)
-                .order('ordinal', { ascending: true });
-
-            if (error) {
-                if (isAuthError(error)) throw error;
-                captureError(error, { service: 'reportService', method: 'getByConstruction', constructionId });
-                throw new AppError(error.message, 'SUPABASE_ERROR', 500);
-            }
-            return data as ReportForm[];
-        });
+        const data = await execQuery(
+            { service: SERVICE, method: 'getByConstruction', constructionId },
+            () =>
+                supabase
+                    .from('report_forms')
+                    .select(LIST_SELECT)
+                    .eq('construction_id', constructionId)
+                    .order('ordinal', { ascending: true })
+        );
+        return data as ReportForm[];
     },
 
     async getById(id: string) {
-        return withAuthRetry(async () => {
-            const { data, error } = await supabase
-                .from('report_forms')
-                .select('*')
-                .eq('id', id)
-                .single();
-
-            if (error) {
-                if (error.code === 'PGRST116') {
-                    throw new NotFoundError('Report');
-                }
-                if (isAuthError(error)) throw error;
-                captureError(error, { service: 'reportService', method: 'getById', id });
-                throw new AppError(error.message, 'SUPABASE_ERROR', 500);
-            }
-            return data as ReportForm;
-        });
+        const data = await execQuery(
+            { service: SERVICE, method: 'getById', id },
+            () =>
+                supabase
+                    .from('report_forms')
+                    .select('*')
+                    .eq('id', id)
+                    .single(),
+            { notFoundEntity: 'Report' }
+        );
+        return data as ReportForm;
     },
 
     async create(report: Partial<ReportForm>) {
-        return withAuthRetry(async () => {
-            const { data: { user } } = await supabase.auth.getUser();
+        const { data: { user } } = await supabase.auth.getUser();
 
-            const reportWithUser = {
-                ...report,
-                user_id: user?.id || null
-            };
+        const reportWithUser = {
+            ...report,
+            user_id: user?.id || null
+        };
 
-            const { data, error } = await supabase
+        const data = await execQuery({ service: SERVICE, method: 'create' }, () =>
+            supabase
                 .from('report_forms')
                 .insert(reportWithUser)
                 .select()
-                .single();
-
-            if (error) {
-                if (isAuthError(error)) throw error;
-                captureError(error, { service: 'reportService', method: 'create' });
-                throw new AppError(error.message, 'SUPABASE_ERROR', 500);
-            }
-            return data as ReportForm;
-        });
+                .single()
+        );
+        return data as ReportForm;
     },
 
     async update(id: string, report: Partial<ReportForm>) {
-        return withAuthRetry(async () => {
-            const { data, error } = await supabase
+        const data = await execQuery({ service: SERVICE, method: 'update', id }, () =>
+            supabase
                 .from('report_forms')
                 .update(report)
                 .eq('id', id)
                 .select()
-                .single();
-
-            if (error) {
-                if (isAuthError(error)) throw error;
-                captureError(error, { service: 'reportService', method: 'update', id });
-                throw new AppError(error.message, 'SUPABASE_ERROR', 500);
-            }
-            return data as ReportForm;
-        });
+                .single()
+        );
+        return data as ReportForm;
     },
 
     async delete(id: string) {
-        return withAuthRetry(async () => {
-            const { error } = await supabase
+        await execQuery({ service: SERVICE, method: 'delete', id }, () =>
+            supabase
                 .from('report_forms')
                 .delete()
-                .eq('id', id);
-
-            if (error) {
-                if (isAuthError(error)) throw error;
-                captureError(error, { service: 'reportService', method: 'delete', id });
-                throw new AppError(error.message, 'SUPABASE_ERROR', 500);
-            }
-        });
+                .eq('id', id)
+        );
     },
 
     async updateOrder(reports: ReportForm[]) {
-        return withAuthRetry(async () => {
-            try {
-                const updates = reports.map((report, index) => ({
-                    id: report.id,
-                    ordinal: index
-                }));
+        const updates = reports.map((report, index) => ({
+            id: report.id,
+            ordinal: index
+        }));
 
-                const { error } = await supabase
-                    .from('report_forms')
-                    .upsert(updates, { onConflict: 'id', ignoreDuplicates: false });
-
-                if (error) throw error;
-            } catch (error) {
-                if (isAuthError(error)) throw error;
-                captureError(error instanceof Error ? error : new Error('Failed to update report order'), { service: 'reportService', method: 'updateOrder' });
-                throw new AppError(error instanceof Error ? error.message : 'Failed to update report order', 'SUPABASE_ERROR', 500);
-            }
-        });
+        await execQuery({ service: SERVICE, method: 'updateOrder' }, () =>
+            supabase
+                .from('report_forms')
+                .upsert(updates, { onConflict: 'id', ignoreDuplicates: false })
+        );
     },
 
     async getLastByConstructionAndType(constructionId: string, typeId: number, customerId?: string) {
-        return withAuthRetry(async () => {
-            let query = supabase
-                .from('report_forms')
-                .select('*')
-                .eq('construction_id', constructionId)
-                .eq('type_id', typeId);
+        const data = await execQuery(
+            { service: SERVICE, method: 'getLastByConstructionAndType', constructionId, typeId, customerId },
+            () => {
+                let query = supabase
+                    .from('report_forms')
+                    .select('*')
+                    .eq('construction_id', constructionId)
+                    .eq('type_id', typeId);
 
-            if (customerId) {
-                query = query.eq('customer_id', customerId);
+                if (customerId) {
+                    query = query.eq('customer_id', customerId);
+                }
+
+                return query
+                    .order('created_at', { ascending: false })
+                    .limit(1)
+                    .maybeSingle();
             }
-
-            const { data, error } = await query
-                .order('created_at', { ascending: false })
-                .limit(1)
-                .maybeSingle();
-
-            if (error) {
-                if (isAuthError(error)) throw error;
-                captureError(error, { service: 'reportService', method: 'getLastByConstructionAndType', constructionId, typeId, customerId });
-                throw new AppError(error.message, 'SUPABASE_ERROR', 500);
-            }
-            return data as ReportForm | null;
-        });
+        );
+        return data as ReportForm | null;
     },
 
     async getLastByConstruction(constructionId: string, customerId?: string) {
-        return withAuthRetry(async () => {
-            let query = supabase
-                .from('report_forms')
-                .select('*')
-                .eq('construction_id', constructionId);
+        const data = await execQuery(
+            { service: SERVICE, method: 'getLastByConstruction', constructionId, customerId },
+            () => {
+                let query = supabase
+                    .from('report_forms')
+                    .select('*')
+                    .eq('construction_id', constructionId);
 
-            if (customerId) {
-                query = query.eq('customer_id', customerId);
+                if (customerId) {
+                    query = query.eq('customer_id', customerId);
+                }
+
+                return query
+                    .order('created_at', { ascending: false })
+                    .limit(1)
+                    .maybeSingle();
             }
-
-            const { data, error } = await query
-                .order('created_at', { ascending: false })
-                .limit(1)
-                .maybeSingle();
-
-            if (error) {
-                if (isAuthError(error)) throw error;
-                captureError(error, { service: 'reportService', method: 'getLastByConstruction', constructionId, customerId });
-                throw new AppError(error.message, 'SUPABASE_ERROR', 500);
-            }
-            return data as ReportForm | null;
-        });
+        );
+        return data as ReportForm | null;
     }
 };

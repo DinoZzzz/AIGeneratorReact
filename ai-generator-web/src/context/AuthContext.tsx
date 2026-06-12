@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import type { Profile } from '../types';
 import { setUserContext, clearUserContext } from '../lib/sentry';
@@ -36,6 +36,41 @@ const AuthContext = createContext<AuthContextType>({
 // eslint-disable-next-line react-refresh/only-export-components
 export const useAuth = () => useContext(AuthContext);
 
+const clearOfflineSessionData = async () => {
+    await Promise.all([
+        clearStore(STORES.CUSTOMERS),
+        clearStore(STORES.CONSTRUCTIONS),
+        clearStore(STORES.REPORTS),
+        clearStore(STORES.APPOINTMENTS),
+        clearStore(STORES.MESSAGES),
+        clearStore(STORES.EXAMINERS),
+        clearStore(STORES.REPORT_TYPES),
+        clearStore(STORES.MATERIALS),
+        clearStore(STORES.SCHEME_IMAGES),
+        clearStore(STORES.CERTIFIERS),
+        clearStore(STORES.EXPORT_HISTORY),
+        clearStore(STORES.EXPORT_HISTORY_FORMS),
+        clearStore(STORES.REPORT_FILES),
+        clearStore(STORES.TEMPLATE_CACHE),
+        clearStore(STORES.UPLOADS),
+        clearStore(STORES.SYNC_QUEUE),
+        clearStore(STORES.METADATA),
+    ]);
+};
+
+const persistSyncSession = async (sessionValue: Session) => {
+    if (!sessionValue?.access_token || !sessionValue.refresh_token) {
+        await saveMetadata(SYNC_SESSION_METADATA_KEY, null);
+        return;
+    }
+
+    await saveMetadata(SYNC_SESSION_METADATA_KEY, {
+        access_token: sessionValue.access_token,
+        refresh_token: sessionValue.refresh_token,
+        expires_at: sessionValue.expires_at
+    });
+};
+
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const [session, setSession] = useState<Session>(null);
     const [user, setUser] = useState<User | null>(null);
@@ -46,41 +81,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     });
     const warmedLookupUserRef = useRef<string | null>(null);
 
-    const clearOfflineSessionData = async () => {
-        await Promise.all([
-            clearStore(STORES.CUSTOMERS),
-            clearStore(STORES.CONSTRUCTIONS),
-            clearStore(STORES.REPORTS),
-            clearStore(STORES.APPOINTMENTS),
-            clearStore(STORES.MESSAGES),
-            clearStore(STORES.EXAMINERS),
-            clearStore(STORES.REPORT_TYPES),
-            clearStore(STORES.MATERIALS),
-            clearStore(STORES.SCHEME_IMAGES),
-            clearStore(STORES.CERTIFIERS),
-            clearStore(STORES.EXPORT_HISTORY),
-            clearStore(STORES.EXPORT_HISTORY_FORMS),
-            clearStore(STORES.REPORT_FILES),
-            clearStore(STORES.TEMPLATE_CACHE),
-            clearStore(STORES.UPLOADS),
-            clearStore(STORES.SYNC_QUEUE),
-            clearStore(STORES.METADATA),
-        ]);
-    };
-
-    const persistSyncSession = async (sessionValue: Session) => {
-        if (!sessionValue?.access_token || !sessionValue.refresh_token) {
-            await saveMetadata(SYNC_SESSION_METADATA_KEY, null);
-            return;
-        }
-
-        await saveMetadata(SYNC_SESSION_METADATA_KEY, {
-            access_token: sessionValue.access_token,
-            refresh_token: sessionValue.refresh_token,
-            expires_at: sessionValue.expires_at
-        });
-    };
-
     useEffect(() => {
         localStorage.setItem('lowBandwidthMode', String(lowBandwidthMode));
         if (lowBandwidthMode) {
@@ -90,7 +90,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }
     }, [lowBandwidthMode]);
 
-    const loadProfile = async (userId: string) => {
+    const loadProfile = useCallback(async (userId: string) => {
         // Skip profile loading in low bandwidth mode to save data
         if (lowBandwidthMode) {
             setLoading(false);
@@ -111,7 +111,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         } catch (err) {
             console.error('Error loading profile:', err);
         }
-    };
+    }, [lowBandwidthMode]);
 
     useEffect(() => {
         // Get initial session
@@ -206,7 +206,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         return () => window.removeEventListener('online', handleOnline);
     }, [lowBandwidthMode, user]);
 
-    const signOut = async () => {
+    const signOut = useCallback(async () => {
         try {
             // Remove current device session before signing out
             if (user?.id) {
@@ -224,22 +224,24 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                 console.error('Failed to clear offline cache during sign out:', error);
             }
         }
-    };
+    }, [user?.id]);
 
-    const value = {
+    const refreshProfile = useCallback(async () => {
+        if (user && !lowBandwidthMode) {
+            await loadProfile(user.id);
+        }
+    }, [user, lowBandwidthMode, loadProfile]);
+
+    const value = useMemo(() => ({
         session,
         user,
         profile,
         loading,
         signOut,
-        refreshProfile: async () => {
-            if (user && !lowBandwidthMode) {
-                await loadProfile(user.id);
-            }
-        },
+        refreshProfile,
         lowBandwidthMode,
         setLowBandwidthMode
-    };
+    }), [session, user, profile, loading, signOut, refreshProfile, lowBandwidthMode]);
 
     return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

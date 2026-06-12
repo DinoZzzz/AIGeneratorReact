@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, useCallback, useRef, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, useCallback, useMemo, useRef, type ReactNode } from 'react';
 import {
   syncPendingOperations,
   onSyncEvent,
@@ -58,6 +58,21 @@ const SYNC_STATUS_CLEAR_MS = 3000;
 // Queue cleanup interval to bound offline upload blob storage.
 const UPLOAD_CLEANUP_INTERVAL_MS = 5 * 60 * 1000;
 
+// The queue is polled every PENDING_CHECK_INTERVAL_MS; keep previous state
+// references when nothing changed so consumers don't re-render on every poll.
+const areOperationListsEqual = (a: SyncOperation[], b: SyncOperation[]): boolean =>
+  a.length === b.length &&
+  a.every((op, index) => {
+    const other = b[index];
+    return (
+      op.id === other.id &&
+      op.status === other.status &&
+      op.retryCount === other.retryCount &&
+      op.timestamp === other.timestamp &&
+      op.error === other.error
+    );
+  });
+
 export const OfflineProvider = ({ children }: { children: ReactNode }) => {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [pendingChanges, setPendingChanges] = useState(0);
@@ -96,8 +111,10 @@ export const OfflineProvider = ({ children }: { children: ReactNode }) => {
       setPendingChanges(summary.pending + summary.failed);
       setFailedChanges(summary.failed);
       setDiscardedChanges(summary.discarded);
-      setFailedOperations([...failedOps].sort((a, b) => b.timestamp - a.timestamp));
-      setDiscardedOperations([...discardedOps].sort((a, b) => b.timestamp - a.timestamp));
+      const sortedFailed = [...failedOps].sort((a, b) => b.timestamp - a.timestamp);
+      const sortedDiscarded = [...discardedOps].sort((a, b) => b.timestamp - a.timestamp);
+      setFailedOperations((prev) => (areOperationListsEqual(prev, sortedFailed) ? prev : sortedFailed));
+      setDiscardedOperations((prev) => (areOperationListsEqual(prev, sortedDiscarded) ? prev : sortedDiscarded));
     } catch (error) {
       console.error('Failed to get pending sync count:', error);
     }
@@ -394,26 +411,45 @@ export const OfflineProvider = ({ children }: { children: ReactNode }) => {
     };
   }, []);
 
+  const value = useMemo(
+    () => ({
+      isOnline,
+      pendingChanges,
+      failedChanges,
+      discardedChanges,
+      failedOperations,
+      discardedOperations,
+      syncStatus,
+      triggerSync,
+      retryFailedSync,
+      retryFailedOperation,
+      discardFailedOperation,
+      restoreDiscardedOperation,
+      resolveConflictUseServer,
+      resolveConflictPreferLocal,
+      lastSyncTime,
+    }),
+    [
+      isOnline,
+      pendingChanges,
+      failedChanges,
+      discardedChanges,
+      failedOperations,
+      discardedOperations,
+      syncStatus,
+      triggerSync,
+      retryFailedSync,
+      retryFailedOperation,
+      discardFailedOperation,
+      restoreDiscardedOperation,
+      resolveConflictUseServer,
+      resolveConflictPreferLocal,
+      lastSyncTime,
+    ]
+  );
+
   return (
-    <OfflineContext.Provider
-      value={{
-        isOnline,
-        pendingChanges,
-        failedChanges,
-        discardedChanges,
-        failedOperations,
-        discardedOperations,
-        syncStatus,
-        triggerSync,
-        retryFailedSync,
-        retryFailedOperation,
-        discardFailedOperation,
-        restoreDiscardedOperation,
-        resolveConflictUseServer,
-        resolveConflictPreferLocal,
-        lastSyncTime,
-      }}
-    >
+    <OfflineContext.Provider value={value}>
       {children}
     </OfflineContext.Provider>
   );

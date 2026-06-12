@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback, useRef, useEffect } from 'react';
+import React, { createContext, useContext, useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import { Toast } from '../components/ui/Toast';
 
 type ToastType = 'success' | 'error' | 'info';
@@ -102,8 +102,13 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         });
     }, []);
 
+    const value = useMemo(
+        () => ({ addToast, success, error, info, successWithUndo }),
+        [addToast, success, error, info, successWithUndo]
+    );
+
     return (
-        <ToastContext.Provider value={{ addToast, success, error, info, successWithUndo }}>
+        <ToastContext.Provider value={value}>
             {children}
             <div role="region" aria-live="polite" className="fixed top-0 inset-x-0 sm:right-0 sm:left-auto p-4 sm:p-6 space-y-4 z-[100] flex flex-col items-center sm:items-end pointer-events-none">
                 {visibleToasts.map((toast) => (

@@ -70,7 +70,7 @@ export default defineConfig(({ mode }) => ({
         ]
       },
       injectManifest: {
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2,json}'],
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2,ttf,json}'],
         globIgnores: ['**/stats.html', '**/version.json'], // Exclude from SW cache so version.json is always fetched fresh
         maximumFileSizeToCacheInBytes: 8 * 1024 * 1024,
       },

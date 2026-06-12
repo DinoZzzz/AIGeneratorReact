@@ -1,6 +1,6 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 
-import { Loader2, Trash2, Edit, FileText, Download, FileDown } from 'lucide-react';
+import { Loader2, Trash2, Edit, FileText, Download, FileDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { cn } from '../lib/utils';
 import { Button } from '../components/ui/Button';
@@ -8,7 +8,7 @@ import { ExportDialog } from '../components/ExportDialog';
 import type { ExportMetaData } from '../components/ExportDialog';
 import type { ReportForm } from '../types';
 import { useAuth } from '../context/AuthContext';
-import { useReports, useDeleteReport } from '../hooks/useReports';
+import { useReportsPaginated, useDeleteReport } from '../hooks/useReports';
 import { TableSkeleton } from '../components/skeletons';
 import { errorHandler } from '../lib/errorHandler';
 import { useToast } from '../context/ToastContext';
@@ -26,18 +26,32 @@ const generateBulkPDF = async (reports: ReportForm[], filename: string) => {
     return gen(reports, filename);
 };
 
+const PAGE_SIZE = 15;
+
 export const Reports = () => {
     const { t } = useLanguage();
     const { user } = useAuth();
     const { success, error: showError } = useToast();
     const confirm = useConfirm();
-    const [selectedReports, setSelectedReports] = useState<Set<string>>(new Set());
+    // Keyed by id and holding the full row so selections survive page changes
+    const [selectedReports, setSelectedReports] = useState<Map<string, ReportForm>>(new Map());
     const [exportDialogOpen, setExportDialogOpen] = useState(false);
     const [isExporting, setIsExporting] = useState(false);
+    const [page, setPage] = useState(1);
 
     // React Query hooks
-    const { data: reports = [], isLoading: loading, isFetching, error } = useReports();
+    const { data, isLoading: loading, isFetching, error } = useReportsPaginated(page, PAGE_SIZE);
+    const reports = useMemo(() => data?.data ?? [], [data]);
+    const totalCount = data?.count ?? 0;
+    const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
     const deleteMutation = useDeleteReport();
+
+    // Keep the page in range when rows are deleted from the last page
+    useEffect(() => {
+        if (!loading && page > totalPages) {
+            setPage(totalPages);
+        }
+    }, [loading, page, totalPages]);
 
     // Handle query errors
     useEffect(() => {
@@ -53,7 +67,7 @@ export const Reports = () => {
             await deleteMutation.mutateAsync(id);
             // Remove from selection if it was selected
             setSelectedReports(prev => {
-                const newSelected = new Set(prev);
+                const newSelected = new Map(prev);
                 newSelected.delete(id);
                 return newSelected;
             });
@@ -64,13 +78,13 @@ export const Reports = () => {
         }
     }, [confirm, t, deleteMutation, success, showError]);
 
-    const toggleSelection = useCallback((id: string) => {
+    const toggleSelection = useCallback((report: ReportForm) => {
         setSelectedReports(prev => {
-            const newSelected = new Set(prev);
-            if (newSelected.has(id)) {
-                newSelected.delete(id);
+            const newSelected = new Map(prev);
+            if (newSelected.has(report.id)) {
+                newSelected.delete(report.id);
             } else {
-                newSelected.add(id);
+                newSelected.set(report.id, report);
             }
             return newSelected;
         });
@@ -78,18 +92,28 @@ export const Reports = () => {
 
     const toggleAll = useCallback(() => {
         setSelectedReports(prev => {
-            if (prev.size === reports.length) {
-                return new Set();
+            const newSelected = new Map(prev);
+            const allPageSelected = reports.length > 0 && reports.every(r => newSelected.has(r.id));
+            if (allPageSelected) {
+                reports.forEach(r => newSelected.delete(r.id));
             } else {
-                return new Set(reports.map(r => r.id));
+                reports.forEach(r => newSelected.set(r.id, r));
             }
+            return newSelected;
         });
     }, [reports]);
+
+    // Export in list order (newest first), matching the previous full-list behavior
+    const getSelectedData = useCallback(() =>
+        Array.from(selectedReports.values())
+            .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()),
+        [selectedReports]
+    );
 
     const handleExportConfirm = useCallback(async (metaData: ExportMetaData) => {
         setIsExporting(true);
         try {
-            const selectedData = reports.filter(r => selectedReports.has(r.id));
+            const selectedData = getSelectedData();
             const exportResult = await generateWordDocument(selectedData, metaData, user?.id);
             success(t(exportResult.historyConflictRecovered ? 'reports.exportHistoryUpdated' : 'reports.exportSuccess'));
         } catch (error) {
@@ -98,10 +122,10 @@ export const Reports = () => {
         } finally {
             setIsExporting(false);
         }
-    }, [reports, selectedReports, user?.id, success, t, showError]);
+    }, [getSelectedData, user?.id, success, t, showError]);
 
     const handleBulkPDF = useCallback(() => {
-        const selectedData = reports.filter(r => selectedReports.has(r.id) && !r.section_name);
+        const selectedData = getSelectedData().filter(r => !r.section_name);
         if (selectedData.length === 0) return;
         try {
             generateBulkPDF(selectedData, `Reports_bulk_${Date.now()}.pdf`);
@@ -109,7 +133,7 @@ export const Reports = () => {
             const appError = errorHandler.handle(err, 'ReportBulkPDF');
             showError(errorHandler.getUserMessage(appError));
         }
-    }, [reports, selectedReports, showError]);
+    }, [getSelectedData, showError]);
 
     const handleDeleteSelected = useCallback(async () => {
         const count = selectedReports.size;
@@ -124,11 +148,11 @@ export const Reports = () => {
         try {
             // Delete all selected reports
             await Promise.all(
-                Array.from(selectedReports).map(id => deleteMutation.mutateAsync(id))
+                Array.from(selectedReports.keys()).map(id => deleteMutation.mutateAsync(id))
             );
 
             // Clear selection
-            setSelectedReports(new Set());
+            setSelectedReports(new Map());
             const plural = count > 1 ? 's' : '';
             const successMsg = t('reports.deleteSelectedSuccess').replace('{count}', count.toString()).replace('{plural}', plural);
             success(successMsg);
@@ -215,7 +239,7 @@ export const Reports = () => {
                                     "p-4 space-y-3 transition-colors",
                                     selectedReports.has(report.id) ? "bg-primary/5" : ""
                                 )}
-                                onClick={() => toggleSelection(report.id)}
+                                onClick={() => toggleSelection(report)}
                             >
                                 <div className="flex justify-between items-start">
                                     <div className="flex items-center space-x-3">
@@ -224,7 +248,7 @@ export const Reports = () => {
                                                 type="checkbox"
                                                 className="rounded border-gray-300 h-5 w-5"
                                                 checked={selectedReports.has(report.id)}
-                                                onChange={() => toggleSelection(report.id)}
+                                                onChange={() => toggleSelection(report)}
                                                 aria-label={`${t('reports.selectReport')} ${report.construction?.name || ''} - ${new Date(report.examination_date).toLocaleDateString()}`}
                                             />
                                         </div>
@@ -287,7 +311,7 @@ export const Reports = () => {
                                     <input
                                         type="checkbox"
                                         className="rounded border-gray-300"
-                                        checked={reports.length > 0 && selectedReports.size === reports.length}
+                                        checked={reports.length > 0 && reports.every(r => selectedReports.has(r.id))}
                                         onChange={toggleAll}
                                         aria-label={t('reports.selectAllReports')}
                                     />
@@ -328,7 +352,7 @@ export const Reports = () => {
                                                 type="checkbox"
                                                 className="rounded border-gray-300"
                                                 checked={selectedReports.has(report.id)}
-                                                onChange={() => toggleSelection(report.id)}
+                                                onChange={() => toggleSelection(report)}
                                                 aria-label={`${t('reports.selectReport')} ${report.construction?.name || ''} - ${new Date(report.examination_date).toLocaleDateString()}`}
                                             />
                                         </td>
@@ -377,6 +401,31 @@ export const Reports = () => {
                         </tbody>
                     </table>
                 </div>
+
+                {/* Pagination Controls */}
+                {totalCount > PAGE_SIZE && (
+                    <div className="flex items-center justify-end gap-2 px-4 py-3 border-t border-border">
+                        <span className="text-sm text-foreground">
+                            {t('history.page')} {page} {t('history.of')} {totalPages}
+                        </span>
+                        <button
+                            onClick={() => setPage(p => Math.max(1, p - 1))}
+                            disabled={page <= 1 || loading}
+                            aria-label={t('common.previous')}
+                            className="p-2 rounded-md hover:bg-accent text-foreground disabled:opacity-50 transition-colors"
+                        >
+                            <ChevronLeft className="h-5 w-5" />
+                        </button>
+                        <button
+                            onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                            disabled={page >= totalPages || loading}
+                            aria-label={t('common.next')}
+                            className="p-2 rounded-md hover:bg-accent text-foreground disabled:opacity-50 transition-colors"
+                        >
+                            <ChevronRight className="h-5 w-5" />
+                        </button>
+                    </div>
+                )}
             </div>
 
             <ExportDialog

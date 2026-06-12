@@ -1,20 +1,19 @@
 import { supabase } from '../lib/supabase';
-import { captureError } from '../lib/sentry';
 import type { Customer } from '../types';
-import { AppError, NotFoundError } from '../lib/errorHandler';
+import { execQuery, execQueryRaw } from '../lib/serviceHelpers';
+
+const SERVICE = 'customerService';
+
+const CUSTOMER_COLUMNS = 'id, name, location, work_order, address, created_at';
 
 export const customerService = {
     async getAll() {
-        const { data, error } = await supabase
-            .from('customers')
-            .select('id, name, location, work_order, address, created_at')
-            .order('name');
-
-        if (error) {
-            captureError(error, { service: 'customerService', method: 'getAll' });
-            throw new AppError(error.message, 'SUPABASE_ERROR', 500);
-        }
-        return data;
+        return execQuery({ service: SERVICE, method: 'getAll' }, () =>
+            supabase
+                .from('customers')
+                .select(CUSTOMER_COLUMNS)
+                .order('name')
+        );
     },
 
     async getCustomers(
@@ -32,7 +31,7 @@ export const customerService = {
 
         let query = supabase
             .from('customers')
-            .select('id, name, location, work_order, address, created_at', { count: 'exact' });
+            .select(CUSTOMER_COLUMNS, { count: 'exact' });
 
         if (search) {
             // Sanitize search input by removing commas to prevent Supabase OR syntax errors
@@ -62,12 +61,10 @@ export const customerService = {
         const start = (page - 1) * pageSize;
         const end = start + pageSize - 1;
 
-        const { data, error, count } = await query.range(start, end);
-
-        if (error) {
-            captureError(error, { service: 'customerService', method: 'getCustomers', page, sortBy });
-            throw new AppError(error.message, 'SUPABASE_ERROR', 500);
-        }
+        const { data, count } = await execQueryRaw(
+            { service: SERVICE, method: 'getCustomers', page, sortBy },
+            () => query.range(start, end)
+        );
         return { data, count };
     },
 
@@ -110,83 +107,63 @@ export const customerService = {
         const start = (page - 1) * pageSize;
         const end = start + pageSize - 1;
 
-        const { data, error, count } = await query.range(start, end);
-
-        if (error) {
-            captureError(error, { service: 'customerService', method: 'getCustomersWithActivity', page });
-            throw new AppError(error.message, 'SUPABASE_ERROR', 500);
-        }
+        const { data, count } = await execQueryRaw(
+            { service: SERVICE, method: 'getCustomersWithActivity', page },
+            () => query.range(start, end)
+        );
         return { data: data || [], count: count || 0 };
     },
 
     async getById(id: string) {
-        const { data, error } = await supabase
-            .from('customers')
-            .select('*')
-            .eq('id', id)
-            .single();
-
-        if (error) {
-            if (error.code === 'PGRST116') {
-                throw new NotFoundError('Customer');
-            }
-            captureError(error, { service: 'customerService', method: 'getById', id });
-            throw new AppError(error.message, 'SUPABASE_ERROR', 500);
-        }
-        return data;
+        return execQuery(
+            { service: SERVICE, method: 'getById', id },
+            () =>
+                supabase
+                    .from('customers')
+                    .select('*')
+                    .eq('id', id)
+                    .single(),
+            { notFoundEntity: 'Customer' }
+        );
     },
 
     async create(customer: Partial<Customer>) {
-        const { data, error } = await supabase
-            .from('customers')
-            .insert([customer])
-            .select()
-            .single();
-
-        if (error) {
-            captureError(error, { service: 'customerService', method: 'create' });
-            throw new AppError(error.message, 'SUPABASE_ERROR', 500);
-        }
-        return data;
+        return execQuery({ service: SERVICE, method: 'create' }, () =>
+            supabase
+                .from('customers')
+                .insert([customer])
+                .select()
+                .single()
+        );
     },
 
     async update(id: string, customer: Partial<Customer>) {
-        const { data, error } = await supabase
-            .from('customers')
-            .update(customer)
-            .eq('id', id)
-            .select()
-            .single();
-
-        if (error) {
-            captureError(error, { service: 'customerService', method: 'update', id });
-            throw new AppError(error.message, 'SUPABASE_ERROR', 500);
-        }
-        return data;
+        return execQuery({ service: SERVICE, method: 'update', id }, () =>
+            supabase
+                .from('customers')
+                .update(customer)
+                .eq('id', id)
+                .select()
+                .single()
+        );
     },
 
     async delete(id: string) {
         // First delete related appointments
-        const { error: appointmentsError } = await supabase
-            .from('calendar_events')
-            .delete()
-            .eq('customer_id', id);
-
-        if (appointmentsError) {
-            captureError(appointmentsError, { service: 'customerService', method: 'delete', step: 'deleteAppointments', id });
-            throw new AppError(appointmentsError.message, 'SUPABASE_ERROR', 500);
-        }
+        await execQuery({ service: SERVICE, method: 'delete', step: 'deleteAppointments', id }, () =>
+            supabase
+                .from('calendar_events')
+                .delete()
+                .eq('customer_id', id)
+        );
 
         // Then delete the customer
-        const { error } = await supabase
-            .from('customers')
-            .delete()
-            .eq('id', id);
-
-        if (error) {
-            captureError(error, { service: 'customerService', method: 'delete', id });
-            throw new AppError(error.message, 'SUPABASE_ERROR', 500);
-        }
+        await execQuery({ service: SERVICE, method: 'delete', id }, () =>
+            supabase
+                .from('customers')
+                .delete()
+                .eq('id', id)
+        );
     },
 
     async checkWorkOrderExists(workOrder: string, excludeId?: string) {
@@ -199,11 +176,10 @@ export const customerService = {
             query = query.neq('id', excludeId);
         }
 
-        const { data, error } = await query;
-        if (error) {
-            captureError(error, { service: 'customerService', method: 'checkWorkOrderExists', workOrder });
-            throw new AppError(error.message, 'SUPABASE_ERROR', 500);
-        }
+        const data = await execQuery(
+            { service: SERVICE, method: 'checkWorkOrderExists', workOrder },
+            () => query
+        );
         return data.length > 0;
     },
 
@@ -217,11 +193,10 @@ export const customerService = {
             query = query.neq('id', excludeId);
         }
 
-        const { data, error } = await query;
-        if (error) {
-            captureError(error, { service: 'customerService', method: 'checkNameExists', name });
-            throw new AppError(error.message, 'SUPABASE_ERROR', 500);
-        }
+        const data = await execQuery(
+            { service: SERVICE, method: 'checkNameExists', name },
+            () => query
+        );
         return data.length > 0;
     }
 };

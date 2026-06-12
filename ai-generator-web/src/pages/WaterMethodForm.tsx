@@ -1,54 +1,25 @@
 import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { Input } from '../components/ui/Input';
 import { Select } from '../components/ui/Select';
 import { Button } from '../components/ui/Button';
 import { Loader2, Save, ArrowLeft, FileDown, Plus, ArrowRight, ChevronLeft, Check, X, ChevronUp, Copy } from 'lucide-react';
 import { Stepper } from '../components/ui/Stepper';
 import * as calc from '../lib/calculations/report';
-import type { ReportForm, ReportDraft, MaterialType, Material, Profile } from '../types';
+import type { ReportForm, ReportDraft, MaterialType, Material } from '../types';
 import { cn } from '../lib/utils';
-import { useLanguage } from '../context/LanguageContext';
-import { useAuth } from '../context/AuthContext';
-import { useToast } from '../context/ToastContext';
 import { errorHandler } from '../lib/errorHandler';
 import { getLookupWithOfflineFallback } from '../lib/offlineLookupCache';
-import { useAutoSave } from '../hooks/useAutoSave';
-import { useUnsavedChanges } from '../hooks/useUnsavedChanges';
-import {
-    useCreateReport,
-    useReport,
-    useReportsByConstruction,
-    useUpdateReport
-} from '../hooks/useReports';
+import { useReportFormShell, sanitizeForDb, generateReportPDF } from '../features/reports/hooks';
+import { ReportFormBanners } from '../features/reports/components';
 
 const WATER_DEVIATION_OPTION_LOW_H2 = 'h2 < 100 cm';
 const WATER_DEVIATION_OPTION_SOME_SECTIONS = 'Kod pojedinih dionica h2 < 100 cm';
 
-// Dynamic import for PDF generation to reduce initial bundle size
-const generatePDF = async (report: Partial<ReportForm>, userProfile?: Profile) => {
-    const { generatePDF: gen } = await import('../lib/pdfGenerator');
-    return gen(report, userProfile);
-};
-
-// String/non-numeric fields that should NOT be coerced to 0
-const STRING_FIELDS = new Set([
-    'id', 'user_id', 'customer_id', 'construction_id',
-    'dionica', 'section_name', 'stock', 'remark', 'deviation',
-    'examination_date', 'examination_duration', 'examination_start_time',
-    'examination_end_time', 'saturation_time', 'stabilization_time',
-    'created_at', 'updated_at',
-]);
-
-const sanitizeForDb = (data: Record<string, unknown>) => {
-    const sanitized = { ...data };
-    for (const key of Object.keys(sanitized)) {
-        if (sanitized[key] === '' && !STRING_FIELDS.has(key)) {
-            sanitized[key] = 0;
-        }
-    }
-    return sanitized;
-};
+const WATER_COPY_STRUCTURE_FIELDS = [
+    'draft_id', 'material_type_id', 'pane_diameter', 'pane_width', 'pane_length', 'pane_height',
+    'pipe_diameter', 'pipe_length', 'water_height', 'ro_height', 'depositional_height',
+    'pipeline_slope', 'examination_duration', 'saturation_time',
+] as const;
 
 // Initial empty state
 const initialState: Partial<ReportForm> = {
@@ -92,80 +63,32 @@ interface CalculatedResults {
 }
 
 export const WaterMethodForm = () => {
-    const { id, customerId, constructionId } = useParams();
-    const navigate = useNavigate();
-    const { t } = useLanguage();
-    const { profile } = useAuth();
-    const { success: showSuccess, error: showError } = useToast();
-    const isEditMode = Boolean(id && id !== 'new' && id !== 'undefined');
-    const reportId = isEditMode ? id! : '';
-    const { data: loadedReport, isLoading: isReportLoading, error: reportLoadError } = useReport(reportId);
-    const {
-        data: constructionReports = [],
-        error: constructionReportsError
-    } = useReportsByConstruction(constructionId || '');
-    const createReportMutation = useCreateReport();
-    const updateReportMutation = useUpdateReport();
-    const [searchParams] = useSearchParams();
-    const duplicateId = searchParams.get('duplicate');
-    const { data: duplicateSource } = useReport(duplicateId || '');
     const [formData, setFormData] = useState<Partial<ReportForm>>(initialState);
     const [drafts, setDrafts] = useState<ReportDraft[]>([]);
     const [materialTypes, setMaterialTypes] = useState<MaterialType[]>([]);
     const [materials, setMaterials] = useState<Material[]>([]);
-    const [step, setStep] = useState<1 | 2>(1);
     const [dionicaError, setDionicaError] = useState<string>('');
-    const [showMobileResults, setShowMobileResults] = useState(false);
-    const [previousReport, setPreviousReport] = useState<ReportForm | null>(null);
-    const [showRestoreBanner, setShowRestoreBanner] = useState(false);
-    const [hasUserEdited, setHasUserEdited] = useState(false);
-    const initializedFromPreviousRef = useRef(false);
-    const initializedFromDuplicateRef = useRef(false);
     const lastAutoDeviationRef = useRef<string | null>(null);
 
-    // Warn user when leaving page with unsaved changes
-    useUnsavedChanges(hasUserEdited);
-
-    // Auto-save drafts
-    const autoSaveKey = `water_${constructionId || 'unknown'}_${id || 'new'}`;
-    const { restoredData, clearSavedData, lastSaved, dismissRestore } = useAutoSave(autoSaveKey, formData);
-
-    // Show restore banner on mount if there's saved data
-    useEffect(() => {
-        if (restoredData && !isEditMode && !duplicateId) {
-            setShowRestoreBanner(true);
-        }
-    }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-    const handleRestoreDraft = () => {
-        if (restoredData) {
-            setFormData(restoredData);
-            showSuccess(t('form.draftRestored'));
-        }
-        setShowRestoreBanner(false);
-        dismissRestore();
-    };
-
-    const handleDiscardDraft = () => {
-        setShowRestoreBanner(false);
-        clearSavedData();
-        dismissRestore();
-    };
-
-    // Duplicate report handling
-    useEffect(() => {
-        if (duplicateSource && !initializedFromDuplicateRef.current) {
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            const { id: _id, ordinal: _ord, created_at: _ca, updated_at: _ua, ...rest } = duplicateSource;
-            setFormData(prev => ({
-                ...prev,
-                ...rest,
-                examination_date: new Date().toISOString().split('T')[0],
-            }));
-            initializedFromDuplicateRef.current = true;
-            showSuccess(t('form.duplicated'));
-        }
-    }, [duplicateSource]); // eslint-disable-line react-hooks/exhaustive-deps
+    const {
+        id, customerId, constructionId, navigate,
+        t, profile, showSuccess, showError,
+        isEditMode, reportId, isReportLoading,
+        createReportMutation, updateReportMutation,
+        step, setStep, showMobileResults, setShowMobileResults,
+        previousReport, setHasUserEdited,
+        showRestoreBanner, lastSaved, clearSavedData, handleRestoreDraft, handleDiscardDraft,
+        handleBack, copyStructureFromPrevious,
+    } = useReportFormShell({
+        methodPath: 'water',
+        typeId: 1,
+        errorContext: 'WaterMethodForm',
+        formData,
+        setFormData,
+        copyStructureFields: WATER_COPY_STRUCTURE_FIELDS,
+        onSectionParamsChange: () => { lastAutoDeviationRef.current = null; },
+        onLoadedReport: () => { lastAutoDeviationRef.current = null; },
+    });
 
     // Memoized calculations to prevent recalculation on every render
     const calculated = useMemo<CalculatedResults>(() => {
@@ -312,72 +235,6 @@ export const WaterMethodForm = () => {
         loadLookups();
     }, [loadLookups]);
 
-    useEffect(() => {
-        if (reportLoadError) {
-            const appError = errorHandler.handle(reportLoadError, 'WaterMethodForm');
-            showError(errorHandler.getUserMessage(appError));
-        }
-    }, [reportLoadError, showError]);
-
-    useEffect(() => {
-        if (constructionReportsError) {
-            errorHandler.handle(constructionReportsError, 'WaterMethodForm');
-        }
-    }, [constructionReportsError]);
-
-    useEffect(() => {
-        if (isEditMode && loadedReport) {
-            setFormData(loadedReport);
-            lastAutoDeviationRef.current = null;
-        }
-    }, [isEditMode, loadedReport]);
-
-    useEffect(() => {
-        initializedFromPreviousRef.current = false;
-        setPreviousReport(null);
-        lastAutoDeviationRef.current = null;
-    }, [constructionId, customerId, id]);
-
-    useEffect(() => {
-        if (!constructionId || isEditMode || initializedFromPreviousRef.current) return;
-
-        const normalizedCustomerId = customerId && customerId !== 'undefined' ? customerId : undefined;
-        const candidateReports = constructionReports
-            .filter((report) => !report.section_name)
-            .filter((report) => !normalizedCustomerId || report.customer_id === normalizedCustomerId)
-            .sort((a, b) => {
-                const aTime = new Date(a.created_at || a.updated_at || a.examination_date || 0).getTime();
-                const bTime = new Date(b.created_at || b.updated_at || b.examination_date || 0).getTime();
-                return bTime - aTime;
-            });
-
-        const lastAnyTypeReport = candidateReports[0];
-        const lastReport = candidateReports.find((report) => report.type_id === 1);
-
-        if (lastReport) {
-            setPreviousReport(lastReport);
-            setFormData(prev => ({
-                ...prev,
-                dionica: lastAnyTypeReport?.dionica || lastAnyTypeReport?.stock || prev.dionica,
-                examination_date: lastReport.examination_date || prev.examination_date,
-                temperature: lastReport.temperature || prev.temperature,
-                pane_material_id: lastReport.pane_material_id || prev.pane_material_id,
-                pipe_material_id: lastReport.pipe_material_id || prev.pipe_material_id,
-            }));
-            initializedFromPreviousRef.current = true;
-            return;
-        }
-
-        if (lastAnyTypeReport?.dionica || lastAnyTypeReport?.stock) {
-            setFormData(prev => ({
-                ...prev,
-                dionica: lastAnyTypeReport.dionica || lastAnyTypeReport.stock || prev.dionica
-            }));
-        }
-
-        initializedFromPreviousRef.current = true;
-    }, [constructionId, constructionReports, customerId, isEditMode]);
-
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
         const { name, value, type } = e.target;
         let finalValue: string | number | boolean = value;
@@ -464,41 +321,6 @@ export const WaterMethodForm = () => {
         saveReport(false);
     };
 
-    const handleBack = () => {
-        if (step === 2) {
-            setStep(1);
-        } else {
-            if (customerId && constructionId) {
-                navigate(`/customers/${customerId}/constructions/${constructionId}/reports`);
-            } else {
-                navigate('/reports');
-            }
-        }
-    };
-
-    // Copy structure type from previous report
-    const copyStructureFromPrevious = () => {
-        if (previousReport) {
-            setFormData(prev => ({
-                ...prev,
-                draft_id: previousReport.draft_id || prev.draft_id,
-                material_type_id: previousReport.material_type_id || prev.material_type_id,
-                pane_diameter: previousReport.pane_diameter || prev.pane_diameter,
-                pane_width: previousReport.pane_width || prev.pane_width,
-                pane_length: previousReport.pane_length || prev.pane_length,
-                pane_height: previousReport.pane_height || prev.pane_height,
-                pipe_diameter: previousReport.pipe_diameter || prev.pipe_diameter,
-                pipe_length: previousReport.pipe_length || prev.pipe_length,
-                water_height: previousReport.water_height || prev.water_height,
-                ro_height: previousReport.ro_height || prev.ro_height,
-                depositional_height: previousReport.depositional_height || prev.depositional_height,
-                pipeline_slope: previousReport.pipeline_slope || prev.pipeline_slope,
-                examination_duration: previousReport.examination_duration || prev.examination_duration,
-                saturation_time: previousReport.saturation_time || prev.saturation_time,
-            }));
-        }
-    };
-
     const isShaftRound = formData.material_type_id === 1;
     const isShaftRectangular = formData.material_type_id === 2;
     const showPipeFields = [2, 3, 5].includes(formData.draft_id || 0);
@@ -538,27 +360,12 @@ export const WaterMethodForm = () => {
 
     return (
         <div className="w-full max-w-[1800px] mx-auto px-4 sm:px-6 space-y-6 sm:space-y-8 pb-24 lg:pb-0">
-            {/* Auto-save restore banner */}
-            {showRestoreBanner && (
-                <div className="flex items-center justify-between gap-3 px-4 py-3 rounded-lg border border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-900/20">
-                    <p className="text-sm text-blue-800 dark:text-blue-300">{t('form.draftFound')}</p>
-                    <div className="flex gap-2 flex-shrink-0">
-                        <Button variant="outline" size="sm" onClick={handleDiscardDraft}>
-                            <X className="h-3 w-3 mr-1" />
-                            {t('form.discardDraft')}
-                        </Button>
-                        <Button size="sm" onClick={handleRestoreDraft}>
-                            <Check className="h-3 w-3 mr-1" />
-                            {t('form.restoreDraft')}
-                        </Button>
-                    </div>
-                </div>
-            )}
-
-            {/* Auto-save indicator */}
-            {lastSaved && !showRestoreBanner && (
-                <p className="text-xs text-muted-foreground text-right">{t('form.autoSaved')}</p>
-            )}
+            <ReportFormBanners
+                showRestoreBanner={showRestoreBanner}
+                lastSaved={lastSaved}
+                onRestore={handleRestoreDraft}
+                onDiscard={handleDiscardDraft}
+            />
 
             <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-4">
@@ -577,7 +384,7 @@ export const WaterMethodForm = () => {
                 <div className="flex space-x-3">
                     {step === 2 && (
                         <>
-                            <Button variant="outline" onClick={() => generatePDF(formData, profile || undefined)} className="hidden sm:flex">
+                            <Button variant="outline" onClick={() => generateReportPDF(formData, profile || undefined)} className="hidden sm:flex">
                                 <FileDown className="h-4 w-4 mr-2" />
                                 {t('reports.form.exportPdf')}
                             </Button>

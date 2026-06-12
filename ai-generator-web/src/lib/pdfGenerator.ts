@@ -1,7 +1,7 @@
 import jsPDF from 'jspdf';
 import type { ReportForm, Profile, Material, SchemeImage } from '../types';
 import * as calc from './calculations/report';
-import { RobotoRegular, RobotoBold } from './fonts/roboto';
+import { loadRobotoFonts } from './fonts/roboto';
 import { getPdfLabels, type PdfExportLanguage, type PdfLabels } from './pdfLabels';
 
 /**
@@ -9,25 +9,35 @@ import { getPdfLabels, type PdfExportLanguage, type PdfLabels } from './pdfLabel
  * Generates PDF reports with Croatian character support using Roboto font
  */
 
-const registerFonts = (doc: jsPDF) => {
-    doc.addFileToVFS('Roboto-Regular.ttf', RobotoRegular);
+const registerFonts = async (doc: jsPDF) => {
+    const fonts = await loadRobotoFonts();
+    doc.addFileToVFS('Roboto-Regular.ttf', fonts.regular);
     doc.addFont('Roboto-Regular.ttf', 'Roboto', 'normal');
-    doc.addFileToVFS('Roboto-Bold.ttf', RobotoBold);
+    doc.addFileToVFS('Roboto-Bold.ttf', fonts.bold);
     doc.addFont('Roboto-Bold.ttf', 'Roboto', 'bold');
     doc.setFont('Roboto');
 };
 
-// Helper to load image
+// Helper to load image, memoized by URL so bulk exports decode each asset once
+const imageCache = new Map<string, Promise<HTMLImageElement>>();
+
 const loadImage = (src: string): Promise<HTMLImageElement> => {
-    return new Promise((resolve, reject) => {
-        const img = new Image();
-        if (/^https?:\/\//i.test(src)) {
-            img.crossOrigin = 'anonymous';
-        }
-        img.src = src;
-        img.onload = () => resolve(img);
-        img.onerror = reject;
-    });
+    let cached = imageCache.get(src);
+    if (!cached) {
+        cached = new Promise<HTMLImageElement>((resolve, reject) => {
+            const img = new Image();
+            if (/^https?:\/\//i.test(src)) {
+                img.crossOrigin = 'anonymous';
+            }
+            img.src = src;
+            img.onload = () => resolve(img);
+            img.onerror = reject;
+        });
+        imageCache.set(src, cached);
+        // Drop failed loads so a later export can retry
+        cached.catch(() => imageCache.delete(src));
+    }
+    return cached;
 };
 
 const FORM_ISSUE_DATE = '01.05.2020.';
@@ -166,12 +176,50 @@ const resolveAirSchemeSelection = async (report: Partial<ReportForm>, labels: Pd
     };
 };
 
+interface ResolvedSchemeImage {
+    url: string;
+    name: string | null;
+}
+
+// Scheme lookups hit IndexedDB/network; memoize per (scheme, method) so bulk
+// exports resolve each distinct scheme once instead of once per page.
+const schemeResolutionCache = new Map<string, Promise<ResolvedSchemeImage>>();
+
+const resolveSchemeImage = (schemeNum: number, methodType?: 'water' | 'air'): Promise<ResolvedSchemeImage> => {
+    const key = `${schemeNum}:${methodType ?? 'any'}`;
+    let cached = schemeResolutionCache.get(key);
+    if (!cached) {
+        cached = (async (): Promise<ResolvedSchemeImage> => {
+            try {
+                const { getSchemeImageUrl, getLocalSchemeAssetPath, getSchemeImage } = await import('../services/schemeService');
+                try {
+                    const schemeRecord = methodType ? await getSchemeImage(schemeNum, methodType) : null;
+                    const url = await getSchemeImageUrl(schemeNum, methodType);
+                    return { url, name: schemeRecord?.name || null };
+                } catch {
+                    return { url: getLocalSchemeAssetPath(schemeNum, methodType), name: null };
+                }
+            } catch {
+                // Dynamic import itself failed — inline method-aware fallback
+                console.warn('Failed to load schemeService, using local asset');
+                if (methodType === 'air') {
+                    const airAssets: Record<number, string> = { 1: '/assets/Scheme6.PNG', 2: '/assets/Scheme8.png', 3: '/assets/Scheme7.png' };
+                    return { url: airAssets[schemeNum] || '/assets/Scheme6.PNG', name: null };
+                }
+                return { url: `/assets/Scheme${schemeNum}.PNG`, name: null };
+            }
+        })();
+        schemeResolutionCache.set(key, cached);
+    }
+    return cached;
+};
+
 export const generatePDF = async (report: Partial<ReportForm>, userProfile?: Profile, language?: PdfExportLanguage) => {
     const doc = new jsPDF({
         putOnlyUsedFonts: true,
         compress: true
     });
-    registerFonts(doc);
+    await registerFonts(doc);
     await renderReportPage(doc, report, userProfile, 1, 1, language);
     doc.save(`report_${report.id || 'new'}.pdf`);
 };
@@ -181,7 +229,7 @@ export const generateBulkPDF = async (reports: Partial<ReportForm>[], filename: 
         putOnlyUsedFonts: true,
         compress: true
     });
-    registerFonts(doc);
+    await registerFonts(doc);
     const totalPages = reports.length;
     for (let i = 0; i < reports.length; i++) {
         if (i > 0) {
@@ -197,7 +245,7 @@ export const generateBulkPDFAsBlob = async (reports: Partial<ReportForm>[], user
         putOnlyUsedFonts: true,
         compress: true
     });
-    registerFonts(doc);
+    await registerFonts(doc);
     const totalPages = reports.length;
     for (let i = 0; i < reports.length; i++) {
         if (i > 0) {
@@ -233,30 +281,12 @@ const renderReportPage = async (doc: jsPDF, report: Partial<ReportForm>, userPro
         }
 
         // Try to get custom scheme image from admin settings, with method-aware fallback
-        let schemeImageUrl: string;
-        try {
-            const { getSchemeImageUrl, getLocalSchemeAssetPath, getSchemeImage } = await import('../services/schemeService');
-            try {
-                const schemeRecord = methodType ? await getSchemeImage(schemeNum, methodType) : null;
-                if (schemeRecord?.name) {
-                    schemeName = schemeRecord.name;
-                }
-                schemeImageUrl = await getSchemeImageUrl(schemeNum, methodType);
-            } catch {
-                schemeImageUrl = getLocalSchemeAssetPath(schemeNum, methodType);
-            }
-        } catch {
-            // Dynamic import itself failed — inline method-aware fallback
-            if (methodType === 'air') {
-                const airAssets: Record<number, string> = { 1: '/assets/Scheme6.PNG', 2: '/assets/Scheme8.png', 3: '/assets/Scheme7.png' };
-                schemeImageUrl = airAssets[schemeNum] || '/assets/Scheme6.PNG';
-            } else {
-                schemeImageUrl = `/assets/Scheme${schemeNum}.PNG`;
-            }
-            console.warn('Failed to load schemeService, using local asset');
+        const resolvedScheme = await resolveSchemeImage(schemeNum, methodType);
+        if (resolvedScheme.name) {
+            schemeName = resolvedScheme.name;
         }
 
-        sketchImg = await loadImage(schemeImageUrl);
+        sketchImg = await loadImage(resolvedScheme.url);
     } catch (e) {
         console.warn('Failed to load some images', e);
     }

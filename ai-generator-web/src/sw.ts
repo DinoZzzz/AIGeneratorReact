@@ -22,49 +22,63 @@ registerRoute(new NavigationRoute(navigationHandler, {
   denylist: [/^\/api/],
 }));
 
-registerRoute(
-  /^https:\/\/zfmvpzypgagtexjbufsq\.supabase\.co\/rest\/v1\/.*/i,
-  new NetworkFirst({
-    cacheName: 'supabase-api-cache',
-    networkTimeoutSeconds: 10,
-    plugins: [
-      new ExpirationPlugin({
-        maxEntries: 100,
-        maxAgeSeconds: 60 * 60 * 24,
-      }),
-      new CacheableResponsePlugin({ statuses: [0, 200] }),
-    ],
-  })
-);
+// Derive the Supabase host from the build-time env so the SW caching rules
+// can never drift from the project the app actually talks to.
+const supabaseHost = (() => {
+  try {
+    const host = new URL(import.meta.env.VITE_SUPABASE_URL).host;
+    return host.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  } catch {
+    console.warn('VITE_SUPABASE_URL is not set; Supabase runtime caching is disabled in this service worker build.');
+    return null;
+  }
+})();
 
-registerRoute(
-  /^https:\/\/zfmvpzypgagtexjbufsq\.supabase\.co\/auth\/.*/i,
-  new NetworkFirst({
-    cacheName: 'supabase-auth-cache',
-    networkTimeoutSeconds: 5,
-    plugins: [
-      new ExpirationPlugin({
-        maxEntries: 10,
-        maxAgeSeconds: 60 * 60,
-      }),
-      new CacheableResponsePlugin({ statuses: [0, 200] }),
-    ],
-  })
-);
+if (supabaseHost) {
+  registerRoute(
+    new RegExp(`^https://${supabaseHost}/rest/v1/.*`, 'i'),
+    new NetworkFirst({
+      cacheName: 'supabase-api-cache',
+      networkTimeoutSeconds: 10,
+      plugins: [
+        new ExpirationPlugin({
+          maxEntries: 100,
+          maxAgeSeconds: 60 * 60 * 24,
+        }),
+        new CacheableResponsePlugin({ statuses: [0, 200] }),
+      ],
+    })
+  );
 
-registerRoute(
-  /^https:\/\/zfmvpzypgagtexjbufsq\.supabase\.co\/storage\/.*/i,
-  new CacheFirst({
-    cacheName: 'supabase-storage-cache',
-    plugins: [
-      new ExpirationPlugin({
-        maxEntries: 200,
-        maxAgeSeconds: 60 * 60 * 24 * 7,
-      }),
-      new CacheableResponsePlugin({ statuses: [0, 200] }),
-    ],
-  })
-);
+  registerRoute(
+    new RegExp(`^https://${supabaseHost}/auth/.*`, 'i'),
+    new NetworkFirst({
+      cacheName: 'supabase-auth-cache',
+      networkTimeoutSeconds: 5,
+      plugins: [
+        new ExpirationPlugin({
+          maxEntries: 10,
+          maxAgeSeconds: 60 * 60,
+        }),
+        new CacheableResponsePlugin({ statuses: [0, 200] }),
+      ],
+    })
+  );
+
+  registerRoute(
+    new RegExp(`^https://${supabaseHost}/storage/.*`, 'i'),
+    new CacheFirst({
+      cacheName: 'supabase-storage-cache',
+      plugins: [
+        new ExpirationPlugin({
+          maxEntries: 200,
+          maxAgeSeconds: 60 * 60 * 24 * 7,
+        }),
+        new CacheableResponsePlugin({ statuses: [0, 200] }),
+      ],
+    })
+  );
+}
 
 registerRoute(
   /^https:\/\/fonts\.googleapis\.com\/.*/i,

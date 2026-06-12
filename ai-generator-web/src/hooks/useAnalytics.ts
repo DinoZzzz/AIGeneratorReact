@@ -40,30 +40,20 @@ export const useAnalytics = (userId?: string) => {
                     query = query.eq('user_id', userId);
                 }
 
-                const { data: forms, error: formsError } = await query;
+                const [formsResult, customersResult, constructionsResult] = await Promise.all([
+                    query,
+                    userId ? Promise.resolve(null) : supabase.from('customers').select('id', { count: 'exact', head: true }),
+                    userId ? Promise.resolve(null) : supabase.from('constructions').select('id', { count: 'exact', head: true }),
+                ]);
+
+                const { data: forms, error: formsError } = formsResult;
                 if (formsError) throw formsError;
+                if (customersResult?.error) throw customersResult.error;
+                if (constructionsResult?.error) throw constructionsResult.error;
                 if (!isMounted) return;
 
-                let customersCount = 0;
-                let constructionsCount = 0;
-
-                if (!userId) {
-                    const { count: custCount, error: customersError } = await supabase
-                        .from('customers')
-                        .select('*', { count: 'exact', head: true });
-                    if (customersError) throw customersError;
-                    if (!isMounted) return;
-                    customersCount = custCount || 0;
-
-                    const { count: constCount, error: constructionsError } = await supabase
-                        .from('constructions')
-                        .select('*', { count: 'exact', head: true });
-                    if (constructionsError) throw constructionsError;
-                    if (!isMounted) return;
-                    constructionsCount = constCount || 0;
-                }
-
-                if (!isMounted) return;
+                const customersCount = customersResult?.count || 0;
+                const constructionsCount = constructionsResult?.count || 0;
 
                 const computed = computeAnalyticsFromForms((forms ?? []) as AnalyticsFormRow[], {
                     totalCustomers: customersCount,
