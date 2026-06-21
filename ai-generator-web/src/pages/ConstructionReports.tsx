@@ -59,7 +59,7 @@ export const ConstructionReports = () => {
     const { isOnline } = useOffline();
     const { addItem: addRecentItem } = useRecentlyViewed();
     const { isPinned, togglePin } = usePinnedItems();
-    const { success: showSuccess } = useToast();
+    const { success: showSuccess, error: showError } = useToast();
     const handleError = useHandleError();
     const confirm = useConfirm();
     const normalizedCustomerId = customerId || '';
@@ -345,6 +345,14 @@ export const ConstructionReports = () => {
                     Boolean(report.id) &&
                     (selectedIdsSet.has(report.id) || sectionIdsToInclude.has(report.id))
                 );
+            }
+
+            // Nothing to export (e.g. construction has no reports): show a friendly
+            // message instead of letting generateWordDocument throw + report to Sentry.
+            if (!reportsToExport.some((report) => !report.section_name)) {
+                setActionMessage(null);
+                showError(t('export.selectAtLeastOneReport'));
+                return;
             }
 
             const exportResult = await generateWordDocument(reportsToExport, metaData, user?.id);
