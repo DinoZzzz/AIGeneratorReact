@@ -30,7 +30,9 @@ export function useAutoSave<T>(
         return null;
     });
     const dataRef = useRef(data);
-    dataRef.current = data;
+    useEffect(() => {
+        dataRef.current = data;
+    });
 
     const clearSavedData = useCallback(() => {
         try {

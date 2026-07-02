@@ -5,6 +5,7 @@ import { useToast } from '../../context/ToastContext';
 import { useOffline } from '../../context/OfflineContext';
 import { supabase } from '../../lib/supabase';
 import { isNetworkError } from '../../lib/errorHandler';
+import { focusOnMount } from '../../lib/utils';
 import type { Material } from '../../types';
 import { ConfirmDialog } from '../ui/ConfirmDialog';
 import {
@@ -307,7 +308,7 @@ export const MaterialsManager = ({ isAdmin }: MaterialsManagerProps) => {
                                         onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                                         placeholder={t('materials.namePlaceholder')}
                                         className="flex-1 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring"
-                                        autoFocus
+                                        ref={focusOnMount}
                                     />
                                     <button
                                         type="submit"

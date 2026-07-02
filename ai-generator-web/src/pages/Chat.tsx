@@ -8,6 +8,7 @@ import { Button } from '../components/ui/Button';
 import { useToast } from '../context/ToastContext';
 import { useConfirm } from '../context/useConfirm';
 import { errorHandler, isNetworkError } from '../lib/errorHandler';
+import { focusOnMount } from '../lib/utils';
 import { UserAvatar } from '../components/ui/UserAvatar';
 import {
     STORES,
@@ -343,7 +344,7 @@ export const Chat = () => {
                                                     onChange={(e) => setEditContent(e.target.value)}
                                                     className="w-full bg-background border border-input rounded p-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-ring"
                                                     rows={2}
-                                                    autoFocus
+                                                    ref={focusOnMount}
                                                 />
                                                 <div className="flex gap-2 mt-2">
                                                     <button

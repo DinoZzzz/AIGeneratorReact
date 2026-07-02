@@ -239,11 +239,12 @@ export const Reports = () => {
                                     "p-4 space-y-3 transition-colors",
                                     selectedReports.has(report.id) ? "bg-primary/5" : ""
                                 )}
+                                role="presentation"
                                 onClick={() => toggleSelection(report)}
                             >
                                 <div className="flex justify-between items-start">
                                     <div className="flex items-center space-x-3">
-                                        <div onClick={(e) => e.stopPropagation()}>
+                                        <div role="presentation" onClick={(e) => e.stopPropagation()}>
                                             <input
                                                 type="checkbox"
                                                 className="rounded border-gray-300 h-5 w-5"
@@ -280,7 +281,7 @@ export const Reports = () => {
                                     </div>
                                 </div>
 
-                                <div className="pl-8 flex justify-end space-x-2 pt-2" onClick={(e) => e.stopPropagation()}>
+                                <div className="pl-8 flex justify-end space-x-2 pt-2" role="presentation" onClick={(e) => e.stopPropagation()}>
                                     <Button variant="ghost" size="sm" asChild>
                                         <Link to={`/reports/${report.id}`}>
                                             <Edit className="h-4 w-4 mr-2" />

@@ -114,50 +114,5 @@ export const reportService = {
                 .from('report_forms')
                 .upsert(updates, { onConflict: 'id', ignoreDuplicates: false })
         );
-    },
-
-    async getLastByConstructionAndType(constructionId: string, typeId: number, customerId?: string) {
-        const data = await execQuery(
-            { service: SERVICE, method: 'getLastByConstructionAndType', constructionId, typeId, customerId },
-            () => {
-                let query = supabase
-                    .from('report_forms')
-                    .select('*')
-                    .eq('construction_id', constructionId)
-                    .eq('type_id', typeId);
-
-                if (customerId) {
-                    query = query.eq('customer_id', customerId);
-                }
-
-                return query
-                    .order('created_at', { ascending: false })
-                    .limit(1)
-                    .maybeSingle();
-            }
-        );
-        return data as ReportForm | null;
-    },
-
-    async getLastByConstruction(constructionId: string, customerId?: string) {
-        const data = await execQuery(
-            { service: SERVICE, method: 'getLastByConstruction', constructionId, customerId },
-            () => {
-                let query = supabase
-                    .from('report_forms')
-                    .select('*')
-                    .eq('construction_id', constructionId);
-
-                if (customerId) {
-                    query = query.eq('customer_id', customerId);
-                }
-
-                return query
-                    .order('created_at', { ascending: false })
-                    .limit(1)
-                    .maybeSingle();
-            }
-        );
-        return data as ReportForm | null;
     }
 };

@@ -157,7 +157,7 @@ export const ReportsTable = ({
                             >
                                 <div className="flex justify-between items-start">
                                     <div className="flex items-center space-x-3">
-                                        <div onClick={(e) => e.stopPropagation()}>
+                                        <div role="presentation" onClick={(e) => e.stopPropagation()}>
                                             <input
                                                 type="checkbox"
                                                 className="rounded border-input text-primary focus:ring-ring h-5 w-5"

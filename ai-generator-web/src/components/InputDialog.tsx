@@ -63,10 +63,11 @@ export const InputDialog: React.FC<InputDialogProps> = ({
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
-            {/* Backdrop */}
+            {/* Backdrop — mouse-only close affordance; keyboard users close via Escape */}
             <div
                 className="absolute inset-0 bg-black/50 backdrop-blur-sm"
                 onClick={handleCancel}
+                aria-hidden="true"
             />
 
             {/* Dialog */}

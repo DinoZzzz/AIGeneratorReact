@@ -47,11 +47,9 @@ export const PdfLanguageDialog = ({
                                 className="h-4 w-4 text-primary focus:ring-ring border-input"
                                 disabled={loading}
                             />
-                            <div className="flex-1">
-                                <span className="text-sm font-medium text-foreground">
-                                    🇭🇷 {t('pdfLanguageDialog.croatian') || 'Hrvatski'}
-                                </span>
-                            </div>
+                            <span className="flex-1 text-sm font-medium text-foreground">
+                                🇭🇷 {t('pdfLanguageDialog.croatian') || 'Hrvatski'}
+                            </span>
                         </label>
                         <label className="flex items-center space-x-3 p-3 rounded-lg border border-border bg-card/50 hover:bg-accent/50 cursor-pointer transition-colors">
                             <input
@@ -63,11 +61,9 @@ export const PdfLanguageDialog = ({
                                 className="h-4 w-4 text-primary focus:ring-ring border-input"
                                 disabled={loading}
                             />
-                            <div className="flex-1">
-                                <span className="text-sm font-medium text-foreground">
-                                    🇸🇮 {t('pdfLanguageDialog.slovenian') || 'Slovenski'}
-                                </span>
-                            </div>
+                            <span className="flex-1 text-sm font-medium text-foreground">
+                                🇸🇮 {t('pdfLanguageDialog.slovenian') || 'Slovenski'}
+                            </span>
                         </label>
                     </div>
                 </div>

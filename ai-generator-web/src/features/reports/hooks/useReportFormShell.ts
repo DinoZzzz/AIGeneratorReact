@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import type { Profile, ReportForm } from '../../../types';
 import { useLanguage } from '../../../context/LanguageContext';
@@ -96,19 +96,21 @@ export function useReportFormShell({
 
     const [step, setStep] = useState<1 | 2>(1);
     const [showMobileResults, setShowMobileResults] = useState(false);
-    const [previousReport, setPreviousReport] = useState<ReportForm | null>(null);
-    const [showRestoreBanner, setShowRestoreBanner] = useState(false);
     const [hasUserEdited, setHasUserEdited] = useState(false);
     const initializedFromPreviousRef = useRef(false);
     const initializedFromDuplicateRef = useRef(false);
 
-    // Latest-value refs so the per-method callbacks don't retrigger effects
+    // Latest-value refs so the per-method callbacks don't retrigger effects.
+    // Updated in an effect (not during render); this effect is declared before
+    // every consumer, so the refs are current by the time consumers run.
     const prefillExtraRef = useRef(prefillExtraFromPrevious);
-    prefillExtraRef.current = prefillExtraFromPrevious;
     const onSectionParamsChangeRef = useRef(onSectionParamsChange);
-    onSectionParamsChangeRef.current = onSectionParamsChange;
     const onLoadedReportRef = useRef(onLoadedReport);
-    onLoadedReportRef.current = onLoadedReport;
+    useEffect(() => {
+        prefillExtraRef.current = prefillExtraFromPrevious;
+        onSectionParamsChangeRef.current = onSectionParamsChange;
+        onLoadedReportRef.current = onLoadedReport;
+    });
 
     // Warn user when leaving page with unsaved changes
     useUnsavedChanges(hasUserEdited);
@@ -117,12 +119,11 @@ export function useReportFormShell({
     const autoSaveKey = `${methodPath}_${constructionId || 'unknown'}_${id || 'new'}`;
     const { restoredData, clearSavedData, lastSaved, dismissRestore } = useAutoSave(autoSaveKey, formData);
 
-    // Show restore banner on mount if there's saved data
-    useEffect(() => {
-        if (restoredData && !isEditMode && !duplicateId) {
-            setShowRestoreBanner(true);
-        }
-    }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    // useAutoSave reads any saved draft synchronously on mount, so the banner
+    // visibility can be decided right in the initializer.
+    const [showRestoreBanner, setShowRestoreBanner] = useState(
+        () => Boolean(restoredData) && !isEditMode && !duplicateId
+    );
 
     const handleRestoreDraft = () => {
         if (restoredData) {
@@ -176,13 +177,16 @@ export function useReportFormShell({
 
     useEffect(() => {
         initializedFromPreviousRef.current = false;
-        setPreviousReport(null);
         onSectionParamsChangeRef.current?.();
     }, [constructionId, customerId, id]);
 
-    // Prefill a new report from the construction's most recent reports
-    useEffect(() => {
-        if (!constructionId || isEditMode || initializedFromPreviousRef.current) return;
+    // The construction's most recent full (non-section) reports, newest first:
+    // previousReport (same method) drives "copy structure from previous" and
+    // prefill; lastAnyTypeReport (either method) supplies the section name.
+    const { previousReport, lastAnyTypeReport } = useMemo(() => {
+        if (!constructionId || isEditMode) {
+            return { previousReport: null, lastAnyTypeReport: null };
+        }
 
         const normalizedCustomerId = customerId && customerId !== 'undefined' ? customerId : undefined;
         const candidateReports = constructionReports
@@ -194,19 +198,25 @@ export function useReportFormShell({
                 return bTime - aTime;
             });
 
-        const lastAnyTypeReport = candidateReports[0];
-        const lastReport = candidateReports.find((report) => report.type_id === typeId);
+        return {
+            previousReport: candidateReports.find((report) => report.type_id === typeId) ?? null,
+            lastAnyTypeReport: candidateReports[0] ?? null,
+        };
+    }, [constructionId, constructionReports, customerId, isEditMode, typeId]);
 
-        if (lastReport) {
-            setPreviousReport(lastReport);
+    // Prefill a new report from the construction's most recent reports
+    useEffect(() => {
+        if (!constructionId || isEditMode || initializedFromPreviousRef.current) return;
+
+        if (previousReport) {
             setFormData(prev => ({
                 ...prev,
                 dionica: lastAnyTypeReport?.dionica || lastAnyTypeReport?.stock || prev.dionica,
-                examination_date: lastReport.examination_date || prev.examination_date,
-                temperature: lastReport.temperature || prev.temperature,
-                pane_material_id: lastReport.pane_material_id || prev.pane_material_id,
-                pipe_material_id: lastReport.pipe_material_id || prev.pipe_material_id,
-                ...prefillExtraRef.current?.(lastReport),
+                examination_date: previousReport.examination_date || prev.examination_date,
+                temperature: previousReport.temperature || prev.temperature,
+                pane_material_id: previousReport.pane_material_id || prev.pane_material_id,
+                pipe_material_id: previousReport.pipe_material_id || prev.pipe_material_id,
+                ...prefillExtraRef.current?.(previousReport),
             }));
             initializedFromPreviousRef.current = true;
             return;
@@ -220,7 +230,7 @@ export function useReportFormShell({
         }
 
         initializedFromPreviousRef.current = true;
-    }, [constructionId, constructionReports, customerId, isEditMode, typeId, setFormData]);
+    }, [constructionId, isEditMode, previousReport, lastAnyTypeReport, setFormData]);
 
     const handleBack = () => {
         if (step === 2) {

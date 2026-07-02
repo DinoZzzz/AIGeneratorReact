@@ -50,20 +50,10 @@ if (supabaseHost) {
     })
   );
 
-  registerRoute(
-    new RegExp(`^https://${supabaseHost}/auth/.*`, 'i'),
-    new NetworkFirst({
-      cacheName: 'supabase-auth-cache',
-      networkTimeoutSeconds: 5,
-      plugins: [
-        new ExpirationPlugin({
-          maxEntries: 10,
-          maxAgeSeconds: 60 * 60,
-        }),
-        new CacheableResponsePlugin({ statuses: [0, 200] }),
-      ],
-    })
-  );
+  // Note: /auth/ responses are deliberately NOT runtime-cached. They carry
+  // access/refresh tokens, and Supabase already persists the session in
+  // localStorage — a Cache Storage copy adds token exposure with no offline
+  // benefit (token refresh can't succeed offline anyway).
 
   registerRoute(
     new RegExp(`^https://${supabaseHost}/storage/.*`, 'i'),
@@ -131,6 +121,12 @@ const runOfflineSync = async () => {
     console.error('Service worker offline sync failed:', error);
   }
 };
+
+// Purge the retired auth-response runtime cache from existing installs —
+// it held copies of access/refresh tokens.
+self.addEventListener('activate', (event) => {
+  event.waitUntil(caches.delete('supabase-auth-cache'));
+});
 
 self.addEventListener('sync', (event) => {
   const syncEvent = event as SyncEvent;

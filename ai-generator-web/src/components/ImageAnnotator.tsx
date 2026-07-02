@@ -185,11 +185,14 @@ export function ImageAnnotator({ imageUrl, onSave, onCancel }: ImageAnnotatorPro
                     break;
             }
         }
-    }, [image, annotations, currentAnnotation, canvasSize]);
+    }, [image, annotations, currentAnnotation]);
 
+    // Re-run on canvasSize changes too: resizing the <canvas> element clears
+    // its bitmap, so everything must be repainted even though redraw() itself
+    // doesn't read canvasSize.
     useEffect(() => {
         redraw();
-    }, [redraw]);
+    }, [redraw, canvasSize]);
 
     const getCanvasPoint = (e: React.MouseEvent | React.TouchEvent): Point => {
         const canvas = canvasRef.current;

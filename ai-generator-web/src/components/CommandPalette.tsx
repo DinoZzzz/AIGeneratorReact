@@ -325,10 +325,11 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose 
 
     return (
         <div className="fixed inset-0 z-50 overflow-y-auto">
-            {/* Backdrop */}
+            {/* Backdrop — mouse-only close affordance; keyboard users close via Escape */}
             <div
                 className="fixed inset-0 bg-black/50 transition-opacity"
                 onClick={onClose}
+                aria-hidden="true"
             />
 
             {/* Dialog */}

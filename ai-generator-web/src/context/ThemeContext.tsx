@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 
 export type Theme = 'dark' | 'light' | 'system';
 
@@ -45,6 +45,25 @@ const initialState: ThemeProviderState = {
 
 const ThemeContext = createContext<ThemeProviderState>(initialState);
 
+// Wraps a theme-color mutation in a short-lived .theme-transition class on
+// <html> so index.css can cross-fade the switch without keeping a global
+// `* { transition }` rule active permanently. Skipped on first mount so the
+// initial paint doesn't animate.
+let themeTransitionTimeout: number | undefined;
+function applyWithTransition(apply: () => void, skipTransition: boolean) {
+  if (skipTransition) {
+    apply();
+    return;
+  }
+  const root = window.document.documentElement;
+  root.classList.add('theme-transition');
+  apply();
+  window.clearTimeout(themeTransitionTimeout);
+  themeTransitionTimeout = window.setTimeout(() => {
+    root.classList.remove('theme-transition');
+  }, 300);
+}
+
 export function ThemeProvider({
   children,
   defaultTheme = 'system',
@@ -84,21 +103,27 @@ export function ThemeProvider({
     return () => mediaQuery.removeEventListener('change', handleChange);
   }, []);
 
+  const isInitialThemeMount = useRef(true);
   useEffect(() => {
     const root = window.document.documentElement;
     const effectiveTheme = theme === 'system' ? systemTheme : theme;
 
-    root.classList.remove('light', 'dark');
-    root.classList.add(effectiveTheme);
-
-    // Add smooth transition for theme changes
-    root.style.colorScheme = effectiveTheme;
+    applyWithTransition(() => {
+      root.classList.remove('light', 'dark');
+      root.classList.add(effectiveTheme);
+      root.style.colorScheme = effectiveTheme;
+    }, isInitialThemeMount.current);
+    isInitialThemeMount.current = false;
   }, [theme, systemTheme]);
 
+  const isInitialColorMount = useRef(true);
   useEffect(() => {
     const root = window.document.documentElement;
-    root.style.setProperty('--primary', primaryColor.value);
-    root.style.setProperty('--primary-foreground', primaryColor.foreground);
+    applyWithTransition(() => {
+      root.style.setProperty('--primary', primaryColor.value);
+      root.style.setProperty('--primary-foreground', primaryColor.foreground);
+    }, isInitialColorMount.current);
+    isInitialColorMount.current = false;
   }, [primaryColor]);
 
   const value = {

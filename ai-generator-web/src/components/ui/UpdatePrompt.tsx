@@ -38,11 +38,12 @@ export const UpdatePrompt = () => {
         window.addEventListener('sw-update-available', handler);
 
         // Also check version.json directly (catches stale SW scenarios)
-        checkVersion();
+        const initialCheck = window.setTimeout(checkVersion, 0);
         const interval = setInterval(checkVersion, VERSION_CHECK_INTERVAL);
 
         return () => {
             window.removeEventListener('sw-update-available', handler);
+            window.clearTimeout(initialCheck);
             clearInterval(interval);
         };
     }, [checkVersion]);

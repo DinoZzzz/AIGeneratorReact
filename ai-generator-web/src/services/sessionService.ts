@@ -88,7 +88,7 @@ export async function updateLastActive(userId: string): Promise<void> {
 export async function listSessions(userId: string): Promise<UserSession[]> {
     const { data, error } = await supabase
         .from('user_sessions')
-        .select('*')
+        .select('id, user_id, device_id, device_name, browser, os, last_active_at, created_at')
         .eq('user_id', userId)
         .order('last_active_at', { ascending: false });
 

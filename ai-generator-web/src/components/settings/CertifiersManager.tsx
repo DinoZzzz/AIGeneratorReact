@@ -6,6 +6,7 @@ import { useConfirm } from '../../context/useConfirm';
 import { useOffline } from '../../context/OfflineContext';
 import { certifierService, type Certifier } from '../../services/certifierService';
 import { isNetworkError } from '../../lib/errorHandler';
+import { focusOnMount } from '../../lib/utils';
 import { createQueuedUploadPreviewUrlMap, revokePreviewUrls } from '../../lib/offlineUploadPreview';
 import {
     STORES,
@@ -422,7 +423,7 @@ export const CertifiersManager = () => {
                                         onChange={(e) => setCertifierForm({ ...certifierForm, name: e.target.value })}
                                         placeholder={t('certifiers.namePlaceholder')}
                                         className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring"
-                                        autoFocus
+                                        ref={focusOnMount}
                                     />
                                 </div>
                                 <div>

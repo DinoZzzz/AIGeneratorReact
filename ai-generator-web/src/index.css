@@ -132,13 +132,15 @@
         font-feature-settings: "rlig" 1, "calt" 1;
     }
 
-    /* Smooth transitions for theme changes */
+    /* Smooth cross-fade while switching theme or primary color.
+       ThemeContext adds .theme-transition to <html> only for the duration of
+       the switch — a permanent `* { transition }` would delay every hover
+       state by 200ms and slow style recalculation on large tables. */
     @media (prefers-reduced-motion: no-preference) {
-        :root {
-            transition: background-color 0.3s ease, color 0.3s ease;
-        }
-
-        * {
+        .theme-transition,
+        .theme-transition *,
+        .theme-transition *::before,
+        .theme-transition *::after {
             transition-property: background-color, border-color, color, fill, stroke, box-shadow;
             transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
             transition-duration: 200ms;

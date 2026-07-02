@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect } from 'react';
 
 /**
  * Hook that warns users when they attempt to leave the page with unsaved changes.
@@ -7,16 +7,14 @@ import { useEffect, useRef } from 'react';
  * @param isDirty - Whether the form has unsaved changes
  */
 export const useUnsavedChanges = (isDirty: boolean) => {
-    const isDirtyRef = useRef(isDirty);
-    isDirtyRef.current = isDirty;
-
     useEffect(() => {
+        if (!isDirty) return;
+
         const handler = (e: BeforeUnloadEvent) => {
-            if (!isDirtyRef.current) return;
             e.preventDefault();
         };
 
         window.addEventListener('beforeunload', handler);
         return () => window.removeEventListener('beforeunload', handler);
-    }, []);
+    }, [isDirty]);
 };

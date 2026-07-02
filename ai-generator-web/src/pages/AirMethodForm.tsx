@@ -215,23 +215,23 @@ export const AirMethodForm = () => {
             setMaterialTypes(matTypeData);
             setMaterials(materialsData);
 
-            if (!formData.pane_material_id) {
-                const paneMats = materialsData.filter(m => m.material_type_id === 1);
-                if (paneMats.length > 0) {
-                    setFormData(prev => ({ ...prev, pane_material_id: paneMats[0].id }));
+            const defaultPaneId = materialsData.find(m => m.material_type_id === 1)?.id;
+            const defaultPipeId = materialsData.find(m => m.material_type_id === 2)?.id;
+            setFormData(prev => {
+                if ((prev.pane_material_id || !defaultPaneId) && (prev.pipe_material_id || !defaultPipeId)) {
+                    return prev;
                 }
-            }
-            if (!formData.pipe_material_id) {
-                const pipeMaterials = materialsData.filter(m => m.material_type_id === 2);
-                if (pipeMaterials.length > 0) {
-                    setFormData(prev => ({ ...prev, pipe_material_id: pipeMaterials[0].id }));
-                }
-            }
+                return {
+                    ...prev,
+                    pane_material_id: prev.pane_material_id || defaultPaneId || prev.pane_material_id,
+                    pipe_material_id: prev.pipe_material_id || defaultPipeId || prev.pipe_material_id,
+                };
+            });
         } catch (error) {
             const appError = errorHandler.handle(error, 'AirMethodForm');
             showError(errorHandler.getUserMessage(appError));
         }
-    }, [formData.pipe_material_id, showError]);
+    }, [showError]);
 
     useEffect(() => {
         loadLookups();
@@ -764,8 +764,12 @@ export const AirMethodForm = () => {
 
                     {/* Mobile Results Drawer/Modal */}
                     {showMobileResults && (
-                        <div className="fixed inset-0 z-[60] lg:hidden flex items-end justify-center bg-black/50 backdrop-blur-sm" onClick={() => setShowMobileResults(false)}>
-                            <div className="bg-card w-full max-w-md rounded-t-xl p-6 space-y-6 animate-in slide-in-from-bottom duration-200 border-t border-border shadow-2xl" onClick={e => e.stopPropagation()}>
+                        <div
+                            className="fixed inset-0 z-[60] lg:hidden flex items-end justify-center bg-black/50 backdrop-blur-sm"
+                            role="presentation"
+                            onClick={(e) => { if (e.target === e.currentTarget) setShowMobileResults(false); }}
+                        >
+                            <div className="bg-card w-full max-w-md rounded-t-xl p-6 space-y-6 animate-in slide-in-from-bottom duration-200 border-t border-border shadow-2xl">
                                 <div className="flex items-center justify-between mb-2">
                                     <h3 className="text-lg font-semibold">{t('reports.form.calculatedResults')}</h3>
                                     <Button variant="ghost" size="icon" onClick={() => setShowMobileResults(false)} className="-mr-2">

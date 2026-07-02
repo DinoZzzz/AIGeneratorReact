@@ -96,6 +96,7 @@ export const ReportsActionBar = ({
                 <div
                     className="fixed inset-0 z-40"
                     onClick={onToggleNewReport}
+                    aria-hidden="true"
                 />
             )}
             <div className="relative inline-block text-left">
@@ -148,6 +149,7 @@ export const ReportsActionBar = ({
                 <div
                     className="fixed inset-0 z-40"
                     onClick={onToggleAddSection}
+                    aria-hidden="true"
                 />
             )}
             <button

@@ -45,8 +45,12 @@ export const MobileResultsDrawer = ({
 
             {/* Mobile Results Drawer/Modal */}
             {showMobileResults && (
-                <div className="fixed inset-0 z-[60] lg:hidden flex items-end justify-center bg-black/50 backdrop-blur-sm" onClick={() => setShowMobileResults(false)}>
-                    <div className="bg-card w-full max-w-md rounded-t-xl p-6 space-y-6 animate-in slide-in-from-bottom duration-200 border-t border-border shadow-2xl" onClick={e => e.stopPropagation()}>
+                <div
+                    className="fixed inset-0 z-[60] lg:hidden flex items-end justify-center bg-black/50 backdrop-blur-sm"
+                    role="presentation"
+                    onClick={(e) => { if (e.target === e.currentTarget) setShowMobileResults(false); }}
+                >
+                    <div className="bg-card w-full max-w-md rounded-t-xl p-6 space-y-6 animate-in slide-in-from-bottom duration-200 border-t border-border shadow-2xl">
                         <div className="flex items-center justify-between mb-2">
                             <h3 className="text-lg font-semibold">{t('reports.form.calculatedResults')}</h3>
                             <Button variant="ghost" size="icon" onClick={() => setShowMobileResults(false)} className="-mr-2" aria-label={t('common.closeResults')}>

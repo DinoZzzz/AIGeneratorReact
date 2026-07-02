@@ -71,7 +71,13 @@ export default defineConfig(({ mode }) => ({
       },
       injectManifest: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2,ttf,json}'],
-        globIgnores: ['**/stats.html', '**/version.json'], // Exclude from SW cache so version.json is always fetched fresh
+        globIgnores: [
+          '**/stats.html',
+          '**/version.json', // Exclude from SW cache so version.json is always fetched fresh
+          // jsPDF emits html2canvas as an optional chunk for its .html() API,
+          // which this app never calls — don't make every install download it.
+          '**/html2canvas*',
+        ],
         maximumFileSizeToCacheInBytes: 8 * 1024 * 1024,
       },
       devOptions: {
