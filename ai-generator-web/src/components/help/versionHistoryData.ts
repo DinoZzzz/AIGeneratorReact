@@ -7,6 +7,21 @@ export interface VersionHistoryItem {
 export function getVersionHistory(language: string): VersionHistoryItem[] {
     return language === 'hr' ? [
         {
+            version: '2.36.0',
+            date: '2026-07-03',
+            changes: [
+                'Potpuni offline način rada: svi podaci (naručitelji, gradilišta, izvještaji, termini, materijali...) automatski se repliciraju na uređaj i dostupni su bez veze, čak i za stranice koje niste prethodno otvorili',
+                'Novi odjeljak "Izvanmrežni podaci" u postavkama: preuzimanje svih podataka i datoteka za offline rad, prikaz zauzeća pohrane, zaštite pohrane i zadnje sinkronizacije',
+                'Gumb "Preuzmi za izvanmrežni rad" na gradilištu — preuzima i privitke, sheme i potpise pa izvoz radi bez veze',
+                'Zaštita od sukoba: ako je netko drugi promijenio zapis dok ste bili offline, promjena se prikazuje kao sukob za rješavanje umjesto tihog prepisivanja',
+                'Oznaka "Čeka sinkronizaciju" uz naručitelje, gradilišta i izvještaje s lokalnim promjenama koje još nisu poslane na server',
+                'Nadzorna ploča i Analitika sada rade i offline — računaju se iz lokalnih podataka',
+                'Ispravljen problem gdje se podaci (ispitivači, naručitelji, chat...) nisu učitavali nakon nadogradnje aplikacije',
+                'Dizajn: gumbi i indikatori sada prate odabranu primarnu boju; ispravke tamnog načina (sjena kartice prijave, kartice statistike)',
+                'Pristupačnost: vraćen pinch-zoom na mobitelu, ispravljeno 45 grešaka pristupačnosti (podrška za tipkovnicu u dijalozima i listama)',
+            ]
+        },
+        {
             version: '2.35.0',
             date: '2026-03-23',
             changes: [
@@ -592,6 +607,21 @@ export function getVersionHistory(language: string): VersionHistoryItem[] {
         },
     ] : [
         // English version
+        {
+            version: '2.36.0',
+            date: '2026-07-03',
+            changes: [
+                'Full offline mode: all data (customers, constructions, reports, appointments, materials...) is automatically replicated to the device and available offline, even for pages you never opened',
+                'New "Offline data" section in Settings: download all records and files for offline use, with storage usage, storage protection, and last-sync time',
+                '"Download for offline" button on a construction — also fetches attachments, schemes, and signatures so exports work without a connection',
+                'Conflict protection: if someone else changed a record while you were offline, the change is surfaced as a conflict to resolve instead of silently overwriting',
+                '"Waiting to sync" badge next to customers, constructions, and reports with local changes not yet sent to the server',
+                'Dashboard and Analytics now work offline — computed from local data',
+                'Fixed data (examiners, customers, chat...) not loading after an app upgrade',
+                'Design: buttons and indicators now follow the selected primary color; dark mode fixes (login card shadow, stat cards)',
+                'Accessibility: pinch-zoom restored on mobile, 45 accessibility issues fixed (keyboard support in dialogs and lists)',
+            ]
+        },
         {
             version: '2.35.0',
             date: '2026-03-23',
