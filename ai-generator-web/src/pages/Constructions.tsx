@@ -16,6 +16,8 @@ import { ConfirmDialog } from '../components/ui/ConfirmDialog';
 import { formatDate } from '../utils/dateFormatter';
 import { useConfirm } from '../context/useConfirm';
 import { useHandleError } from '../hooks/useHandleError';
+import { SyncPendingBadge } from '../components/ui/SyncPendingBadge';
+import { STORES } from '../lib/offlineDb';
 
 type FilterType = 'all' | 'active' | 'archived';
 
@@ -258,6 +260,7 @@ export const Constructions = () => {
                                         <h3 className="text-lg font-bold text-foreground flex items-center">
                                             <HardHat className="h-4 w-4 mr-2 text-primary flex-shrink-0" />
                                             <span className="truncate max-w-[200px] md:max-w-[300px]" title={construction.name}>{construction.name}</span>
+                                            <span className="ml-2"><SyncPendingBadge store={STORES.CONSTRUCTIONS} entityId={construction.id} /></span>
                                         </h3>
                                     </div>
                                     <div className="flex space-x-2">
@@ -345,6 +348,7 @@ export const Constructions = () => {
                                     </td>
                                     <td className="px-6 py-4 text-sm text-muted-foreground max-w-[250px]">
                                         <span className="block truncate" title={construction.name}>{construction.name}</span>
+                                        <SyncPendingBadge store={STORES.CONSTRUCTIONS} entityId={construction.id} />
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
                                         {construction.location}

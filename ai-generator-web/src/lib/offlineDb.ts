@@ -4,7 +4,7 @@
  */
 
 const DB_NAME = 'ai-generator-offline';
-const DB_VERSION = 4;
+const DB_VERSION = 5;
 const SYNC_ID_MAP_METADATA_KEY = 'sync_id_map';
 const DEFAULT_UPLOAD_SYNC_MAX_OPERATIONS = 80;
 const DEFAULT_UPLOAD_SYNC_MAX_TOTAL_BYTES = 120 * 1024 * 1024; // 120 MB
@@ -25,6 +25,7 @@ export const STORES = {
   EXPORT_HISTORY: 'export_history',
   EXPORT_HISTORY_FORMS: 'export_history_forms',
   REPORT_FILES: 'report_files',
+  FILE_BLOBS: 'file_blobs',
   TEMPLATE_CACHE: 'template_cache',
   UPLOADS: 'uploads',
   SYNC_QUEUE: 'sync_queue',
@@ -44,6 +45,13 @@ export interface SyncOperation {
   retryCount: number;
   status: 'pending' | 'in_progress' | 'failed' | 'discarded';
   error?: string;
+  /**
+   * Server-side updated_at of the row when the first offline edit was made.
+   * Used as an optimistic-concurrency guard during sync replay: if the server
+   * row's updated_at no longer matches, someone else changed it and the
+   * operation is surfaced as a conflict instead of silently overwriting.
+   */
+  baseUpdatedAt?: string;
 }
 
 interface SyncQueueSummary {
@@ -171,6 +179,14 @@ export const openDatabase = (): Promise<IDBDatabase> => {
         const reportFilesStore = db.createObjectStore(STORES.REPORT_FILES, { keyPath: 'id' });
         reportFilesStore.createIndex('construction_id', 'construction_id', { unique: false });
         reportFilesStore.createIndex('report_id', 'report_id', { unique: false });
+      }
+
+      // Downloaded file contents (report attachments, scheme images) so
+      // exports and previews work fully offline.
+      if (!db.objectStoreNames.contains(STORES.FILE_BLOBS)) {
+        const fileBlobStore = db.createObjectStore(STORES.FILE_BLOBS, { keyPath: 'id' });
+        fileBlobStore.createIndex('construction_id', 'construction_id', { unique: false });
+        fileBlobStore.createIndex('cached_at', 'cached_at', { unique: false });
       }
 
       if (!db.objectStoreNames.contains(STORES.TEMPLATE_CACHE)) {
@@ -314,12 +330,43 @@ export const clearStore = async (storeName: StoreName): Promise<void> => {
 /**
  * Add an operation to the sync queue
  */
+const isNumericIdString = (value: string): boolean => /^-?\d+$/.test(value);
+
+// Materials use numeric IDs in IndexedDB; everything else uses string keys.
+const toStoreKey = (store: StoreName, entityId: string): IDBValidKey =>
+  store === STORES.MATERIALS && isNumericIdString(entityId) ? Number(entityId) : entityId;
+
+/**
+ * Best-effort capture of the last known server state's updated_at for an
+ * update operation. Only trusted when the local row still carries _synced
+ * (i.e. it came from the server and has not been overwritten by an offline
+ * edit yet), so callers should enqueue before writing the edited row locally.
+ */
+const captureBaseUpdatedAt = async (store: StoreName, entityId: string): Promise<string | undefined> => {
+  try {
+    const existing = await getFromStore<{ updated_at?: unknown; _synced?: boolean }>(
+      store,
+      toStoreKey(store, entityId)
+    );
+    if (existing?._synced && typeof existing.updated_at === 'string' && existing.updated_at) {
+      return existing.updated_at;
+    }
+  } catch {
+    // Guard is an optimization — never block queueing on it.
+  }
+  return undefined;
+};
+
 export const addToSyncQueue = async (
   store: StoreName,
   operation: 'create' | 'update' | 'delete',
   data: unknown,
   entityId?: string
 ): Promise<string> => {
+  const baseUpdatedAt = operation === 'update' && entityId
+    ? await captureBaseUpdatedAt(store, entityId)
+    : undefined;
+
   const syncOp: SyncOperation = {
     id: crypto.randomUUID(),
     store,
@@ -329,6 +376,7 @@ export const addToSyncQueue = async (
     timestamp: Date.now(),
     retryCount: 0,
     status: 'pending',
+    ...(baseUpdatedAt ? { baseUpdatedAt } : {}),
   };
 
   await saveToStore(STORES.SYNC_QUEUE, syncOp);

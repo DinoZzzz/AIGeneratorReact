@@ -7,6 +7,8 @@ import type { DragEndEvent, DraggableAttributes, DraggableSyntheticListeners } f
 import { SortableContext, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import type { ReportForm } from '../../../types';
+import { SyncPendingBadge } from '../../../components/ui/SyncPendingBadge';
+import { STORES } from '../../../lib/offlineDb';
 
 interface ReportsTableProps {
     title: string;
@@ -168,6 +170,7 @@ export const ReportsTable = ({
                                         <div>
                                             <div className="font-medium text-foreground">
                                                 {report.type_id === 1 ? report.draft?.name || '-' : `${t('reports.air')} - ${report.draft?.name || '-'}`}
+                                                {' '}<SyncPendingBadge store={STORES.REPORTS} entityId={report.id} />
                                             </div>
                                             <div className="text-xs text-muted-foreground">
                                                 {new Date(report.examination_date).toLocaleDateString()}
@@ -309,6 +312,7 @@ export const ReportsTable = ({
                                                     </td>
                                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground font-medium">
                                                         {report.dionica || report.stock || '-'}
+                                                        {' '}<SyncPendingBadge store={STORES.REPORTS} entityId={report.id} />
                                                     </td>
                                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
                                                         {report.draft?.name || '-'}

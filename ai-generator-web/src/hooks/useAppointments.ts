@@ -122,8 +122,9 @@ const updateAppointmentOffline = async (id: string, appointment: AppointmentPayl
   } as Appointment;
 
   (updated as Appointment & { _is_offline: boolean })._is_offline = true;
-  await saveToStore(STORES.APPOINTMENTS, updated);
+  // Queue first so the conflict guard can read the pre-edit row.
   await addToSyncQueue(STORES.APPOINTMENTS, 'update', normalizedPayload, id);
+  await saveToStore(STORES.APPOINTMENTS, updated);
 
   return updated;
 };

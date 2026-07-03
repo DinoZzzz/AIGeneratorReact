@@ -10,6 +10,7 @@ type TestSyncOperation = {
   retryCount: number;
   status: 'pending' | 'in_progress' | 'failed' | 'discarded';
   error?: string;
+  baseUpdatedAt?: string;
 };
 
 const testState = vi.hoisted(() => ({
@@ -18,8 +19,11 @@ const testState = vi.hoisted(() => ({
   discardedOps: [] as TestSyncOperation[],
   persistedIdMap: {} as Record<string, string>,
   constructionRowsForCustomerDelete: [] as Array<{ id: string }>,
-  updateCalls: [] as Array<{ table: string; id: string; data: Record<string, unknown> }>,
+  updateCalls: [] as Array<{ table: string; id: string; data: Record<string, unknown>; guard?: string }>,
   deleteCalls: [] as Array<{ table: string; id: string }>,
+  // `${table}:${id}` -> current server updated_at; used to simulate the
+  // optimistic-concurrency guard (mismatch -> 0 rows updated).
+  serverUpdatedAt: {} as Record<string, string>,
 }));
 
 const offlineDbMock = vi.hoisted(() => ({
@@ -37,6 +41,7 @@ const offlineDbMock = vi.hoisted(() => ({
     EXPORT_HISTORY: 'export_history',
     EXPORT_HISTORY_FORMS: 'export_history_forms',
     REPORT_FILES: 'report_files',
+    FILE_BLOBS: 'file_blobs',
     TEMPLATE_CACHE: 'template_cache',
     UPLOADS: 'uploads',
     SYNC_QUEUE: 'sync_queue',
@@ -58,7 +63,9 @@ const offlineDbMock = vi.hoisted(() => ({
   resetSyncOperationForRetry: vi.fn(async () => {}),
   updateSyncOperationStatus: vi.fn(async () => {}),
   getByIndex: vi.fn(async () => []),
+  getAllFromStore: vi.fn(async () => []),
   getMetadata: vi.fn(async () => null),
+  saveMetadata: vi.fn(async () => {}),
   saveManyToStore: vi.fn(async () => {}),
   saveToStore: vi.fn(async () => {}),
   deleteFromStore: vi.fn(async () => {}),
@@ -82,16 +89,29 @@ const fromMock = vi.hoisted(() =>
         }),
       }),
     }),
-    update: (data: Record<string, unknown>) => ({
-      eq: (_field: string, id: string) => ({
+    update: (data: Record<string, unknown>) => {
+      const filters = { id: '', guard: undefined as string | undefined };
+      const resolve = async () => {
+        testState.updateCalls.push({ table, id: filters.id, data, guard: filters.guard });
+        const serverValue = testState.serverUpdatedAt[`${table}:${filters.id}`];
+        if (filters.guard !== undefined && serverValue !== undefined && serverValue !== filters.guard) {
+          return { data: null, error: null };
+        }
+        return { data: { id: filters.id, ...data }, error: null };
+      };
+      const builder = {
+        eq: (field: string, value: string) => {
+          if (field === 'id') filters.id = value;
+          if (field === 'updated_at') filters.guard = value;
+          return builder;
+        },
         select: () => ({
-          single: async () => {
-            testState.updateCalls.push({ table, id, data });
-            return { data: { id, ...data }, error: null };
-          },
+          single: resolve,
+          maybeSingle: resolve,
         }),
-      }),
-    }),
+      };
+      return builder;
+    },
     delete: () => ({
       eq: async (_field: string, id: string) => {
         testState.deleteCalls.push({ table, id });
@@ -164,6 +184,7 @@ describe('syncService offline flows', () => {
     testState.constructionRowsForCustomerDelete = [];
     testState.updateCalls = [];
     testState.deleteCalls = [];
+    testState.serverUpdatedAt = {};
     vi.clearAllMocks();
   });
 
@@ -197,6 +218,56 @@ describe('syncService offline flows', () => {
       id: 'report_1',
       data: { construction_id: 'construction_1', ordinal: 9 },
     });
+  });
+
+  it('sends the optimistic-concurrency guard with queued updates', async () => {
+    testState.serverUpdatedAt['report_forms:report-1'] = '2026-01-01T00:00:00+00:00';
+    testState.pendingOps = [{
+      id: 'op-guarded',
+      store: 'reports',
+      operation: 'update',
+      data: { ordinal: 4 },
+      entityId: 'report-1',
+      timestamp: 1,
+      retryCount: 0,
+      status: 'pending',
+      baseUpdatedAt: '2026-01-01T00:00:00+00:00',
+    }];
+
+    const result = await syncPendingOperations();
+
+    expect(result.success).toBe(1);
+    expect(testState.updateCalls[0]).toMatchObject({
+      table: 'report_forms',
+      id: 'report-1',
+      guard: '2026-01-01T00:00:00+00:00',
+    });
+    expect(offlineDbMock.removeSyncOperation).toHaveBeenCalledWith('op-guarded');
+  });
+
+  it('surfaces a conflict when the server row changed after the offline edit', async () => {
+    testState.serverUpdatedAt['report_forms:report-1'] = '2026-02-02T00:00:00+00:00';
+    testState.pendingOps = [{
+      id: 'op-conflicted',
+      store: 'reports',
+      operation: 'update',
+      data: { ordinal: 4 },
+      entityId: 'report-1',
+      timestamp: 1,
+      retryCount: 0,
+      status: 'pending',
+      baseUpdatedAt: '2026-01-01T00:00:00+00:00',
+    }];
+
+    const result = await syncPendingOperations();
+
+    expect(result.failed).toBe(1);
+    expect(offlineDbMock.removeSyncOperation).not.toHaveBeenCalledWith('op-conflicted');
+    expect(offlineDbMock.updateSyncOperationStatus).toHaveBeenCalledWith(
+      'op-conflicted',
+      'pending',
+      expect.stringContaining('Conflict')
+    );
   });
 
   it('uses cascade-safe delete service for construction delete operations', async () => {

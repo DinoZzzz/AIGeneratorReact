@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Loader2, ArrowLeft, Archive, Pin, PinOff } from 'lucide-react';
+import { Loader2, ArrowLeft, Archive, Pin, PinOff, CloudDownload } from 'lucide-react';
 import type { ReportForm, ReportFile, Profile } from '../types';
 import { ExportDialog } from '../components/ExportDialog';
 import { PdfLanguageDialog } from '../components/PdfLanguageDialog';
@@ -23,7 +23,7 @@ import { errorHandler, isNetworkError } from '../lib/errorHandler';
 import { useOffline } from '../context/OfflineContext';
 import { useCustomer } from '../hooks/useCustomers';
 import { useConstruction } from '../hooks/useConstructions';
-import { getByIndex, saveManyToStore, STORES } from '../lib/offlineDb';
+import { getByIndex, getFromStore, saveManyToStore, STORES } from '../lib/offlineDb';
 import { createQueuedUploadPreviewUrlMap, revokePreviewUrls } from '../lib/offlineUploadPreview';
 import {
     useCreateReport,
@@ -56,7 +56,8 @@ export const ConstructionReports = () => {
     const navigate = useNavigate();
     const { user, profile } = useAuth();
     const { t } = useLanguage();
-    const { isOnline } = useOffline();
+    const { isOnline, downloadForOffline } = useOffline();
+    const [downloadingOffline, setDownloadingOffline] = useState(false);
     const { addItem: addRecentItem } = useRecentlyViewed();
     const { isPinned, togglePin } = usePinnedItems();
     const { success: showSuccess, error: showError } = useToast();
@@ -217,7 +218,20 @@ export const ConstructionReports = () => {
             clearQueuedUploadPreviews();
             queuedUploadPreviewUrlsRef.current = Array.from(queuedPreviewUrls.values());
             const hydratedOfflineFiles = hydrateQueuedPreviewUrls(offlineFiles, queuedPreviewUrls);
-            const sortedHydratedOfflineFiles = hydratedOfflineFiles.sort(
+
+            // Files downloaded via "download for offline" have their contents
+            // in FILE_BLOBS — serve those through object URLs so previews and
+            // downloads keep working without a connection.
+            const blobHydratedFiles = await Promise.all(hydratedOfflineFiles.map(async (file) => {
+                if (queuedPreviewUrls.has(file.id)) return file;
+                const cached = await getFromStore<{ blob?: Blob }>(STORES.FILE_BLOBS, `report_file:${file.id}`);
+                if (!cached?.blob) return file;
+                const objectUrl = URL.createObjectURL(cached.blob);
+                queuedUploadPreviewUrlsRef.current.push(objectUrl);
+                return { ...file, file_path: objectUrl };
+            }));
+
+            const sortedHydratedOfflineFiles = blobHydratedFiles.sort(
                 (left, right) => new Date(right.created_at).getTime() - new Date(left.created_at).getTime()
             );
             setUploadedFiles(sortedHydratedOfflineFiles);
@@ -524,6 +538,26 @@ export const ConstructionReports = () => {
                                 {isPinned(constructionId!, 'construction')
                                     ? <PinOff className="h-4 w-4 text-primary" />
                                     : <Pin className="h-4 w-4 text-muted-foreground" />
+                                }
+                            </button>
+                            <button
+                                onClick={async () => {
+                                    setDownloadingOffline(true);
+                                    try {
+                                        await downloadForOffline({ constructionId: constructionId! });
+                                        showSuccess(t('offline.downloadDone'));
+                                        await loadFiles();
+                                    } finally {
+                                        setDownloadingOffline(false);
+                                    }
+                                }}
+                                disabled={!isOnline || downloadingOffline}
+                                className="p-1.5 rounded-md hover:bg-muted transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                title={t('offline.downloadConstruction')}
+                            >
+                                {downloadingOffline
+                                    ? <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                                    : <CloudDownload className="h-4 w-4 text-muted-foreground" />
                                 }
                             </button>
                         </div>

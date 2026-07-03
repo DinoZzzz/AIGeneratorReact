@@ -2,6 +2,8 @@ import { useEffect, useState, memo } from 'react';
 import { Link } from 'react-router-dom';
 import { Search, Plus } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
+import { getAllFromStore, STORES } from '../../lib/offlineDb';
+import { isNetworkError } from '../../lib/errorHandler';
 import { useLanguage } from '../../context/LanguageContext';
 import { useDebounce } from '../../hooks/useDebounce';
 
@@ -204,36 +206,78 @@ const DashboardCustomersTableComponent = () => {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [debouncedSearch, currentPage]);
 
+    // Offline: assemble the same customer+constructions shape from the local
+    // replica, filtered like the server-side ilike search.
+    const fetchCustomersOffline = async (): Promise<CustomerWithConstructions[]> => {
+        type LocalConstruction = ActiveConstruction & { customer_id?: string; is_active?: boolean };
+        const [customers, constructions] = await Promise.all([
+            getAllFromStore<Omit<CustomerWithConstructions, 'constructions'>>(STORES.CUSTOMERS),
+            getAllFromStore<LocalConstruction>(STORES.CONSTRUCTIONS),
+        ]);
+
+        const constructionsByCustomer = new Map<string, LocalConstruction[]>();
+        for (const construction of constructions) {
+            if (!construction.customer_id) continue;
+            const list = constructionsByCustomer.get(construction.customer_id) || [];
+            list.push(construction);
+            constructionsByCustomer.set(construction.customer_id, list);
+        }
+
+        const needle = debouncedSearch.toLowerCase();
+        return customers
+            .filter((customer) => !needle ||
+                customer.name?.toLowerCase().includes(needle) ||
+                customer.work_order?.toLowerCase().includes(needle))
+            .map((customer) => ({
+                ...customer,
+                constructions: constructionsByCustomer.get(customer.id) || [],
+            })) as CustomerWithConstructions[];
+    };
+
     const fetchCustomers = async () => {
         setLoading(true);
         try {
-            // Fetch all customers with their relations to calculate activity
-            let customerQuery = supabase
-                .from('customers')
-                .select(`
-                    id,
-                    name,
-                    work_order,
-                    updated_at,
-                    created_at,
-                    constructions (
-                        id,
-                        work_order,
-                        name,
-                        is_active,
-                        updated_at,
-                        created_at
-                    )
-                `);
+            let customersData: CustomerWithConstructions[] | null = null;
+            let activityFromServer = true;
 
-            if (debouncedSearch) {
-                const searchFilter = `name.ilike.%${debouncedSearch}%,work_order.ilike.%${debouncedSearch}%`;
-                customerQuery = customerQuery.or(searchFilter);
+            if (navigator.onLine) {
+                try {
+                    // Fetch all customers with their relations to calculate activity
+                    let customerQuery = supabase
+                        .from('customers')
+                        .select(`
+                            id,
+                            name,
+                            work_order,
+                            updated_at,
+                            created_at,
+                            constructions (
+                                id,
+                                work_order,
+                                name,
+                                is_active,
+                                updated_at,
+                                created_at
+                            )
+                        `);
+
+                    if (debouncedSearch) {
+                        const searchFilter = `name.ilike.%${debouncedSearch}%,work_order.ilike.%${debouncedSearch}%`;
+                        customerQuery = customerQuery.or(searchFilter);
+                    }
+
+                    const { data, error: customersError } = await customerQuery;
+                    if (customersError) throw customersError;
+                    customersData = data as unknown as CustomerWithConstructions[];
+                } catch (error) {
+                    if (!isNetworkError(error)) throw error;
+                    customersData = await fetchCustomersOffline();
+                    activityFromServer = false;
+                }
+            } else {
+                customersData = await fetchCustomersOffline();
+                activityFromServer = false;
             }
-
-            const { data: customersData, error: customersError } = await customerQuery;
-
-            if (customersError) throw customersError;
 
             if (!customersData || customersData.length === 0) {
                 setCustomers([]);
@@ -241,13 +285,17 @@ const DashboardCustomersTableComponent = () => {
                 return;
             }
 
-            const customerIds = (customersData as CustomerWithConstructions[]).map((c) => c.id);
+            const customerIds = customersData.map((c) => c.id);
 
-            // Get latest activity dates from all related tables in a single optimized call
-            const activityDates = await getLatestActivityDates(customerIds);
+            // Get latest activity dates from all related tables in a single
+            // optimized call (server only — offline falls back to the
+            // customer/construction timestamps already in the local rows).
+            const activityDates = activityFromServer
+                ? await getLatestActivityDates(customerIds)
+                : new Map<string, string>();
 
             // Format customers with activity calculation
-            const formatted: (CustomerTableItem & { last_activity_date: string })[] = (customersData as CustomerWithConstructions[]).map((c) => {
+            const formatted: (CustomerTableItem & { last_activity_date: string })[] = customersData.map((c) => {
                 const active = c.constructions
                     ?.filter((con) => con.is_active)
                     .map((con) => ({

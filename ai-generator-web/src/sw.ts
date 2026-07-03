@@ -5,7 +5,7 @@ import { ExpirationPlugin } from 'workbox-expiration';
 import { precacheAndRoute, cleanupOutdatedCaches, createHandlerBoundToURL } from 'workbox-precaching';
 import { NavigationRoute, registerRoute } from 'workbox-routing';
 import { CacheFirst, NetworkFirst } from 'workbox-strategies';
-import { syncPendingOperations } from './lib/syncService';
+import { syncPendingOperations, pullRemoteChanges } from './lib/syncService';
 
 declare let self: ServiceWorkerGlobalScope & {
   __WB_MANIFEST: Array<{ url: string; revision: string | null }>;
@@ -113,6 +113,9 @@ const postSyncStatusToClients = async (status: {
 const runOfflineSync = async () => {
   try {
     const result = await syncPendingOperations();
+    // Pull server-side changes too so background syncs keep the offline
+    // replica fresh; throttled internally.
+    await pullRemoteChanges();
     await postSyncStatusToClients({
       type: 'offline-sync-result',
       ...result,

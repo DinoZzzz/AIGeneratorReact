@@ -200,8 +200,9 @@ async function updateCustomerOffline(id: string, customer: Partial<Customer>): P
   } as any;
 
   (updated as Customer & { _is_offline: boolean })._is_offline = true;
-  await saveToStore(STORES.CUSTOMERS, updated);
+  // Queue first so the conflict guard can read the pre-edit row.
   await addToSyncQueue(STORES.CUSTOMERS, 'update', customer, id);
+  await saveToStore(STORES.CUSTOMERS, updated);
 
   return updated;
 }

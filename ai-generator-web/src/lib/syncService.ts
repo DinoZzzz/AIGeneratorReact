@@ -19,8 +19,11 @@ import {
   updateSyncOperationStatus,
   type SyncOperation,
   STORES,
+  type StoreName,
   getByIndex,
+  getAllFromStore,
   getMetadata,
+  saveMetadata,
   saveManyToStore,
   saveToStore,
   deleteFromStore,
@@ -84,7 +87,23 @@ type SyncOperationTelemetryEvent = {
   error?: string;
 };
 
-type SyncEvent = SyncLifecycleEvent | SyncOperationTelemetryEvent;
+type SyncPullEvent = {
+  type: 'pull_start' | 'pull_complete' | 'pull_error';
+  applied?: number;
+  deleted?: number;
+  errors?: number;
+  error?: string;
+};
+
+type OfflineDownloadEvent = {
+  type: 'download_progress' | 'download_complete' | 'download_error';
+  phase?: 'records' | 'files';
+  completed?: number;
+  total?: number;
+  error?: string;
+};
+
+type SyncEvent = SyncLifecycleEvent | SyncOperationTelemetryEvent | SyncPullEvent | OfflineDownloadEvent;
 type SyncEventCallback = (event: SyncEvent) => void;
 
 let syncInProgress = false;
@@ -120,6 +139,10 @@ const storeToTable: Record<string, string> = {
   [STORES.CERTIFIERS]: 'certifiers',
   [STORES.REPORT_FILES]: 'report_files',
 };
+
+const tableToStore: Record<string, StoreName> = Object.fromEntries(
+  Object.entries(storeToTable).map(([store, table]) => [table, store as StoreName])
+);
 
 interface PersistedSessionTokens {
   access_token: string;
@@ -1008,7 +1031,9 @@ const processUploadOperation = async (
 const handleOperationFailure = async (operation: SyncOperation, error: unknown): Promise<boolean> => {
   const errorMessage = error instanceof Error ? error.message : 'Unknown error';
   const isConflictError = isConflictErrorMessage(errorMessage);
-  const normalizedError = isConflictError ? `Conflict: ${errorMessage}` : errorMessage;
+  const normalizedError = isConflictError && !/^conflict/i.test(errorMessage)
+    ? `Conflict: ${errorMessage}`
+    : errorMessage;
   const isNetwork = isNetworkError(error);
   const nextRetryCount = operation.retryCount + 1;
   const uploadKind = operation.store === STORES.UPLOADS
@@ -1210,19 +1235,37 @@ const processSyncOperation = async (
         const mappedData = applyIdMap(operation.data, idMap);
         const cleanData = stripOfflineFields(mappedData);
 
-        const { data, error } = await supabase
+        let updateQuery = supabase
           .from(tableName)
           .update(cleanData)
-          .eq('id', remoteEntityId)
-          .select()
-          .single();
+          .eq('id', remoteEntityId);
+
+        // Optimistic concurrency: only overwrite the server row if it still
+        // matches the state this offline edit was based on. baseUpdatedAt is
+        // absent for creates-then-updates and legacy queue entries, which
+        // fall back to last-write-wins as before.
+        if (operation.baseUpdatedAt) {
+          updateQuery = updateQuery.eq('updated_at', operation.baseUpdatedAt);
+        }
+
+        const { data, error } = await updateQuery.select().maybeSingle();
 
         if (error) throw error;
 
-        // Update local store
-        if (data) {
-          await saveToStore(operation.store, { ...data, _synced: true });
+        if (!data) {
+          // Wording matters: must contain "conflict" (isConflictErrorMessage)
+          // and must avoid isNetworkError keywords so it fails fast instead
+          // of entering the network retry-backoff path.
+          if (operation.baseUpdatedAt) {
+            throw new Error(
+              'Conflict: the record was modified or deleted on the server after this change was queued'
+            );
+          }
+          throw new Error('Update failed: record not found on server');
         }
+
+        // Update local store
+        await saveToStore(operation.store, { ...data, _synced: true });
         break;
       }
 
@@ -1263,7 +1306,32 @@ const processSyncOperation = async (
 /**
  * Process all pending sync operations
  */
+// One lock shared by every context that can run a sync (app tabs and the
+// service worker), so the queue is never replayed concurrently — concurrent
+// replays of a create could insert duplicates. `ifAvailable` skips instead of
+// queueing: whoever holds the lock is already doing the work.
+const SYNC_LOCK_NAME = 'ai-generator-offline-sync';
+
+const runExclusiveSync = async <T>(task: () => Promise<T>, skippedResult: T): Promise<T> => {
+  if (typeof navigator !== 'undefined' && navigator.locks?.request) {
+    return navigator.locks.request(SYNC_LOCK_NAME, { ifAvailable: true }, async (lock) => {
+      if (!lock) return skippedResult;
+      return task();
+    });
+  }
+  return task();
+};
+
 export const syncPendingOperations = async (): Promise<{
+  success: number;
+  failed: number;
+  total: number;
+}> => runExclusiveSync(
+  () => syncPendingOperationsUnlocked(),
+  { success: 0, failed: 0, total: 0 }
+);
+
+const syncPendingOperationsUnlocked = async (): Promise<{
   success: number;
   failed: number;
   total: number;
@@ -1680,4 +1748,385 @@ export const resolveConflictPreferLocalById = async (operationId: string): Promi
     });
     return false;
   }
+};
+
+// ============================================================================
+// Delta pull sync — replicates server-side changes into IndexedDB so data is
+// available offline without having visited the page that shows it.
+// ============================================================================
+
+interface PullCursor {
+  ts: string;
+  id: string | number;
+}
+
+const PULL_CURSOR_PREFIX = 'pull_cursor_';
+const TOMBSTONE_CURSOR_KEY = 'pull_cursor_tombstones';
+const LAST_PULL_AT_KEY = 'last_pull_at';
+const PULL_PAGE_SIZE = 500;
+// Sync fires on focus/online/interval; skip pulls in rapid succession.
+const MIN_PULL_INTERVAL_MS = 60_000;
+
+const PULL_STORES: StoreName[] = [
+  STORES.CUSTOMERS,
+  STORES.CONSTRUCTIONS,
+  STORES.REPORTS,
+  STORES.APPOINTMENTS,
+  STORES.MESSAGES,
+  STORES.EXAMINERS,
+  STORES.MATERIALS,
+  STORES.SCHEME_IMAGES,
+  STORES.CERTIFIERS,
+  STORES.REPORT_FILES,
+];
+
+export interface PullResult {
+  applied: number;
+  deleted: number;
+  errors: number;
+  skipped: boolean;
+}
+
+/**
+ * Keys (`store:entityId`) of rows with queued local changes. The pull must
+ * not overwrite or delete these: the queue replay is their path to the
+ * server, and clobbering the local row would discard the offline edit from
+ * the UI before it ever synced.
+ */
+const getLocallyModifiedKeys = async (): Promise<Set<string>> => {
+  const [pending, failed, persistedIdMap] = await Promise.all([
+    getPendingSyncOperations(),
+    getFailedSyncOperations(),
+    getPersistedSyncIdMap(),
+  ]);
+
+  const keys = new Set<string>();
+  for (const operation of [...pending, ...failed]) {
+    if (!operation.entityId) continue;
+    keys.add(`${operation.store}:${operation.entityId}`);
+    const mapped = persistedIdMap[operation.entityId];
+    if (mapped) {
+      keys.add(`${operation.store}:${mapped}`);
+    }
+  }
+  return keys;
+};
+
+const pullStoreChanges = async (store: StoreName, protectedKeys: Set<string>): Promise<number> => {
+  const table = storeToTable[store];
+  const cursorKey = `${PULL_CURSOR_PREFIX}${table}`;
+  let cursor = await getMetadata<PullCursor>(cursorKey);
+  let applied = 0;
+
+  for (;;) {
+    let query = supabase
+      .from(table)
+      .select('*')
+      .order('updated_at', { ascending: true, nullsFirst: true })
+      .order('id', { ascending: true })
+      .limit(PULL_PAGE_SIZE);
+
+    if (cursor) {
+      // Keyset pagination on (updated_at, id): a plain updated_at.gt filter
+      // would skip rows that share one timestamp across a page boundary,
+      // which bulk backfills make common.
+      query = query.or(
+        `updated_at.gt."${cursor.ts}",and(updated_at.eq."${cursor.ts}",id.gt."${cursor.id}")`
+      );
+    }
+
+    const { data, error } = await query;
+    if (error) throw error;
+
+    const rows = (data ?? []) as Array<Record<string, unknown>>;
+    if (rows.length === 0) break;
+
+    const safeRows = rows.filter((row) => {
+      const id = row.id;
+      if (typeof id !== 'string' && typeof id !== 'number') return false;
+      return !protectedKeys.has(`${store}:${String(id)}`);
+    });
+
+    if (safeRows.length > 0) {
+      await saveManyToStore(store, safeRows.map((row) => ({ ...row, _synced: true })));
+      applied += safeRows.length;
+    }
+
+    const last = rows[rows.length - 1];
+    const lastTs = last?.updated_at;
+    const lastId = last?.id;
+    if (typeof lastTs === 'string' && lastTs && (typeof lastId === 'string' || typeof lastId === 'number')) {
+      cursor = { ts: lastTs, id: lastId };
+    } else {
+      // Rows without updated_at (pre-migration data) cannot advance the
+      // cursor; stop here and re-read them on the next pull.
+      break;
+    }
+
+    if (rows.length < PULL_PAGE_SIZE) break;
+  }
+
+  if (cursor) {
+    await saveMetadata(cursorKey, cursor);
+  }
+  return applied;
+};
+
+interface TombstoneRow {
+  id: number;
+  table_name: string;
+  row_id: string;
+}
+
+const isMissingRelationError = (error: unknown): boolean => {
+  if (!error || typeof error !== 'object') return false;
+  const code = String((error as { code?: unknown }).code ?? '');
+  if (code === '42P01') return true;
+  const message = String((error as { message?: unknown }).message ?? '').toLowerCase();
+  return message.includes('sync_tombstones') && (message.includes('not exist') || message.includes('not find'));
+};
+
+const pullTombstones = async (protectedKeys: Set<string>): Promise<number> => {
+  let cursor = (await getMetadata<number>(TOMBSTONE_CURSOR_KEY)) ?? 0;
+  let deleted = 0;
+
+  for (;;) {
+    const { data, error } = await supabase
+      .from('sync_tombstones')
+      .select('id, table_name, row_id')
+      .gt('id', cursor)
+      .order('id', { ascending: true })
+      .limit(PULL_PAGE_SIZE);
+
+    if (error) {
+      // The tombstone table ships in a later migration than this client
+      // code; treat its absence as "no deletes to propagate".
+      if (isMissingRelationError(error)) return deleted;
+      throw error;
+    }
+
+    const rows = (data ?? []) as TombstoneRow[];
+    if (rows.length === 0) break;
+
+    for (const tombstone of rows) {
+      cursor = tombstone.id;
+      const store = tableToStore[tombstone.table_name];
+      if (!store || !tombstone.row_id) continue;
+      // A queued local change references this row; let the queue replay
+      // fail and surface it as a conflict instead of silently deleting.
+      if (protectedKeys.has(`${store}:${tombstone.row_id}`)) continue;
+      await deleteFromStore(store, toLocalStoreKey(store, tombstone.row_id));
+      deleted += 1;
+    }
+
+    if (rows.length < PULL_PAGE_SIZE) break;
+  }
+
+  await saveMetadata(TOMBSTONE_CURSOR_KEY, cursor);
+  return deleted;
+};
+
+let lastPullStartedAt = 0;
+
+/**
+ * Pull server-side changes (and deletes) since the last pull into IndexedDB.
+ * Throttled unless `force` is set; safe to call from any context — a Web Lock
+ * prevents overlapping with queue replay or pulls from other tabs/the SW.
+ */
+export const pullRemoteChanges = async (options: { force?: boolean } = {}): Promise<PullResult> => {
+  const skipped: PullResult = { applied: 0, deleted: 0, errors: 0, skipped: true };
+
+  if (typeof navigator !== 'undefined' && navigator.onLine === false) return skipped;
+  if (!options.force && Date.now() - lastPullStartedAt < MIN_PULL_INTERVAL_MS) return skipped;
+
+  return runExclusiveSync(async () => {
+    if (!options.force && Date.now() - lastPullStartedAt < MIN_PULL_INTERVAL_MS) return skipped;
+    lastPullStartedAt = Date.now();
+
+    await rehydrateSupabaseSession();
+
+    // Never pull unauthenticated: RLS would return empty result sets, which
+    // are indistinguishable from "nothing changed".
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return skipped;
+
+    emitSyncEvent({ type: 'pull_start' });
+
+    const result: PullResult = { applied: 0, deleted: 0, errors: 0, skipped: false };
+
+    let protectedKeys: Set<string>;
+    try {
+      protectedKeys = await getLocallyModifiedKeys();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown pull error';
+      console.error('Pull sync could not read the local queue:', error);
+      emitSyncEvent({ type: 'pull_error', error: message });
+      return { ...result, errors: 1 };
+    }
+
+    for (const store of PULL_STORES) {
+      try {
+        result.applied += await pullStoreChanges(store, protectedKeys);
+      } catch (error) {
+        result.errors += 1;
+        console.warn(`Pull sync failed for ${store}:`, error);
+      }
+    }
+
+    try {
+      result.deleted += await pullTombstones(protectedKeys);
+    } catch (error) {
+      result.errors += 1;
+      console.warn('Pull sync failed for tombstones:', error);
+    }
+
+    await saveMetadata(LAST_PULL_AT_KEY, Date.now());
+    emitSyncEvent({
+      type: 'pull_complete',
+      applied: result.applied,
+      deleted: result.deleted,
+      errors: result.errors,
+    });
+    return result;
+  }, skipped);
+};
+
+export const getLastPullTime = async (): Promise<Date | null> => {
+  const value = await getMetadata<number>(LAST_PULL_AT_KEY);
+  return typeof value === 'number' && value > 0 ? new Date(value) : null;
+};
+
+/**
+ * Reset pull cursors. Must run when the signed-in user changes: pulls are
+ * scoped by RLS, so another user's cursor would hide rows they can see.
+ */
+export const resetPullCursors = async (): Promise<void> => {
+  await Promise.all([
+    ...PULL_STORES.map((store) => saveMetadata(`${PULL_CURSOR_PREFIX}${storeToTable[store]}`, undefined)),
+    saveMetadata(TOMBSTONE_CURSOR_KEY, undefined),
+    saveMetadata(LAST_PULL_AT_KEY, 0),
+  ]);
+};
+
+// ============================================================================
+// Download-for-offline — full pull plus the file contents (report
+// attachments, scheme images, certifier signatures) that exports and
+// previews need while offline.
+// ============================================================================
+
+export interface OfflineDownloadResult {
+  pulledRecords: number;
+  filesDownloaded: number;
+  filesFailed: number;
+}
+
+interface DownloadableFile {
+  id: string;
+  url: string;
+  construction_id?: string;
+  file_name?: string;
+}
+
+const collectDownloadableFiles = async (constructionId?: string): Promise<DownloadableFile[]> => {
+  const files: DownloadableFile[] = [];
+
+  type ReportFileRow = { id: string; file_path?: string; construction_id?: string; file_name?: string };
+  const reportFiles = constructionId
+    ? await getByIndex<ReportFileRow>(STORES.REPORT_FILES, 'construction_id', constructionId)
+    : await getAllFromStore<ReportFileRow>(STORES.REPORT_FILES);
+
+  for (const file of reportFiles) {
+    if (!file.file_path || file.id.startsWith('temp_file_')) continue;
+    const { data } = supabase.storage.from('report-files').getPublicUrl(file.file_path);
+    if (data.publicUrl) {
+      files.push({
+        id: `report_file:${file.id}`,
+        url: data.publicUrl,
+        construction_id: file.construction_id,
+        file_name: file.file_name,
+      });
+    }
+  }
+
+  if (!constructionId) {
+    const schemes = await getAllFromStore<{ id: string; file_path?: string }>(STORES.SCHEME_IMAGES);
+    for (const scheme of schemes) {
+      if (!scheme.file_path) continue;
+      const { data } = supabase.storage.from('scheme-images').getPublicUrl(scheme.file_path);
+      if (data.publicUrl) {
+        files.push({ id: `scheme:${scheme.id}`, url: data.publicUrl });
+      }
+    }
+
+    const certifiers = await getAllFromStore<{ id: string; signature_url?: string }>(STORES.CERTIFIERS);
+    for (const certifier of certifiers) {
+      if (certifier.signature_url) {
+        files.push({ id: `signature:${certifier.id}`, url: certifier.signature_url });
+      }
+    }
+  }
+
+  return files;
+};
+
+const FILE_DOWNLOAD_CONCURRENCY = 4;
+
+/**
+ * Make the app fully usable offline: force a pull of all synced tables, then
+ * download file contents into IndexedDB. Fetching from a window context also
+ * routes through the service worker, warming its runtime storage cache for
+ * plain <img src> consumers. Pass constructionId to limit file downloads to
+ * one construction (records are always pulled globally — they're one query).
+ */
+export const downloadForOffline = async (
+  options: { constructionId?: string } = {}
+): Promise<OfflineDownloadResult> => {
+  emitSyncEvent({ type: 'download_progress', phase: 'records', completed: 0, total: 1 });
+
+  const pullResult = await pullRemoteChanges({ force: true });
+
+  const files = await collectDownloadableFiles(options.constructionId);
+  let filesDownloaded = 0;
+  let filesFailed = 0;
+
+  emitSyncEvent({ type: 'download_progress', phase: 'files', completed: 0, total: files.length });
+
+  for (let i = 0; i < files.length; i += FILE_DOWNLOAD_CONCURRENCY) {
+    const batch = files.slice(i, i + FILE_DOWNLOAD_CONCURRENCY);
+    await Promise.all(batch.map(async (file) => {
+      try {
+        const response = await fetch(file.url);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const blob = await response.blob();
+        await saveToStore(STORES.FILE_BLOBS, {
+          id: file.id,
+          url: file.url,
+          construction_id: file.construction_id,
+          file_name: file.file_name,
+          content_type: blob.type,
+          size: blob.size,
+          blob,
+          cached_at: Date.now(),
+        });
+        filesDownloaded += 1;
+      } catch (error) {
+        filesFailed += 1;
+        console.warn(`Offline download failed for ${file.url}:`, error);
+      }
+      emitSyncEvent({
+        type: 'download_progress',
+        phase: 'files',
+        completed: filesDownloaded + filesFailed,
+        total: files.length,
+      });
+    }));
+  }
+
+  const result: OfflineDownloadResult = {
+    pulledRecords: pullResult.applied,
+    filesDownloaded,
+    filesFailed,
+  };
+  emitSyncEvent({ type: 'download_complete', completed: filesDownloaded, total: files.length });
+  return result;
 };

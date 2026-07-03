@@ -4,6 +4,7 @@ import type { Profile } from '../types';
 import { setUserContext, clearUserContext } from '../lib/sentry';
 import { clearStore, saveMetadata, STORES } from '../lib/offlineDb';
 import { prewarmLookupCache } from '../lib/offlineLookupCache';
+import { pullRemoteChanges } from '../lib/syncService';
 import { syncPushSubscriptionIfEnabled } from '../lib/notificationService';
 import { registerSession, updateLastActive, revokeCurrentSession } from '../services/sessionService';
 
@@ -51,6 +52,7 @@ const clearOfflineSessionData = async () => {
         clearStore(STORES.EXPORT_HISTORY),
         clearStore(STORES.EXPORT_HISTORY_FORMS),
         clearStore(STORES.REPORT_FILES),
+        clearStore(STORES.FILE_BLOBS),
         clearStore(STORES.TEMPLATE_CACHE),
         clearStore(STORES.UPLOADS),
         clearStore(STORES.SYNC_QUEUE),
@@ -168,10 +170,26 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             }
             warmedLookupUserRef.current = user.id;
             await prewarmLookupCache();
+            // Replicate server data into IndexedDB right after login so the
+            // app works offline even for pages the user hasn't visited yet.
+            await pullRemoteChanges();
         };
 
         void warmLookups();
     }, [lowBandwidthMode, user]);
+
+    // Ask the browser to protect IndexedDB + caches from storage-pressure
+    // eviction (Safari in particular evicts unused PWA data after ~7 days).
+    const storagePersistRequestedRef = useRef(false);
+    useEffect(() => {
+        if (!user || storagePersistRequestedRef.current) return;
+        storagePersistRequestedRef.current = true;
+        navigator.storage?.persist?.().then((granted) => {
+            if (!granted) {
+                console.info('Persistent storage was not granted; offline data may be evicted under storage pressure.');
+            }
+        }).catch(() => {});
+    }, [user]);
 
     useEffect(() => {
         if (!user?.id) return;

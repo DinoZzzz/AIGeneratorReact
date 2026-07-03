@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom';
 import { FileText, CheckCircle2, XCircle, Clock, Droplets, Wind } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../../lib/supabase';
+import { getAllFromStore, STORES } from '../../lib/offlineDb';
+import { useOfflineQuery } from '../../hooks/useOfflineMutation';
 import { useLanguage } from '../../context/LanguageContext';
 import { formatDistanceToNow } from 'date-fns';
 import { cn } from '../../lib/utils';
@@ -20,7 +22,7 @@ interface RecentReport {
 }
 
 const useRecentReports = () => {
-    return useQuery({
+    return useQuery(useOfflineQuery({
         queryKey: ['dashboard', 'recent-reports'],
         queryFn: async () => {
             const { data, error } = await supabase
@@ -32,8 +34,23 @@ const useRecentReports = () => {
             if (error) throw error;
             return data as RecentReport[];
         },
-        staleTime: 2 * 60 * 1000,
-    });
+        offlineFn: async () => {
+            const [reports, constructions] = await Promise.all([
+                getAllFromStore<Omit<RecentReport, 'construction'>>(STORES.REPORTS),
+                getAllFromStore<{ id: string; name: string }>(STORES.CONSTRUCTIONS),
+            ]);
+            const nameById = new Map(constructions.map((c) => [c.id, c.name]));
+            return [...reports]
+                .sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime())
+                .slice(0, 5)
+                .map((report) => ({
+                    ...report,
+                    construction: report.construction_id && nameById.has(report.construction_id)
+                        ? { name: nameById.get(report.construction_id)! }
+                        : null,
+                }));
+        },
+    }));
 };
 
 function getReportHref(report: RecentReport): string {

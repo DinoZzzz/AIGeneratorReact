@@ -193,11 +193,11 @@ async function updateConstructionOffline(id: string, construction: Partial<Const
   // Mark as having offline changes
   (updated as Construction & { _is_offline: boolean })._is_offline = true;
 
+  // Queue first so the conflict guard can read the pre-edit row.
+  await addToSyncQueue(STORES.CONSTRUCTIONS, 'update', construction, id);
+
   // Save to local store
   await saveToStore(STORES.CONSTRUCTIONS, updated);
-
-  // Add to sync queue
-  await addToSyncQueue(STORES.CONSTRUCTIONS, 'update', construction, id);
 
   return updated;
 }

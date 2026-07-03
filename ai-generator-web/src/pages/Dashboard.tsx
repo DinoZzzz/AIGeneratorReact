@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Users, HardHat, FileText, ArrowUpRight } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { getAllFromStore, STORES } from '../lib/offlineDb';
+import { useOfflineQuery } from '../hooks/useOfflineMutation';
 import { cn } from '../lib/utils';
 import { formatTodayLong } from '../utils/dateFormatter';
 import { useAuth } from '../context/AuthContext';
@@ -17,9 +19,9 @@ import { DashboardCustomizer } from '../components/dashboard/DashboardCustomizer
 import { StatsCardsSkeleton } from '../components/skeletons/CardSkeleton';
 import { useDashboardLayout } from '../hooks/useDashboardLayout';
 
-// Dashboard stats query
+// Dashboard stats query — falls back to counts from the local replica offline
 const useDashboardStats = () => {
-    return useQuery({
+    return useQuery(useOfflineQuery({
         queryKey: ['dashboard', 'stats'],
         queryFn: async () => {
             const [
@@ -38,8 +40,19 @@ const useDashboardStats = () => {
                 reports: reportsCount || 0
             };
         },
-        staleTime: 5 * 60 * 1000, // 5 minutes
-    });
+        offlineFn: async () => {
+            const [customers, constructions, reports] = await Promise.all([
+                getAllFromStore(STORES.CUSTOMERS),
+                getAllFromStore(STORES.CONSTRUCTIONS),
+                getAllFromStore(STORES.REPORTS)
+            ]);
+            return {
+                customers: customers.length,
+                constructions: constructions.length,
+                reports: reports.length
+            };
+        },
+    }));
 };
 
 export const Dashboard = () => {

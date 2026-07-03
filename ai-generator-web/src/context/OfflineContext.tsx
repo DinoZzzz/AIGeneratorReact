@@ -1,6 +1,9 @@
 import { createContext, useContext, useEffect, useState, useCallback, useMemo, useRef, type ReactNode } from 'react';
 import {
   syncPendingOperations,
+  pullRemoteChanges,
+  getLastPullTime,
+  downloadForOffline as runOfflineDownload,
   onSyncEvent,
   isSyncInProgress,
   retryFailedOperations,
@@ -13,17 +16,26 @@ import {
 import {
   getDiscardedSyncOperations,
   getFailedSyncOperations,
+  getPendingSyncOperations,
   getSyncQueueSummary,
   cleanupStaleUploadOperations,
   resetStuckSyncOperations,
   type SyncOperation
 } from '../lib/offlineDb';
+import { queryClient } from '../lib/queryClient';
 import { captureError, logger } from '../lib/sentry';
 
 interface SyncStatus {
   total: number;
   completed: number;
   failed: number;
+  inProgress: boolean;
+}
+
+interface DownloadStatus {
+  phase: 'records' | 'files';
+  completed: number;
+  total: number;
   inProgress: boolean;
 }
 
@@ -34,8 +46,12 @@ interface OfflineContextType {
   discardedChanges: number;
   failedOperations: SyncOperation[];
   discardedOperations: SyncOperation[];
+  /** `${store}:${entityId}` for every queued (pending or failed) local change — drives per-row sync badges. */
+  pendingEntityKeys: Set<string>;
   syncStatus: SyncStatus | null;
+  downloadStatus: DownloadStatus | null;
   triggerSync: () => Promise<void>;
+  downloadForOffline: (options?: { constructionId?: string }) => Promise<void>;
   retryFailedSync: () => Promise<void>;
   retryFailedOperation: (operationId: string) => Promise<void>;
   discardFailedOperation: (operationId: string) => Promise<void>;
@@ -43,6 +59,8 @@ interface OfflineContextType {
   resolveConflictUseServer: (operationId: string) => Promise<void>;
   resolveConflictPreferLocal: (operationId: string) => Promise<void>;
   lastSyncTime: Date | null;
+  /** When the last successful pull of server data finished (null until one has run). */
+  lastPulledAt: Date | null;
 }
 
 const OfflineContext = createContext<OfflineContextType | undefined>(undefined);
@@ -73,6 +91,19 @@ const areOperationListsEqual = (a: SyncOperation[], b: SyncOperation[]): boolean
     );
   });
 
+const areSetsEqual = (a: Set<string>, b: Set<string>): boolean =>
+  a.size === b.size && [...a].every((key) => b.has(key));
+
+const toEntityKeys = (operations: SyncOperation[]): Set<string> => {
+  const keys = new Set<string>();
+  for (const operation of operations) {
+    if (operation.entityId) {
+      keys.add(`${operation.store}:${operation.entityId}`);
+    }
+  }
+  return keys;
+};
+
 export const OfflineProvider = ({ children }: { children: ReactNode }) => {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [pendingChanges, setPendingChanges] = useState(0);
@@ -80,8 +111,11 @@ export const OfflineProvider = ({ children }: { children: ReactNode }) => {
   const [discardedChanges, setDiscardedChanges] = useState(0);
   const [failedOperations, setFailedOperations] = useState<SyncOperation[]>([]);
   const [discardedOperations, setDiscardedOperations] = useState<SyncOperation[]>([]);
+  const [pendingEntityKeys, setPendingEntityKeys] = useState<Set<string>>(() => new Set());
   const [syncStatus, setSyncStatus] = useState<SyncStatus | null>(null);
+  const [downloadStatus, setDownloadStatus] = useState<DownloadStatus | null>(null);
   const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null);
+  const [lastPulledAt, setLastPulledAt] = useState<Date | null>(null);
 
   const syncTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const hasPendingSync = useRef(false);
@@ -103,10 +137,11 @@ export const OfflineProvider = ({ children }: { children: ReactNode }) => {
   const updatePendingCount = useCallback(async () => {
     try {
       await runUploadQueueCleanup();
-      const [summary, failedOps, discardedOps] = await Promise.all([
+      const [summary, failedOps, discardedOps, pendingOps] = await Promise.all([
         getSyncQueueSummary(),
         getFailedSyncOperations(),
-        getDiscardedSyncOperations()
+        getDiscardedSyncOperations(),
+        getPendingSyncOperations()
       ]);
       setPendingChanges(summary.pending + summary.failed);
       setFailedChanges(summary.failed);
@@ -115,6 +150,8 @@ export const OfflineProvider = ({ children }: { children: ReactNode }) => {
       const sortedDiscarded = [...discardedOps].sort((a, b) => b.timestamp - a.timestamp);
       setFailedOperations((prev) => (areOperationListsEqual(prev, sortedFailed) ? prev : sortedFailed));
       setDiscardedOperations((prev) => (areOperationListsEqual(prev, sortedDiscarded) ? prev : sortedDiscarded));
+      const entityKeys = toEntityKeys([...pendingOps, ...failedOps]);
+      setPendingEntityKeys((prev) => (areSetsEqual(prev, entityKeys) ? prev : entityKeys));
     } catch (error) {
       console.error('Failed to get pending sync count:', error);
     }
@@ -139,7 +176,10 @@ export const OfflineProvider = ({ children }: { children: ReactNode }) => {
     syncTimeoutRef.current = setTimeout(async () => {
       try {
         const result = await syncPendingOperations();
-        if (result.total > 0) {
+        // After pushing local changes, pull server-side changes so the
+        // offline replica stays fresh (throttled inside the service).
+        const pullResult = await pullRemoteChanges();
+        if (result.total > 0 || (!pullResult.skipped && (pullResult.applied > 0 || pullResult.deleted > 0))) {
           setLastSyncTime(new Date());
         }
         await updatePendingCount();
@@ -148,13 +188,24 @@ export const OfflineProvider = ({ children }: { children: ReactNode }) => {
         if (hasPendingSync.current) {
           hasPendingSync.current = false;
           // Recursive call is intentional for retry logic
-          // eslint-disable-next-line
           triggerSync();
         }
       } catch (error) {
         console.error('Sync failed:', error);
       }
     }, SYNC_DEBOUNCE_MS);
+  }, [updatePendingCount]);
+
+  const downloadForOffline = useCallback(async (options?: { constructionId?: string }) => {
+    if (!navigator.onLine) return;
+    try {
+      await runOfflineDownload(options);
+    } catch (error) {
+      console.error('Offline download failed:', error);
+      setDownloadStatus(null);
+    } finally {
+      await updatePendingCount();
+    }
   }, [updatePendingCount]);
 
   const retryFailedSync = useCallback(async () => {
@@ -290,6 +341,34 @@ export const OfflineProvider = ({ children }: { children: ReactNode }) => {
           );
           void updatePendingCount();
           break;
+        case 'pull_complete':
+          setLastPulledAt(new Date());
+          if ((event.applied || 0) > 0 || (event.deleted || 0) > 0) {
+            // Server data changed underneath the UI — refetch everything
+            // that's on screen from the (now updated) sources.
+            void queryClient.invalidateQueries();
+          }
+          break;
+        case 'pull_error':
+          logger.warn('Pull sync error', { error: event.error });
+          break;
+        case 'pull_start':
+          break;
+        case 'download_progress':
+          setDownloadStatus({
+            phase: event.phase || 'records',
+            completed: event.completed || 0,
+            total: event.total || 0,
+            inProgress: true,
+          });
+          break;
+        case 'download_complete':
+          setDownloadStatus(null);
+          break;
+        case 'download_error':
+          setDownloadStatus(null);
+          logger.error('Offline download error', { error: event.error });
+          break;
         case 'sync_operation':
           if (event.outcome === 'failure') {
             logger.error('Offline sync operation failed', {
@@ -334,6 +413,15 @@ export const OfflineProvider = ({ children }: { children: ReactNode }) => {
     const interval = setInterval(updatePendingCount, PENDING_CHECK_INTERVAL_MS);
     return () => clearInterval(interval);
   }, [updatePendingCount]);
+
+  // Restore the last pull time so "last synced" survives reloads.
+  useEffect(() => {
+    getLastPullTime()
+      .then((time) => {
+        if (time) setLastPulledAt(time);
+      })
+      .catch(() => {});
+  }, []);
 
   // Recover interrupted sync state and then attempt sync if online
   useEffect(() => {
@@ -419,8 +507,11 @@ export const OfflineProvider = ({ children }: { children: ReactNode }) => {
       discardedChanges,
       failedOperations,
       discardedOperations,
+      pendingEntityKeys,
       syncStatus,
+      downloadStatus,
       triggerSync,
+      downloadForOffline,
       retryFailedSync,
       retryFailedOperation,
       discardFailedOperation,
@@ -428,6 +519,7 @@ export const OfflineProvider = ({ children }: { children: ReactNode }) => {
       resolveConflictUseServer,
       resolveConflictPreferLocal,
       lastSyncTime,
+      lastPulledAt,
     }),
     [
       isOnline,
@@ -436,8 +528,11 @@ export const OfflineProvider = ({ children }: { children: ReactNode }) => {
       discardedChanges,
       failedOperations,
       discardedOperations,
+      pendingEntityKeys,
       syncStatus,
+      downloadStatus,
       triggerSync,
+      downloadForOffline,
       retryFailedSync,
       retryFailedOperation,
       discardFailedOperation,
@@ -445,6 +540,7 @@ export const OfflineProvider = ({ children }: { children: ReactNode }) => {
       resolveConflictUseServer,
       resolveConflictPreferLocal,
       lastSyncTime,
+      lastPulledAt,
     ]
   );
 

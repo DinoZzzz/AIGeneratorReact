@@ -237,11 +237,12 @@ async function updateReportOffline(id: string, report: Partial<ReportForm>): Pro
   // Mark as having offline changes
   (updated as ReportForm & { _is_offline: boolean })._is_offline = true;
 
+  // Queue first: addToSyncQueue captures the pre-edit row's server
+  // updated_at as a conflict guard before the local row is overwritten.
+  await addToSyncQueue(STORES.REPORTS, 'update', report, id);
+
   // Save to local store
   await saveToStore(STORES.REPORTS, updated);
-
-  // Add to sync queue
-  await addToSyncQueue(STORES.REPORTS, 'update', report, id);
 
   return updated;
 }

@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom';
 import { Activity, FileText, Clock } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../../lib/supabase';
+import { getAllFromStore, STORES } from '../../lib/offlineDb';
+import { useOfflineQuery } from '../../hooks/useOfflineMutation';
 import { useLanguage } from '../../context/LanguageContext';
 import { formatDistanceToNow } from 'date-fns';
 
@@ -19,7 +21,7 @@ interface ActivityItem {
 }
 
 const useRecentActivity = () => {
-    return useQuery({
+    return useQuery(useOfflineQuery({
         queryKey: ['dashboard', 'activity'],
         queryFn: async () => {
             const { data, error } = await supabase
@@ -31,8 +33,23 @@ const useRecentActivity = () => {
             if (error) throw error;
             return data as ActivityItem[];
         },
-        staleTime: 2 * 60 * 1000,
-    });
+        offlineFn: async () => {
+            const [reports, constructions] = await Promise.all([
+                getAllFromStore<Omit<ActivityItem, 'construction'>>(STORES.REPORTS),
+                getAllFromStore<{ id: string; name: string }>(STORES.CONSTRUCTIONS),
+            ]);
+            const nameById = new Map(constructions.map((c) => [c.id, c.name]));
+            return [...reports]
+                .sort((a, b) => new Date(b.updated_at || b.created_at || 0).getTime() - new Date(a.updated_at || a.created_at || 0).getTime())
+                .slice(0, 10)
+                .map((report) => ({
+                    ...report,
+                    construction: report.construction_id && nameById.has(report.construction_id)
+                        ? { name: nameById.get(report.construction_id)! }
+                        : null,
+                }));
+        },
+    }));
 };
 
 const ActivityFeedComponent = () => {

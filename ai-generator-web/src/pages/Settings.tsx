@@ -5,6 +5,7 @@ import { useOffline } from '../context/OfflineContext';
 import { supabase } from '../lib/supabase';
 import { Settings2, Shield } from 'lucide-react';
 import { GeneralSettings } from '../components/settings/GeneralSettings';
+import { OfflineDataManager } from '../components/settings/OfflineDataManager';
 import { CertifiersManager } from '../components/settings/CertifiersManager';
 import { MaterialsManager } from '../components/settings/MaterialsManager';
 import { TemplateEditor } from '../components/settings/TemplateEditor';
@@ -83,7 +84,12 @@ export const Settings = () => {
                 )}
             </div>
 
-            {activeTab === 'general' && <GeneralSettings />}
+            {activeTab === 'general' && (
+                <div className="space-y-6 sm:space-y-8">
+                    <GeneralSettings />
+                    <OfflineDataManager />
+                </div>
+            )}
 
             {activeTab === 'admin' && isAdmin && (
                 <div className="space-y-6 sm:space-y-8">

@@ -8,6 +8,8 @@ import { errorHandler } from '../lib/errorHandler';
 import { useToast } from '../context/ToastContext';
 import { useConfirm } from '../context/useConfirm';
 import { formatDate } from '../utils/dateFormatter';
+import { SyncPendingBadge } from '../components/ui/SyncPendingBadge';
+import { STORES } from '../lib/offlineDb';
 
 
 type SortField = 'work_order' | 'name' | 'location' | 'address' | 'created_at' | 'last_activity';
@@ -194,6 +196,7 @@ export const Customers = () => {
                                             {customer.work_order || '-'}
                                         </span>
                                         <h3 className="text-lg font-bold text-foreground truncate max-w-[200px] md:max-w-[300px]" title={customer.name}>{customer.name}</h3>
+                                        <SyncPendingBadge store={STORES.CUSTOMERS} entityId={customer.id} />
                                     </div>
                                     <div className="flex space-x-2">
                                         <Link
@@ -281,6 +284,7 @@ export const Customers = () => {
                                         </td>
                                         <td className="px-6 py-4 text-sm font-medium text-foreground max-w-[250px]">
                                             <span className="block truncate" title={customer.name}>{customer.name}</span>
+                                            <SyncPendingBadge store={STORES.CUSTOMERS} entityId={customer.id} />
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
                                             {customer.location}

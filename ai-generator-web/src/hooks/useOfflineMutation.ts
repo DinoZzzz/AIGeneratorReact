@@ -124,11 +124,13 @@ export function useOfflineMutation<TData, TVariables>({
           updated_at: new Date().toISOString(),
         };
 
+        // Queue first: addToSyncQueue captures the pre-edit row's server
+        // updated_at as a conflict guard, so it must read the store before
+        // the edited row overwrites it.
+        await addToSyncQueue(storeName, 'update', variables, entityId);
+
         // Save to local store
         await saveToStore(storeName, { ...offlineData, id: entityId });
-
-        // Add to sync queue
-        await addToSyncQueue(storeName, 'update', variables, entityId);
 
         // Apply optimistic update
         onOptimisticUpdate?.(variables);
