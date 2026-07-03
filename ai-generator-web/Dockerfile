@@ -1,5 +1,5 @@
 # Build stage
-FROM node:20-alpine AS builder
+FROM public.ecr.aws/docker/library/node:20-alpine AS builder
 
 WORKDIR /app
 
@@ -34,7 +34,7 @@ COPY . .
 RUN npm run build
 
 # Production stage
-FROM nginx:alpine
+FROM public.ecr.aws/docker/library/nginx:alpine
 
 # Copy built assets from builder
 COPY --from=builder /app/dist /usr/share/nginx/html

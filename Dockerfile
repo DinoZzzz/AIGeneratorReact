@@ -1,5 +1,5 @@
 # Build stage - using specific node version to bust Railway cache
-FROM node:20.18-alpine AS builder
+FROM public.ecr.aws/docker/library/node:20.18-alpine AS builder
 
 WORKDIR /app
 
@@ -55,7 +55,7 @@ RUN if [ -n "$SENTRY_AUTH_TOKEN" ]; then \
     else echo "Skipping Sentry release (no auth token)"; fi
 
 # Production stage
-FROM nginx:alpine
+FROM public.ecr.aws/docker/library/nginx:alpine
 
 # Copy built assets from builder
 COPY --from=builder /app/dist /usr/share/nginx/html
