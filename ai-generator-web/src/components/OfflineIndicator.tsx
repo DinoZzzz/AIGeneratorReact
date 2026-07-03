@@ -283,7 +283,7 @@ export const OfflineIndicator = () => {
                   triggerSync();
                   setShowDetails(false);
                 }}
-                className="w-full py-2 px-3 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-md transition-colors flex items-center justify-center gap-2"
+                className="w-full py-2 px-3 bg-primary hover:bg-primary/90 text-primary-foreground text-sm rounded-md transition-colors flex items-center justify-center gap-2"
               >
                 <RefreshCw className="h-4 w-4" />
                 {t.tapToSync}
@@ -347,7 +347,7 @@ export const OfflineIndicator = () => {
                           onClick={() => {
                             resolveConflictUseServer(operation.id);
                           }}
-                          className="px-2 py-1 text-xs rounded bg-blue-600 hover:bg-blue-700 text-white transition-colors"
+                          className="px-2 py-1 text-xs rounded bg-primary hover:bg-primary/90 text-primary-foreground transition-colors"
                         >
                           {t.useServerVersion}
                         </button>
@@ -378,7 +378,7 @@ export const OfflineIndicator = () => {
                         onClick={() => {
                           restoreDiscardedOperation(operation.id);
                         }}
-                        className="px-2 py-1 text-xs rounded bg-blue-600 hover:bg-blue-700 text-white transition-colors"
+                        className="px-2 py-1 text-xs rounded bg-primary hover:bg-primary/90 text-primary-foreground transition-colors"
                       >
                         {t.restoreOne}
                       </button>

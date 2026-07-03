@@ -517,7 +517,7 @@ export function FileUploader({ constructionId, onUploadComplete, onDelete, files
       {/* Upload Area */}
       <div
         className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
-          dragActive ? 'border-blue-500 bg-blue-50' : 'border-input hover:border-input'
+          dragActive ? 'border-primary bg-primary/5' : 'border-input hover:border-input'
         }`}
         onDragEnter={handleDrag}
         onDragLeave={handleDrag}
@@ -585,7 +585,7 @@ export function FileUploader({ constructionId, onUploadComplete, onDelete, files
                     <button
                       type="button"
                       onClick={() => setAnnotatingFile(file)}
-                      className="text-blue-600 hover:text-blue-800"
+                      className="text-primary hover:text-primary/80"
                       title={t('annotation.title')}
                       aria-label={t('annotation.title')}
                     >

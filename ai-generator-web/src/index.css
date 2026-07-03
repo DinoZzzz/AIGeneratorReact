@@ -148,6 +148,17 @@
     }
 }
 
+/* iOS Safari auto-zooms form fields whose text is under 16px. Zoom must stay
+   enabled (WCAG 1.4.4), so on small screens bump every control to 16px —
+   !important because Tailwind's .text-sm class outranks element selectors. */
+@media (max-width: 767px) {
+    input,
+    select,
+    textarea {
+        font-size: max(16px, 1em) !important;
+    }
+}
+
 /* Low Bandwidth Mode Overrides */
 body.low-bandwidth {
     --background: 0 0% 100%;

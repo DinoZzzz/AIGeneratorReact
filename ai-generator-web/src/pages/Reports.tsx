@@ -247,7 +247,7 @@ export const Reports = () => {
                                         <div role="presentation" onClick={(e) => e.stopPropagation()}>
                                             <input
                                                 type="checkbox"
-                                                className="rounded border-gray-300 h-5 w-5"
+                                                className="rounded border-input h-5 w-5"
                                                 checked={selectedReports.has(report.id)}
                                                 onChange={() => toggleSelection(report)}
                                                 aria-label={`${t('reports.selectReport')} ${report.construction?.name || ''} - ${new Date(report.examination_date).toLocaleDateString()}`}
@@ -311,7 +311,7 @@ export const Reports = () => {
                                 <th scope="col" className="w-10 px-3 py-3 text-left">
                                     <input
                                         type="checkbox"
-                                        className="rounded border-gray-300"
+                                        className="rounded border-input"
                                         checked={reports.length > 0 && reports.every(r => selectedReports.has(r.id))}
                                         onChange={toggleAll}
                                         aria-label={t('reports.selectAllReports')}
@@ -351,7 +351,7 @@ export const Reports = () => {
                                         <td className="px-3 py-4">
                                             <input
                                                 type="checkbox"
-                                                className="rounded border-gray-300"
+                                                className="rounded border-input"
                                                 checked={selectedReports.has(report.id)}
                                                 onChange={() => toggleSelection(report)}
                                                 aria-label={`${t('reports.selectReport')} ${report.construction?.name || ''} - ${new Date(report.examination_date).toLocaleDateString()}`}

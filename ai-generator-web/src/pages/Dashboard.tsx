@@ -75,8 +75,8 @@ export const Dashboard = () => {
                 {/* Skeleton for Welcome Header */}
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-border pb-6">
                     <div className="space-y-2">
-                        <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-64 animate-pulse" />
-                        <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-40 animate-pulse" />
+                        <div className="h-8 bg-muted rounded w-64 animate-pulse" />
+                        <div className="h-4 bg-muted rounded w-40 animate-pulse" />
                     </div>
                 </div>
                 {/* Skeleton for Stats Cards */}
@@ -105,23 +105,23 @@ export const Dashboard = () => {
                     value={stats.customers}
                     icon={Users}
                     href="/customers"
-                    color="text-blue-600"
-                    bgColor="bg-blue-100"
+                    color="text-blue-600 dark:text-blue-400"
+                    bgColor="bg-blue-100 dark:bg-blue-950"
                 />
                 <StatsCard
                     title={t('dashboard.activeSites')}
                     value={stats.constructions}
                     icon={HardHat}
-                    color="text-amber-600"
-                    bgColor="bg-amber-100"
+                    color="text-amber-600 dark:text-amber-400"
+                    bgColor="bg-amber-100 dark:bg-amber-950"
                 />
                 <StatsCard
                     title={t('dashboard.totalReports')}
                     value={stats.reports}
                     icon={FileText}
                     href="/reports"
-                    color="text-emerald-600"
-                    bgColor="bg-emerald-100"
+                    color="text-emerald-600 dark:text-emerald-400"
+                    bgColor="bg-emerald-100 dark:bg-emerald-950"
                 />
             </div>
 

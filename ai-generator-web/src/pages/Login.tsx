@@ -96,7 +96,7 @@ export const Login = () => {
             </div>
 
             <div className="mt-6 sm:mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-                <div className="bg-card py-8 px-6 sm:px-10 shadow-xl shadow-slate-200/50 sm:rounded-xl border border-border/50 backdrop-blur-sm">
+                <div className="bg-card py-8 px-6 sm:px-10 shadow-xl shadow-slate-200/50 dark:shadow-black/40 sm:rounded-xl border border-border/50 backdrop-blur-sm">
                     <form className="space-y-6" onSubmit={handleLogin}>
                         {error && (
                             <div className="bg-destructive/10 border border-destructive/20 text-destructive px-4 py-3 rounded-md text-sm flex items-center">
@@ -146,7 +146,7 @@ export const Login = () => {
                             <input
                                 type="checkbox"
                                 id="lowBandwidth"
-                                className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                                className="h-4 w-4 rounded border-input text-primary focus:ring-primary"
                                 checked={lowBandwidthMode}
                                 onChange={(e) => setLowBandwidthMode(e.target.checked)}
                             />
