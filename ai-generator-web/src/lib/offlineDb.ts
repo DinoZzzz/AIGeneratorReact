@@ -95,9 +95,35 @@ export const openDatabase = (): Promise<IDBDatabase> => {
       reject(request.error);
     };
 
+    // Another context (an older tab or the previous service worker) still
+    // holds the database open at a lower version, so the upgrade cannot
+    // start and every DB operation would hang. Nudge the SW lifecycle: the
+    // most common blocker is the outgoing service worker, and activating
+    // the waiting one terminates it, which releases its connection.
+    request.onblocked = () => {
+      console.warn(
+        'Offline database upgrade is blocked by an older app instance (another tab or the previous service worker). ' +
+        'Close other tabs of this app if data does not load.'
+      );
+      if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistration()
+          .then((registration) => {
+            registration?.waiting?.postMessage({ type: 'SKIP_WAITING' });
+            return registration?.update();
+          })
+          .catch(() => {});
+      }
+    };
+
     request.onsuccess = () => {
       dbInstance = request.result;
-      resolve(dbInstance);
+      // When a future version wants to upgrade, release our connection
+      // immediately so we never become the blocker ourselves.
+      dbInstance.onversionchange = () => {
+        dbInstance?.close();
+        dbInstance = null;
+      };
+      resolve(request.result);
     };
 
     request.onupgradeneeded = (event) => {
