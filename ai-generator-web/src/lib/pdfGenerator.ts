@@ -297,8 +297,8 @@ const renderReportPage = async (doc: jsPDF, report: Partial<ReportForm>, userPro
         doc.addImage(logoImg, 'PNG', 20, 15, 35, 35);
     }
 
-    // Company Info (Center) - centered between the two vertical lines (60 and 135)
-    const centerX = (60 + 135) / 2; // Center between the two lines
+    // Company Info (Center) - centered between the two vertical lines (60 and 122)
+    const centerX = (60 + 122) / 2; // Center between the two lines
     doc.setFontSize(8);
     doc.setFont('Roboto', 'normal');
 
@@ -330,7 +330,8 @@ const renderReportPage = async (doc: jsPDF, report: Partial<ReportForm>, userPro
     // Vertical Lines
     doc.setDrawColor(0);
     doc.line(60, 15, 60, 50); // Left of center
-    doc.line(135, 15, 135, 50); // Right of center
+    doc.line(122, 15, 122, 50); // Right of center
+    doc.line(157.5, 15, 157.5, 50); // Between title and meta column
 
     // Title (Right) - Top section
     doc.setFontSize(8);
@@ -340,7 +341,7 @@ const renderReportPage = async (doc: jsPDF, report: Partial<ReportForm>, userPro
     const titleLines = title.split('\n');
     let titleY = 17;
     titleLines.forEach(line => {
-        doc.text(line, 138, titleY, { align: 'left' });
+        doc.text(line, 125, titleY, { align: 'left' });
         titleY += 3.5;
     });
 
