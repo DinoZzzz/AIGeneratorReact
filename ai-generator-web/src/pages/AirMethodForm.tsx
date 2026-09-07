@@ -310,7 +310,7 @@ export const AirMethodForm = () => {
             if (!shouldRedirect) {
                 // Pre-fill new form with all data from saved report so user only tweaks what changed
                 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-                const { id: _savedId, ordinal: _ord, created_at: _ca, updated_at: _ua, satisfies: _sat, allowed_loss: _al, pressure_loss: _pl, required_test_time: _rtt, ...carryOver } = dataToSave;
+                const { id: _savedId, ordinal: _ord, created_at: _ca, updated_at: _ua, satisfies: _sat, allowed_loss: _al, pressure_loss: _pl, required_test_time: _rtt, user_id: _uid, ...carryOver } = dataToSave;
                 setFormData({
                     ...initialState,
                     ...carryOver,

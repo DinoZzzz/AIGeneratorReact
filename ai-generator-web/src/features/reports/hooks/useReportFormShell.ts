@@ -143,8 +143,10 @@ export function useReportFormShell({
     // Duplicate report handling
     useEffect(() => {
         if (duplicateSource && !initializedFromDuplicateRef.current) {
+            // user_id is dropped: the duplicate is a NEW report authored by the current
+            // user, and carrying it over would credit the source report's examiner.
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            const { id: _id, ordinal: _ord, created_at: _ca, updated_at: _ua, ...rest } = duplicateSource;
+            const { id: _id, ordinal: _ord, created_at: _ca, updated_at: _ua, user_id: _uid, ...rest } = duplicateSource;
             setFormData(prev => ({
                 ...prev,
                 ...rest,

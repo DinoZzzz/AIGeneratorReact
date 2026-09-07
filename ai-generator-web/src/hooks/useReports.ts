@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { reportService } from '../services/reportService';
+import { supabase } from '../lib/supabase';
 import type { ReportForm } from '../types';
 import { useOffline } from '../context/OfflineContext';
 import { isNetworkError } from '../lib/errorHandler';
@@ -128,8 +129,16 @@ export const useCreateReport = () => {
 
 async function createReportOffline(report: Partial<ReportForm>): Promise<ReportForm> {
   const tempId = `temp_${crypto.randomUUID()}`;
+  // Stamp the author locally, mirroring reportService.create. The queued payload
+  // is inserted verbatim on sync, so without this an offline report reaches the
+  // server with no author and its PDF can never name the examiner who made it.
+  // getSession reads the cached session, so it works offline; getUser would not.
+  const { data: { session } } = await supabase.auth.getSession();
+  const reportWithUser: Partial<ReportForm> = session?.user?.id
+    ? { ...report, user_id: session.user.id }
+    : report;
   const offlineReport: ReportForm = {
-    ...report,
+    ...reportWithUser,
     id: tempId,
     ordinal: report.ordinal ?? 0,
     satisfies: report.satisfies ?? false,
@@ -161,7 +170,7 @@ async function createReportOffline(report: Partial<ReportForm>): Promise<ReportF
   await saveToStore(STORES.REPORTS, offlineReport);
 
   // Add to sync queue - include temp ID so sync service knows which record to update
-  await addToSyncQueue(STORES.REPORTS, 'create', report, tempId);
+  await addToSyncQueue(STORES.REPORTS, 'create', reportWithUser, tempId);
 
   return offlineReport;
 }

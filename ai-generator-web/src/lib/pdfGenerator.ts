@@ -3,6 +3,7 @@ import type { ReportForm, Profile, Material, SchemeImage } from '../types';
 import * as calc from './calculations/report';
 import { loadRobotoFonts } from './fonts/roboto';
 import { getPdfLabels, type PdfExportLanguage, type PdfLabels } from './pdfLabels';
+import { formatAuthorName, getReportAuthor, resolveReportAuthors } from './reportAuthors';
 
 /**
  * PDF Generator for Water and Air Method Reports
@@ -214,50 +215,53 @@ const resolveSchemeImage = (schemeNum: number, methodType?: 'water' | 'air'): Pr
     return cached;
 };
 
-export const generatePDF = async (report: Partial<ReportForm>, userProfile?: Profile, language?: PdfExportLanguage) => {
+export const generatePDF = async (report: Partial<ReportForm>, fallbackProfile?: Profile, language?: PdfExportLanguage) => {
     const doc = new jsPDF({
         putOnlyUsedFonts: true,
         compress: true
     });
     await registerFonts(doc);
-    await renderReportPage(doc, report, userProfile, 1, 1, language);
+    const authors = await resolveReportAuthors([report]);
+    await renderReportPage(doc, report, getReportAuthor(report, authors, fallbackProfile), 1, 1, language);
     doc.save(`report_${report.id || 'new'}.pdf`);
 };
 
-export const generateBulkPDF = async (reports: Partial<ReportForm>[], filename: string = 'reports_bundle.pdf', userProfile?: Profile, language?: PdfExportLanguage) => {
+export const generateBulkPDF = async (reports: Partial<ReportForm>[], filename: string = 'reports_bundle.pdf', fallbackProfile?: Profile, language?: PdfExportLanguage) => {
     const doc = new jsPDF({
         putOnlyUsedFonts: true,
         compress: true
     });
     await registerFonts(doc);
+    const authors = await resolveReportAuthors(reports);
     const totalPages = reports.length;
     for (let i = 0; i < reports.length; i++) {
         if (i > 0) {
             doc.addPage();
         }
-        await renderReportPage(doc, reports[i], userProfile, i + 1, totalPages, language);
+        await renderReportPage(doc, reports[i], getReportAuthor(reports[i], authors, fallbackProfile), i + 1, totalPages, language);
     }
     doc.save(filename);
 };
 
-export const generateBulkPDFAsBlob = async (reports: Partial<ReportForm>[], userProfile?: Profile, language?: PdfExportLanguage): Promise<Blob> => {
+export const generateBulkPDFAsBlob = async (reports: Partial<ReportForm>[], fallbackProfile?: Profile, language?: PdfExportLanguage): Promise<Blob> => {
     const doc = new jsPDF({
         putOnlyUsedFonts: true,
         compress: true
     });
     await registerFonts(doc);
+    const authors = await resolveReportAuthors(reports);
     const totalPages = reports.length;
     for (let i = 0; i < reports.length; i++) {
         if (i > 0) {
             doc.addPage();
         }
-        await renderReportPage(doc, reports[i], userProfile, i + 1, totalPages, language);
+        await renderReportPage(doc, reports[i], getReportAuthor(reports[i], authors, fallbackProfile), i + 1, totalPages, language);
     }
     return doc.output('blob');
 };
 
 // Extracted rendering logic
-const renderReportPage = async (doc: jsPDF, report: Partial<ReportForm>, userProfile?: Profile, pageNum: number = 1, totalPages: number = 1, language?: PdfExportLanguage) => {
+const renderReportPage = async (doc: jsPDF, report: Partial<ReportForm>, author?: Profile, pageNum: number = 1, totalPages: number = 1, language?: PdfExportLanguage) => {
     const labels = getPdfLabels(language);
     const pageWidth = doc.internal.pageSize.width;
     const pageHeight = doc.internal.pageSize.height;
@@ -835,6 +839,6 @@ const renderReportPage = async (doc: jsPDF, report: Partial<ReportForm>, userPro
 
     doc.setFontSize(12);
     doc.setFont('Roboto', 'bold');
-    const displayName = userProfile ? `${userProfile.name} ${userProfile.last_name}` : labels.unknownUser;
+    const displayName = formatAuthorName(author) ?? labels.unknownUser;
     doc.text(`${labels.createdBy}: ${displayName}`, pageWidth / 2, pageHeight - 20, { align: 'center' });
 };
