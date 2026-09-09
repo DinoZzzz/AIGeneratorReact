@@ -107,7 +107,7 @@ const hrLabels: PdfLabels = {
     
     pageLabel: 'Stranica',
     editionLabel: 'Izdanje',
-    formDateLabel: 'Datum obrasca',
+    formDateLabel: 'Datum',
     
     satisfies: 'ZADOVOLJAVA',
     notSatisfies: 'NE ZADOVOLJAVA',
@@ -207,7 +207,7 @@ const slLabels: PdfLabels = {
     
     pageLabel: 'Stran',
     editionLabel: 'Izdaja',
-    formDateLabel: 'Datum obrazca',
+    formDateLabel: 'Datum',
     
     satisfies: 'USTREZA',
     notSatisfies: 'NE USTREZA',

@@ -11,9 +11,7 @@ import { errorHandler } from '../lib/errorHandler';
 import { getLookupWithOfflineFallback } from '../lib/offlineLookupCache';
 import { useReportFormShell, sanitizeForDb, generateReportPDF } from '../features/reports/hooks';
 import { ReportFormBanners } from '../features/reports/components';
-
-const WATER_DEVIATION_OPTION_LOW_H2 = 'h2 < 100 cm';
-const WATER_DEVIATION_OPTION_SOME_SECTIONS = 'Kod pojedinih dionica h2 < 100 cm';
+import { resolveWaterDeviation } from '../features/water/calculations/waterDeviations';
 
 const WATER_COPY_STRUCTURE_FIELDS = [
     'draft_id', 'material_type_id', 'pane_diameter', 'pane_width', 'pane_length', 'pane_height',
@@ -68,7 +66,7 @@ export const WaterMethodForm = () => {
     const [materialTypes, setMaterialTypes] = useState<MaterialType[]>([]);
     const [materials, setMaterials] = useState<Material[]>([]);
     const [dionicaError, setDionicaError] = useState<string>('');
-    const lastAutoDeviationRef = useRef<string | null>(null);
+    const hasEditedDeviationRef = useRef(false);
 
     const {
         id, customerId, constructionId, navigate,
@@ -86,8 +84,8 @@ export const WaterMethodForm = () => {
         formData,
         setFormData,
         copyStructureFields: WATER_COPY_STRUCTURE_FIELDS,
-        onSectionParamsChange: () => { lastAutoDeviationRef.current = null; },
-        onLoadedReport: () => { lastAutoDeviationRef.current = null; },
+        onSectionParamsChange: () => { hasEditedDeviationRef.current = false; },
+        onLoadedReport: () => { hasEditedDeviationRef.current = false; },
     });
 
     // Memoized calculations to prevent recalculation on every render
@@ -179,33 +177,14 @@ export const WaterMethodForm = () => {
 
     ]);
 
-    // Auto-fill deviation text based on schema conditions
+    // Keep automatic suggestions in sync, including after loading/copying saved reports.
     useEffect(() => {
-        let autoText: string | null = null;
-
-        if (formData.draft_id === 2 && calculated.hydrostaticHeight < 1.0) {
-            autoText = WATER_DEVIATION_OPTION_SOME_SECTIONS;
-        } else if (formData.draft_id === 3 && (formData.water_height || 0) <= 100) {
-            autoText = WATER_DEVIATION_OPTION_LOW_H2;
-        }
-
-        if (!autoText) {
-            return;
-        }
-
-        const currentDeviation = (formData.deviation || '').trim();
-        const lastAutoDeviation = (lastAutoDeviationRef.current || '').trim();
-
-        // Preserve manual user input, but keep auto suggestion synced while untouched.
-        if (currentDeviation && currentDeviation !== lastAutoDeviation) {
-            return;
-        }
-
-        if (currentDeviation !== autoText) {
-            lastAutoDeviationRef.current = autoText;
-            setFormData(prev => ({ ...prev, deviation: autoText }));
-        }
-    }, [formData.draft_id, formData.water_height, calculated.hydrostaticHeight, formData.deviation]);
+        if (hasEditedDeviationRef.current) return;
+        setFormData(prev => {
+            const deviation = resolveWaterDeviation(prev, !isEditMode);
+            return deviation === (prev.deviation || '') ? prev : { ...prev, deviation };
+        });
+    }, [isEditMode, formData.draft_id, formData.water_height, formData.pipe_diameter, formData.deviation]);
 
     const loadLookups = useCallback(async () => {
         try {
@@ -248,6 +227,9 @@ export const WaterMethodForm = () => {
         if (name === 'dionica' && dionicaError) {
             setDionicaError('');
         }
+        if (name === 'deviation') {
+            hasEditedDeviationRef.current = true;
+        }
 
         setFormData(prev => ({
             ...prev,
@@ -269,6 +251,7 @@ export const WaterMethodForm = () => {
             const { id: _formId, ...formDataWithoutId } = formData;
             const dataToSave = sanitizeForDb({
                 ...formDataWithoutId,
+                deviation: resolveWaterDeviation(formDataWithoutId),
                 satisfies: calculated.satisfies,
                 customer_id: customerId || formData.customer_id,
                 construction_id: constructionId || formData.construction_id,
@@ -294,7 +277,7 @@ export const WaterMethodForm = () => {
                     water_height_start: '' as unknown as number,
                     water_height_end: '' as unknown as number,
                 });
-                lastAutoDeviationRef.current = null;
+                hasEditedDeviationRef.current = false;
                 setStep(1);
                 navigate(`/customers/${customerId}/constructions/${constructionId}/reports/new/water`);
                 showSuccess(t('reports.form.saveSuccess'));
@@ -384,7 +367,7 @@ export const WaterMethodForm = () => {
                 <div className="flex space-x-3">
                     {step === 2 && (
                         <>
-                            <Button variant="outline" onClick={() => generateReportPDF(formData, profile || undefined)} className="hidden sm:flex">
+                            <Button variant="outline" onClick={() => generateReportPDF(formData, profile || undefined, constructionId)} className="hidden sm:flex">
                                 <FileDown className="h-4 w-4 mr-2" />
                                 {t('reports.form.exportPdf')}
                             </Button>

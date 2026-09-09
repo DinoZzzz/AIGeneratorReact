@@ -4,6 +4,8 @@ import * as calc from './calculations/report';
 import { loadRobotoFonts } from './fonts/roboto';
 import { getPdfLabels, type PdfExportLanguage, type PdfLabels } from './pdfLabels';
 import { formatAuthorName, getReportAuthor, resolveReportAuthors } from './reportAuthors';
+import { getReportWorkOrder, resolveReportWorkOrders } from './reportWorkOrders';
+import { resolveWaterDeviation } from '../features/water/calculations/waterDeviations';
 
 /**
  * PDF Generator for Water and Air Method Reports
@@ -41,7 +43,7 @@ const loadImage = (src: string): Promise<HTMLImageElement> => {
     return cached;
 };
 
-const FORM_ISSUE_DATE = '01.05.2020.';
+const FORM_ISSUE_DATE = '09.01.2023.';
 
 const LEGACY_AIR_DRAFT_TO_SCHEME_NUMBER: Record<number, number> = {
     2: 1, // Pipe only
@@ -221,8 +223,11 @@ export const generatePDF = async (report: Partial<ReportForm>, fallbackProfile?:
         compress: true
     });
     await registerFonts(doc);
-    const authors = await resolveReportAuthors([report]);
-    await renderReportPage(doc, report, getReportAuthor(report, authors, fallbackProfile), 1, 1, language);
+    const [authors, workOrders] = await Promise.all([
+        resolveReportAuthors([report]),
+        resolveReportWorkOrders([report])
+    ]);
+    await renderReportPage(doc, report, getReportAuthor(report, authors, fallbackProfile), 1, 1, language, getReportWorkOrder(report, workOrders));
     doc.save(`report_${report.id || 'new'}.pdf`);
 };
 
@@ -232,13 +237,16 @@ export const generateBulkPDF = async (reports: Partial<ReportForm>[], filename: 
         compress: true
     });
     await registerFonts(doc);
-    const authors = await resolveReportAuthors(reports);
+    const [authors, workOrders] = await Promise.all([
+        resolveReportAuthors(reports),
+        resolveReportWorkOrders(reports)
+    ]);
     const totalPages = reports.length;
     for (let i = 0; i < reports.length; i++) {
         if (i > 0) {
             doc.addPage();
         }
-        await renderReportPage(doc, reports[i], getReportAuthor(reports[i], authors, fallbackProfile), i + 1, totalPages, language);
+        await renderReportPage(doc, reports[i], getReportAuthor(reports[i], authors, fallbackProfile), i + 1, totalPages, language, getReportWorkOrder(reports[i], workOrders));
     }
     doc.save(filename);
 };
@@ -249,19 +257,22 @@ export const generateBulkPDFAsBlob = async (reports: Partial<ReportForm>[], fall
         compress: true
     });
     await registerFonts(doc);
-    const authors = await resolveReportAuthors(reports);
+    const [authors, workOrders] = await Promise.all([
+        resolveReportAuthors(reports),
+        resolveReportWorkOrders(reports)
+    ]);
     const totalPages = reports.length;
     for (let i = 0; i < reports.length; i++) {
         if (i > 0) {
             doc.addPage();
         }
-        await renderReportPage(doc, reports[i], getReportAuthor(reports[i], authors, fallbackProfile), i + 1, totalPages, language);
+        await renderReportPage(doc, reports[i], getReportAuthor(reports[i], authors, fallbackProfile), i + 1, totalPages, language, getReportWorkOrder(reports[i], workOrders));
     }
     return doc.output('blob');
 };
 
 // Extracted rendering logic
-const renderReportPage = async (doc: jsPDF, report: Partial<ReportForm>, author?: Profile, pageNum: number = 1, totalPages: number = 1, language?: PdfExportLanguage) => {
+const renderReportPage = async (doc: jsPDF, report: Partial<ReportForm>, author?: Profile, pageNum: number = 1, totalPages: number = 1, language?: PdfExportLanguage, workOrder: string = '-') => {
     const labels = getPdfLabels(language);
     const pageWidth = doc.internal.pageSize.width;
     const pageHeight = doc.internal.pageSize.height;
@@ -301,8 +312,11 @@ const renderReportPage = async (doc: jsPDF, report: Partial<ReportForm>, author?
         doc.addImage(logoImg, 'PNG', 20, 15, 35, 35);
     }
 
-    // Company Info (Center) - centered between the two vertical lines (60 and 122)
-    const centerX = (60 + 122) / 2; // Center between the two lines
+    // Keep the company, method title and form metadata in separate columns.
+    const companyRight = 118;
+    const titleRight = 160;
+    const headerPadding = 3;
+    const centerX = (60 + companyRight) / 2;
     doc.setFontSize(8);
     doc.setFont('Roboto', 'normal');
 
@@ -334,29 +348,33 @@ const renderReportPage = async (doc: jsPDF, report: Partial<ReportForm>, author?
     // Vertical Lines
     doc.setDrawColor(0);
     doc.line(60, 15, 60, 50); // Left of center
-    doc.line(122, 15, 122, 50); // Right of center
-    doc.line(157.5, 15, 157.5, 50); // Between title and meta column
+    doc.line(companyRight, 15, companyRight, 50);
+    doc.line(titleRight, 15, titleRight, 50);
 
     // Title (Right) - Top section
     doc.setFontSize(8);
     doc.setFont('Roboto', 'bold');
     const title = reportTypeId === 1 ? labels.waterTitle : labels.airTitle;
 
-    const titleLines = title.split('\n');
-    let titleY = 17;
+    const titleLines: string[] = doc.splitTextToSize(title, titleRight - companyRight - 2 * headerPadding);
+    let titleY = 20;
     titleLines.forEach(line => {
-        doc.text(line, 125, titleY, { align: 'left' });
+        doc.text(line, (companyRight + titleRight) / 2, titleY, { align: 'center' });
         titleY += 3.5;
     });
 
     // Meta Info (Far Right) - Separate column
     doc.setFontSize(8);
     doc.setFont('Roboto', 'bold');
-    doc.text(`${labels.pageLabel}: ${pageNum}/${totalPages}`, pageWidth - 15, 17, { align: 'right' });
+    const metaRight = pageWidth - 15;
+    const metaWidth = metaRight - titleRight - headerPadding;
+    const workOrderLines: string[] = doc.splitTextToSize(workOrder, metaWidth);
+    doc.text(workOrderLines, metaRight, 20, { align: 'right', lineHeightFactor: 1.2 });
+    const metaY = 20 + (workOrderLines.length - 1) * (8 / doc.internal.scaleFactor) * 1.2;
     doc.setFont('Roboto', 'normal');
-    doc.text('OB 21-2', pageWidth - 15, 22, { align: 'right' });
-    doc.text(`${labels.editionLabel}: 2`, pageWidth - 15, 27, { align: 'right' });
-    doc.text(`${labels.formDateLabel}: ${FORM_ISSUE_DATE}`, pageWidth - 15, 32, { align: 'right' });
+    doc.text('OB 21-2', metaRight, metaY + 5, { align: 'right' });
+    doc.text(`${labels.editionLabel}: 2`, metaRight, metaY + 10, { align: 'right' });
+    doc.text(`${labels.formDateLabel}: ${FORM_ISSUE_DATE}`, metaRight, metaY + 15, { align: 'right' });
 
     // --- Status Banner ---
     const satisfies = report.satisfies;
@@ -832,13 +850,17 @@ const renderReportPage = async (doc: jsPDF, report: Partial<ReportForm>, author?
 
     doc.setFont('Roboto', 'normal');
     doc.text(`${labels.normDeviation}:`, 110, currentY);
-    if (report.deviation) {
+    const deviation = resolveWaterDeviation(report);
+    if (deviation) {
         doc.setFont('Roboto', 'bold');
-        doc.text(report.deviation, 110, currentY + 5, { maxWidth: 80 });
+        doc.text(deviation, 110, currentY + 5, { maxWidth: 80 });
     }
 
     doc.setFontSize(12);
     doc.setFont('Roboto', 'bold');
     const displayName = formatAuthorName(author) ?? labels.unknownUser;
     doc.text(`${labels.createdBy}: ${displayName}`, pageWidth / 2, pageHeight - 20, { align: 'center' });
+    doc.setFontSize(8);
+    doc.setFont('Roboto', 'normal');
+    doc.text(`${labels.pageLabel}: ${pageNum}/${totalPages}`, pageWidth - 15, pageHeight - 10, { align: 'right' });
 };

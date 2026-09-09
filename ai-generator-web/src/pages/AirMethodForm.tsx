@@ -390,7 +390,7 @@ export const AirMethodForm = () => {
                 <div className="flex space-x-3">
                     {step === 2 && (
                         <>
-                            <Button variant="outline" onClick={() => generateReportPDF(formData, profile || undefined)} className="hidden sm:flex">
+                            <Button variant="outline" onClick={() => generateReportPDF(formData, profile || undefined, constructionId)} className="hidden sm:flex">
                                 <FileDown className="h-4 w-4 mr-2" />
                                 {t('reports.form.exportPdf')}
                             </Button>

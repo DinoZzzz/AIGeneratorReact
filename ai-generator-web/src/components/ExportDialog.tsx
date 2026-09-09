@@ -7,11 +7,13 @@ import { useLanguage } from '../context/LanguageContext';
 import { certifierService } from '../services/certifierService';
 import { useCertifiers } from '../hooks/useCertifiers';
 import { useToast } from '../context/ToastContext';
+import {
+    normalizeWaterDeviationChoice,
+    WATER_DEVIATION_OPTION_LOW_H2,
+    WATER_DEVIATION_OPTION_SOME_SECTIONS,
+} from '../features/water/calculations/waterDeviations';
 
 const DEFAULT_CONSTRUCTION_PART = 'Sustav odvodnje otpadnih voda';
-const WATER_DEVIATION_OPTION_LOW_H2 = 'h2 < 100 cm';
-const WATER_DEVIATION_OPTION_SOME_SECTIONS = 'Kod pojedinih dionica h2 < 100 cm';
-const LEGACY_WATER_DEVIATION_OPTION_SOME_SECTIONS = 'Kod pojedinih dionica h2<100cm';
 
 interface ExportDialogProps {
     open: boolean;
@@ -39,24 +41,13 @@ export interface ExportMetaData {
     includePdfs?: boolean;
 }
 
-const normalizeWaterDeviation = (value?: string): string => {
-    if (!value) return WATER_DEVIATION_OPTION_LOW_H2;
-    if (value === WATER_DEVIATION_OPTION_LOW_H2 || value === WATER_DEVIATION_OPTION_SOME_SECTIONS) {
-        return value;
-    }
-    if (value.trim() === LEGACY_WATER_DEVIATION_OPTION_SOME_SECTIONS) {
-        return WATER_DEVIATION_OPTION_SOME_SECTIONS;
-    }
-    return WATER_DEVIATION_OPTION_LOW_H2;
-};
-
 const getInitialExportData = (defaultValues?: Partial<ExportMetaData>): ExportMetaData => ({
     constructionPart: defaultValues?.constructionPart || DEFAULT_CONSTRUCTION_PART,
     drainage: defaultValues?.drainage || '',
     airRemark: defaultValues?.airRemark || '',
     airDeviation: defaultValues?.airDeviation || '',
     waterRemark: defaultValues?.waterRemark || '',
-    waterDeviation: normalizeWaterDeviation(defaultValues?.waterDeviation),
+    waterDeviation: normalizeWaterDeviationChoice(defaultValues?.waterDeviation),
     certifierName: defaultValues?.certifierName || '',
     includePdfs: defaultValues?.includePdfs ?? false,
 });
@@ -343,8 +334,14 @@ export const ExportDialog = ({ open, onOpenChange, onConfirm, loading = false, d
                                     onChange={(e) => setData({ ...data, waterDeviation: e.target.value })}
                                     disabled={loading}
                                 >
+                                    <option value="">{t('export.waterDeviationOptionNone')}</option>
                                     <option value={WATER_DEVIATION_OPTION_LOW_H2}>{t('export.waterDeviationOptionLowH2')}</option>
                                     <option value={WATER_DEVIATION_OPTION_SOME_SECTIONS}>{t('export.waterDeviationOptionSomeSections')}</option>
+                                    {data.waterDeviation &&
+                                        data.waterDeviation !== WATER_DEVIATION_OPTION_LOW_H2 &&
+                                        data.waterDeviation !== WATER_DEVIATION_OPTION_SOME_SECTIONS && (
+                                            <option value={data.waterDeviation}>{data.waterDeviation}</option>
+                                        )}
                                 </select>
                             </div>
                         </div>

@@ -6,7 +6,7 @@ const SERVICE = 'reportService';
 
 const LIST_SELECT = `
             *,
-            construction:constructions(name, work_order),
+            construction:constructions(id, name, work_order),
             draft:report_drafts(name)
           `;
 

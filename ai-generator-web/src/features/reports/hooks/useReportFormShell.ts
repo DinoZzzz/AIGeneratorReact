@@ -34,9 +34,10 @@ export const sanitizeForDb = (data: Record<string, unknown>) => {
 };
 
 // Dynamic import for PDF generation to reduce initial bundle size
-export const generateReportPDF = async (report: Partial<ReportForm>, userProfile?: Profile) => {
+export const generateReportPDF = async (report: Partial<ReportForm>, userProfile?: Profile, constructionId?: string) => {
     const { generatePDF: gen } = await import('../../../lib/pdfGenerator');
-    return gen(report, userProfile);
+    const { withReportConstruction } = await import('../../../lib/reportWorkOrders');
+    return gen(withReportConstruction(report, constructionId), userProfile);
 };
 
 export interface UseReportFormShellOptions {

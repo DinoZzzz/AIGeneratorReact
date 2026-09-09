@@ -11,6 +11,7 @@ import { findRawTagPlacementIssues } from '../../utils/docxTemplate';
 import { formatDate, formatNum, sanitizeWordData } from './helpers';
 import { loadFile } from './templateLoader';
 import { createSoftBreakModule } from './softBreakModule';
+import { removeAirMethodHeadingTablePrefix } from './methodHeading';
 import { fetchDocumentData } from './dataPreparation';
 import { enrichReports, buildAirReportRows, buildWaterReportRows } from './tableBuilder';
 
@@ -317,7 +318,12 @@ export const generateWordDocument = async (
             doc.render(sanitizeWordData(renderData));
 
             // 10. Output the document
-            const blob = doc.getZip().generate({
+            const renderedZip = doc.getZip();
+            const renderedDocument = renderedZip.file('word/document.xml');
+            if (renderedDocument) {
+                renderedZip.file('word/document.xml', removeAirMethodHeadingTablePrefix(renderedDocument.asText()));
+            }
+            const blob = renderedZip.generate({
                 type: "blob",
                 mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
             });
