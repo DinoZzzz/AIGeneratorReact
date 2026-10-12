@@ -15,7 +15,7 @@ import {
     getAllFromStore,
     getFromStore,
     removeSyncOperationsForEntity,
-    saveManyToStore,
+    cacheRemoteRows,
     saveToStore
 } from '../../lib/offlineDb';
 
@@ -111,8 +111,8 @@ export const CertifiersManager = () => {
         try {
             if (isOnline) {
                 const data = await certifierService.getAll();
-                await saveManyToStore(STORES.CERTIFIERS, data);
-                setCertifiers(await hydrateQueuedSignaturePreviews(data));
+                const cached = await cacheRemoteRows(STORES.CERTIFIERS, data);
+                setCertifiers(await hydrateQueuedSignaturePreviews(cached));
                 return;
             }
 
@@ -249,7 +249,7 @@ export const CertifiersManager = () => {
                 try {
                     await certifierService.setDefault(id);
                     const refreshed = await certifierService.getAll();
-                    await saveManyToStore(STORES.CERTIFIERS, refreshed);
+                    await cacheRemoteRows(STORES.CERTIFIERS, refreshed);
                 } catch (error) {
                     if (!isNetworkError(error)) throw error;
                     await applyDefaultOffline();

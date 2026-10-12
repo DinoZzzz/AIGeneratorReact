@@ -132,7 +132,7 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('sync', (event) => {
-  const syncEvent = event as SyncEvent;
+  const syncEvent = event as ExtendableEvent & { tag: string };
   if (syncEvent.tag === OFFLINE_SYNC_TAG) {
     syncEvent.waitUntil(runOfflineSync());
   }

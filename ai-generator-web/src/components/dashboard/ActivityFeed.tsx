@@ -28,10 +28,11 @@ const useRecentActivity = () => {
                 .from('report_forms')
                 .select('id, dionica, section_name, type_id, customer_id, construction_id, created_at, updated_at, construction:constructions(name)')
                 .order('updated_at', { ascending: false })
-                .limit(10);
+                .limit(10)
+                .overrideTypes<ActivityItem[], { merge: false }>();
 
             if (error) throw error;
-            return data as ActivityItem[];
+            return data || [];
         },
         offlineFn: async () => {
             const [reports, constructions] = await Promise.all([

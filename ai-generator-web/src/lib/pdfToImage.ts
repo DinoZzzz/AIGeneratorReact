@@ -11,29 +11,35 @@ export const convertPdfToImages = async (pdfBlob: Blob, scale: number = 2): Prom
     const pdf = await getDocument({ data: arrayBuffer }).promise;
     const images: string[] = [];
 
-    for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
-        const page = await pdf.getPage(pageNum);
-        const viewport = page.getViewport({ scale });
+    try {
+        for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+            const page = await pdf.getPage(pageNum);
+            const viewport = page.getViewport({ scale });
 
-        // Create canvas
-        const canvas = document.createElement('canvas');
-        const context = canvas.getContext('2d');
-        if (!context) {
-            throw new Error('Failed to get canvas context');
+            // Create canvas
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
+            if (!context) {
+                throw new Error('Failed to get canvas context');
+            }
+
+            canvas.height = viewport.height;
+            canvas.width = viewport.width;
+
+            // Render PDF page to canvas
+            await page.render({
+                canvas,
+                canvasContext: context,
+                viewport: viewport
+            }).promise;
+
+            // Convert canvas to image data URL
+            const imageDataUrl = canvas.toDataURL('image/png');
+            images.push(imageDataUrl);
+            page.cleanup();
         }
-
-        canvas.height = viewport.height;
-        canvas.width = viewport.width;
-
-        // Render PDF page to canvas
-        await page.render({
-            canvasContext: context,
-            viewport: viewport
-        }).promise;
-
-        // Convert canvas to image data URL
-        const imageDataUrl = canvas.toDataURL('image/png');
-        images.push(imageDataUrl);
+    } finally {
+        await pdf.destroy();
     }
 
     return images;

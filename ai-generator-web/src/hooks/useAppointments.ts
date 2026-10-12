@@ -10,7 +10,7 @@ import {
   getAllFromStore,
   getFromStore,
   removeSyncOperationsForEntity,
-  saveManyToStore,
+  cacheRemoteRows,
   saveToStore,
 } from '../lib/offlineDb';
 import { useOnlineQuery } from '../lib/offlineQueryFn';
@@ -74,7 +74,7 @@ export const useAppointmentsInRange = (start: Date, end: Date) => {
     () => appointmentService.getAll(start, end),
     () => getOfflineAppointmentsInRange(start, end),
     {
-      cacheFn: (data) => saveManyToStore(STORES.APPOINTMENTS, data),
+      cacheFn: (data) => cacheRemoteRows(STORES.APPOINTMENTS, data),
       staleTime: 2 * 60 * 1000,
     }
   );
@@ -145,6 +145,7 @@ export const useCreateAppointment = () => {
   const { isOnline, triggerSync } = useOffline();
 
   return useMutation({
+    networkMode: 'always',
     mutationFn: async (appointment: AppointmentPayload) => {
       if (isOnline) {
         try {
@@ -174,6 +175,7 @@ export const useUpdateAppointment = () => {
   const { isOnline, triggerSync } = useOffline();
 
   return useMutation({
+    networkMode: 'always',
     mutationFn: async ({ id, appointment }: { id: string; appointment: AppointmentPayload }) => {
       if (isOnline) {
         try {
@@ -203,6 +205,7 @@ export const useDeleteAppointment = () => {
   const { isOnline, triggerSync } = useOffline();
 
   return useMutation({
+    networkMode: 'always',
     mutationFn: async (id: string) => {
       if (isOnline) {
         try {

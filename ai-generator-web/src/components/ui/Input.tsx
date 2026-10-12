@@ -8,8 +8,8 @@ export interface InputProps
 
 const Input = React.forwardRef<HTMLInputElement, InputProps>(
     ({ className, type, label, id, ...props }, ref) => {
-        // Generate a unique ID if not provided
-        const inputId = id || (label ? `input-${label.toLowerCase().replace(/\s+/g, '-')}` : undefined);
+        const generatedId = React.useId();
+        const inputId = id || (label ? generatedId : undefined);
 
         return (
             <div className="space-y-2">

@@ -7,6 +7,17 @@ export interface VersionHistoryItem {
 export function getVersionHistory(language: string): VersionHistoryItem[] {
     return language === 'hr' ? [
         {
+            version: '2.36.1',
+            date: '2026-10-13',
+            changes: [
+                'Pouzdanija offline sinkronizacija: očuvanje lokalnih promjena, ispravan redoslijed povezanih zapisa i sigurno spremanje u lokalnu bazu',
+                'Ispravljeni izračuni i PDF/Word izvoz te popunjavanje i spremanje obrazaca bez prepisivanja unosa',
+                'Ispravljeno lokalno vrijeme termina u kalendaru i očuvanje unosa pri promjeni mrežne veze',
+                'Pouzdanija prijava, upravljanje ispitivačima i čišćenje podataka pri odjavi',
+                'Ažurirane ranjive ovisnosti, poboljšane provjere tipova i prošireni automatski testovi',
+            ]
+        },
+        {
             version: '2.36.0',
             date: '2026-07-03',
             changes: [
@@ -606,6 +617,17 @@ export function getVersionHistory(language: string): VersionHistoryItem[] {
             ]
         },
     ] : [
+        {
+            version: '2.36.1',
+            date: '2026-10-13',
+            changes: [
+                'More reliable offline synchronization: preserved local changes, correct ordering of related records and safe local database writes',
+                'Fixed calculations, PDF/Word exports and form initialization and saving without overwriting entered values',
+                'Fixed local calendar appointment times and preserved edits when network connectivity changes',
+                'Improved sign-in, examiner management and account data cleanup on sign-out',
+                'Updated vulnerable dependencies, corrected type checking and expanded automated tests',
+            ]
+        },
         // English version
         {
             version: '2.36.0',

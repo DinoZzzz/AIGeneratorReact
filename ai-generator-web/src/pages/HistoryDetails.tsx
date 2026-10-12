@@ -22,8 +22,8 @@ import {
     STORES,
     getByIndex,
     getFromStore,
-    saveManyToStore,
-    saveToStore
+    cacheRemoteRows,
+    cacheRemoteRow
 } from '../lib/offlineDb';
 
 export const HistoryDetails = () => {
@@ -58,10 +58,7 @@ export const HistoryDetails = () => {
                 if (error) throw error;
 
                 const reportForms = (data || []) as ReportForm[];
-                if (reportForms.length > 0) {
-                    await saveManyToStore(STORES.REPORTS, reportForms);
-                }
-                return reportForms;
+                return cacheRemoteRows(STORES.REPORTS, reportForms);
             } catch (error) {
                 if (!isNetworkError(error)) throw error;
             }
@@ -83,29 +80,32 @@ export const HistoryDetails = () => {
                             historyService.getById(id),
                             historyService.getExportForms(id)
                         ]);
-                        setExportData(exportResult);
-                        setForms(formsResult);
-                        await saveToStore(STORES.EXPORT_HISTORY, exportResult);
-                        await saveManyToStore(STORES.EXPORT_HISTORY_FORMS, formsResult);
+                        const cachedExport = await cacheRemoteRow(STORES.EXPORT_HISTORY, exportResult);
 
                         const reportForms = formsResult
                             .map((item) => item.report_form)
                             .filter((form): form is ReportForm => Boolean(form));
-                        if (reportForms.length > 0) {
-                            await saveManyToStore(STORES.REPORTS, reportForms);
-                        }
+                        const cachedReports = await cacheRemoteRows(STORES.REPORTS, reportForms);
+                        const reportsById = new Map(cachedReports.map((report) => [report.id, report]));
+                        const hydratedForms = formsResult
+                            .filter((form) => !form.report_form || reportsById.has(form.report_form.id))
+                            .map((form) => ({
+                                ...form,
+                                report_form: form.report_form ? reportsById.get(form.report_form.id) : form.report_form,
+                            }));
+                        setExportData(cachedExport);
+                        setForms(await cacheRemoteRows(STORES.EXPORT_HISTORY_FORMS, hydratedForms));
 
-                        if (exportResult.construction_id) {
+                        if (cachedExport.construction_id) {
                             const { data: files } = await supabase
                                 .from('report_files')
                                 .select('*')
-                                .eq('construction_id', exportResult.construction_id)
+                                .eq('construction_id', cachedExport.construction_id)
                                 .order('created_at', { ascending: true });
 
                             if (files) {
                                 const typedFiles = files as ReportFile[];
-                                setReportFiles(typedFiles);
-                                await saveManyToStore(STORES.REPORT_FILES, typedFiles);
+                                setReportFiles(await cacheRemoteRows(STORES.REPORT_FILES, typedFiles));
                             }
                         }
                         return;
@@ -116,15 +116,17 @@ export const HistoryDetails = () => {
                     }
                 }
 
-                const offlineExport = await getFromStore<ReportExport>(STORES.EXPORT_HISTORY, id);
+                const offlineExport = await getFromStore<ReportExport & {
+                    forms?: Array<{ form_id: string; type_id: number; ordinal?: number }>;
+                }>(STORES.EXPORT_HISTORY, id);
                 if (!offlineExport) {
                     throw new Error('Export not found offline');
                 }
 
                 const offlineForms = await getByIndex<ReportExportForm>(STORES.EXPORT_HISTORY_FORMS, 'export_id', id);
-                const fallbackForms = (
-                    Array.isArray((offlineExport as { forms?: unknown[] }).forms)
-                        ? (offlineExport as { forms: Array<{ form_id: string; type_id: number; ordinal?: number }> }).forms
+                const fallbackForms: ReportExportForm[] = (
+                    Array.isArray(offlineExport.forms)
+                        ? offlineExport.forms
                         : []
                 ).map((form, index) => ({
                     id: `${id}:${form.form_id}:${index}`,
@@ -139,7 +141,7 @@ export const HistoryDetails = () => {
                 const formsForHydration = offlineForms.length > 0 ? offlineForms : fallbackForms;
                 const hydratedOfflineForms = await Promise.all(formsForHydration.map(async (form) => {
                     if (form.report_form) return form;
-                    const reportId = form.form_id || form.report_form?.id;
+                    const reportId = form.form_id;
                     if (!reportId) return form;
                     const reportForm = await getFromStore<ReportForm>(STORES.REPORTS, reportId);
                     if (!reportForm) return form;
@@ -186,8 +188,7 @@ export const HistoryDetails = () => {
                         .eq('id', formId)
                         .single();
                     if (error) throw error;
-                    reportData = data as ReportForm;
-                    await saveToStore(STORES.REPORTS, reportData);
+                    reportData = await cacheRemoteRow(STORES.REPORTS, data as ReportForm);
                 } catch (error) {
                     if (!isNetworkError(error)) throw error;
                 }
@@ -199,7 +200,7 @@ export const HistoryDetails = () => {
             if (!reportData) throw new Error('Report not found');
 
             const { generatePDF } = await import('../lib/pdfGenerator');
-            generatePDF(reportData, profile || undefined);
+            await generatePDF(reportData, profile || undefined);
             setActionMessage(null);
         } catch (error) {
             setActionMessage({ text: errorHandler.getUserMessage(errorHandler.handle(error, 'HistoryDetails')), type: 'error' });
@@ -214,6 +215,7 @@ export const HistoryDetails = () => {
     };
 
     const handlePdfLanguageConfirm = async (lang: 'hr' | 'sl') => {
+        if (!exportData || forms.length === 0) return;
         setIsExporting(true);
         setActionMessage({ text: t('exportDetails.generatingPdf'), type: 'info' });
         try {
@@ -429,7 +431,7 @@ export const HistoryDetails = () => {
                         <div>
                             <p className="text-muted-foreground">{t('exportDetails.createdBy')}</p>
                             <p className="font-medium text-foreground">
-                                {exportData.certifier_name || formatName(exportData.user) || '-'}
+                                {formatName(exportData.user) || '-'}
                             </p>
                         </div>
                         <div>

@@ -8,12 +8,13 @@ const CUSTOMER_COLUMNS = 'id, name, location, work_order, address, created_at';
 
 export const customerService = {
     async getAll() {
-        return execQuery({ service: SERVICE, method: 'getAll' }, () =>
+        const data = await execQuery({ service: SERVICE, method: 'getAll' }, () =>
             supabase
                 .from('customers')
                 .select(CUSTOMER_COLUMNS)
                 .order('name')
         );
+        return data ?? [];
     },
 
     async getCustomers(
@@ -65,7 +66,7 @@ export const customerService = {
             { service: SERVICE, method: 'getCustomers', page, sortBy },
             () => query.range(start, end)
         );
-        return { data, count };
+        return { data: data ?? [], count: count ?? 0 };
     },
 
     async getCustomersWithActivity(
@@ -180,7 +181,7 @@ export const customerService = {
             { service: SERVICE, method: 'checkWorkOrderExists', workOrder },
             () => query
         );
-        return data.length > 0;
+        return (data?.length ?? 0) > 0;
     },
 
     async checkNameExists(name: string, excludeId?: string) {
@@ -197,6 +198,6 @@ export const customerService = {
             { service: SERVICE, method: 'checkNameExists', name },
             () => query
         );
-        return data.length > 0;
+        return (data?.length ?? 0) > 0;
     }
 };

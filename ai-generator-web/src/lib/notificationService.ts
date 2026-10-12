@@ -5,7 +5,7 @@ const REMINDER_HISTORY_STORAGE_KEY = 'app.notifications.reminder-history';
 const NOTIFICATIONS_CHANGED_EVENT = 'app-notifications-changed';
 const REMINDER_HISTORY_MAX_AGE_MS = 1000 * 60 * 60 * 24 * 14; // 14 days
 const REMINDER_HISTORY_MAX_ENTRIES = 500;
-const WEB_PUSH_PUBLIC_KEY = import.meta.env.VITE_WEB_PUSH_PUBLIC_KEY;
+const WEB_PUSH_PUBLIC_KEY = import.meta.env.VITE_WEB_PUSH_PUBLIC_KEY?.trim() || '';
 
 type NotificationSupportStatus = NotificationPermission | 'unsupported';
 type ReminderHistoryMap = Record<string, number>;
@@ -45,7 +45,7 @@ export interface AppNotificationOptions {
 
 const hasWindow = () => typeof window !== 'undefined';
 
-const urlBase64ToUint8Array = (base64String: string): Uint8Array => {
+const urlBase64ToUint8Array = (base64String: string): Uint8Array<ArrayBuffer> => {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
   const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
   const rawData = atob(base64);

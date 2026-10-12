@@ -21,21 +21,15 @@ test.describe('PWA Offline Smoke', () => {
     });
 
     await page.goto('/', { waitUntil: 'domcontentloaded' });
-    await page.waitForTimeout(2000);
+    await expect(page.getByRole('button', { name: 'Prijava', exact: true })).toBeVisible();
 
     const swSupported = await page.evaluate(() => 'serviceWorker' in navigator);
     test.skip(!swSupported, 'Service worker is not supported in this browser environment.');
 
-    await page.evaluate(async () => {
-      try {
-        await Promise.race([
-          navigator.serviceWorker.ready,
-          new Promise((resolve) => setTimeout(resolve, 5000)),
-        ]);
-      } catch {
-        // Ignore SW readiness errors in smoke mode.
-      }
-    });
+    await page.evaluate(() => navigator.serviceWorker.ready.then(() => true));
+    // The first page may predate installation; navigate under the active worker.
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await expect.poll(() => page.evaluate(() => !!navigator.serviceWorker.controller)).toBe(true);
 
     await context.setOffline(true);
     await expect.poll(
@@ -46,6 +40,10 @@ test.describe('PWA Offline Smoke', () => {
     await page.evaluate(() => {
       window.dispatchEvent(new Event('offline'));
     });
+
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await expect(page.getByRole('button', { name: 'Prijava', exact: true })).toBeVisible();
+    expect(await page.evaluate(async () => (await fetch('/pdf.worker.min.mjs')).ok)).toBe(true);
 
     await context.setOffline(false);
     await expect.poll(
@@ -74,7 +72,7 @@ test.describe('PWA Offline Smoke', () => {
       '/customers/ff64bb7a-cc24-4ffd-8cc7-d8f1c985588a/constructions/de344bbb-f20a-41e4-8357-5df78cd970eb/reports',
       { waitUntil: 'domcontentloaded' }
     );
-    await page.waitForTimeout(2000);
+    await expect(page.getByRole('button', { name: 'Prijava', exact: true })).toBeVisible();
 
     const errorSignals = collectErrorSignals(pageErrors, consoleErrors);
     const moduleImportErrors = errorSignals.filter((message) => MODULE_LOAD_FAILURE_PATTERN.test(message));

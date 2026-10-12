@@ -20,7 +20,7 @@ import {
     getAllFromStore,
     getFromStore,
     removeSyncOperationsForEntity,
-    saveManyToStore,
+    cacheRemoteRows,
     saveToStore
 } from '../lib/offlineDb';
 
@@ -72,8 +72,7 @@ export const ProfilePage = () => {
             if (isOnline) {
                 try {
                     const types = await examinerService.getReportTypes();
-                    setReportTypes(types);
-                    await saveManyToStore(STORES.REPORT_TYPES, types);
+                    setReportTypes(await cacheRemoteRows(STORES.REPORT_TYPES, types));
                     return;
                 } catch (error) {
                     if (!isNetworkError(error)) throw error;

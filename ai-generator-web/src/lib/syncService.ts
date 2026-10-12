@@ -4,11 +4,13 @@
  */
 
 import { supabase } from './supabase';
+import { createClient } from '@supabase/supabase-js';
 import {
   compactPendingSyncOperations,
   getPersistedSyncIdMap,
   getFailedSyncOperations,
   getSyncOperationsByStatus,
+  getSyncOperationTargetStore,
   getPendingSyncOperations,
   persistSyncIdMapping,
   markSyncOperationDiscarded,
@@ -625,10 +627,22 @@ const syncCreateExaminer = async (
     throw new Error('Invalid examiner create payload: missing required fields');
   }
 
-  const { data: { session: currentSession } } = await supabase.auth.getSession();
+  // A queued signup must not replace the administrator's active session.
+  const signupClient = createClient(
+    import.meta.env.VITE_SUPABASE_URL,
+    import.meta.env.VITE_SUPABASE_ANON_KEY,
+    {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+        detectSessionInUrl: false,
+        storageKey: 'examiner-signup',
+      },
+    }
+  );
 
   const signUpWithPassword = async (password: string) => {
-    return supabase.auth.signUp({
+    return signupClient.auth.signUp({
       email: payload.email,
       password,
       options: {
@@ -656,13 +670,6 @@ const syncCreateExaminer = async (
   }
   if (!authData.user?.id) {
     throw new Error('Examiner sign up succeeded without user id');
-  }
-
-  if (currentSession) {
-    await supabase.auth.setSession({
-      access_token: currentSession.access_token,
-      refresh_token: currentSession.refresh_token,
-    });
   }
 
   if (!payload.password || payload.password_mode === 'reset_link') {
@@ -1794,19 +1801,24 @@ export interface PullResult {
  * the UI before it ever synced.
  */
 const getLocallyModifiedKeys = async (): Promise<Set<string>> => {
-  const [pending, failed, persistedIdMap] = await Promise.all([
+  const [pending, failed, inProgress, discarded, persistedIdMap] = await Promise.all([
     getPendingSyncOperations(),
     getFailedSyncOperations(),
+    getSyncOperationsByStatus('in_progress'),
+    getSyncOperationsByStatus('discarded'),
     getPersistedSyncIdMap(),
   ]);
 
   const keys = new Set<string>();
-  for (const operation of [...pending, ...failed]) {
+  // Discarded changes are deliberately kept locally. An interrupted replay
+  // can also leave in-progress rows that still contain unsynced edits.
+  for (const operation of [...pending, ...failed, ...inProgress, ...discarded]) {
     if (!operation.entityId) continue;
-    keys.add(`${operation.store}:${operation.entityId}`);
+    const store = getSyncOperationTargetStore(operation);
+    keys.add(`${store}:${operation.entityId}`);
     const mapped = persistedIdMap[operation.entityId];
     if (mapped) {
-      keys.add(`${operation.store}:${mapped}`);
+      keys.add(`${store}:${mapped}`);
     }
   }
   return keys;

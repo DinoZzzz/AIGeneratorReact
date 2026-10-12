@@ -17,7 +17,7 @@ import {
     getAllFromStore,
     getFromStore,
     removeSyncOperationsForEntity,
-    saveManyToStore,
+    cacheRemoteRows,
     saveToStore
 } from '../lib/offlineDb';
 
@@ -61,12 +61,12 @@ export const Examiners = () => {
                         examinerService.getExaminers(),
                         examinerService.getReportTypes()
                     ]);
-                    setExaminers(examinersData);
-                    setReportTypes(typesData);
-                    await Promise.all([
-                        saveManyToStore(STORES.EXAMINERS, examinersData),
-                        saveManyToStore(STORES.REPORT_TYPES, typesData)
+                    const [cachedExaminers, cachedTypes] = await Promise.all([
+                        cacheRemoteRows(STORES.EXAMINERS, examinersData),
+                        cacheRemoteRows(STORES.REPORT_TYPES, typesData)
                     ]);
+                    setExaminers(cachedExaminers);
+                    setReportTypes(cachedTypes);
                     return;
                 } catch (error) {
                     if (!isNetworkError(error)) throw error;

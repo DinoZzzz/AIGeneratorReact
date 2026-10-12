@@ -8,7 +8,8 @@ import {
   getAllFromStore,
   getFromStore,
   saveToStore,
-  saveManyToStore,
+  cacheRemoteRows,
+  cacheRemoteRow,
   deleteFromStore,
   addToSyncQueue,
   removeSyncOperationsForEntity,
@@ -38,7 +39,7 @@ export const useReports = () =>
       return reports.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
     },
     {
-      cacheFn: (data) => saveManyToStore(STORES.REPORTS, data),
+      cacheFn: (data) => cacheRemoteRows(STORES.REPORTS, data),
       staleTime: 5 * 60 * 1000,
     },
   );
@@ -55,7 +56,7 @@ export const useReportsPaginated = (page: number = 1, pageSize: number = 15) =>
       return { data: sorted.slice(startIndex, startIndex + pageSize), count: sorted.length };
     },
     {
-      cacheFn: (data) => saveManyToStore(STORES.REPORTS, data.data),
+      cacheFn: async (result) => ({ ...result, data: await cacheRemoteRows(STORES.REPORTS, result.data) }),
       placeholderData: (previousData) => previousData,
     },
   );
@@ -69,7 +70,7 @@ export const useReportsByConstruction = (constructionId: string) =>
       return reports.sort((a, b) => (a.ordinal || 0) - (b.ordinal || 0));
     },
     {
-      cacheFn: (data) => saveManyToStore(STORES.REPORTS, data),
+      cacheFn: (data) => cacheRemoteRows(STORES.REPORTS, data),
       enabled: !!constructionId,
     },
   );
@@ -84,7 +85,7 @@ export const useReport = (id: string) =>
       return offlineData;
     },
     {
-      cacheFn: (data) => saveToStore(STORES.REPORTS, data),
+      cacheFn: (data) => cacheRemoteRow(STORES.REPORTS, data),
       enabled: !!id,
       staleTime: 5 * 60 * 1000,
     },
@@ -96,6 +97,7 @@ export const useCreateReport = () => {
   const { isOnline, triggerSync } = useOffline();
 
   return useMutation({
+    networkMode: 'always',
     mutationFn: async (report: Partial<ReportForm>) => {
       if (isOnline) {
         try {
@@ -180,6 +182,7 @@ export const useUpdateReport = () => {
   const { isOnline, triggerSync } = useOffline();
 
   return useMutation({
+    networkMode: 'always',
     mutationFn: async ({ id, report }: { id: string; report: Partial<ReportForm> }) => {
       if (isOnline) {
         try {
@@ -261,6 +264,7 @@ export const useDeleteReport = () => {
   const { isOnline, triggerSync } = useOffline();
 
   return useMutation({
+    networkMode: 'always',
     mutationFn: async (id: string) => {
       if (isOnline) {
         try {
@@ -303,13 +307,14 @@ export const useUpdateReportOrder = () => {
   const { isOnline, triggerSync } = useOffline();
 
   return useMutation({
+    networkMode: 'always',
     mutationFn: async (reports: ReportForm[]) => {
       if (isOnline) {
         try {
           await reportService.updateOrder(reports);
           // Update local cache with new order
-          for (const report of reports) {
-            await saveToStore(STORES.REPORTS, report);
+          for (const [ordinal, report] of reports.entries()) {
+            await saveToStore(STORES.REPORTS, { ...report, ordinal });
           }
         } catch (error) {
           if (isNetworkError(error)) {
@@ -344,9 +349,9 @@ async function updateReportOrderOffline(reports: ReportForm[]): Promise<void> {
     if (existing) {
       const updated = { ...existing, ordinal: i };
       (updated as ReportForm & { _is_offline: boolean })._is_offline = true;
-      await saveToStore(STORES.REPORTS, updated);
-      // Add each update to sync queue
+      // Capture the server version before writing the local change.
       await addToSyncQueue(STORES.REPORTS, 'update', { ordinal: i }, report.id);
+      await saveToStore(STORES.REPORTS, updated);
     }
   }
 }

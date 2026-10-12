@@ -29,10 +29,11 @@ const useRecentReports = () => {
                 .from('report_forms')
                 .select('id, dionica, section_name, type_id, satisfies, customer_id, construction_id, created_at, construction:constructions(name)')
                 .order('created_at', { ascending: false })
-                .limit(5);
+                .limit(5)
+                .overrideTypes<RecentReport[], { merge: false }>();
 
             if (error) throw error;
-            return data as RecentReport[];
+            return data || [];
         },
         offlineFn: async () => {
             const [reports, constructions] = await Promise.all([

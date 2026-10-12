@@ -11,7 +11,7 @@ interface ExistingReportExportLookup {
 interface LatestExportQuery {
   order: (column: string, options: { ascending: boolean }) => {
     limit: (count: number) => {
-      maybeSingle: () => Promise<{ data: unknown; error: unknown }>;
+      maybeSingle: () => PromiseLike<{ data: unknown; error: unknown }>;
     };
   };
 }
@@ -29,7 +29,6 @@ const getDateCandidates = (value: string | null | undefined): string[] => {
   if (!Number.isNaN(parsed.getTime())) {
     const iso = parsed.toISOString();
     candidates.add(iso);
-    candidates.add(iso.slice(0, 10));
   }
 
   return Array.from(candidates);
@@ -81,50 +80,14 @@ export const findExistingReportExportId = async ({
         .eq('construction_id', constructionId)
         .eq('customer_id', customerId)
         .eq('certifier_id', userId)
+        .is('user_id', null)
         .eq('type_id', typeId)
         .eq('examination_date', dateCandidate)
     );
     if (exactByCertifierId) return exactByCertifierId;
-
-    const exactWithoutIdentity = await getLatestExportId(
-      supabase
-        .from('report_exports')
-        .select('id')
-        .eq('construction_id', constructionId)
-        .eq('customer_id', customerId)
-        .eq('type_id', typeId)
-        .eq('examination_date', dateCandidate)
-    );
-    if (exactWithoutIdentity) return exactWithoutIdentity;
   }
 
-  const fallbackQueries: LatestExportQuery[] = [
-    supabase
-      .from('report_exports')
-      .select('id')
-      .eq('construction_id', constructionId)
-      .eq('customer_id', customerId)
-      .eq('type_id', typeId),
-    supabase
-      .from('report_exports')
-      .select('id')
-      .eq('construction_id', constructionId)
-      .eq('customer_id', customerId),
-    supabase
-      .from('report_exports')
-      .select('id')
-      .eq('construction_id', constructionId)
-      .eq('user_id', userId),
-    supabase
-      .from('report_exports')
-      .select('id')
-      .eq('construction_id', constructionId),
-  ];
-
-  for (const fallbackQuery of fallbackQueries) {
-    const fallbackId = await getLatestExportId(fallbackQuery);
-    if (fallbackId) return fallbackId;
-  }
-
+  // Callers replace this export's metadata and form links. An unrelated row
+  // from the same construction must never be used to recover a conflict.
   return null;
 };

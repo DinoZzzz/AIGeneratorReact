@@ -36,6 +36,26 @@ const makeReport = (overrides: Partial<ReportFormWithJoins>): ReportFormWithJoin
 });
 
 describe('wordExport tableBuilder', () => {
+    it('omits pipe length for shaft-only air reports even when a previous pipe length remains', () => {
+        const rows = buildAirReportRows([
+            makeReport({ type_id: 2, draft_id: 1, pipe_length: 12.5 }),
+            makeReport({ type_id: 2, draft_id: 2, pipe_length: 12.5 }),
+        ]);
+
+        expect(rows[0].pipeLength).toBe('-');
+        expect(rows[1].pipeLength).toBe('12,50');
+    });
+
+    it('preserves a saved zero allowed loss instead of replacing it with the procedure default', () => {
+        const rows = buildAirReportRows([makeReport({
+            type_id: 2,
+            allowed_loss: 0,
+            examination_procedure: { id: 1, name: 'LA', pressure: 10, allowed_loss: 2.5 },
+        })]);
+
+        expect(rows[0].allowedLoss).toBe('0,00');
+    });
+
     it('includes air section rows based on section_name + material_type_id', () => {
         const section = makeReport({
             id: 'section-air',

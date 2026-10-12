@@ -23,7 +23,7 @@ import { errorHandler, isNetworkError } from '../lib/errorHandler';
 import { useOffline } from '../context/OfflineContext';
 import { useCustomer } from '../hooks/useCustomers';
 import { useConstruction } from '../hooks/useConstructions';
-import { getByIndex, getFromStore, saveManyToStore, STORES } from '../lib/offlineDb';
+import { getByIndex, getFromStore, cacheRemoteRows, STORES } from '../lib/offlineDb';
 import { createQueuedUploadPreviewUrlMap, revokePreviewUrls } from '../lib/offlineUploadPreview';
 import {
     useCreateReport,
@@ -187,7 +187,7 @@ export const ConstructionReports = () => {
                         throw error;
                     }
 
-                    const remoteFiles = (data || []) as ReportFile[];
+                    const remoteFiles = await cacheRemoteRows(STORES.REPORT_FILES, (data || []) as ReportFile[]);
                     const hydratedOfflineFiles = hydrateQueuedPreviewUrls(offlineFiles, queuedPreviewUrls);
                     const pendingLocalFiles = hydratedOfflineFiles.filter((file) => file.id.startsWith('temp_file_'));
                     const mergedFiles = [...remoteFiles];
@@ -204,7 +204,6 @@ export const ConstructionReports = () => {
                             (left, right) => new Date(right.created_at).getTime() - new Date(left.created_at).getTime()
                         )
                     );
-                    await saveManyToStore(STORES.REPORT_FILES, remoteFiles);
                     return;
                 } catch (error) {
                     if (!isNetworkError(error)) throw error;
@@ -279,10 +278,10 @@ export const ConstructionReports = () => {
         navigate(path);
     };
 
-    const handleExportPDF = (report: ReportForm) => {
-        setActionMessage({ text: 'Generating PDF...', type: 'info' });
+    const handleExportPDF = async (report: ReportForm) => {
+        setActionMessage({ text: t('exportDetails.generatingPdf'), type: 'info' });
         try {
-            generatePDF(report, profile || undefined);
+            await generatePDF(report, profile || undefined);
             setActionMessage(null);
         } catch (error) {
             const appError = errorHandler.handle(error, 'ConstructionReports');
@@ -295,17 +294,21 @@ export const ConstructionReports = () => {
         setPdfLanguageDialogOpen(true);
     };
 
-    const handlePdfLanguageConfirm = (lang: 'hr' | 'sl') => {
+    const handlePdfLanguageConfirm = async (lang: 'hr' | 'sl') => {
         const reportsToExport = selectedIds.size > 0
             ? reports.filter(r => r.id && selectedIds.has(r.id) && !r.section_name)
             : reports.filter(r => !r.section_name);
-        setActionMessage({ text: 'Generating PDF export...', type: 'info' });
+        if (reportsToExport.length === 0) return;
+        setIsExporting(true);
+        setActionMessage({ text: t('exportDetails.generatingPdf'), type: 'info' });
         try {
-            generateBulkPDF(reportsToExport, `Reports_${construction?.work_order || 'bundle'}.pdf`, profile || undefined, lang);
+            await generateBulkPDF(reportsToExport, `Reports_${construction?.work_order || 'bundle'}.pdf`, profile || undefined, lang);
             setActionMessage(null);
         } catch (error) {
             const appError = errorHandler.handle(error, 'ConstructionReports');
             setActionMessage({ text: errorHandler.getUserMessage(appError), type: 'error' });
+        } finally {
+            setIsExporting(false);
         }
     };
 

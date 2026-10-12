@@ -1,15 +1,24 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { validatePasswordResetInput } from './validation.ts'
 
 const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
 }
 
 serve(async (req) => {
     // Handle CORS preflight
     if (req.method === 'OPTIONS') {
         return new Response('ok', { headers: corsHeaders })
+    }
+
+    if (req.method !== 'POST') {
+        return new Response(
+            JSON.stringify({ error: 'Method not allowed' }),
+            { status: 405, headers: { ...corsHeaders, Allow: 'POST, OPTIONS', 'Content-Type': 'application/json' } }
+        )
     }
 
     try {
@@ -54,24 +63,14 @@ serve(async (req) => {
             )
         }
 
-        // Parse request body
-        const { userId, password } = await req.json()
-
-        // Validate required fields
-        if (!userId || !password) {
+        const input = validatePasswordResetInput(await req.json().catch(() => null))
+        if ('error' in input) {
             return new Response(
-                JSON.stringify({ error: 'Missing userId or password' }),
+                JSON.stringify(input),
                 { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
             )
         }
-
-        // Validate password length
-        if (password.length < 6) {
-            return new Response(
-                JSON.stringify({ error: 'Password must be at least 6 characters long' }),
-                { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-            )
-        }
+        const { userId, password } = input
 
         // Update user's password using Admin API
         const { data: updateData, error: updateError } = await supabaseAdmin.auth.admin.updateUserById(
@@ -82,7 +81,7 @@ serve(async (req) => {
         if (updateError) {
             console.error('Password update error:', updateError)
             return new Response(
-                JSON.stringify({ error: updateError.message }),
+                JSON.stringify({ error: updateError.message, code: updateError.code }),
                 { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
             )
         }
@@ -101,7 +100,7 @@ serve(async (req) => {
     } catch (error) {
         console.error('Unexpected error:', error)
         return new Response(
-            JSON.stringify({ error: error.message }),
+            JSON.stringify({ error: error instanceof Error ? error.message : 'Unexpected error' }),
             { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         )
     }

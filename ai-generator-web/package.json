@@ -1,7 +1,7 @@
 {
   "name": "ai-generator-web",
   "private": true,
-  "version": "2.36.0",
+  "version": "2.36.1",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -10,7 +10,7 @@
     "build:analyze": "tsc -b && vite build && open dist/stats.html",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "type-check": "tsc --noEmit",
+    "type-check": "tsc -b",
     "preview": "vite preview --port 8080 --host",
     "start": "serve -s dist -l $PORT",
     "test": "vitest",
@@ -35,8 +35,8 @@
     "docxtemplater": "^3.67.5",
     "docxtemplater-image-module-free": "^1.1.1",
     "file-saver": "^2.0.5",
-    "jspdf": "^3.0.4",
-    "jspdf-autotable": "^5.0.2",
+    "jspdf": "^4.2.1",
+    "jspdf-autotable": "^5.0.8",
     "lucide-react": "^0.554.0",
     "pdf-lib": "^1.17.1",
     "pdfjs-dist": "^5.4.394",
@@ -44,7 +44,7 @@
     "react": "^19.2.0",
     "react-big-calendar": "^1.19.4",
     "react-dom": "^19.2.0",
-    "react-router-dom": "^7.9.6",
+    "react-router-dom": "^7.18.4",
     "react-swipeable": "^7.0.2",
     "recharts": "^3.4.1",
     "serve": "^14.2.5",
@@ -81,5 +81,13 @@
     "vite-plugin-pwa": "^1.1.0",
     "vitest": "^4.0.13",
     "workbox-window": "^7.4.0"
+  },
+  "overrides": {
+    "docxtemplater-image-module-free": {
+      "xmldom": "npm:@xmldom/xmldom@^0.8.15"
+    },
+    "serve": {
+      "compression": "^1.8.2"
+    }
   }
 }

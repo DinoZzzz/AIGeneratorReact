@@ -1,5 +1,5 @@
 import { certifierService, type Certifier } from '../services/certifierService';
-import { getAllFromStore, saveManyToStore, STORES } from '../lib/offlineDb';
+import { getAllFromStore, cacheRemoteRows, STORES } from '../lib/offlineDb';
 import { useOnlineQuery } from '../lib/offlineQueryFn';
 
 export const certifierKeys = {
@@ -12,7 +12,7 @@ export const useCertifiers = () => {
     () => certifierService.getAll(),
     () => getAllFromStore<Certifier>(STORES.CERTIFIERS),
     {
-      cacheFn: (data) => saveManyToStore(STORES.CERTIFIERS, data),
+      cacheFn: (data) => cacheRemoteRows(STORES.CERTIFIERS, data),
       staleTime: 30 * 60 * 1000,
     },
   );

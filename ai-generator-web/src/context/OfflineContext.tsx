@@ -129,7 +129,7 @@ export const OfflineProvider = ({ children }: { children: ReactNode }) => {
     lastUploadCleanupAtRef.current = Date.now();
     const cleanupResult = await cleanupStaleUploadOperations();
     if (cleanupResult.removed > 0) {
-      logger.warn('Offline upload queue cleanup removed stale items', cleanupResult);
+      logger.warn('Offline upload queue cleanup removed stale items', { ...cleanupResult });
     }
   }, []);
 

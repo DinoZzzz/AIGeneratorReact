@@ -87,6 +87,7 @@ export function useReportFormShell({
     const { data: loadedReport, isLoading: isReportLoading, error: reportLoadError } = useReport(reportId);
     const {
         data: constructionReports = [],
+        isSuccess: areConstructionReportsLoaded,
         error: constructionReportsError
     } = useReportsByConstruction(constructionId || '');
     const createReportMutation = useCreateReport();
@@ -100,6 +101,7 @@ export function useReportFormShell({
     const [hasUserEdited, setHasUserEdited] = useState(false);
     const initializedFromPreviousRef = useRef(false);
     const initializedFromDuplicateRef = useRef(false);
+    const initializedReportIdRef = useRef<string | null>(null);
 
     // Latest-value refs so the per-method callbacks don't retrigger effects.
     // Updated in an effect (not during render); this effect is declared before
@@ -129,6 +131,8 @@ export function useReportFormShell({
     const handleRestoreDraft = () => {
         if (restoredData) {
             setFormData(restoredData);
+            initializedFromPreviousRef.current = true;
+            setHasUserEdited(true);
             showSuccess(t('form.draftRestored'));
         }
         setShowRestoreBanner(false);
@@ -141,9 +145,17 @@ export function useReportFormShell({
         dismissRestore();
     };
 
+    // Reset initialization before the consumers below run for a new route.
+    useEffect(() => {
+        initializedFromPreviousRef.current = false;
+        initializedFromDuplicateRef.current = false;
+        initializedReportIdRef.current = null;
+        onSectionParamsChangeRef.current?.();
+    }, [constructionId, customerId, id, duplicateId]);
+
     // Duplicate report handling
     useEffect(() => {
-        if (duplicateSource && !initializedFromDuplicateRef.current) {
+        if (!isEditMode && duplicateSource && duplicateId && !hasUserEdited && !initializedFromDuplicateRef.current) {
             // user_id is dropped: the duplicate is a NEW report authored by the current
             // user, and carrying it over would credit the source report's examiner.
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -156,7 +168,7 @@ export function useReportFormShell({
             initializedFromDuplicateRef.current = true;
             showSuccess(t('form.duplicated'));
         }
-    }, [duplicateSource]); // eslint-disable-line react-hooks/exhaustive-deps
+    }, [duplicateSource, duplicateId, isEditMode, hasUserEdited]); // eslint-disable-line react-hooks/exhaustive-deps
 
     useEffect(() => {
         if (reportLoadError) {
@@ -172,16 +184,12 @@ export function useReportFormShell({
     }, [constructionReportsError, errorContext]);
 
     useEffect(() => {
-        if (isEditMode && loadedReport) {
+        if (isEditMode && loadedReport && initializedReportIdRef.current !== reportId) {
+            initializedReportIdRef.current = reportId;
             setFormData(loadedReport);
             onLoadedReportRef.current?.();
         }
-    }, [isEditMode, loadedReport, setFormData]);
-
-    useEffect(() => {
-        initializedFromPreviousRef.current = false;
-        onSectionParamsChangeRef.current?.();
-    }, [constructionId, customerId, id]);
+    }, [isEditMode, reportId, loadedReport, setFormData]);
 
     // The construction's most recent full (non-section) reports, newest first:
     // previousReport (same method) drives "copy structure from previous" and
@@ -209,14 +217,17 @@ export function useReportFormShell({
 
     // Prefill a new report from the construction's most recent reports
     useEffect(() => {
-        if (!constructionId || isEditMode || initializedFromPreviousRef.current) return;
+        if (!constructionId || isEditMode || duplicateId || initializedFromPreviousRef.current) return;
+        // Queries resolve asynchronously. Never consume the initialization while
+        // loading, or replace a restored draft or fields the user already edited.
+        if (!areConstructionReportsLoaded || hasUserEdited || showRestoreBanner) return;
 
         if (previousReport) {
             setFormData(prev => ({
                 ...prev,
                 dionica: lastAnyTypeReport?.dionica || lastAnyTypeReport?.stock || prev.dionica,
                 examination_date: previousReport.examination_date || prev.examination_date,
-                temperature: previousReport.temperature || prev.temperature,
+                temperature: previousReport.temperature ?? prev.temperature,
                 pane_material_id: previousReport.pane_material_id || prev.pane_material_id,
                 pipe_material_id: previousReport.pipe_material_id || prev.pipe_material_id,
                 ...prefillExtraRef.current?.(previousReport),
@@ -233,7 +244,7 @@ export function useReportFormShell({
         }
 
         initializedFromPreviousRef.current = true;
-    }, [constructionId, isEditMode, previousReport, lastAnyTypeReport, setFormData]);
+    }, [constructionId, isEditMode, duplicateId, areConstructionReportsLoaded, hasUserEdited, showRestoreBanner, previousReport, lastAnyTypeReport, setFormData]);
 
     const handleBack = () => {
         if (step === 2) {
@@ -260,6 +271,7 @@ export function useReportFormShell({
             }
             return next as Partial<ReportForm>;
         });
+        setHasUserEdited(true);
     };
 
     return {

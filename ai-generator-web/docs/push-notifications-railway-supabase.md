@@ -56,7 +56,7 @@ Opcionalne varijable:
 - `DISPATCH_WINDOW_MS=600000`
 - `APPOINTMENT_LOOKBACK_HOURS=24`
 - `APPOINTMENT_LOOKAHEAD_HOURS=168`
-- `RUN_TRIGGER_TOKEN=<secret>` (za zaštitu `/run` endpointa)
+- `RUN_TRIGGER_TOKEN=<secret>` (obavezan za ručno pozivanje `/run` endpointa; automatsko slanje radi i bez njega)
 
 ## 5) Test
 
@@ -69,4 +69,4 @@ Opcionalne varijable:
 ## 6) Operativno
 
 - Health endpoint workera: `GET /health`
-- Ručno okidanje slanja: `GET/POST /run` (ako je postavljen `RUN_TRIGGER_TOKEN`, pošalji ga kao `x-run-token` header)
+- Ručno okidanje slanja: `GET/POST /run` (postavi `RUN_TRIGGER_TOKEN` i pošalji ga kao `x-run-token` header; bez konfiguriranog tokena endpoint odbija zahtjeve)

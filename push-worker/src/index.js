@@ -1,6 +1,7 @@
 import { createServer } from 'node:http';
 import { createClient } from '@supabase/supabase-js';
 import webPush from 'web-push';
+import { formatDateTime, isAuthorizedRunRequest } from './runtimeHelpers.js';
 
 const env = {
   supabaseUrl: process.env.SUPABASE_URL || '',
@@ -67,14 +68,6 @@ const toUniqueUserIds = (appointment) => {
   }
 
   return [...recipients];
-};
-
-const formatDateTime = (isoValue) => {
-  try {
-    return new Intl.DateTimeFormat('hr-HR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(isoValue));
-  } catch {
-    return isoValue;
-  }
 };
 
 const createPushPayload = (appointment, minutesBefore) => {
@@ -342,12 +335,6 @@ const getHealthPayload = () => {
   };
 };
 
-const isAuthorizedRunRequest = (req) => {
-  if (!env.runToken) return true;
-  const headerToken = req.headers['x-run-token'];
-  return typeof headerToken === 'string' && headerToken === env.runToken;
-};
-
 const server = createServer(async (req, res) => {
   if (!req.url) {
     res.writeHead(400, { 'content-type': 'application/json' });
@@ -364,7 +351,7 @@ const server = createServer(async (req, res) => {
   }
 
   if (url.pathname === '/run' && (req.method === 'POST' || req.method === 'GET')) {
-    if (!isAuthorizedRunRequest(req)) {
+    if (!isAuthorizedRunRequest(req, env.runToken)) {
       res.writeHead(401, { 'content-type': 'application/json' });
       res.end(JSON.stringify({ error: 'Unauthorized run trigger' }));
       return;

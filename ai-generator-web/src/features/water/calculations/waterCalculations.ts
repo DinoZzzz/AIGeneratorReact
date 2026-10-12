@@ -221,7 +221,9 @@ export const calculateWaterReport = (form: ReportForm): WaterReportCalculations 
         form.pane_length
     );
     const result = calculateResult(waterVolumeLoss, totalWettedArea);
-    const satisfies = isWaterSatisfying(result, criteria);
+    // Rounding is only for display: a loss just above the limit must still fail.
+    const unroundedResult = totalWettedArea === 0 ? 0 : waterVolumeLoss / totalWettedArea;
+    const satisfies = isWaterSatisfying(unroundedResult, criteria);
 
     const hydrostaticHeight = calculateHydrostaticHeight(
         form.draft_id,

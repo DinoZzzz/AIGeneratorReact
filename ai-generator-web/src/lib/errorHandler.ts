@@ -92,6 +92,16 @@ export async function withAuthRetry<T>(fn: () => Promise<T>): Promise<T> {
  * Checks TypeError (common for fetch failures), error.cause chain, and error.name.
  */
 export function isNetworkError(error: unknown): boolean {
+  // PostgREST serializes fetch rejections into a plain error object rather
+  // than preserving the original Error instance. Server errors have a code.
+  if (error && typeof error === 'object' && !(error instanceof Error)) {
+    const responseError = error as { code?: unknown; message?: unknown; hint?: unknown; details?: unknown };
+    if (responseError.code === '' && responseError.hint === '' && typeof responseError.details === 'string') {
+      return typeof responseError.message === 'string'
+        && /^(?:TypeError|FetchError|NetworkError|AbortError|TimeoutError):/.test(responseError.message);
+    }
+  }
+
   if (error instanceof TypeError) {
     return true;
   }

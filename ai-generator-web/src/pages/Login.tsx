@@ -18,6 +18,7 @@ export const Login = () => {
     const isMountedRef = useRef(true);
 
     useEffect(() => {
+        isMountedRef.current = true;
         return () => {
             isMountedRef.current = false;
         };
@@ -29,18 +30,19 @@ export const Login = () => {
         setError(null);
 
         try {
-            let emailToUse = identifier;
+            const normalizedIdentifier = identifier.trim();
+            let emailToUse = normalizedIdentifier;
 
             // Check if input is a valid email format (not just contains @)
             const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            const isEmail = emailRegex.test(identifier);
+            const isEmail = emailRegex.test(normalizedIdentifier);
 
             // If not an email, treat as username and lookup email
             if (!isEmail) {
                 const { data, error: lookupError } = await supabase
                     .from('profiles')
                     .select('email')
-                    .ilike('username', identifier)
+                    .ilike('username', normalizedIdentifier.replace(/[\\%_]/g, '\\$&'))
                     .single();
 
                 if (lookupError) {
@@ -99,7 +101,7 @@ export const Login = () => {
                 <div className="bg-card py-8 px-6 sm:px-10 shadow-xl shadow-slate-200/50 dark:shadow-black/40 sm:rounded-xl border border-border/50 backdrop-blur-sm">
                     <form className="space-y-6" onSubmit={handleLogin}>
                         {error && (
-                            <div className="bg-destructive/10 border border-destructive/20 text-destructive px-4 py-3 rounded-md text-sm flex items-center">
+                            <div role="alert" className="bg-destructive/10 border border-destructive/20 text-destructive px-4 py-3 rounded-md text-sm flex items-center">
                                 <span className="block sm:inline">{error}</span>
                             </div>
                         )}

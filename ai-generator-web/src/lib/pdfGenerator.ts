@@ -545,8 +545,7 @@ const renderReportPage = async (doc: jsPDF, report: Partial<ReportForm>, author?
 
     // Air Method specific
     if (typeId === 2) {
-        const procNames: Record<number, string> = { 1: 'LA', 2: 'LB', 3: 'LC', 4: 'LD' };
-        addLeft(labels.testMethod, procNames[report.examination_procedure_id || 1] || 'LA');
+        addLeft(labels.testMethod, getAirProcedureName(report));
     }
 
     if (typeId === 1) {

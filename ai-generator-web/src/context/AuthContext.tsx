@@ -2,7 +2,9 @@ import React, { createContext, useCallback, useContext, useEffect, useMemo, useR
 import { supabase } from '../lib/supabase';
 import type { Profile } from '../types';
 import { setUserContext, clearUserContext } from '../lib/sentry';
-import { clearStore, saveMetadata, STORES } from '../lib/offlineDb';
+import { saveMetadata } from '../lib/offlineDb';
+import { clearOfflineSessionData } from '../lib/offlineSessionData';
+import { queryClient } from '../lib/queryClient';
 import { prewarmLookupCache } from '../lib/offlineLookupCache';
 import { pullRemoteChanges } from '../lib/syncService';
 import { syncPushSubscriptionIfEnabled } from '../lib/notificationService';
@@ -37,29 +39,6 @@ const AuthContext = createContext<AuthContextType>({
 // eslint-disable-next-line react-refresh/only-export-components
 export const useAuth = () => useContext(AuthContext);
 
-const clearOfflineSessionData = async () => {
-    await Promise.all([
-        clearStore(STORES.CUSTOMERS),
-        clearStore(STORES.CONSTRUCTIONS),
-        clearStore(STORES.REPORTS),
-        clearStore(STORES.APPOINTMENTS),
-        clearStore(STORES.MESSAGES),
-        clearStore(STORES.EXAMINERS),
-        clearStore(STORES.REPORT_TYPES),
-        clearStore(STORES.MATERIALS),
-        clearStore(STORES.SCHEME_IMAGES),
-        clearStore(STORES.CERTIFIERS),
-        clearStore(STORES.EXPORT_HISTORY),
-        clearStore(STORES.EXPORT_HISTORY_FORMS),
-        clearStore(STORES.REPORT_FILES),
-        clearStore(STORES.FILE_BLOBS),
-        clearStore(STORES.TEMPLATE_CACHE),
-        clearStore(STORES.UPLOADS),
-        clearStore(STORES.SYNC_QUEUE),
-        clearStore(STORES.METADATA),
-    ]);
-};
-
 const persistSyncSession = async (sessionValue: Session) => {
     if (!sessionValue?.access_token || !sessionValue.refresh_token) {
         await saveMetadata(SYNC_SESSION_METADATA_KEY, null);
@@ -82,6 +61,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         return localStorage.getItem('lowBandwidthMode') === 'true';
     });
     const warmedLookupUserRef = useRef<string | null>(null);
+    const currentUserIdRef = useRef<string | null>(null);
 
     useEffect(() => {
         localStorage.setItem('lowBandwidthMode', String(lowBandwidthMode));
@@ -93,37 +73,40 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }, [lowBandwidthMode]);
 
     const loadProfile = useCallback(async (userId: string) => {
-        // Skip profile loading in low bandwidth mode to save data
-        if (lowBandwidthMode) {
-            setLoading(false);
-            return;
-        }
-
         try {
-            // Only fetch fields needed for UI display and role checking
+            // Roles and accreditations are required even in low bandwidth mode.
             const { data, error } = await supabase
                 .from('profiles')
                 .select('id, name, last_name, username, email, avatar_url, role, accreditations')
                 .eq('id', userId)
                 .maybeSingle();
 
-            if (!error && data) {
+            if (!error && data && currentUserIdRef.current === userId) {
                 setProfile(data as Profile);
             }
         } catch (err) {
             console.error('Error loading profile:', err);
         }
-    }, [lowBandwidthMode]);
+    }, []);
 
     useEffect(() => {
+        let active = true;
+        let sessionEventReceived = false;
+
         // Get initial session
         supabase.auth.getSession().then(({ data: { session } }) => {
+            if (!active || sessionEventReceived) return;
+            currentUserIdRef.current = session?.user.id ?? null;
             setSession(session);
             setUser(session?.user ?? null);
             void persistSyncSession(session);
-            if (session?.user && !lowBandwidthMode) {
-                loadProfile(session.user.id);
+            if (session?.user) {
+                void loadProfile(session.user.id);
             }
+            setLoading(false);
+        }).catch((error) => {
+            if (!active || sessionEventReceived) return;
+            console.error('Error loading session:', error);
             setLoading(false);
         });
 
@@ -131,11 +114,19 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         const {
             data: { subscription },
         } = supabase.auth.onAuthStateChange((_event, session) => {
+            if (!active) return;
+            sessionEventReceived = true;
+            const nextUserId = session?.user.id ?? null;
+            if (currentUserIdRef.current !== nextUserId) {
+                if (currentUserIdRef.current !== null) queryClient.clear();
+                setProfile(null);
+            }
+            currentUserIdRef.current = nextUserId;
             setSession(session);
             setUser(session?.user ?? null);
             void persistSyncSession(session);
-            if (session?.user && !lowBandwidthMode) {
-                loadProfile(session.user.id);
+            if (session?.user) {
+                void loadProfile(session.user.id);
                 // Set Sentry user context for error tracking
                 setUserContext({
                     id: session.user.id,
@@ -155,10 +146,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             setLoading(false);
         });
 
-        return () => subscription.unsubscribe();
-    // loadProfile is stable and only needs to run when lowBandwidthMode changes
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [lowBandwidthMode]);
+        return () => {
+            active = false;
+            currentUserIdRef.current = null;
+            subscription.unsubscribe();
+        };
+    }, [loadProfile]);
 
     useEffect(() => {
         const warmLookups = async () => {
@@ -232,6 +225,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             }
             await supabase.auth.signOut();
         } finally {
+            queryClient.clear();
             warmedLookupUserRef.current = null;
             setProfile(null);
             // Clear Sentry user context
@@ -245,10 +239,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }, [user?.id]);
 
     const refreshProfile = useCallback(async () => {
-        if (user && !lowBandwidthMode) {
+        if (user) {
             await loadProfile(user.id);
         }
-    }, [user, lowBandwidthMode, loadProfile]);
+    }, [user, loadProfile]);
 
     const value = useMemo(() => ({
         session,
