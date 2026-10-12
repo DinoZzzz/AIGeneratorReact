@@ -7,6 +7,7 @@ import { getAllFromStore, STORES } from '../../lib/offlineDb';
 import { useOfflineQuery } from '../../hooks/useOfflineMutation';
 import { useLanguage } from '../../context/LanguageContext';
 import { formatDistanceToNow } from 'date-fns';
+import { enUS, hr } from 'date-fns/locale';
 import { cn } from '../../lib/utils';
 
 interface RecentReport {
@@ -64,8 +65,9 @@ function getReportHref(report: RecentReport): string {
 }
 
 const RecentReportsComponent = () => {
-    const { t } = useLanguage();
+    const { t, language } = useLanguage();
     const { data: reports = [], isLoading } = useRecentReports();
+    const dateFnsLocale = language === 'hr' ? hr : enUS;
 
     if (isLoading) {
         return (
@@ -128,7 +130,7 @@ const RecentReportsComponent = () => {
                                 )}
                                 <span className="text-xs text-muted-foreground flex items-center gap-1">
                                     <Clock className="h-3 w-3" />
-                                    {formatDistanceToNow(new Date(report.created_at), { addSuffix: true })}
+                                    {formatDistanceToNow(new Date(report.created_at), { addSuffix: true, locale: dateFnsLocale })}
                                 </span>
                             </div>
                         </Link>

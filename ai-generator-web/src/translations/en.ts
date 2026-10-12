@@ -196,6 +196,7 @@ export const en: Record<string, string> = {
     'common.of': 'of',
     'common.closeDialog': 'Close dialog',
     'common.closeNotification': 'Close notification',
+    'common.moreOptions': 'More options',
     'common.closeResults': 'Close results',
     'common.progress': 'Progress',
     'common.breadcrumb': 'Breadcrumb',
@@ -515,6 +516,10 @@ export const en: Record<string, string> = {
     'constructions.filterAll': 'All',
     'constructions.filterActive': 'Active',
     'constructions.filterArchived': 'Archived',
+    'constructions.nameRequired': 'Name is required',
+    'constructions.workOrderExists': 'Work order already exists',
+    'constructions.workOrderRequired': 'Work order is required',
+    'constructions.locationRequired': 'Location is required',
     'constructions.archivedBadge': 'ARCHIVED',
     'constructions.customerNotFound': 'Customer not found',
     'constructions.goBack': 'Go back to constructions',
@@ -831,7 +836,7 @@ export const en: Record<string, string> = {
     'schemeManager.onlineRequired': 'This action requires an internet connection.',
 
     // Command Palette
-    'commandPalette.searchPlaceholder': 'Search customers, constructions...',
+    'commandPalette.searchPlaceholder': 'Search customers, constructions, reports...',
     'commandPalette.searching': 'Searching...',
     'commandPalette.noResults': 'No results found',
     'commandPalette.recent': 'Recently Viewed',
@@ -883,6 +888,7 @@ export const en: Record<string, string> = {
 
     // Batch Operations
     'reports.selectAll': 'Select all',
+    'reports.selectReport': 'Select report',
     'reports.deselectAll': 'Deselect all',
     'reports.bulkExportPdf': 'Export PDF',
     'reports.bulkDelete': 'Delete selected',

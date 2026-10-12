@@ -14,11 +14,19 @@ interface State {
   errorInfo?: ErrorInfo;
 }
 
-const getErrorBoundaryTranslation = (key: string) => {
-  const storedLanguage = typeof window !== 'undefined' ? localStorage.getItem('language') : null;
-  const language: Language = storedLanguage === 'en' || storedLanguage === 'hr' ? storedLanguage : 'hr';
+function getStoredLanguage(): Language {
+  try {
+    const language = localStorage.getItem('language');
+    return language === 'en' ? 'en' : 'hr';
+  } catch {
+    return 'hr';
+  }
+}
+
+function translate(key: string): string {
+  const language = getStoredLanguage();
   return translations[language][key] || translations.hr[key] || key;
-};
+}
 
 export class ErrorBoundary extends Component<Props, State> {
   constructor(props: Props) {
@@ -54,8 +62,6 @@ export class ErrorBoundary extends Component<Props, State> {
         return this.props.fallback;
       }
 
-      const t = getErrorBoundaryTranslation;
-
       return (
         <div className="min-h-screen flex items-center justify-center bg-background px-4">
           <div className="max-w-md w-full bg-card rounded-lg shadow-lg p-6">
@@ -64,11 +70,11 @@ export class ErrorBoundary extends Component<Props, State> {
             </div>
 
             <h2 className="text-2xl font-bold text-center text-foreground mb-2">
-              {t('errorBoundary.title')}
+              {translate('errorBoundary.title')}
             </h2>
 
             <p className="text-center text-muted-foreground mb-6">
-              {t('errorBoundary.description')}
+              {translate('errorBoundary.description')}
             </p>
 
             {process.env.NODE_ENV === 'development' && this.state.error && (
@@ -78,7 +84,7 @@ export class ErrorBoundary extends Component<Props, State> {
                 </p>
                 {this.state.errorInfo && (
                   <details className="text-xs text-red-700 dark:text-red-400">
-                    <summary className="cursor-pointer mb-2">{t('errorBoundary.stackTrace')}</summary>
+                    <summary className="cursor-pointer mb-2">{translate('errorBoundary.stackTrace')}</summary>
                     <pre className="whitespace-pre-wrap overflow-auto max-h-40">
                       {this.state.errorInfo.componentStack}
                     </pre>
@@ -92,13 +98,13 @@ export class ErrorBoundary extends Component<Props, State> {
                 onClick={this.handleReset}
                 className="flex-1 px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg transition-colors"
               >
-                {t('errorBoundary.tryAgain')}
+                {translate('errorBoundary.tryAgain')}
               </button>
               <button
                 onClick={() => window.location.href = '/'}
                 className="flex-1 px-4 py-2 bg-muted hover:bg-muted/80 text-foreground rounded-lg transition-colors"
               >
-                {t('errorBoundary.goToDashboard')}
+                {translate('errorBoundary.goToDashboard')}
               </button>
             </div>
           </div>

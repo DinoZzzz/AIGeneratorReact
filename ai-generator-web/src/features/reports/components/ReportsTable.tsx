@@ -165,6 +165,7 @@ export const ReportsTable = ({
                                                 className="rounded border-input text-primary focus:ring-ring h-5 w-5"
                                                 checked={report.id ? selectedIds.has(report.id) : false}
                                                 onChange={() => report.id && onToggleSelect(report.id)}
+                                                aria-label={t('reports.selectReport')}
                                             />
                                         </div>
                                         <div>
