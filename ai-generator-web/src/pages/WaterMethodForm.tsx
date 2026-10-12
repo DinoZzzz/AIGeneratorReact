@@ -286,7 +286,9 @@ export const WaterMethodForm = () => {
                 });
                 hasEditedDeviationRef.current = false;
                 setStep(1);
-                navigate(`/customers/${customerId}/constructions/${constructionId}/reports/new/water`);
+                navigate(customerId && constructionId
+                    ? `/customers/${customerId}/constructions/${constructionId}/reports/new/water`
+                    : '/reports/new');
                 showSuccess(t('reports.form.saveSuccess'));
             } else {
                 if (customerId && constructionId) {
@@ -380,7 +382,7 @@ export const WaterMethodForm = () => {
                     </Button>
                     <div>
                         <h1 className="text-2xl font-bold text-foreground">
-                            {id === 'new' ? t('reports.form.waterTitleNew') : t('reports.form.editTitle')}
+                            {isEditMode ? t('reports.form.editTitle') : t('reports.form.waterTitleNew')}
                         </h1>
                         <p className="text-sm text-muted-foreground">
                             {step === 1 ? t('reports.form.step1Desc') : t('reports.form.step2Desc')}

@@ -1,6 +1,13 @@
 import { supabase } from '../lib/supabase';
 import { captureError } from '../lib/sentry';
-import { AppError } from '../lib/errorHandler';
+import { AppError, AuthError, isNetworkError, NetworkError } from '../lib/errorHandler';
+
+const throwMessageError = (error: { message: string }, method: string, id?: string): never => {
+    captureError(error, { service: 'messageService', method, id });
+    // Preserve fetch failures so the chat can safely queue the operation offline.
+    if (isNetworkError(error)) throw error;
+    throw new AppError(error.message, 'SUPABASE_ERROR', 500);
+};
 
 export interface Message {
     id: string;
@@ -29,8 +36,7 @@ export const messageService = {
             .limit(limit);
 
         if (error) {
-            captureError(error, { service: 'messageService', method: 'getMessages' });
-            throw new AppError(error.message, 'SUPABASE_ERROR', 500);
+            throwMessageError(error, 'getMessages');
         }
 
         // Reverse to show oldest first
@@ -38,9 +44,15 @@ export const messageService = {
     },
 
     async sendMessage(content: string) {
+        const { data: auth, error: authError } = await supabase.auth.getUser();
+        if (authError) {
+            if (authError.name === 'AuthRetryableFetchError') throw new NetworkError(authError.message);
+            throw authError;
+        }
+        if (!auth.user) throw new AuthError();
         const { data, error } = await supabase
             .from('messages')
-            .insert([{ content, user_id: (await supabase.auth.getUser()).data.user?.id }])
+            .insert([{ content, user_id: auth.user.id }])
             .select(`
                 *,
                 user:profiles(name, last_name, email, avatar_url)
@@ -48,8 +60,7 @@ export const messageService = {
             .single();
 
         if (error) {
-            captureError(error, { service: 'messageService', method: 'sendMessage' });
-            throw new AppError(error.message, 'SUPABASE_ERROR', 500);
+            throwMessageError(error, 'sendMessage');
         }
         return data as Message;
     },
@@ -66,8 +77,7 @@ export const messageService = {
             .single();
 
         if (error) {
-            captureError(error, { service: 'messageService', method: 'updateMessage', id });
-            throw new AppError(error.message, 'SUPABASE_ERROR', 500);
+            throwMessageError(error, 'updateMessage', id);
         }
         return data as Message;
     },
@@ -79,8 +89,7 @@ export const messageService = {
             .eq('id', id);
 
         if (error) {
-            captureError(error, { service: 'messageService', method: 'deleteMessage', id });
-            throw new AppError(error.message, 'SUPABASE_ERROR', 500);
+            throwMessageError(error, 'deleteMessage', id);
         }
     },
 

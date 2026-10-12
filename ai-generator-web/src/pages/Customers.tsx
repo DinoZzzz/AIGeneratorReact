@@ -10,6 +10,7 @@ import { useConfirm } from '../context/useConfirm';
 import { formatDate } from '../utils/dateFormatter';
 import { SyncPendingBadge } from '../components/ui/SyncPendingBadge';
 import { STORES } from '../lib/offlineDb';
+import { useRecentlyViewed } from '../hooks/useRecentlyViewed';
 
 
 type SortField = 'work_order' | 'name' | 'location' | 'address' | 'created_at' | 'last_activity';
@@ -47,6 +48,7 @@ export const Customers = () => {
     const { t } = useLanguage();
     const { success, error: showError } = useToast();
     const confirm = useConfirm();
+    const { removePath: removeRecentPath } = useRecentlyViewed();
 
     // Pagination & Sorting state
     const [currentPage, setCurrentPage] = useState(1);
@@ -90,13 +92,14 @@ export const Customers = () => {
         if (await confirm({ title: t('customers.deleteConfirm'), variant: 'destructive' })) {
             try {
                 await deleteMutation.mutateAsync(id);
+                removeRecentPath(`/customers/${id}`);
                 success(t('customers.deleteSuccess'));
             } catch (err) {
                 const appError = errorHandler.handle(err, 'CustomerDelete');
                 showError(errorHandler.getUserMessage(appError));
             }
         }
-    }, [confirm, t, deleteMutation, success, showError]);
+    }, [confirm, t, deleteMutation, success, showError, removeRecentPath]);
 
     const handleSort = useCallback((field: SortField) => {
         if (sortBy === field) {

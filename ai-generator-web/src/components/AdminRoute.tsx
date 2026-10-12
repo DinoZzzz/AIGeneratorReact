@@ -7,9 +7,9 @@ import { Loader2 } from 'lucide-react';
  * Non-admin users are redirected to the home page.
  */
 export const AdminRoute = ({ children }: { children: React.ReactNode }) => {
-    const { profile, loading } = useAuth();
+    const { profile, loading, profileLoading } = useAuth();
 
-    if (loading) {
+    if (loading || profileLoading) {
         return (
             <div className="min-h-screen flex items-center justify-center">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />

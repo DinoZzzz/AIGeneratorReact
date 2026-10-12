@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { appointmentService } from '../services/appointmentService';
+import { normalizeAppointmentPayload } from '../lib/appointmentPayload';
 import type { Appointment, AppointmentPayload } from '../types';
 import { useOffline } from '../context/OfflineContext';
 import { isNetworkError } from '../lib/errorHandler';
@@ -19,21 +20,6 @@ export const appointmentKeys = {
   all: ['appointments'] as const,
   ranges: () => [...appointmentKeys.all, 'range'] as const,
   range: (startIso: string, endIso: string) => [...appointmentKeys.ranges(), startIso, endIso] as const,
-};
-
-const normalizeAppointmentPayload = (appointment: AppointmentPayload): Record<string, unknown> => {
-  const assigneeIds = appointment.assignee_ids;
-  const rest = { ...appointment } as Record<string, unknown>;
-  delete rest.assignee_ids;
-  delete rest.assignees;
-  delete rest.id;
-  delete rest.created_at;
-  delete rest.updated_at;
-
-  return {
-    ...rest,
-    examiner_ids: assigneeIds ?? appointment.examiner_ids ?? [],
-  };
 };
 
 const toTimestamp = (value?: string): number => {

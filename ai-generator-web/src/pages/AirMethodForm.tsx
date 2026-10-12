@@ -324,7 +324,9 @@ export const AirMethodForm = () => {
                     pressure_end: '' as unknown as number,
                 });
                 setStep(1);
-                navigate(`/customers/${customerId}/constructions/${constructionId}/reports/new/air`);
+                navigate(customerId && constructionId
+                    ? `/customers/${customerId}/constructions/${constructionId}/reports/new/air`
+                    : '/reports/new/air');
                 showSuccess(t('reports.form.saveSuccess'));
             } else {
                 if (customerId && constructionId) {
@@ -401,7 +403,7 @@ export const AirMethodForm = () => {
                     </Button>
                     <div>
                         <h1 className="text-2xl font-bold text-foreground">
-                            {id === 'new' ? t('reports.form.airTitleNew') : t('reports.form.editTitle')}
+                            {isEditMode ? t('reports.form.editTitle') : t('reports.form.airTitleNew')}
                         </h1>
                         <p className="text-sm text-muted-foreground">
                             {step === 1 ? t('reports.form.step1Desc') : t('reports.form.step2Desc')}

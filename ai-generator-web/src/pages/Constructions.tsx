@@ -30,7 +30,7 @@ export const Constructions = () => {
     const [currentPage, setCurrentPage] = useState(1);
     const { t } = useLanguage();
     const { profile } = useAuth();
-    const { addItem: addRecentItem } = useRecentlyViewed();
+    const { addItem: addRecentItem, removePath: removeRecentPath } = useRecentlyViewed();
 
     // Archive state
     const [filter, setFilter] = useState<FilterType>(() => {
@@ -109,11 +109,12 @@ export const Constructions = () => {
         if (await confirm({ title: t('constructions.deleteConfirm'), variant: 'destructive' })) {
             try {
                 await deleteConstruction.mutateAsync(id);
+                removeRecentPath(`/customers/${customerId}/constructions/${id}`);
             } catch (error) {
                 handleError(error, 'Constructions');
             }
         }
-    }, [confirm, t, deleteConstruction, handleError]);
+    }, [confirm, t, deleteConstruction, handleError, removeRecentPath, customerId]);
 
     // Memoize filtered constructions to prevent recalculation on every render
     const filteredConstructions = useMemo(() => {
