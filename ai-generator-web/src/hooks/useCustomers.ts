@@ -16,6 +16,7 @@ import {
   STORES,
 } from '../lib/offlineDb';
 import { useOnlineQuery } from '../lib/offlineQueryFn';
+import { saveEntityUpdate } from '../lib/offlineEntityUpdate';
 
 // Query keys
 export const customerKeys = {
@@ -166,22 +167,11 @@ export const useUpdateCustomer = () => {
 
   return useMutation({
     networkMode: 'always',
-    mutationFn: async ({ id, customer }: { id: string; customer: Partial<Customer> }) => {
-      if (isOnline) {
-        try {
-          const result = await customerService.update(id, customer);
-          await saveToStore(STORES.CUSTOMERS, result);
-          return result;
-        } catch (error) {
-          if (isNetworkError(error)) {
-            return updateCustomerOffline(id, customer);
-          }
-          throw error;
-        }
-      } else {
-        return updateCustomerOffline(id, customer);
-      }
-    },
+    mutationFn: ({ id, customer }: { id: string; customer: Partial<Customer> }) => saveEntityUpdate({
+      store: STORES.CUSTOMERS, id, changes: customer, isOnline,
+      onlineUpdate: customerService.update,
+      offlineUpdate: updateCustomerOffline,
+    }),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: customerKeys.lists() });
       queryClient.invalidateQueries({ queryKey: customerKeys.detail(variables.id) });

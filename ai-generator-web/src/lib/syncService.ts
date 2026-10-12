@@ -1,3 +1,5 @@
+import { normalizeAppointmentPayload } from './appointmentPayload';
+import type { AppointmentPayload } from '../types';
 /**
  * Background Sync Service
  * Handles syncing offline changes to the server when connection is restored
@@ -1204,7 +1206,9 @@ const processSyncOperation = async (
     switch (operation.operation) {
       case 'create': {
         const mappedData = applyIdMap(operation.data, idMap);
-        const cleanData = stripOfflineFields(mappedData);
+        const cleanData = operation.store === STORES.APPOINTMENTS
+          ? normalizeAppointmentPayload(mappedData as AppointmentPayload)
+          : stripOfflineFields(mappedData);
 
         const { data, error } = await supabase
           .from(tableName)
@@ -1245,7 +1249,9 @@ const processSyncOperation = async (
         const remoteEntityId = toRemoteEntityId(operation.store, mappedEntityId);
 
         const mappedData = applyIdMap(operation.data, idMap);
-        const cleanData = stripOfflineFields(mappedData);
+        const cleanData = operation.store === STORES.APPOINTMENTS
+          ? normalizeAppointmentPayload(mappedData as AppointmentPayload)
+          : stripOfflineFields(mappedData);
 
         let updateQuery = supabase
           .from(tableName)
@@ -1674,7 +1680,9 @@ export const resolveConflictPreferLocalById = async (operationId: string): Promi
     }
 
     const mappedData = applyIdMap(targetOperation.data, idMap);
-    const cleanData = stripOfflineFields(mappedData);
+    const cleanData = targetOperation.store === STORES.APPOINTMENTS
+      ? normalizeAppointmentPayload(mappedData as AppointmentPayload)
+      : stripOfflineFields(mappedData);
 
     if (targetOperation.operation === 'create') {
       const isUnsyncedTempCreate = !!targetOperation.entityId &&

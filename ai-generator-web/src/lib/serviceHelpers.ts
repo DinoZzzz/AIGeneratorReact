@@ -1,5 +1,5 @@
 import { captureError } from './sentry';
-import { AppError, NotFoundError, isAuthError, withAuthRetry } from './errorHandler';
+import { AppError, NotFoundError, isAuthError, isNetworkError, withAuthRetry } from './errorHandler';
 
 /**
  * Shared Supabase query execution for the service layer.
@@ -30,7 +30,7 @@ const handleQueryError = (error: SupabaseError, context: QueryContext, options?:
     if (options?.notFoundEntity && error.code === 'PGRST116') {
         throw new NotFoundError(options.notFoundEntity);
     }
-    if (isAuthError(error)) throw error;
+    if (isAuthError(error) || isNetworkError(error)) throw error;
     captureError(error, context);
     throw new AppError(error.message, 'SUPABASE_ERROR', 500);
 };

@@ -7,7 +7,7 @@ import { Input } from '../components/ui/Input';
 import { Loader2, Save, ArrowLeft } from 'lucide-react';
 import type { Customer } from '../types';
 import { useLanguage } from '../context/LanguageContext';
-import { getAllFromStore, getFromStore, STORES } from '../lib/offlineDb';
+import { cacheRemoteRow, getAllFromStore, getFromStore, STORES } from '../lib/offlineDb';
 import { useToast } from '../context/ToastContext';
 import { errorHandler } from '../lib/errorHandler';
 import { useDebouncedCallback, DEBOUNCE_VALIDATION_MS } from '../hooks/useDebouncedCallback';
@@ -34,7 +34,7 @@ export const CustomerForm = () => {
         setLoading(true);
         try {
             const data = isOnline
-                ? await customerService.getById(customerId)
+                ? await cacheRemoteRow(STORES.CUSTOMERS, await customerService.getById(customerId))
                 : await getFromStore<Customer>(STORES.CUSTOMERS, customerId);
             if (!data) {
                 throw new Error('Customer not found offline');
@@ -245,7 +245,7 @@ export const CustomerForm = () => {
                         <ArrowLeft className="h-6 w-6" />
                     </button>
                     <h1 className="text-2xl font-bold text-foreground">
-                        {id === 'new' ? t('customers.newTitle') : t('customers.editTitle')}
+                        {!id || id === 'new' ? t('customers.newTitle') : t('customers.editTitle')}
                     </h1>
                 </div>
                 <button

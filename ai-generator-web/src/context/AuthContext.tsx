@@ -20,6 +20,7 @@ interface AuthContextType {
     session: Session;
     user: User | null;
     profile: Profile | null;
+    profileLoading: boolean;
     loading: boolean;
     signOut: (confirmDiscard?: (count: number) => Promise<boolean>) => Promise<boolean>;
     refreshProfile: () => Promise<void>;
@@ -31,6 +32,7 @@ const AuthContext = createContext<AuthContextType>({
     session: null,
     user: null,
     profile: null,
+    profileLoading: true,
     loading: true,
     signOut: async () => false,
     refreshProfile: async () => { },
@@ -60,6 +62,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const [session, setSession] = useState<Session>(null);
     const [user, setUser] = useState<User | null>(null);
     const [profile, setProfile] = useState<Profile | null>(null);
+    const [profileLoading, setProfileLoading] = useState(true);
+    const profileRequestRef = useRef(0);
     const [loading, setLoading] = useState(true);
     const [lowBandwidthMode, setLowBandwidthMode] = useState(() => {
         return localStorage.getItem('lowBandwidthMode') === 'true';
@@ -78,19 +82,23 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }, [lowBandwidthMode]);
 
     const loadProfile = useCallback(async (userId: string) => {
+        const requestId = ++profileRequestRef.current;
+        setProfileLoading(true);
         try {
             // Roles and accreditations are required even in low bandwidth mode.
             const { data, error } = await supabase
                 .from('profiles')
-                .select('id, name, last_name, username, email, avatar_url, role, accreditations')
+                .select('id, name, last_name, username, email, title, gender, avatar_url, role, accreditations')
                 .eq('id', userId)
                 .maybeSingle();
 
-            if (!error && data && currentUserIdRef.current === userId) {
+            if (!error && data && currentUserIdRef.current === userId && profileRequestRef.current === requestId) {
                 setProfile(data as Profile);
             }
         } catch (err) {
             console.error('Error loading profile:', err);
+        } finally {
+            if (currentUserIdRef.current === userId && profileRequestRef.current === requestId) setProfileLoading(false);
         }
     }, []);
 
@@ -139,6 +147,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                 }
             } else {
                 setProfile(null);
+                setProfileLoading(false);
                 // Clear Sentry user context on logout
                 clearUserContext();
             }
@@ -253,6 +262,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             queryClient.clear();
             warmedLookupUserRef.current = null;
             setProfile(null);
+            setProfileLoading(false);
             setSession(null);
             setUser(null);
             currentUserIdRef.current = null;
@@ -274,12 +284,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         session,
         user,
         profile,
+        profileLoading,
         loading,
         signOut,
         refreshProfile,
         lowBandwidthMode,
         setLowBandwidthMode
-    }), [session, user, profile, loading, signOut, refreshProfile, lowBandwidthMode]);
+    }), [session, user, profile, profileLoading, loading, signOut, refreshProfile, lowBandwidthMode]);
 
     return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

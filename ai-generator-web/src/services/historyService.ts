@@ -91,13 +91,8 @@ export const historyService = {
     },
 
     async delete(id: string) {
-        // Note: Cascading deletes should ideally be handled by the database foreign keys.
-        // If not, we might need to delete report_export_forms first.
-        // Assuming DB handles cascade or we try to delete parent.
-
-        // First delete related export forms (safeguard)
-        await supabase.from('report_export_forms').delete().eq('export_id', id);
-
+        // report_export_forms_export_id_fkey uses ON DELETE CASCADE. A single
+        // parent delete preserves all links if the database rejects the delete.
         const { error } = await supabase
             .from('report_exports')
             .delete()

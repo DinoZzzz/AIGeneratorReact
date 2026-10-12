@@ -279,6 +279,25 @@ describe('syncService offline flows', () => {
     }
   });
 
+  it('strips joined appointment data from legacy queued updates and preserves cleared links', async () => {
+    testState.pendingOps = [{
+      id: 'op-appointment', store: 'appointments', operation: 'update', entityId: 'appointment-1',
+      timestamp: 1, retryCount: 0, status: 'pending',
+      data: {
+        id: 'appointment-1', title: 'Updated appointment', customer_id: '', construction_id: '',
+        customer: { id: 'customer-1' }, construction: { id: 'construction-1' }, assignees: [{ id: 'examiner-1' }],
+        assignee_ids: ['examiner-2'], examiner_ids: ['examiner-1'], _synced: true, _is_offline: true,
+      },
+    }];
+    const result = await syncPendingOperations();
+    expect(result.success).toBe(1);
+    expect(testState.updateCalls[0]).toMatchObject({
+      table: 'calendar_events', id: 'appointment-1',
+      data: { title: 'Updated appointment', customer_id: null, construction_id: null, examiner_ids: ['examiner-2'] },
+    });
+    expect(Object.keys(testState.updateCalls[0].data).sort()).toEqual(['construction_id', 'customer_id', 'examiner_ids', 'title']);
+  });
+
   it('sends the optimistic-concurrency guard with queued updates', async () => {
     testState.serverUpdatedAt['report_forms:report-1'] = '2026-01-01T00:00:00+00:00';
     testState.pendingOps = [{

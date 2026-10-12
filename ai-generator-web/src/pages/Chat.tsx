@@ -10,11 +10,16 @@ import { useConfirm } from '../context/useConfirm';
 import { errorHandler, isNetworkError } from '../lib/errorHandler';
 import { focusOnMount } from '../lib/utils';
 import { UserAvatar } from '../components/ui/UserAvatar';
+import { onSyncEvent } from '../lib/syncService';
+import { withOfflineSyncLock } from '../lib/offlineSessionLifecycle';
+import { saveEntityUpdate } from '../lib/offlineEntityUpdate';
 import {
     STORES,
     addToSyncQueue,
     deleteFromStore,
     getAllFromStore,
+    getAllSyncOperations,
+    getPersistedSyncIdMap,
     removeSyncOperationsForEntity,
     cacheRemoteRows,
     saveToStore
@@ -66,9 +71,9 @@ export const Chat = () => {
         return offlineMessage;
     };
 
-    const updateOfflineMessage = async (id: string, content: string): Promise<Message | null> => {
+    const updateOfflineMessage = async (id: string, content: string): Promise<Message> => {
         const existing = (await getAllFromStore<Message>(STORES.MESSAGES)).find((message) => message.id === id);
-        if (!existing) return null;
+        if (!existing) throw new Error('Message not available offline');
 
         const updated: Message = {
             ...existing,
@@ -102,8 +107,11 @@ export const Chat = () => {
 
     useEffect(() => {
         loadMessages();
+        const stopSyncListener = onSyncEvent((event) => {
+            if (event.type === 'sync_complete') void loadMessages();
+        });
         if (!isOnline) {
-            return;
+            return stopSyncListener;
         }
 
         const channel = messageService.subscribeToMessages((message) => {
@@ -119,6 +127,7 @@ export const Chat = () => {
         });
 
         return () => {
+            stopSyncListener();
             channel.unsubscribe();
         };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -133,7 +142,16 @@ export const Chat = () => {
         try {
             if (isOnline) {
                 const data = await messageService.getMessages(200);
-                setMessages(await cacheRemoteRows(STORES.MESSAGES, data));
+                const remote = await cacheRemoteRows(STORES.MESSAGES, data);
+                const [cached, queue, idMap] = await Promise.all([
+                    loadOfflineMessages(), getAllSyncOperations(), getPersistedSyncIdMap(),
+                ]);
+                const pendingIds = new Set(queue.filter(operation => operation.store === STORES.MESSAGES)
+                    .map(operation => operation.entityId));
+                const visibleIds = new Set(remote.map(message => message.id));
+                setMessages([...remote, ...cached.filter(message => pendingIds.has(message.id) && !visibleIds.has(message.id))]
+                    .sort((left, right) => new Date(left.created_at).getTime() - new Date(right.created_at).getTime()));
+                setEditingId(previous => previous ? idMap[previous] ?? previous : null);
                 return;
             }
 
@@ -172,7 +190,9 @@ export const Chat = () => {
             }
 
             // Optimistic update - add message immediately
-            setMessages(prev => [...prev, sentMessage]);
+            setMessages(prev => prev.some(message => message.id === sentMessage.id)
+                ? prev.map(message => message.id === sentMessage.id ? sentMessage : message)
+                : [...prev, sentMessage]);
             setNewMessage('');
             setTimeout(scrollToBottom, 100);
             if (isOnline) {
@@ -191,28 +211,15 @@ export const Chat = () => {
 
         try {
             const nextContent = editContent.trim();
-            if (isOnline) {
-                try {
-                    const updated = await messageService.updateMessage(id, nextContent);
-                    await saveToStore(STORES.MESSAGES, updated);
-                } catch (error) {
-                    if (!isNetworkError(error)) throw error;
-                    await updateOfflineMessage(id, nextContent);
-                }
-            } else {
-                await updateOfflineMessage(id, nextContent);
-            }
-
-            setMessages(prev =>
-                prev.map(msg =>
-                    msg.id === id
-                        ? { ...msg, content: nextContent, is_edited: true }
-                        : msg
-                )
-            );
+            const updated = await saveEntityUpdate({
+                store: STORES.MESSAGES, id, changes: { content: nextContent }, isOnline,
+                onlineUpdate: (resolvedId, changes) => messageService.updateMessage(resolvedId, changes.content),
+                offlineUpdate: (resolvedId, changes) => updateOfflineMessage(resolvedId, changes.content),
+            });
+            setMessages(prev => prev.map(msg => msg.id === id || msg.id === updated.id ? updated : msg));
             setEditingId(null);
             setEditContent('');
-            success('Message updated');
+            success(t('chat.updateSuccess'));
             if (isOnline) {
                 await triggerSync();
             }
@@ -226,20 +233,25 @@ export const Chat = () => {
         if (!(await confirm({ title: t('chat.deleteConfirm'), variant: 'destructive' }))) return;
 
         try {
-            if (isOnline) {
-                try {
-                    await messageService.deleteMessage(id);
-                    await deleteFromStore(STORES.MESSAGES, id);
-                } catch (error) {
-                    if (!isNetworkError(error)) throw error;
-                    await deleteOfflineMessage(id);
+            await withOfflineSyncLock(async () => {
+                const resolvedId = (await getPersistedSyncIdMap())[id] ?? id;
+                if (isOnline && !resolvedId.startsWith('temp_')) {
+                    try {
+                        await messageService.deleteMessage(resolvedId);
+                        await removeSyncOperationsForEntity(STORES.MESSAGES, resolvedId);
+                        if (resolvedId !== id) await removeSyncOperationsForEntity(STORES.MESSAGES, id);
+                        await deleteFromStore(STORES.MESSAGES, resolvedId);
+                    } catch (error) {
+                        if (!isNetworkError(error)) throw error;
+                        await deleteOfflineMessage(resolvedId);
+                    }
+                } else {
+                    await deleteOfflineMessage(resolvedId);
                 }
-            } else {
-                await deleteOfflineMessage(id);
-            }
 
-            setMessages(prev => prev.filter(msg => msg.id !== id));
-            success('Message deleted');
+                setMessages(prev => prev.filter(msg => msg.id !== id && msg.id !== resolvedId));
+            });
+            success(t('chat.deleteSuccess'));
             if (isOnline) {
                 await triggerSync();
             }
@@ -340,6 +352,8 @@ export const Chat = () => {
                                         {editingId === msg.id ? (
                                             <div className={`bg-card border border-border rounded-lg p-3`}>
                                                 <textarea
+                                                    aria-label={t('chat.edit')}
+                                                    maxLength={5000}
                                                     value={editContent}
                                                     onChange={(e) => setEditContent(e.target.value)}
                                                     className="w-full bg-background border border-input rounded p-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-ring"
@@ -348,12 +362,14 @@ export const Chat = () => {
                                                 />
                                                 <div className="flex gap-2 mt-2">
                                                     <button
+                                                        aria-label={t('common.save')}
                                                         onClick={() => handleEdit(msg.id)}
                                                         className="text-primary hover:text-primary/80 text-xs"
                                                     >
                                                         <Check className="h-4 w-4" />
                                                     </button>
                                                     <button
+                                                        aria-label={t('common.cancel')}
                                                         onClick={cancelEdit}
                                                         className="text-muted-foreground hover:text-foreground text-xs"
                                                     >
@@ -370,7 +386,7 @@ export const Chat = () => {
 
                                                 {/* Actions */}
                                                 {isOwn && (
-                                                    <div className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
+                                                    <div className="absolute right-2 top-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 focus-within:opacity-100 transition-opacity flex gap-1">
                                                         <button
                                                             onClick={() => startEdit(msg)}
                                                             className={`p-1 rounded hover:bg-black/10 ${isOwn ? 'text-primary-foreground' : 'text-foreground'}`}
@@ -402,6 +418,8 @@ export const Chat = () => {
             <form onSubmit={handleSend} className="border-t border-border bg-card p-2 sm:p-4">
                 <div className="flex gap-2">
                     <textarea
+                        aria-label={t('chat.inputPlaceholder')}
+                        maxLength={5000}
                         value={newMessage}
                         onChange={(e) => setNewMessage(e.target.value)}
                         placeholder={t('chat.inputPlaceholder')}
@@ -417,6 +435,7 @@ export const Chat = () => {
                     />
                     <Button
                         type="submit"
+                        aria-label={t('chat.send')}
                         disabled={!newMessage.trim() || sending}
                         loading={sending}
                         className="px-4"
@@ -425,7 +444,7 @@ export const Chat = () => {
                     </Button>
                 </div>
                 <div className="text-xs text-muted-foreground mt-2">
-                    <span className="hidden sm:inline">{newMessage.length}/5000 {' · '} Press Enter to send, Shift+Enter for new line</span>
+                    <span className="hidden sm:inline">{newMessage.length}/5000 {' · '} {t('chat.keyboardHint')}</span>
                     <span className="sm:hidden">{newMessage.length}/5000</span>
                 </div>
             </form>

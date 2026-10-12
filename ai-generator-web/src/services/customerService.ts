@@ -4,7 +4,16 @@ import { execQuery, execQueryRaw } from '../lib/serviceHelpers';
 
 const SERVICE = 'customerService';
 
-const CUSTOMER_COLUMNS = 'id, name, location, work_order, address, created_at';
+const CUSTOMER_COLUMNS = 'id, name, location, work_order, address, postal_code, created_at, updated_at';
+
+// Cached rows carry sync metadata and list views can add computed fields.
+// Only editable database columns belong in an insert/update payload.
+const customerPayload = (customer: Partial<Customer>): Partial<Customer> =>
+    Object.fromEntries(
+        (['name', 'work_order', 'location', 'address', 'postal_code', 'oib'] as const)
+            .filter(key => customer[key] !== undefined)
+            .map(key => [key, customer[key]])
+    );
 
 export const customerService = {
     async getAll() {
@@ -132,7 +141,7 @@ export const customerService = {
         return execQuery({ service: SERVICE, method: 'create' }, () =>
             supabase
                 .from('customers')
-                .insert([customer])
+                .insert([customerPayload(customer)])
                 .select()
                 .single()
         );
@@ -142,7 +151,7 @@ export const customerService = {
         return execQuery({ service: SERVICE, method: 'update', id }, () =>
             supabase
                 .from('customers')
-                .update(customer)
+                .update(customerPayload(customer))
                 .eq('id', id)
                 .select()
                 .single()

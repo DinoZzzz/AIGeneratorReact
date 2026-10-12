@@ -2,6 +2,7 @@ import { supabase } from '../lib/supabase';
 import { captureError } from '../lib/sentry';
 import type { Appointment, AppointmentPayload } from '../types';
 import { AppError } from '../lib/errorHandler';
+import { normalizeAppointmentPayload } from '../lib/appointmentPayload';
 
 interface ExaminerProfile {
     id: string;
@@ -20,8 +21,8 @@ export const appointmentService = {
                 customer:customers(id, name, location, work_order),
                 construction:constructions(id, name, location, work_order)
             `)
-            .gte('start', start.toISOString())
-            .lte('end', end.toISOString());
+            .lte('start', end.toISOString())
+            .gte('end', start.toISOString());
 
         if (error) {
             captureError(error, { service: 'appointmentService', method: 'getAll' });
@@ -56,17 +57,11 @@ export const appointmentService = {
     },
 
     async create(appointment: AppointmentPayload) {
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const { assignee_ids, assignees: _assignees, ...apptData } = appointment;
-
-        // Use assignee_ids if provided, otherwise empty array
-        const examiner_ids = assignee_ids || [];
-
         const { data: newAppt, error } = await supabase
             .from('calendar_events')
             .insert({
-                ...apptData,
-                examiner_ids
+                ...normalizeAppointmentPayload(appointment),
+                examiner_ids: appointment.assignee_ids ?? appointment.examiner_ids ?? []
             })
             .select()
             .single();
@@ -80,20 +75,9 @@ export const appointmentService = {
     },
 
     async update(id: string, appointment: AppointmentPayload) {
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const { assignee_ids, assignees: _assignees, ...apptData } = appointment;
-
-        // Prepare update data
-        const updateData: Record<string, unknown> = { ...apptData };
-
-        // Update examiner_ids if provided
-        if (assignee_ids !== undefined) {
-            updateData.examiner_ids = assignee_ids;
-        }
-
         const { data, error } = await supabase
             .from('calendar_events')
-            .update(updateData)
+            .update(normalizeAppointmentPayload(appointment))
             .eq('id', id)
             .select()
             .single();

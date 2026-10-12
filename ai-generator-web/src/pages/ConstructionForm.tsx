@@ -8,7 +8,7 @@ import { Input } from '../components/ui/Input';
 import { Loader2, Save, ArrowLeft } from 'lucide-react';
 import type { Construction, Customer } from '../types';
 import { useLanguage } from '../context/LanguageContext';
-import { getAllFromStore, getFromStore, STORES } from '../lib/offlineDb';
+import { cacheRemoteRow, getAllFromStore, getFromStore, STORES } from '../lib/offlineDb';
 import { useHandleError } from '../hooks/useHandleError';
 import { useDebouncedCallback, DEBOUNCE_VALIDATION_MS } from '../hooks/useDebouncedCallback';
 
@@ -44,7 +44,7 @@ export const ConstructionForm = () => {
     const loadCustomer = async (custId: string) => {
         try {
             if (isOnline) {
-                const data = await customerService.getById(custId);
+                const data = await cacheRemoteRow(STORES.CUSTOMERS, await customerService.getById(custId));
                 setCustomer(data);
             } else {
                 // Load from offline cache
@@ -71,7 +71,7 @@ export const ConstructionForm = () => {
         setLoading(true);
         try {
             if (isOnline) {
-                const data = await constructionService.getById(constId);
+                const data = await cacheRemoteRow(STORES.CONSTRUCTIONS, await constructionService.getById(constId));
                 setFormData(data);
             } else {
                 // Load from offline cache
@@ -241,7 +241,7 @@ export const ConstructionForm = () => {
                     </button>
                     <div>
                         <h1 className="text-2xl font-bold text-foreground">
-                            {id === 'new' ? t('constructions.newTitle') : t('constructions.editTitle')}
+                            {!id || id === 'new' ? t('constructions.newTitle') : t('constructions.editTitle')}
                         </h1>
                         {customer && <p className="text-sm text-muted-foreground">{t('constructions.for')} {customer.name}</p>}
                     </div>

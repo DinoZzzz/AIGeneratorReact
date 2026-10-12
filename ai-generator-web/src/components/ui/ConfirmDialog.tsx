@@ -2,6 +2,7 @@ import React from 'react';
 import { AlertTriangle } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from './Dialog';
 import { Button } from './Button';
+import { useLanguage } from '../../context/LanguageContext';
 
 interface ConfirmDialogProps {
     open: boolean;
@@ -26,12 +27,13 @@ export const ConfirmDialog = ({
     description,
     children,
     icon,
-    confirmLabel = 'Confirm',
-    cancelLabel = 'Cancel',
+    confirmLabel,
+    cancelLabel,
     variant = 'destructive',
     confirmClassName,
     loading = false,
 }: ConfirmDialogProps) => {
+    const { t } = useLanguage();
     const defaultIcon = (
         <AlertTriangle aria-hidden="true" className={`h-6 w-6 ${
             variant === 'destructive' ? 'text-destructive' : 'text-primary'
@@ -70,7 +72,7 @@ export const ConfirmDialog = ({
                         className="w-full sm:w-auto"
                         disabled={loading}
                     >
-                        {cancelLabel}
+                        {cancelLabel ?? t('common.cancel')}
                     </Button>
                     <Button
                         variant={variant}
@@ -78,7 +80,7 @@ export const ConfirmDialog = ({
                         className={confirmClassName ? `w-full sm:w-auto ${confirmClassName}` : 'w-full sm:w-auto'}
                         loading={loading}
                     >
-                        {confirmLabel}
+                        {confirmLabel ?? t('common.confirm')}
                     </Button>
                 </DialogFooter>
             </DialogContent>

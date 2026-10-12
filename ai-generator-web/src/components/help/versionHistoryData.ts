@@ -7,6 +7,17 @@ export interface VersionHistoryItem {
 export function getVersionHistory(language: string): VersionHistoryItem[] {
     return language === 'hr' ? [
         {
+            version: '2.36.2',
+            date: '2026-10-13',
+            changes: [
+                'Ispravljeno spremanje uređenih izvještaja i termina te nastavak rada sa spremljenim vrijednostima',
+                'Očuvanje neposlanih izmjena naručitelja i poruka pri ponovnom otvaranju i povratku mrežne veze',
+                'Pouzdanije uređivanje i brisanje chat poruka nakon sinkronizacije, pristupačne kontrole i hrvatske poruke potvrde',
+                'Ispravljeno otvaranje administratorskih stranica, prikaz podataka profila i uklanjanje obrisanih zapisa iz nedavnih stavki',
+                'Prošireni browser testovi za unos, spremanje, uređivanje, brisanje, izvoz i offline rad',
+            ]
+        },
+        {
             version: '2.36.1',
             date: '2026-10-13',
             changes: [
@@ -618,6 +629,17 @@ export function getVersionHistory(language: string): VersionHistoryItem[] {
             ]
         },
     ] : [
+        {
+            version: '2.36.2',
+            date: '2026-10-13',
+            changes: [
+                'Fixed saving edited reports and appointments and continuing with persisted values',
+                'Preserved pending customer and chat edits when reopening pages and reconnecting',
+                'Reliable chat editing and deletion after synchronization, accessible controls and localized confirmations',
+                'Fixed admin page entry, profile fields and removal of deleted records from recent items',
+                'Expanded browser coverage for creation, persistence, editing, deletion, exports and offline work',
+            ]
+        },
         {
             version: '2.36.1',
             date: '2026-10-13',

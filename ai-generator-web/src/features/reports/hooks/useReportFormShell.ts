@@ -22,10 +22,19 @@ const STRING_FIELDS = new Set([
     'examination_end_time', 'saturation_time', 'stabilization_time',
     'created_at', 'updated_at',
 ]);
+const JOINED_FIELDS = new Set([
+    'construction', 'draft', 'pipe_material', 'pane_material', 'examination_procedure',
+]);
 
 export const sanitizeForDb = (data: Record<string, unknown>) => {
     const sanitized = { ...data };
     for (const key of Object.keys(sanitized)) {
+        // Loaded reports also carry cache metadata and optional joined rows.
+        // PostgREST accepts only report_forms columns on create/update.
+        if (key.startsWith('_') || JOINED_FIELDS.has(key)) {
+            delete sanitized[key];
+            continue;
+        }
         if (sanitized[key] === '' && !STRING_FIELDS.has(key)) {
             sanitized[key] = 0;
         }

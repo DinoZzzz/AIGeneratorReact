@@ -15,6 +15,7 @@ import {
   STORES,
 } from '../lib/offlineDb';
 import { useOnlineQuery } from '../lib/offlineQueryFn';
+import { saveEntityUpdate } from '../lib/offlineEntityUpdate';
 
 // Query keys
 export const constructionKeys = {
@@ -131,23 +132,11 @@ export const useUpdateConstruction = () => {
 
   return useMutation({
     networkMode: 'always',
-    mutationFn: async ({ id, construction }: { id: string; construction: Partial<Construction> }) => {
-      if (isOnline) {
-        try {
-          const result = await constructionService.update(id, construction);
-          // Update cache
-          await saveToStore(STORES.CONSTRUCTIONS, result);
-          return result;
-        } catch (error) {
-          if (isNetworkError(error)) {
-            return updateConstructionOffline(id, construction);
-          }
-          throw error;
-        }
-      } else {
-        return updateConstructionOffline(id, construction);
-      }
-    },
+    mutationFn: ({ id, construction }: { id: string; construction: Partial<Construction> }) => saveEntityUpdate({
+      store: STORES.CONSTRUCTIONS, id, changes: construction, isOnline,
+      onlineUpdate: constructionService.update,
+      offlineUpdate: updateConstructionOffline,
+    }),
     onMutate: async ({ id, construction }) => {
       // Cancel outgoing refetches
       await queryClient.cancelQueries({ queryKey: constructionKeys.detail(id) });

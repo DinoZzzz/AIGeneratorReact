@@ -4,6 +4,12 @@ import { execQuery } from '../lib/serviceHelpers';
 
 const SERVICE = 'constructionService';
 
+const constructionPayload = (construction: Partial<Construction>) => Object.fromEntries(
+    (['customer_id', 'name', 'work_order', 'location', 'is_active', 'is_archived'] as const)
+        .filter(key => construction[key] !== undefined)
+        .map(key => [key, construction[key]])
+);
+
 export const constructionService = {
     async getByCustomerId(customerId: string, includeArchived: boolean = false) {
         let query = supabase
@@ -40,7 +46,7 @@ export const constructionService = {
         const data = await execQuery({ service: SERVICE, method: 'create' }, () =>
             supabase
                 .from('constructions')
-                .insert([construction])
+                .insert([constructionPayload(construction)])
                 .select()
                 .single()
         );
@@ -51,7 +57,7 @@ export const constructionService = {
         const data = await execQuery({ service: SERVICE, method: 'update', id }, () =>
             supabase
                 .from('constructions')
-                .update(construction)
+                .update(constructionPayload(construction))
                 .eq('id', id)
                 .select()
                 .single()

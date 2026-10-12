@@ -51,6 +51,7 @@ try {
   run('psql', [...psqlArgs, '-f', join(appDir, 'tests/database/profilesFixture.sql')]);
   run('psql', [...psqlArgs, '-f', join(appDir, 'supabase/migrations/20261012221354_restrict_profile_writes.sql')]);
   process.stdout.write(run('psql', [...psqlArgs, '-f', join(appDir, 'tests/database/profilesWriteSecurity.sql')]));
+  process.stdout.write(run('psql', [...psqlArgs, '-f', join(appDir, 'tests/database/historyDeleteAtomicity.sql')]));
   if (runAdvisors) {
     const dbUrl = `postgresql://postgres@127.0.0.1:${port}/postgres`;
     process.stdout.write(run(process.env.SUPABASE_TEST_CLI || 'supabase', [

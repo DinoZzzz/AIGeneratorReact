@@ -4,6 +4,7 @@ import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { Label } from '../ui/Label';
 import { useLanguage } from '../../context/LanguageContext';
+import { useToast } from '../../context/ToastContext';
 import { useAuth } from '../../context/AuthContext';
 import { useOffline } from '../../context/OfflineContext';
 import { examinerService } from '../../services/examinerService';
@@ -34,6 +35,7 @@ export const AppointmentDialog = ({
     onDelete
 }: AppointmentDialogProps) => {
     const { t } = useLanguage();
+    const toast = useToast();
     const { profile } = useAuth();
     const { isOnline } = useOffline();
     const [loading, setLoading] = useState(false);
@@ -243,17 +245,24 @@ export const AppointmentDialog = ({
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        const start = new Date(formData.start || '');
+        const end = new Date(formData.end || '');
+        if (!Number.isFinite(start.getTime()) || !Number.isFinite(end.getTime()) || end <= start) {
+            toast.error(t('calendar.invalidDateRange'));
+            return;
+        }
         setLoading(true);
         try {
             await onSave({
                 ...formData,
-                start: new Date(formData.start!).toISOString(),
-                end: new Date(formData.end!).toISOString(),
+                start: start.toISOString(),
+                end: end.toISOString(),
                 examiner_ids: formData.assignee_ids
             });
             onOpenChange(false);
         } catch (error) {
             console.error(error);
+            toast.error(t('calendar.saveFailed'));
         } finally {
             setLoading(false);
         }
@@ -269,9 +278,11 @@ export const AppointmentDialog = ({
         setLoading(true);
         try {
             await onDelete(appointment.id);
+            setDeleteDialogOpen(false);
             onOpenChange(false);
         } catch (error) {
             console.error(error);
+            toast.error(t('calendar.deleteFailed'));
         } finally {
             setLoading(false);
         }
@@ -688,13 +699,14 @@ export const AppointmentDialog = ({
             {appointment && (
                 <ConfirmDialog
                     open={deleteDialogOpen}
-                    onConfirm={() => { handleDeleteConfirm(); setDeleteDialogOpen(false); }}
+                    onConfirm={handleDeleteConfirm}
                     onCancel={() => setDeleteDialogOpen(false)}
                     title={t('calendar.deleteDialogTitle')}
                     description={t('calendar.deleteDialogMessage')}
                     confirmLabel={t('common.delete')}
                     cancelLabel={t('common.cancel')}
                     variant="destructive"
+                    loading={loading}
                 >
                     <div className="bg-muted/50 p-3 rounded-lg border border-border">
                         <p className="text-xs text-muted-foreground mb-1">{t('calendar.eventTitle')}:</p>

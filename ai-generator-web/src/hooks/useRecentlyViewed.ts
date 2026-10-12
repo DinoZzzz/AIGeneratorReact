@@ -10,6 +10,7 @@ export interface RecentItem {
 }
 
 const STORAGE_KEY = 'recently-viewed';
+const CHANGE_EVENT = 'recently-viewed-changed';
 const MAX_ITEMS = 5;
 
 function getStoredItems(): RecentItem[] {
@@ -27,6 +28,7 @@ function getStoredItems(): RecentItem[] {
 function saveItems(items: RecentItem[]): void {
     try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+        window.dispatchEvent(new Event(CHANGE_EVENT));
     } catch (e) {
         console.error('Failed to save recently viewed items', e);
     }
@@ -43,41 +45,47 @@ export function useRecentlyViewed() {
             }
         };
         window.addEventListener('storage', handleStorage);
-        return () => window.removeEventListener('storage', handleStorage);
+        const refresh = () => setItems(getStoredItems());
+        window.addEventListener(CHANGE_EVENT, refresh);
+        return () => {
+            window.removeEventListener('storage', handleStorage);
+            window.removeEventListener(CHANGE_EVENT, refresh);
+        };
     }, []);
 
     const addItem = useCallback((item: Omit<RecentItem, 'viewedAt'>) => {
-        setItems(prev => {
-            // Remove existing item with same id and type
-            const filtered = prev.filter(
-                i => !(i.id === item.id && i.type === item.type)
-            );
+        const prev = getStoredItems();
+        // Remove existing item with same id and type
+        const filtered = prev.filter(
+            i => !(i.id === item.id && i.type === item.type)
+        );
 
-            // Add new item at the beginning
-            const newItems = [
-                { ...item, viewedAt: Date.now() },
-                ...filtered
-            ].slice(0, MAX_ITEMS);
+        // Add new item at the beginning
+        const newItems = [
+            { ...item, viewedAt: Date.now() },
+            ...filtered
+        ].slice(0, MAX_ITEMS);
 
-            saveItems(newItems);
-            return newItems;
-        });
+        saveItems(newItems);
     }, []);
 
     const removeItem = useCallback((id: string, type: RecentItem['type']) => {
-        setItems(prev => {
-            const newItems = prev.filter(
-                i => !(i.id === id && i.type === type)
-            );
-            saveItems(newItems);
-            return newItems;
-        });
+        const prev = getStoredItems();
+        const newItems = prev.filter(
+            i => !(i.id === id && i.type === type)
+        );
+        saveItems(newItems);
     }, []);
 
     const clearAll = useCallback(() => {
         setItems([]);
         localStorage.removeItem(STORAGE_KEY);
+        window.dispatchEvent(new Event(CHANGE_EVENT));
     }, []);
 
-    return { items, addItem, removeItem, clearAll };
+    const removePath = useCallback((path: string) => {
+        saveItems(getStoredItems().filter(item => item.path !== path && !item.path.startsWith(`${path}/`)));
+    }, []);
+
+    return { items, addItem, removeItem, removePath, clearAll };
 }

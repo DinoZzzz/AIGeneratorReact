@@ -105,6 +105,9 @@ test.describe('Accessibility', () => {
         });
         await page.emulateMedia({ colorScheme: 'dark' });
         await expect(page.locator('html')).toHaveClass(/dark/);
+        // A changed color can be the first frame of the theme cross-fade.
+        // Audit the settled palette, as the hover checks above do.
+        await expect(page.locator('html')).not.toHaveClass(/theme-transition/);
         await expect.poll(() => page.locator('#system-theme-accent').evaluate(element =>
             getComputedStyle(element).color
         )).not.toBe(lightColor);
