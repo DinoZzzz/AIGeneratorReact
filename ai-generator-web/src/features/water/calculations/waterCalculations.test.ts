@@ -311,6 +311,40 @@ describe('calculateWaterReport', () => {
         expect(result.satisfies).toBe(false);
     });
 
+    it.each([1, 2, 3, 4, 5])('fails draft %s when rounding would hide an exceeded limit', (draftId) => {
+        // A 1m × 1m rectangular shaft filled to 1m has 5m² of wetted area.
+        // These measured losses exceed the limit but round down to a passing display value.
+        const criteria = getCriteria(draftId);
+        const report = makeReport({
+            draft_id: draftId,
+            material_type_id: 2,
+            pane_width: 1,
+            pane_length: 1,
+            water_height: 1,
+            water_height_start: (criteria + 0.002) * 5,
+            water_height_end: 0,
+        });
+
+        const result = calculateWaterReport(report);
+        expect(result.result).toBeLessThanOrEqual(criteria);
+        expect(result.satisfies).toBe(false);
+    });
+
+    it.each([1, 2, 3, 4, 5])('passes draft %s when the unrounded loss is below the limit', (draftId) => {
+        const criteria = getCriteria(draftId);
+        const report = makeReport({
+            draft_id: draftId,
+            material_type_id: 2,
+            pane_width: 1,
+            pane_length: 1,
+            water_height: 1,
+            water_height_start: (criteria - 0.002) * 5,
+            water_height_end: 0,
+        });
+
+        expect(calculateWaterReport(report).satisfies).toBe(true);
+    });
+
     it('works with rectangular shaft (Schema A)', () => {
         const form = makeReport({
             draft_id: 1,

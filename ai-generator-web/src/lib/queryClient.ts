@@ -30,7 +30,7 @@ export const queryClient = new QueryClient({
         return Math.min(1000 * 2 ** attemptIndex, 30000);
       },
       refetchOnWindowFocus: false, // Disabled to prevent unnecessary refetches
-      refetchOnMount: 'stale', // Only refetch if data is stale
+      refetchOnMount: true, // Only refetch if data is stale
       refetchOnReconnect: true, // Refetch when coming back online
     },
     mutations: {

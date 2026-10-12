@@ -7,6 +7,18 @@ export interface VersionHistoryItem {
 export function getVersionHistory(language: string): VersionHistoryItem[] {
     return language === 'hr' ? [
         {
+            version: '2.36.1',
+            date: '2026-10-13',
+            changes: [
+                'Pouzdanija offline sinkronizacija: očuvanje lokalnih promjena, ispravan redoslijed povezanih zapisa i sigurno spremanje u lokalnu bazu',
+                'Ispravljeni izračuni i PDF/Word izvoz te popunjavanje i spremanje obrazaca bez prepisivanja unosa',
+                'Ispravljeno lokalno vrijeme termina u kalendaru i očuvanje unosa pri promjeni mrežne veze',
+                'Pouzdanija prijava, upravljanje ispitivačima i čišćenje podataka pri odjavi',
+                'Poboljšana čitljivost gumba u temama i siguran povratak na zadanu temu ako su postavke oštećene',
+                'Ažurirane ranjive ovisnosti, poboljšane provjere tipova i prošireni automatski testovi',
+            ]
+        },
+        {
             version: '2.36.0',
             date: '2026-07-03',
             changes: [
@@ -109,10 +121,10 @@ export function getVersionHistory(language: string): VersionHistoryItem[] {
                 'PDF materijali (zrak + voda) sada koriste admin lookup za okno/slivnik i cijevi, uključujući LC',
                 'U metodi zrak uklonjeno je trajanje iz desnog stupca; EN 1610 tablica je preuređena (DN [mm] + red “Vrijeme ispitivanja”)',
                 'Metoda voda: shema C skriva polja okna i H2, slivnik koristi “Visina slivnika”, a ΔV znak je ispravljen',
-                'Water forma: uklonjeni duplikati materijala, odstupanje ostaje ručno izmjenjivo (soft suggestion), saturacija je samo za betonsko okno/slivnik',
+                'Forma vode: uklonjeni duplikati materijala, odstupanje ostaje ručno izmjenjivo (blagi prijedlog), saturacija je samo za betonsko okno/slivnik',
                 'Word izvoz: sekcije su stabilno vidljive (uključujući selektivni export), a redni broj metode zrak je formatiran kao 1.',
-                'Word: “Dio građevine” ima default “Sustav odvodnje odpadnih voda” (editabilno), datumi su sanitizirani i standardizirani',
-                'Word: napomene se preuzimaju iz dijaloga, navode se nezadovoljene dionice, odstupanje vode je dropdown (2 opcije), a slike koriste naslov “Situacija”',
+                'Word: “Dio građevine” ima zadanu vrijednost “Sustav odvodnje odpadnih voda” (uredivo), datumi su sanitizirani i standardizirani',
+                'Word: napomene se preuzimaju iz dijaloga, navode se nezadovoljene dionice, odstupanje vode je padajući izbornik (2 opcije), a slike koriste naslov “Situacija”',
             ]
         },
         {
@@ -224,7 +236,7 @@ export function getVersionHistory(language: string): VersionHistoryItem[] {
             changes: [
                 'Ispravljen dozvoljeni gubitak u Word tablici za metodu zraka (koristi izračunatu vrijednost umjesto statičke)',
                 'Automatsko popunjavanje trajanja ispitivanja iz EN 1610 tablice prema promjeru i metodi',
-                'Vrijeme stabilizacije: +/- kontrola s default 5 min',
+                'Vrijeme stabilizacije: +/- kontrola sa zadanih 5 min',
                 'Prijenos dionice na sljedeći obrazac pri spremanju',
                 'Poboljšan unos na mobitelu: polje se čisti kad ima vrijednost 0',
                 'Uklonjene decimale iz PDF izvoza (osim za kritične vrijednosti)',
@@ -287,7 +299,7 @@ export function getVersionHistory(language: string): VersionHistoryItem[] {
                 'Skraćeni dugački tekstovi u stupcima s tooltip prikazom punog teksta',
                 'Fade-in animacija za overlay dijaloga',
                 'Tranzicija prozirnosti tablice tijekom pozadinskog osvježavanja podataka',
-                'Aria-label na svim checkboxovima za bolju pristupačnost',
+                'Aria-label atributi na svim potvrdnim okvirima za bolju pristupačnost',
                 'Oznaka aria-disabled na arhiviranim građevinama',
                 'Focus-visible prstenovi na akcijskim gumbima i linkovima u tablicama',
             ]
@@ -350,7 +362,7 @@ export function getVersionHistory(language: string): VersionHistoryItem[] {
                 'Refaktoriranje velikih komponenata za bolju čitljivost i održavanje koda',
                 'Razdvojene stranice: ConstructionReports, Settings, Help, HistoryDetails',
                 'Razdvojen wordExportService u modularne datoteke',
-                'Uklonjeno dupliciranje koda u tablicama izvješća (Air/Water)',
+                'Uklonjeno dupliciranje koda u tablicama izvješća (zrak/voda)',
             ]
         },
         {
@@ -606,6 +618,18 @@ export function getVersionHistory(language: string): VersionHistoryItem[] {
             ]
         },
     ] : [
+        {
+            version: '2.36.1',
+            date: '2026-10-13',
+            changes: [
+                'More reliable offline synchronization: preserved local changes, correct ordering of related records and safe local database writes',
+                'Fixed calculations, PDF/Word exports and form initialization and saving without overwriting entered values',
+                'Fixed local calendar appointment times and preserved edits when network connectivity changes',
+                'Improved sign-in, examiner management and account data cleanup on sign-out',
+                'Improved button contrast across themes and safe fallback when saved theme preferences are invalid',
+                'Updated vulnerable dependencies, corrected type checking and expanded automated tests',
+            ]
+        },
         // English version
         {
             version: '2.36.0',

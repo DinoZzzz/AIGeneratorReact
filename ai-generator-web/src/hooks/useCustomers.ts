@@ -8,7 +8,8 @@ import {
   getByIndex,
   getFromStore,
   saveToStore,
-  saveManyToStore,
+  cacheRemoteRows,
+  cacheRemoteRow,
   deleteFromStore,
   addToSyncQueue,
   removeSyncOperationsForEntity,
@@ -79,7 +80,7 @@ export const useCustomers = (
     () => customerService.getCustomers(page, pageSize, sortBy, sortOrder, search, year),
     () => getOfflineCustomers(page, pageSize, sortBy, sortOrder, search, year),
     {
-      cacheFn: (result) => saveManyToStore(STORES.CUSTOMERS, result.data),
+      cacheFn: async (result) => ({ ...result, data: await cacheRemoteRows(STORES.CUSTOMERS, result.data) }),
       staleTime: 5 * 60 * 1000,
     },
   );
@@ -90,7 +91,7 @@ export const useAllCustomers = () =>
     () => customerService.getAll(),
     () => getAllFromStore<Customer>(STORES.CUSTOMERS),
     {
-      cacheFn: (data) => saveManyToStore(STORES.CUSTOMERS, data),
+      cacheFn: (data) => cacheRemoteRows(STORES.CUSTOMERS, data),
       staleTime: 5 * 60 * 1000,
     },
   );
@@ -105,7 +106,7 @@ export const useCustomer = (id: string) =>
       return offlineData;
     },
     {
-      cacheFn: (data) => saveToStore(STORES.CUSTOMERS, data),
+      cacheFn: (data) => cacheRemoteRow(STORES.CUSTOMERS, data),
       enabled: !!id,
     },
   );
@@ -116,6 +117,7 @@ export const useCreateCustomer = () => {
   const { isOnline, triggerSync } = useOffline();
 
   return useMutation({
+    networkMode: 'always',
     mutationFn: async (customer: Partial<Customer>) => {
       if (isOnline) {
         try {
@@ -163,6 +165,7 @@ export const useUpdateCustomer = () => {
   const { isOnline, triggerSync } = useOffline();
 
   return useMutation({
+    networkMode: 'always',
     mutationFn: async ({ id, customer }: { id: string; customer: Partial<Customer> }) => {
       if (isOnline) {
         try {
@@ -212,6 +215,7 @@ export const useDeleteCustomer = () => {
   const { isOnline, triggerSync } = useOffline();
 
   return useMutation({
+    networkMode: 'always',
     mutationFn: async (id: string) => {
       if (isOnline) {
         try {

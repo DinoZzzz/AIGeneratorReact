@@ -6,6 +6,7 @@ import { precacheAndRoute, cleanupOutdatedCaches, createHandlerBoundToURL } from
 import { NavigationRoute, registerRoute } from 'workbox-routing';
 import { CacheFirst, NetworkFirst } from 'workbox-strategies';
 import { syncPendingOperations, pullRemoteChanges } from './lib/syncService';
+import { offlineRuntimeCachePlugin } from './lib/offlineRuntimeCachePlugin';
 
 declare let self: ServiceWorkerGlobalScope & {
   __WB_MANIFEST: Array<{ url: string; revision: string | null }>;
@@ -41,6 +42,7 @@ if (supabaseHost) {
       cacheName: 'supabase-api-cache',
       networkTimeoutSeconds: 10,
       plugins: [
+        offlineRuntimeCachePlugin,
         new ExpirationPlugin({
           maxEntries: 100,
           maxAgeSeconds: 60 * 60 * 24,
@@ -60,6 +62,7 @@ if (supabaseHost) {
     new CacheFirst({
       cacheName: 'supabase-storage-cache',
       plugins: [
+        offlineRuntimeCachePlugin,
         new ExpirationPlugin({
           maxEntries: 200,
           maxAgeSeconds: 60 * 60 * 24 * 7,
@@ -132,7 +135,7 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('sync', (event) => {
-  const syncEvent = event as SyncEvent;
+  const syncEvent = event as ExtendableEvent & { tag: string };
   if (syncEvent.tag === OFFLINE_SYNC_TAG) {
     syncEvent.waitUntil(runOfflineSync());
   }

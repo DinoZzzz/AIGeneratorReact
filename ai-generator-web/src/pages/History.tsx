@@ -16,7 +16,7 @@ import {
     getAllFromStore,
     getByIndex,
     removeSyncOperationsForEntity,
-    saveManyToStore
+    cacheRemoteRows
 } from '../lib/offlineDb';
 
 export const History = () => {
@@ -92,7 +92,7 @@ export const History = () => {
                         sortOrder,
                         selectedUserId || undefined
                     );
-                    await saveManyToStore(STORES.EXPORT_HISTORY, result.data);
+                    result = { ...result, data: await cacheRemoteRows(STORES.EXPORT_HISTORY, result.data) };
                 } catch (error) {
                     if (!isNetworkError(error)) throw error;
                     result = await loadOfflineHistory();
@@ -115,8 +115,7 @@ export const History = () => {
                 if (isOnline) {
                     try {
                         const usersData = await examinerService.getExaminers();
-                        setUsers(usersData);
-                        await saveManyToStore(STORES.EXAMINERS, usersData);
+                        setUsers(await cacheRemoteRows(STORES.EXAMINERS, usersData));
                         return;
                     } catch (error) {
                         if (!isNetworkError(error)) throw error;

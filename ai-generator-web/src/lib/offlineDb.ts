@@ -2,6 +2,7 @@
  * IndexedDB-based offline storage for the application
  * Stores data locally and tracks pending changes for sync
  */
+import { assertOfflineSessionCurrent, getOfflineSessionGeneration } from './offlineSessionLifecycle';
 
 const DB_NAME = 'ai-generator-offline';
 const DB_VERSION = 5;
@@ -53,6 +54,21 @@ export interface SyncOperation {
    */
   baseUpdatedAt?: string;
 }
+
+/** The local entity affected by an upload is stored outside the upload queue. */
+export const getSyncOperationTargetStore = (operation: SyncOperation): StoreName => {
+  if (operation.store !== STORES.UPLOADS) return operation.store;
+  const kind = (operation.data as { kind?: string } | null)?.kind;
+  switch (kind) {
+    case 'profile_avatar_upload': return STORES.EXAMINERS;
+    case 'certifier_signature_upload':
+    case 'certifier_signature_delete': return STORES.CERTIFIERS;
+    case 'scheme_image_upload': return STORES.SCHEME_IMAGES;
+    case 'report_file_upload':
+    case 'report_file_delete': return STORES.REPORT_FILES;
+    default: return operation.store;
+  }
+};
 
 interface SyncQueueSummary {
   pending: number;
@@ -294,14 +310,19 @@ export const getByIndex = async <T>(
  * Save an item to a store
  */
 export const saveToStore = async <T>(storeName: StoreName, item: T): Promise<void> => {
+  const generation = getOfflineSessionGeneration();
   const db = await openDatabase();
+  assertOfflineSessionCurrent(generation);
   return new Promise((resolve, reject) => {
     const transaction = db.transaction(storeName, 'readwrite');
     const store = transaction.objectStore(storeName);
-    const request = store.put(item);
-
-    request.onsuccess = () => resolve();
-    request.onerror = () => reject(request.error);
+    // Request success only means the write was staged. The transaction can
+    // still abort (for example, when storage is full), so wait for commit.
+    transaction.oncomplete = () => resolve();
+    // A request's error event bubbles before transaction.error is populated.
+    // Wait for abort so callers receive the actual failure, not null.
+    transaction.onabort = () => reject(transaction.error ?? new DOMException('Offline write aborted', 'AbortError'));
+    store.put(item);
   });
 };
 
@@ -309,30 +330,105 @@ export const saveToStore = async <T>(storeName: StoreName, item: T): Promise<voi
  * Save multiple items to a store
  */
 export const saveManyToStore = async <T>(storeName: StoreName, items: T[]): Promise<void> => {
+  const generation = getOfflineSessionGeneration();
   const db = await openDatabase();
+  assertOfflineSessionCurrent(generation);
   return new Promise((resolve, reject) => {
     const transaction = db.transaction(storeName, 'readwrite');
     const store = transaction.objectStore(storeName);
 
     transaction.oncomplete = () => resolve();
-    transaction.onerror = () => reject(transaction.error);
+    transaction.onabort = () => reject(transaction.error ?? new DOMException('Offline write aborted', 'AbortError'));
 
-    items.forEach((item) => store.put(item));
+    try {
+      items.forEach((item) => store.put(item));
+    } catch (error) {
+      // A synchronous key/clone error must also roll back already queued
+      // writes; otherwise the rejected batch is only partially persisted.
+      transaction.abort();
+      reject(error);
+    }
   });
+};
+
+/**
+ * Cache a server response without replacing queued local edits or reviving
+ * locally deleted rows. Return the same reconciled rows for the online UI.
+ */
+export const cacheRemoteRows = async <T extends { id: string | number }>(
+  storeName: StoreName,
+  rows: T[]
+): Promise<T[]> => {
+  const generation = getOfflineSessionGeneration();
+  const db = await openDatabase();
+  assertOfflineSessionCurrent(generation);
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction([storeName, STORES.SYNC_QUEUE, STORES.METADATA], 'readwrite');
+    const store = transaction.objectStore(storeName);
+    const queueRequest = transaction.objectStore(STORES.SYNC_QUEUE).getAll();
+    const mappingRequest = transaction.objectStore(STORES.METADATA).get(SYNC_ID_MAP_METADATA_KEY);
+    const reconciled: Array<T | undefined> = new Array(rows.length);
+    let requestsCompleted = 0;
+
+    transaction.oncomplete = () => resolve(reconciled.filter((row): row is T => row !== undefined));
+    transaction.onabort = () => reject(transaction.error ?? new DOMException('Offline cache write aborted', 'AbortError'));
+
+    const reconcile = () => {
+      if (++requestsCompleted !== 2) return;
+      const idMap = (mappingRequest.result?.value ?? {}) as SyncIdMap;
+      const protectedIds = new Set<string>();
+      for (const operation of queueRequest.result as SyncOperation[]) {
+        if (getSyncOperationTargetStore(operation) !== storeName || !operation.entityId) continue;
+        protectedIds.add(operation.entityId);
+        if (idMap[operation.entityId]) protectedIds.add(idMap[operation.entityId]);
+      }
+
+      try {
+        rows.forEach((row, index) => {
+          if (protectedIds.has(String(row.id))) {
+            const localRequest = store.get(row.id);
+            localRequest.onsuccess = () => {
+              // Missing local data represents a queued deletion.
+              reconciled[index] = localRequest.result as T | undefined;
+            };
+          } else {
+            const cached = { ...row, _synced: true };
+            store.put(cached);
+            reconciled[index] = cached;
+          }
+        });
+      } catch (error) {
+        transaction.abort();
+        reject(error);
+      }
+    };
+    queueRequest.onsuccess = reconcile;
+    mappingRequest.onsuccess = reconcile;
+  });
+};
+
+export const cacheRemoteRow = async <T extends { id: string | number }>(
+  storeName: StoreName,
+  row: T
+): Promise<T> => {
+  const [cached] = await cacheRemoteRows(storeName, [row]);
+  if (!cached) throw new Error('Record was deleted locally');
+  return cached;
 };
 
 /**
  * Delete an item from a store
  */
 export const deleteFromStore = async (storeName: StoreName, id: IDBValidKey): Promise<void> => {
+  const generation = getOfflineSessionGeneration();
   const db = await openDatabase();
+  assertOfflineSessionCurrent(generation);
   return new Promise((resolve, reject) => {
     const transaction = db.transaction(storeName, 'readwrite');
     const store = transaction.objectStore(storeName);
-    const request = store.delete(id);
-
-    request.onsuccess = () => resolve();
-    request.onerror = () => reject(request.error);
+    transaction.oncomplete = () => resolve();
+    transaction.onabort = () => reject(transaction.error ?? new DOMException('Offline write aborted', 'AbortError'));
+    store.delete(id);
   });
 };
 
@@ -344,10 +440,9 @@ export const clearStore = async (storeName: StoreName): Promise<void> => {
   return new Promise((resolve, reject) => {
     const transaction = db.transaction(storeName, 'readwrite');
     const store = transaction.objectStore(storeName);
-    const request = store.clear();
-
-    request.onsuccess = () => resolve();
-    request.onerror = () => reject(request.error);
+    transaction.oncomplete = () => resolve();
+    transaction.onabort = () => reject(transaction.error ?? new DOMException('Offline write aborted', 'AbortError'));
+    store.clear();
   });
 };
 
@@ -668,7 +763,7 @@ export const cleanupStaleUploadOperations = async (
             kind: getUploadOperationKind(operation.data),
           };
         })
-        .filter((entry): entry is { operation: SyncOperation; blobSize: number; kind?: string } => entry !== null)
+        .filter((entry): entry is NonNullable<typeof entry> => entry !== null)
         .sort((left, right) => right.operation.timestamp - left.operation.timestamp);
 
       result.scanned = uploadOperations.length;
@@ -787,11 +882,12 @@ export const compactPendingSyncOperations = async (): Promise<number> => {
         const createOperation = latestCreateByKey.get(key);
         if (createOperation) {
           const mergedCreateData = mergeSyncPayload(createOperation.data, operation.data);
-          queueStore.put({ ...createOperation, data: mergedCreateData, timestamp: operation.timestamp });
+          // Keep the original position: child creates may already reference
+          // this temporary entity and must be replayed after its creation.
+          queueStore.put({ ...createOperation, data: mergedCreateData });
           latestCreateByKey.set(key, {
             ...createOperation,
             data: mergedCreateData,
-            timestamp: operation.timestamp,
           });
           queueStore.delete(operation.id);
           changedCount++;

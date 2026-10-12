@@ -120,12 +120,15 @@ export const isAirSatisfying = (
 };
 
 /**
- * Format time in minutes to HH:MM format
+ * Format minutes as HH:MM, retaining seconds for fractional-minute test times.
  */
 export const formatTime = (minutes: number): string => {
-    const hours = Math.floor(minutes / 60);
-    const mins = Math.round(minutes % 60);
-    return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
+    const totalSeconds = Math.round(minutes * 60);
+    const hours = Math.floor(totalSeconds / 3600);
+    const mins = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+    const time = `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
+    return seconds ? `${time}:${seconds.toString().padStart(2, '0')}` : time;
 };
 
 /**

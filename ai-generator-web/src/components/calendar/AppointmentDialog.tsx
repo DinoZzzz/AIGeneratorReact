@@ -13,7 +13,8 @@ import type { Appointment, AppointmentPayload, Profile, Customer, Construction }
 import { Loader2, Plus, Trash2 } from 'lucide-react';
 import { ConfirmDialog } from '../ui/ConfirmDialog';
 import { isNetworkError } from '../../lib/errorHandler';
-import { getAllFromStore, getByIndex, saveManyToStore, STORES } from '../../lib/offlineDb';
+import { getAllFromStore, getByIndex, cacheRemoteRows, STORES } from '../../lib/offlineDb';
+import { formatLocalDateTime } from './appointmentDateTime';
 
 interface AppointmentDialogProps {
     open: boolean;
@@ -59,6 +60,7 @@ export const AppointmentDialog = ({
     });
 
     const isAdmin = profile?.role === 'admin';
+    const profileId = profile?.id;
     const filteredCustomers = useMemo(() => {
         const query = customerSearch.trim().toLowerCase();
         if (!query) return customers;
@@ -84,10 +86,10 @@ export const AppointmentDialog = ({
                         examinerService.getExaminers(),
                         customerService.getAll()
                     ]);
-                    await saveManyToStore(STORES.CUSTOMERS, customersData);
+                    const cachedCustomers = await cacheRemoteRows(STORES.CUSTOMERS, customersData);
                     if (!cancelled) {
                         setExaminers(examinersData);
-                        setCustomers(customersData);
+                        setCustomers(cachedCustomers);
                     }
                     return;
                 }
@@ -111,6 +113,12 @@ export const AppointmentDialog = ({
 
         loadData();
 
+        return () => { cancelled = true; };
+    }, [isOnline, open, profile]);
+
+    useEffect(() => {
+        if (!open) return;
+
         if (appointment) {
             // Existing appointment: Start in view mode
             setIsEditing(false);
@@ -118,8 +126,8 @@ export const AppointmentDialog = ({
             setCustomerSearch(appointment.customer?.name || '');
             setFormData({
                 ...appointment,
-                start: appointment.start ? new Date(appointment.start).toISOString().slice(0, 16) : '',
-                end: appointment.end ? new Date(appointment.end).toISOString().slice(0, 16) : '',
+                start: appointment.start ? formatLocalDateTime(appointment.start) : '',
+                end: appointment.end ? formatLocalDateTime(appointment.end) : '',
                 assignee_ids: appointment.examiner_ids || [],
                 location: appointment.location || '',
                 reminder_enabled: appointment.reminder_enabled || false,
@@ -139,17 +147,16 @@ export const AppointmentDialog = ({
             setFormData({
                 title: '',
                 description: '',
-                start: startTime.toISOString().slice(0, 16),
-                end: endTime.toISOString().slice(0, 16),
-                assignee_ids: profile ? [profile.id] : [],
+                start: formatLocalDateTime(startTime),
+                end: formatLocalDateTime(endTime),
+                assignee_ids: profileId ? [profileId] : [],
                 location: '',
                 reminder_enabled: false,
                 reminder_times: []
             });
         }
 
-        return () => { cancelled = true; };
-    }, [isOnline, open, appointment, profile, selectedSlot]);
+    }, [open, appointment, profileId, selectedSlot]);
 
     useEffect(() => {
         if (!open || !formData.customer_id) return;
@@ -186,8 +193,8 @@ export const AppointmentDialog = ({
             try {
                 if (isOnline) {
                     const data = await constructionService.getByCustomerId(formData.customer_id!);
-                    await saveManyToStore(STORES.CONSTRUCTIONS, data);
-                    if (!cancelled) setConstructions(data);
+                    const cachedConstructions = await cacheRemoteRows(STORES.CONSTRUCTIONS, data);
+                    if (!cancelled) setConstructions(cachedConstructions);
                     return;
                 }
 
@@ -692,10 +699,10 @@ export const AppointmentDialog = ({
                     <div className="bg-muted/50 p-3 rounded-lg border border-border">
                         <p className="text-xs text-muted-foreground mb-1">{t('calendar.eventTitle')}:</p>
                         <p className="font-semibold text-foreground">{appointment.title}</p>
-                        {appointment.start_time && (
+                        {appointment.start && (
                             <>
                                 <p className="text-xs text-muted-foreground mt-2 mb-1">{t('calendar.start')}:</p>
-                                <p className="font-semibold text-foreground">{new Date(appointment.start_time).toLocaleString()}</p>
+                                <p className="font-semibold text-foreground">{new Date(appointment.start).toLocaleString()}</p>
                             </>
                         )}
                     </div>

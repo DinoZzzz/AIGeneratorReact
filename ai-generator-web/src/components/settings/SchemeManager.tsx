@@ -22,7 +22,7 @@ import {
     addToSyncQueue,
     getAllFromStore,
     removeSyncOperationsForEntity,
-    saveManyToStore,
+    cacheRemoteRows,
     saveToStore
 } from '../../lib/offlineDb';
 
@@ -416,8 +416,8 @@ export const SchemeManager: React.FC = () => {
             if (isOnline) {
                 const data = await getSchemeImages();
                 if (data.length > 0) {
-                    setSchemes(await hydrateQueuedSchemePreviews(data));
-                    await saveManyToStore(STORES.SCHEME_IMAGES, data);
+                    const cached = await cacheRemoteRows(STORES.SCHEME_IMAGES, data);
+                    setSchemes(await hydrateQueuedSchemePreviews(cached));
                     return;
                 }
 
@@ -429,8 +429,8 @@ export const SchemeManager: React.FC = () => {
                     return;
                 }
 
-                setSchemes(await hydrateQueuedSchemePreviews(data));
-                await saveManyToStore(STORES.SCHEME_IMAGES, data);
+                const cached = await cacheRemoteRows(STORES.SCHEME_IMAGES, data);
+                setSchemes(await hydrateQueuedSchemePreviews(cached));
                 return;
             }
 

@@ -11,6 +11,7 @@ import { errorHandler } from '../lib/errorHandler';
 import { getLookupWithOfflineFallback } from '../lib/offlineLookupCache';
 import { useReportFormShell, sanitizeForDb, generateReportPDF } from '../features/reports/hooks';
 import { ReportFormBanners } from '../features/reports/components';
+import { withCurrentReportLookups } from '../features/reports/utils/currentReportLookups';
 import { resolveWaterDeviation } from '../features/water/calculations/waterDeviations';
 
 const WATER_COPY_STRUCTURE_FIELDS = [
@@ -61,6 +62,8 @@ interface CalculatedResults {
 }
 
 export const WaterMethodForm = () => {
+    const [loading, setLoading] = useState(false);
+    const savingRef = useRef(false);
     const [formData, setFormData] = useState<Partial<ReportForm>>(initialState);
     const [drafts, setDrafts] = useState<ReportDraft[]>([]);
     const [materialTypes, setMaterialTypes] = useState<MaterialType[]>([]);
@@ -239,6 +242,9 @@ export const WaterMethodForm = () => {
     };
 
     const saveReport = async (shouldRedirect: boolean) => {
+        if (savingRef.current) return;
+        savingRef.current = true;
+        setLoading(true);
         try {
             if (!formData.dionica?.trim()) {
                 setDionicaError(t('reports.form.dionicaRequired'));
@@ -265,6 +271,7 @@ export const WaterMethodForm = () => {
             }
 
             clearSavedData();
+            setHasUserEdited(false);
 
             if (!shouldRedirect) {
                 // Pre-fill new form with all data from saved report so user only tweaks what changed
@@ -290,6 +297,22 @@ export const WaterMethodForm = () => {
             }
         } catch (error) {
             const appError = errorHandler.handle(error, 'WaterMethodForm');
+            showError(errorHandler.getUserMessage(appError));
+        } finally {
+            savingRef.current = false;
+            setLoading(false);
+        }
+    };
+
+    const handleExportPDF = async () => {
+        try {
+            await generateReportPDF({
+                ...withCurrentReportLookups(formData, materials),
+                satisfies: calculated.satisfies,
+                deviation: resolveWaterDeviation(formData),
+            }, profile || undefined, constructionId);
+        } catch (error) {
+            const appError = errorHandler.handle(error, 'WaterMethodFormPDF');
             showError(errorHandler.getUserMessage(appError));
         }
     };
@@ -367,11 +390,11 @@ export const WaterMethodForm = () => {
                 <div className="flex space-x-3">
                     {step === 2 && (
                         <>
-                            <Button variant="outline" onClick={() => generateReportPDF(formData, profile || undefined, constructionId)} className="hidden sm:flex">
+                            <Button variant="outline" onClick={handleExportPDF} className="hidden sm:flex">
                                 <FileDown className="h-4 w-4 mr-2" />
                                 {t('reports.form.exportPdf')}
                             </Button>
-                            <Button variant="outline" onClick={handleSaveAndNew} className="hidden sm:flex">
+                            <Button variant="outline" onClick={handleSaveAndNew} disabled={loading} className="hidden sm:flex">
                                 <Plus className="h-4 w-4 mr-2" />
                                 {t('reports.form.saveAndNew')}
                             </Button>
@@ -737,7 +760,7 @@ export const WaterMethodForm = () => {
                                 <Button type="button" variant="outline" onClick={() => setStep(1)} size="lg" className="w-full sm:w-auto">
                                     <ChevronLeft className="mr-2 h-5 w-5" /> {t('reports.form.prevStep')}
                                 </Button>
-                                <Button type="submit" size="lg" className="w-full sm:w-auto">
+                                <Button type="submit" size="lg" disabled={loading} className="w-full sm:w-auto">
                                     <Save className="mr-2 h-4 w-4" />
                                     {t('reports.form.saveReport')}
                                 </Button>

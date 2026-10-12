@@ -5,6 +5,7 @@
 
 import { useMutation, useQueryClient, type UseMutationOptions } from '@tanstack/react-query';
 import { useOffline } from '../context/OfflineContext';
+import { isNetworkError } from '../lib/errorHandler';
 import {
   addToSyncQueue,
   saveToStore,
@@ -47,6 +48,8 @@ export function useOfflineMutation<TData, TVariables>({
   const queryClient = useQueryClient();
 
   return useMutation({
+    ...options,
+    networkMode: 'always',
     mutationFn: async (variables: TVariables) => {
       if (isOnline) {
         // Online: perform the actual mutation
@@ -55,7 +58,7 @@ export function useOfflineMutation<TData, TVariables>({
           return result;
         } catch (error) {
           // If online mutation fails due to network error, fall back to offline mode
-          if (error instanceof Error && error.message.includes('network')) {
+          if (isNetworkError(error)) {
             return handleOfflineMutation(variables);
           }
           throw error;
@@ -65,7 +68,7 @@ export function useOfflineMutation<TData, TVariables>({
         return handleOfflineMutation(variables);
       }
     },
-    onSuccess: (data, variables, context) => {
+    onSuccess: (data, variables, onMutateResult, context) => {
       // Invalidate queries
       invalidateKeys.forEach((key) => {
         queryClient.invalidateQueries({ queryKey: key });
@@ -77,7 +80,7 @@ export function useOfflineMutation<TData, TVariables>({
       }
 
       // Call original onSuccess if provided
-      options.onSuccess?.(data, variables, context);
+      return options.onSuccess?.(data, variables, onMutateResult, context);
     },
     onError: options.onError,
     onSettled: options.onSettled,
@@ -181,12 +184,14 @@ export function useOfflineQuery<TData>({
 
   return {
     queryKey,
+    networkMode: 'always' as const,
     queryFn: async () => {
       if (isOnline) {
         try {
           const data = await queryFn();
           return data;
         } catch (error) {
+          if (!isNetworkError(error)) throw error;
           // Fall back to offline data on network error
           console.warn('Online query failed, falling back to offline data:', error);
           return offlineFn();

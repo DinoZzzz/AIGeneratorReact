@@ -1,8 +1,10 @@
 import { supabase } from '../lib/supabase';
+import { createClient } from '@supabase/supabase-js';
 import { captureError } from '../lib/sentry';
 import type { Profile, ReportType } from '../types';
 import { createWeakPasswordError, isWeakPasswordAuthError, validatePasswordStrength } from '../lib/passwordValidation';
 import { getLookupWithOfflineFallback } from '../lib/offlineLookupCache';
+import { deleteExaminerAccount } from './examinerAccountService';
 
 interface ProfileFromDB {
     id: string;
@@ -11,10 +13,10 @@ interface ProfileFromDB {
     username?: string;
     email: string;
     title?: string;
-    gender?: string;
+    gender?: Profile['gender'];
     avatar_url?: string;
-    role: string;
-    accreditations?: string;
+    role: Profile['role'];
+    accreditations?: number[] | null;
 }
 
 export const examinerService = {
@@ -35,11 +37,13 @@ export const examinerService = {
         // I updated types/index.ts to have 'last_name' and optional 'lastName' map if needed.
         // Ideally we just use the DB shape.
 
-        return (data as ProfileFromDB[]).map((p) => ({
+        return ((data ?? []) as ProfileFromDB[]).map((p) => ({
             ...p,
+            username: p.username ?? '',
+            accreditations: p.accreditations ?? [],
             lastName: p.last_name, // Compatibility mapping
             isAdmin: p.role === 'admin'
-        })) as Profile[];
+        }));
     },
 
     async getReportTypes(): Promise<ReportType[]> {
@@ -72,10 +76,22 @@ export const examinerService = {
                 throw createWeakPasswordError('Password is known to be weak and easy to guess, please choose a different one.');
             }
 
-            // Save the current session to restore it after creating the new user
-            const { data: { session: currentSession } } = await supabase.auth.getSession();
-
-            const { data: authData, error: authError } = await supabase.auth.signUp({
+            // signUp can sign in the new user when email confirmation is disabled.
+            // Keep that session isolated so the administrator stays authenticated
+            // throughout profile creation and other in-flight requests.
+            const signupClient = createClient(
+                import.meta.env.VITE_SUPABASE_URL,
+                import.meta.env.VITE_SUPABASE_ANON_KEY,
+                {
+                    auth: {
+                        persistSession: false,
+                        autoRefreshToken: false,
+                        detectSessionInUrl: false,
+                        storageKey: 'examiner-signup',
+                    },
+                }
+            );
+            const { data: authData, error: authError } = await signupClient.auth.signUp({
                 email: profile.email,
                 password: profile.password,
                 options: {
@@ -104,14 +120,6 @@ export const examinerService = {
                 const error = new Error('Failed to create user');
                 captureError(error, { service: 'examinerService', method: 'saveExaminer' });
                 throw error;
-            }
-
-            // Restore the original session to prevent auto-login as the new user
-            if (currentSession) {
-                await supabase.auth.setSession({
-                    access_token: currentSession.access_token,
-                    refresh_token: currentSession.refresh_token
-                });
             }
 
             // Now create/update the profile with the auth user's ID
@@ -180,9 +188,13 @@ export const examinerService = {
                 if (isWeakPasswordAuthError(passwordError)) {
                     throw passwordError;
                 }
-                // When edge function returns non-2xx, the actual error details may be in `data`
-                const detailedMessage = data?.error || data?.message || passwordError.message;
-                if (detailedMessage && isWeakPasswordAuthError({ code: 'weak_password', message: detailedMessage })) {
+                // Non-2xx function errors carry their response body in context.
+                let errorData = data;
+                if (!errorData && passwordError.context instanceof Response) {
+                    errorData = await passwordError.context.clone().json().catch(() => null);
+                }
+                const detailedMessage = errorData?.error || errorData?.message || passwordError.message;
+                if (isWeakPasswordAuthError({ code: errorData?.code, message: detailedMessage })) {
                     throw createWeakPasswordError(detailedMessage);
                 }
                 const error = new Error(
@@ -200,7 +212,7 @@ export const examinerService = {
                         ? data.message
                         : '';
 
-                if (possibleWeakPasswordMessage && isWeakPasswordAuthError({ code: 'weak_password', message: possibleWeakPasswordMessage })) {
+                if (isWeakPasswordAuthError({ code: data?.code, message: possibleWeakPasswordMessage })) {
                     throw createWeakPasswordError(possibleWeakPasswordMessage);
                 }
 
@@ -232,21 +244,7 @@ export const examinerService = {
     },
 
     async deleteExaminer(id: string): Promise<void> {
-        // Deleting a profile does not delete the Auth User.
-        // This usually requires admin privileges or Edge Function to delete from auth.users.
-        // For now, we just delete the profile row (which cascades from auth.users usually, but here we do reverse?)
-        // Actually, deleting from 'profiles' won't delete 'auth.users'.
-        // We'll just delete the profile data for now.
-
-        const { error } = await supabase
-            .from('profiles')
-            .delete()
-            .eq('id', id);
-
-        if (error) {
-            captureError(error, { service: 'examinerService', method: 'deleteExaminer', id });
-            throw error;
-        }
+        await deleteExaminerAccount(id);
     },
 
     async uploadAvatar(file: File, userId: string): Promise<string> {

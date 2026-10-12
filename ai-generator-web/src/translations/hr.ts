@@ -196,6 +196,7 @@ export const hr: Record<string, string> = {
     'common.of': 'od',
     'common.closeDialog': 'Zatvori dijalog',
     'common.closeNotification': 'Zatvori obavijest',
+    'common.moreOptions': 'Više opcija',
     'common.closeResults': 'Zatvori rezultate',
     'common.progress': 'Napredak',
     'common.breadcrumb': 'Navigacijska putanja',
@@ -254,6 +255,12 @@ export const hr: Record<string, string> = {
     'examiners.deleteDialogTitle': 'Potvrdi brisanje',
     'examiners.deleteDialogMessage': 'Jeste li sigurni da želite obrisati ovog ispitivača?',
     'examiners.deleteWarning': 'Ova radnja se ne može poništiti.',
+    'examiners.deleteInUse': 'Ispitivač je povezan s izvještajima ili terminima. Račun nije obrisan kako bi se sačuvala povijest.',
+    'examiners.deleteSelf': 'Ne možete obrisati vlastiti prijavljeni račun.',
+    'examiners.deleteForbidden': 'Samo administrator može obrisati račun ispitivača.',
+    'examiners.deleteUnavailable': 'Usluga za brisanje računa trenutačno nije dostupna. Pokušajte ponovno ili kontaktirajte administratora.',
+    'examiners.deleteFailed': 'Brisanje računa nije uspjelo. Podaci ispitivača nisu obrisani.',
+    'examiners.deleteOnlineRequired': 'Za brisanje računa ispitivača potrebna je internetska veza.',
     'examiners.edit': 'Uredi ispitivača',
     'examiners.delete': 'Obriši ispitivača',
 
@@ -515,13 +522,13 @@ export const hr: Record<string, string> = {
     'constructions.filterAll': 'Sve',
     'constructions.filterActive': 'Aktivna',
     'constructions.filterArchived': 'Arhivirana',
+    'constructions.nameRequired': 'Naziv je obavezan',
+    'constructions.workOrderExists': 'Radni nalog već postoji',
+    'constructions.workOrderRequired': 'Radni nalog je obavezan',
+    'constructions.locationRequired': 'Lokacija je obavezna',
     'constructions.archivedBadge': 'ARHIVIRANO',
     'constructions.customerNotFound': 'Naručitelj nije pronađen',
     'constructions.goBack': 'Povratak na gradilišta',
-    'constructions.workOrderExists': 'Radni nalog već postoji',
-    'constructions.nameRequired': 'Naziv je obavezan',
-    'constructions.workOrderRequired': 'Radni nalog je obavezan',
-    'constructions.locationRequired': 'Lokacija je obavezna',
 
     // Export
     'export.includePdfs': 'Dodaj PDF-ove obrazaca na kraj dokumenta',
@@ -831,7 +838,7 @@ export const hr: Record<string, string> = {
     'schemeManager.onlineRequired': 'Ova radnja zahtijeva internetsku vezu.',
 
     // Command Palette
-    'commandPalette.searchPlaceholder': 'Pretraži kupce, gradilišta...',
+    'commandPalette.searchPlaceholder': 'Pretraži naručitelje, gradilišta, obrasce...',
     'commandPalette.searching': 'Pretraživanje...',
     'commandPalette.noResults': 'Nema rezultata',
     'commandPalette.recent': 'Nedavno pregledano',
@@ -839,7 +846,7 @@ export const hr: Record<string, string> = {
     'commandPalette.select': 'Odaberi',
     'commandPalette.close': 'Zatvori',
     'commandPalette.typeToSearch': 'Upišite za pretragu...',
-    'commandPalette.customers': 'Kupci',
+    'commandPalette.customers': 'Naručitelji',
     'commandPalette.constructions': 'Gradilišta',
     'commandPalette.reports': 'Izvještaji',
 
@@ -853,7 +860,7 @@ export const hr: Record<string, string> = {
 
     // Pinned Items
     'dashboard.pinnedItems': 'Prikvačeno',
-    'dashboard.pinEmpty': 'Prikvačite najčešće korištene kupce i gradilišta za brzi pristup.',
+    'dashboard.pinEmpty': 'Prikvačite najčešće korištene naručitelje i gradilišta za brzi pristup.',
     'dashboard.pin': 'Prikvači',
     'dashboard.unpin': 'Otkvači',
 
@@ -908,6 +915,7 @@ export const hr: Record<string, string> = {
 
     // Sign out confirmation
     'signOut.offlineTitle': 'Odjava će obrisati nesinkronizirane promjene',
+    'signOut.failed': 'Odjava nije dovršena. Provjerite vezu i pokušajte ponovno.',
     'signOut.offlineDescription': 'Imate {count} nesinkroniziranih/lokalnih promjena. Ako se sada odjavite, te promjene će biti izgubljene.',
 
     // Offline / Sync

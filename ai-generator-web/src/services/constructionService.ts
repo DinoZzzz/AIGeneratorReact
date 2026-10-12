@@ -19,7 +19,7 @@ export const constructionService = {
             { service: SERVICE, method: 'getByCustomerId', customerId },
             () => query.order('created_at', { ascending: false })
         );
-        return data as Construction[];
+        return (data ?? []) as Construction[];
     },
 
     async getById(id: string) {
@@ -147,7 +147,7 @@ export const constructionService = {
             { service: SERVICE, method: 'checkWorkOrderExists', workOrder, customerId },
             () => query
         );
-        return data.length > 0;
+        return (data?.length ?? 0) > 0;
     },
 
     async archive(id: string) {

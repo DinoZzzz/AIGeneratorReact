@@ -6,7 +6,8 @@ import { isNetworkError } from '../lib/errorHandler';
 import {
   getFromStore,
   saveToStore,
-  saveManyToStore,
+  cacheRemoteRows,
+  cacheRemoteRow,
   deleteFromStore,
   addToSyncQueue,
   removeSyncOperationsForEntity,
@@ -32,7 +33,7 @@ export const useConstructionsByCustomer = (customerId: string, includeArchived: 
     () => constructionService.getByCustomerId(customerId, includeArchived),
     () => getOfflineConstructionsByCustomer(customerId, includeArchived),
     {
-      cacheFn: (data) => saveManyToStore(STORES.CONSTRUCTIONS, data),
+      cacheFn: (data) => cacheRemoteRows(STORES.CONSTRUCTIONS, data),
       enabled: !!customerId,
       staleTime: 5 * 60 * 1000,
     },
@@ -58,7 +59,7 @@ export const useConstruction = (id: string) =>
       return offlineData;
     },
     {
-      cacheFn: (data) => saveToStore(STORES.CONSTRUCTIONS, data),
+      cacheFn: (data) => cacheRemoteRow(STORES.CONSTRUCTIONS, data),
       enabled: !!id,
       staleTime: 5 * 60 * 1000,
     },
@@ -70,6 +71,7 @@ export const useCreateConstruction = () => {
   const { isOnline, triggerSync } = useOffline();
 
   return useMutation({
+    networkMode: 'always',
     mutationFn: async (construction: Partial<Construction>) => {
       if (isOnline) {
         try {
@@ -128,6 +130,7 @@ export const useUpdateConstruction = () => {
   const { isOnline, triggerSync } = useOffline();
 
   return useMutation({
+    networkMode: 'always',
     mutationFn: async ({ id, construction }: { id: string; construction: Partial<Construction> }) => {
       if (isOnline) {
         try {
@@ -207,6 +210,7 @@ export const useDeleteConstruction = () => {
   const { isOnline, triggerSync } = useOffline();
 
   return useMutation({
+    networkMode: 'always',
     mutationFn: async (id: string) => {
       if (isOnline) {
         try {

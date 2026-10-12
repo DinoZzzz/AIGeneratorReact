@@ -8,7 +8,7 @@ type TestPendingOp = {
   entityId?: string;
   timestamp: number;
   retryCount: number;
-  status: 'pending' | 'failed';
+  status: 'pending' | 'failed' | 'in_progress' | 'discarded';
 };
 
 const testState = vi.hoisted(() => ({
@@ -44,9 +44,10 @@ const offlineDbMock = vi.hoisted(() => ({
   } as const,
   compactPendingSyncOperations: vi.fn(async () => 0),
   getPersistedSyncIdMap: vi.fn(async () => ({})),
-  getPendingSyncOperations: vi.fn(async () => testState.pendingOps),
-  getFailedSyncOperations: vi.fn(async () => []),
-  getSyncOperationsByStatus: vi.fn(async () => []),
+  getPendingSyncOperations: vi.fn(async () => testState.pendingOps.filter((operation) => operation.status === 'pending')),
+  getFailedSyncOperations: vi.fn(async () => testState.pendingOps.filter((operation) => operation.status === 'failed')),
+  getSyncOperationTargetStore: vi.fn((operation: { store: string }) => operation.store),
+  getSyncOperationsByStatus: vi.fn(async (status: string) => testState.pendingOps.filter((operation) => operation.status === status)),
   persistSyncIdMapping: vi.fn(async () => {}),
   markSyncOperationDiscarded: vi.fn(async () => {}),
   restoreDiscardedSyncOperation: vi.fn(async () => {}),
@@ -157,7 +158,7 @@ describe('pullRemoteChanges', () => {
     expect(typeof testState.metadata.get('last_pull_at')).toBe('number');
   });
 
-  it('never overwrites or deletes rows with queued local changes', async () => {
+  it.each(['pending', 'failed', 'in_progress', 'discarded'] as const)('never overwrites or deletes rows with %s local changes', async (status) => {
     testState.pendingOps = [{
       id: 'op-1',
       store: 'customers',
@@ -166,7 +167,7 @@ describe('pullRemoteChanges', () => {
       entityId: 'c1',
       timestamp: 1,
       retryCount: 0,
-      status: 'pending',
+      status,
     }];
     testState.tableRows.customers = [
       { id: 'c1', name: 'Server version', updated_at: '2026-01-03T00:00:00+00:00' },

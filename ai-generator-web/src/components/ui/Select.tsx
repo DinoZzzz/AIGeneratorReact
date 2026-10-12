@@ -10,17 +10,20 @@ interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
 }
 
 export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
-    ({ label, options, error, className, children, ...props }, ref) => {
+    ({ label, options, error, className, children, id, ...props }, ref) => {
         const { t } = useLanguage();
+        const generatedId = React.useId();
+        const selectId = id || generatedId;
         return (
             <div className="space-y-2">
                 {label && (
-                    <label htmlFor={props.id || props.name} className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                    <label htmlFor={selectId} className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
                         {label}
                     </label>
                 )}
                 <div className="relative">
                     <select
+                        id={selectId}
                         ref={ref}
                         className={cn(
                             "flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 appearance-none",

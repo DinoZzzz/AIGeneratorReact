@@ -124,11 +124,11 @@ export const Reports = () => {
         }
     }, [getSelectedData, user?.id, success, t, showError]);
 
-    const handleBulkPDF = useCallback(() => {
+    const handleBulkPDF = useCallback(async () => {
         const selectedData = getSelectedData().filter(r => !r.section_name);
         if (selectedData.length === 0) return;
         try {
-            generateBulkPDF(selectedData, `Reports_bulk_${Date.now()}.pdf`);
+            await generateBulkPDF(selectedData, `Reports_bulk_${Date.now()}.pdf`);
         } catch (err) {
             const appError = errorHandler.handle(err, 'ReportBulkPDF');
             showError(errorHandler.getUserMessage(appError));

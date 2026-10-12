@@ -29,10 +29,11 @@ export const useAirCalculations = ({
     return useMemo<CalculatedAirResults>(() => {
         const selectedProcedure = procedures.find(p => p.id === formData.examination_procedure_id);
 
-        // Diameter logic: Always use shaft diameter (pane_diameter) for test time
-        // Schema A (Draft 1): Shaft only - halve the time
-        // Schema B (Draft 2/3): Shaft + Pipeline - full time
-        const diameterMm = formData.pane_diameter || 0;
+        // Pipe tests use the pipe diameter; shaft-only tests use the shaft diameter.
+        const usesPipeDiameter = formData.draft_id === 2 || formData.draft_id === 3;
+        const diameterMm = usesPipeDiameter
+            ? (formData.pipe_diameter || formData.pane_diameter || 0)
+            : (formData.pane_diameter || formData.pipe_diameter || 0);
 
         // Get method from procedure name (more reliable than ID-based mapping)
         let method: AirTestMethod = 'LA';
@@ -76,6 +77,7 @@ export const useAirCalculations = ({
     }, [
         formData.examination_procedure_id,
         formData.pane_diameter,
+        formData.pipe_diameter,
         formData.pressure_start,
         formData.pressure_end,
         formData.pipe_material_id,

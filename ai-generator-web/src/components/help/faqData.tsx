@@ -53,7 +53,7 @@ export function getFaqCategories(language: string): FAQCategory[] {
                 },
                 {
                     question: "Kako izvesti PDF?",
-                    answer: "1. Na stranici gradilišta, pronađite obrazac\n2. Kliknite ikonu 'Izvoz PDF' pokraj obrasca\n3. PDF će se automatski preuzeti\n\nZa više obrazaca:\n1. Odaberite obrasce checkboxovima\n2. Kliknite 'Izvoz odabranih' ili 'Izvoz svih'\n3. PDF bundle će se preuzeti"
+                    answer: "1. Na stranici gradilišta, pronađite obrazac\n2. Kliknite ikonu 'Izvoz PDF' pokraj obrasca\n3. PDF će se automatski preuzeti\n\nZa više obrazaca:\n1. Odaberite obrasce potvrdnim okvirima\n2. Kliknite 'Izvoz odabranih' ili 'Izvoz svih'\n3. PDF paket će se preuzeti"
                 },
                 {
                     question: "Koji podaci se uključuju u Word izvještaj?",

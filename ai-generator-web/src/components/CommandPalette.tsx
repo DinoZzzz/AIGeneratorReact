@@ -73,6 +73,9 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose 
         const searchOnline = async () => {
             const searchTerm = `%${debouncedQuery}%`;
             const searchResults: SearchResult[] = [];
+            const reportLabel = t('exportDetails.report');
+            const waterLabel = t('reports.water');
+            const airLabel = t('reports.air');
 
             const [
                 { data: customers },
@@ -121,8 +124,8 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose 
                 searchResults.push(...reports.map(r => ({
                         id: r.id,
                         type: 'report' as const,
-                        name: r.dionica || `${t('exportDetails.report')} ${r.id.slice(0, 8)}`,
-                        subtext: r.type_id === 1 ? t('reports.water') : t('reports.air'),
+                        name: r.dionica || `${reportLabel} ${r.id.slice(0, 8)}`,
+                        subtext: r.type_id === 1 ? waterLabel : airLabel,
                         path: `/customers/${r.customer_id}/constructions/${r.construction_id}/reports/${r.type_id === 1 ? '' : 'air/'}${r.id}`
                     })));
             }
@@ -133,6 +136,9 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose 
         const searchOffline = async () => {
             const lowerQuery = debouncedQuery.toLowerCase();
             const searchResults: SearchResult[] = [];
+            const reportLabel = t('exportDetails.report');
+            const waterLabel = t('reports.water');
+            const airLabel = t('reports.air');
 
             const [customers, constructions, reports] = await Promise.all([
                 getAllFromStore<Customer>(STORES.CUSTOMERS),
@@ -171,8 +177,8 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose 
             searchResults.push(...matchedReports.map(r => ({
                 id: r.id,
                 type: 'report' as const,
-                name: r.dionica || `${t('exportDetails.report')} ${r.id.slice(0, 8)}`,
-                subtext: r.type_id === 1 ? t('reports.water') : t('reports.air'),
+                name: r.dionica || `${reportLabel} ${r.id.slice(0, 8)}`,
+                subtext: r.type_id === 1 ? waterLabel : airLabel,
                 path: `/customers/${r.customer_id}/constructions/${r.construction_id}/reports/${r.type_id === 1 ? '' : 'air/'}${r.id}`
             })));
 
@@ -350,6 +356,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose 
                         <button
                             onClick={onClose}
                             className="p-1 rounded-md hover:bg-muted transition-colors"
+                            aria-label={t('common.close')}
                         >
                             <X className="h-5 w-5 text-muted-foreground" />
                         </button>

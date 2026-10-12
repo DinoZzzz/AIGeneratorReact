@@ -26,6 +26,15 @@ const testState = vi.hoisted(() => ({
   serverUpdatedAt: {} as Record<string, string>,
 }));
 
+const signupMocks = vi.hoisted(() => ({
+  createClient: vi.fn(),
+  isolatedSignUp: vi.fn(async () => ({ data: { user: { id: 'new-user-id' } }, error: null })),
+  mainSignUp: vi.fn(),
+  invoke: vi.fn(),
+}));
+
+vi.mock('@supabase/supabase-js', () => ({ createClient: signupMocks.createClient }));
+
 const offlineDbMock = vi.hoisted(() => ({
   STORES: {
     CUSTOMERS: 'customers',
@@ -51,6 +60,7 @@ const offlineDbMock = vi.hoisted(() => ({
   getPersistedSyncIdMap: vi.fn(async () => testState.persistedIdMap),
   getPendingSyncOperations: vi.fn(async () => testState.pendingOps),
   getFailedSyncOperations: vi.fn(async () => testState.failedOps),
+  getSyncOperationTargetStore: vi.fn((operation: { store: string }) => operation.store),
   getSyncOperationsByStatus: vi.fn(async (status: string) => {
     if (status === 'discarded') return testState.discardedOps;
     return [];
@@ -150,11 +160,12 @@ vi.mock('../src/lib/offlineDb', () => offlineDbMock);
 vi.mock('../src/lib/supabase', () => ({
   supabase: {
     from: fromMock,
+    functions: { invoke: signupMocks.invoke },
     auth: {
       getSession: vi.fn(async () => ({ data: { session: null }, error: null })),
       setSession: vi.fn(async () => ({ data: { session: null }, error: null })),
       getUser: vi.fn(async () => ({ data: { user: null }, error: null })),
-      signUp: vi.fn(async () => ({ data: { user: { id: 'new-user-id' } }, error: null })),
+      signUp: signupMocks.mainSignUp,
       resetPasswordForEmail: vi.fn(async () => ({ data: {}, error: null })),
     },
     storage: {
@@ -186,6 +197,35 @@ describe('syncService offline flows', () => {
     testState.deleteCalls = [];
     testState.serverUpdatedAt = {};
     vi.clearAllMocks();
+    signupMocks.createClient.mockReturnValue({ auth: { signUp: signupMocks.isolatedSignUp } });
+    signupMocks.invoke.mockResolvedValue({ data: { success: true }, error: null });
+  });
+
+  it('syncs an offline examiner signup without changing the active administrator session', async () => {
+    testState.pendingOps = [{
+      id: 'op-examiner', store: 'examiners', operation: 'create',
+      entityId: 'temp_examiner_1', timestamp: 1, retryCount: 0, status: 'pending',
+      data: {
+        email: 'ana@example.com', name: 'Ana', last_name: 'Test', username: 'ana',
+        password: 'Strong!956', role: 'user', accreditations: [],
+      },
+    }];
+
+    const result = await syncPendingOperations();
+
+    expect(result.success).toBe(1);
+    expect(signupMocks.createClient).toHaveBeenCalledWith(expect.anything(), expect.anything(), {
+      auth: {
+        persistSession: false, autoRefreshToken: false,
+        detectSessionInUrl: false, storageKey: 'examiner-signup',
+      },
+    });
+    expect(signupMocks.isolatedSignUp).toHaveBeenCalledOnce();
+    expect(signupMocks.mainSignUp).not.toHaveBeenCalled();
+    expect(offlineDbMock.persistSyncIdMapping).toHaveBeenCalledWith('temp_examiner_1', 'new-user-id');
+    expect(offlineDbMock.saveToStore).toHaveBeenCalledWith('examiners', expect.objectContaining({
+      id: 'new-user-id', username: 'ana', _synced: true,
+    }));
   });
 
   it('uses persisted temp-id map after restart and compacts queue before sync', async () => {
@@ -218,6 +258,25 @@ describe('syncService offline flows', () => {
       id: 'report_1',
       data: { construction_id: 'construction_1', ordinal: 9 },
     });
+  });
+
+  it.each([true, false])('uses the account endpoint for legacy queued examiner deletion (success=%s)', async (success) => {
+    if (!success) signupMocks.invoke.mockResolvedValueOnce({ data: { code: 'examiner_in_use' }, error: {} });
+    testState.pendingOps = [{
+      id: 'op-examiner-delete', store: 'examiners', operation: 'delete', data: null,
+      entityId: 'examiner-id', timestamp: 1, retryCount: 0, status: 'pending',
+    }];
+
+    const result = await syncPendingOperations();
+
+    expect(signupMocks.invoke).toHaveBeenCalledWith('admin-delete-examiner', { body: { userId: 'examiner-id' } });
+    expect(testState.deleteCalls).not.toContainEqual({ table: 'profiles', id: 'examiner-id' });
+    expect(result.success).toBe(success ? 1 : 0);
+    if (success) expect(offlineDbMock.removeSyncOperation).toHaveBeenCalledWith('op-examiner-delete');
+    else {
+      expect(offlineDbMock.removeSyncOperation).not.toHaveBeenCalled();
+      expect(offlineDbMock.deleteFromStore).not.toHaveBeenCalledWith('examiners', 'examiner-id');
+    }
   });
 
   it('sends the optimistic-concurrency guard with queued updates', async () => {
@@ -438,9 +497,10 @@ describe('syncService offline flows', () => {
     };
 
     expect(result.success).toBe(1);
-    expect(auth.signUp).toHaveBeenCalledTimes(1);
+    expect(signupMocks.isolatedSignUp).toHaveBeenCalledTimes(1);
+    expect(auth.signUp).not.toHaveBeenCalled();
     expect(auth.resetPasswordForEmail).toHaveBeenCalledWith('offline-new@example.com');
-    const signUpArgs = auth.signUp.mock.calls[0][0];
+    const signUpArgs = (signupMocks.isolatedSignUp as ReturnType<typeof vi.fn>).mock.calls[0][0];
     expect(typeof signUpArgs.password).toBe('string');
     expect(signUpArgs.password.length).toBeGreaterThanOrEqual(8);
     expect(offlineDbMock.removeSyncOperation).toHaveBeenCalledWith('op-examiner-create');

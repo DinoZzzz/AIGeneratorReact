@@ -32,7 +32,7 @@ import {
     Search,
 } from 'lucide-react';
 import { cn } from '../lib/utils';
-import { getUnsyncedChangeCount, requiresOfflineSignOutConfirmation } from '../lib/offlineSignOutGuard';
+import { useToast } from '../context/ToastContext';
 import { prefetchCommonRoutes } from '../lib/routePrefetch';
 import { isConflictErrorMessage } from '../lib/offlineConflict';
 import { UserAvatar } from './ui/UserAvatar';
@@ -49,6 +49,7 @@ export const Layout = ({ children }: LayoutProps) => {
     const navigate = useNavigate();
     const location = useLocation();
     const { t } = useLanguage();
+    const { error: showError } = useToast();
     const {
         isOnline,
         pendingChanges,
@@ -80,23 +81,18 @@ export const Layout = ({ children }: LayoutProps) => {
     }, []);
 
     const handleSignOut = async () => {
-        const unsyncedCount = getUnsyncedChangeCount(pendingChanges, discardedChanges);
-        if (requiresOfflineSignOutConfirmation(pendingChanges, discardedChanges)) {
-            const hasConfirmedSignOut = await confirm({
+        try {
+            const signedOut = await signOut((unsyncedCount) => confirm({
                 title: t('signOut.offlineTitle'),
                 description: t('signOut.offlineDescription').replace('{count}', String(unsyncedCount)),
                 confirmLabel: t('nav.signOut'),
                 cancelLabel: t('common.cancel'),
                 variant: 'destructive',
-            });
-
-            if (!hasConfirmedSignOut) {
-                return;
-            }
+            }));
+            if (signedOut) navigate('/login');
+        } catch {
+            showError(t('signOut.failed'));
         }
-
-        await signOut();
-        navigate('/login');
     };
 
     const isAdmin = profile?.role === 'admin';

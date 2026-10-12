@@ -1,6 +1,8 @@
 import { useOffline } from '../context/OfflineContext';
 import { useQuery } from '@tanstack/react-query';
 import type { UseQueryOptions } from '@tanstack/react-query';
+import { isNetworkError } from './errorHandler';
+import { assertOfflineSessionCurrent, getOfflineSessionGeneration } from './offlineSessionLifecycle';
 
 /**
  * Creates a queryFn that fetches online with offline fallback.
@@ -9,16 +11,24 @@ import type { UseQueryOptions } from '@tanstack/react-query';
 export function createOfflineQueryFn<T>(
   onlineFn: () => Promise<T>,
   offlineFn: () => Promise<T>,
-  cacheFn?: (data: T) => Promise<void>,
+  cacheFn?: (data: T) => Promise<T | void>,
 ) {
   return async (isOnline: boolean): Promise<T> => {
+    const generation = getOfflineSessionGeneration();
+    assertOfflineSessionCurrent(generation);
     if (isOnline) {
       try {
         const data = await onlineFn();
-        if (cacheFn && data) await cacheFn(data);
+        assertOfflineSessionCurrent(generation);
+        if (cacheFn && data) {
+          const cachedData = await cacheFn(data);
+          if (cachedData !== undefined) return cachedData;
+        }
         return data;
-      } catch {
-        return offlineFn();
+      } catch (error) {
+        assertOfflineSessionCurrent(generation);
+        if (isNetworkError(error)) return offlineFn();
+        throw error;
       }
     }
     return offlineFn();
@@ -34,7 +44,7 @@ export function useOnlineQuery<T>(
   onlineFn: () => Promise<T>,
   offlineFn: () => Promise<T>,
   options?: {
-    cacheFn?: (data: T) => Promise<void>;
+    cacheFn?: (data: T) => Promise<T | void>;
     staleTime?: number;
     enabled?: boolean;
     placeholderData?: UseQueryOptions<T>['placeholderData'];
@@ -45,6 +55,8 @@ export function useOnlineQuery<T>(
 
   return useQuery<T>({
     queryKey,
+    // The queryFn owns the network check and can complete from IndexedDB.
+    networkMode: 'always',
     queryFn: () => queryFn(isOnline),
     staleTime: isOnline ? (options?.staleTime ?? 3 * 60 * 1000) : Infinity,
     enabled: options?.enabled,

@@ -16,7 +16,7 @@ import {
     deleteFromStore,
     getAllFromStore,
     removeSyncOperationsForEntity,
-    saveManyToStore,
+    cacheRemoteRows,
     saveToStore
 } from '../lib/offlineDb';
 
@@ -107,14 +107,15 @@ export const Chat = () => {
         }
 
         const channel = messageService.subscribeToMessages((message) => {
-            // Avoid duplicates - check if message already exists
-            setMessages(prev => {
-                const exists = prev.some(m => m.id === message.id);
-                if (exists) return prev;
-                return [...prev, message];
-            });
-            void saveToStore(STORES.MESSAGES, message);
-            setTimeout(scrollToBottom, 100);
+            void cacheRemoteRows(STORES.MESSAGES, [message]).then(([cachedMessage]) => {
+                if (!cachedMessage) return;
+                setMessages(prev => {
+                    const exists = prev.some(m => m.id === cachedMessage.id);
+                    if (exists) return prev;
+                    return [...prev, cachedMessage];
+                });
+                setTimeout(scrollToBottom, 100);
+            }).catch((error) => errorHandler.handle(error, 'Chat'));
         });
 
         return () => {
@@ -132,8 +133,7 @@ export const Chat = () => {
         try {
             if (isOnline) {
                 const data = await messageService.getMessages(200);
-                await saveManyToStore(STORES.MESSAGES, data);
-                setMessages(data);
+                setMessages(await cacheRemoteRows(STORES.MESSAGES, data));
                 return;
             }
 

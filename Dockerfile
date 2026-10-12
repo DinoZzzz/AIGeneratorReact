@@ -1,5 +1,5 @@
-# Build stage - using specific node version to bust Railway cache
-FROM public.ecr.aws/docker/library/node:20.18-alpine AS builder
+# Vite 7 requires Node >= 22.12 (or >= 20.19).
+FROM public.ecr.aws/docker/library/node:22-alpine AS builder
 
 WORKDIR /app
 
@@ -44,7 +44,7 @@ RUN npm ci
 COPY ai-generator-web/ ./
 
 # Build the app (will now have access to VITE_* env vars)
-RUN npm run build
+RUN npm run build:check
 
 # Create Sentry release using package.json version (no git required)
 RUN if [ -n "$SENTRY_AUTH_TOKEN" ]; then \

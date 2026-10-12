@@ -15,7 +15,7 @@ import {
     getAllFromStore,
     getFromStore,
     removeSyncOperationsForEntity,
-    saveManyToStore,
+    cacheRemoteRows,
     saveToStore
 } from '../../lib/offlineDb';
 
@@ -50,8 +50,7 @@ export const MaterialsManager = ({ isAdmin }: MaterialsManagerProps) => {
 
                     if (error) throw error;
                     const fetchedMaterials = (data || []) as Material[];
-                    setMaterials(fetchedMaterials);
-                    await saveManyToStore(STORES.MATERIALS, fetchedMaterials);
+                    setMaterials(await cacheRemoteRows(STORES.MATERIALS, fetchedMaterials));
                     return;
                 } catch (error) {
                     if (!isNetworkError(error)) throw error;

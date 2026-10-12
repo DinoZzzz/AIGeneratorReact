@@ -238,4 +238,15 @@ describe('formatTime', () => {
     it('handles zero', () => {
         expect(formatTime(0)).toBe('00:00');
     });
+
+    it('preserves seconds from LD and halved shaft test durations', () => {
+        expect(formatTime(1.5)).toBe('00:01:30');
+        expect(formatTime(2.5)).toBe('00:02:30');
+        expect(formatTime(0.75)).toBe('00:00:45');
+    });
+
+    it('normalizes times around an hour instead of displaying 60 minutes', () => {
+        expect(formatTime(59.5)).toBe('00:59:30');
+        expect(formatTime(59.999)).toBe('01:00');
+    });
 });
