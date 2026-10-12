@@ -2,13 +2,15 @@ import React, { createContext, useCallback, useContext, useEffect, useMemo, useR
 import { supabase } from '../lib/supabase';
 import type { Profile } from '../types';
 import { setUserContext, clearUserContext } from '../lib/sentry';
-import { saveMetadata } from '../lib/offlineDb';
+import { getSyncQueueSummary, saveMetadata } from '../lib/offlineDb';
 import { clearOfflineSessionData } from '../lib/offlineSessionData';
 import { queryClient } from '../lib/queryClient';
 import { prewarmLookupCache } from '../lib/offlineLookupCache';
 import { pullRemoteChanges } from '../lib/syncService';
 import { syncPushSubscriptionIfEnabled } from '../lib/notificationService';
 import { registerSession, updateLastActive, revokeCurrentSession } from '../services/sessionService';
+import { signOutWithOfflineProtection } from '../lib/offlineSignOutGuard';
+import { assertOfflineSessionCurrent, getOfflineSessionGeneration, isOfflineSessionCurrent, resumeOfflineSession, withOfflineSyncLock } from '../lib/offlineSessionLifecycle';
 
 type Session = Awaited<ReturnType<typeof supabase.auth.getSession>>['data']['session'];
 type User = NonNullable<Session>['user'];
@@ -19,7 +21,7 @@ interface AuthContextType {
     user: User | null;
     profile: Profile | null;
     loading: boolean;
-    signOut: () => Promise<void>;
+    signOut: (confirmDiscard?: (count: number) => Promise<boolean>) => Promise<boolean>;
     refreshProfile: () => Promise<void>;
     lowBandwidthMode: boolean;
     setLowBandwidthMode: (mode: boolean) => void;
@@ -30,7 +32,7 @@ const AuthContext = createContext<AuthContextType>({
     user: null,
     profile: null,
     loading: true,
-    signOut: async () => { },
+    signOut: async () => false,
     refreshProfile: async () => { },
     lowBandwidthMode: false,
     setLowBandwidthMode: () => { },
@@ -40,6 +42,7 @@ const AuthContext = createContext<AuthContextType>({
 export const useAuth = () => useContext(AuthContext);
 
 const persistSyncSession = async (sessionValue: Session) => {
+    if (!isOfflineSessionCurrent(getOfflineSessionGeneration())) return;
     if (!sessionValue?.access_token || !sessionValue.refresh_token) {
         await saveMetadata(SYNC_SESSION_METADATA_KEY, null);
         return;
@@ -48,6 +51,7 @@ const persistSyncSession = async (sessionValue: Session) => {
     await saveMetadata(SYNC_SESSION_METADATA_KEY, {
         access_token: sessionValue.access_token,
         refresh_token: sessionValue.refresh_token,
+        user_id: sessionValue.user.id,
         expires_at: sessionValue.expires_at
     });
 };
@@ -62,6 +66,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     });
     const warmedLookupUserRef = useRef<string | null>(null);
     const currentUserIdRef = useRef<string | null>(null);
+    const signingOutRef = useRef(false);
 
     useEffect(() => {
         localStorage.setItem('lowBandwidthMode', String(lowBandwidthMode));
@@ -93,30 +98,24 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         let active = true;
         let sessionEventReceived = false;
 
-        // Get initial session
-        supabase.auth.getSession().then(({ data: { session } }) => {
-            if (!active || sessionEventReceived) return;
-            currentUserIdRef.current = session?.user.id ?? null;
-            setSession(session);
-            setUser(session?.user ?? null);
-            void persistSyncSession(session);
-            if (session?.user) {
-                void loadProfile(session.user.id);
-            }
-            setLoading(false);
-        }).catch((error) => {
-            if (!active || sessionEventReceived) return;
-            console.error('Error loading session:', error);
-            setLoading(false);
-        });
-
-        // Listen for changes
-        const {
-            data: { subscription },
-        } = supabase.auth.onAuthStateChange((_event, session) => {
+        const applySession = (_event: string, session: Session) => {
             if (!active) return;
             sessionEventReceived = true;
             const nextUserId = session?.user.id ?? null;
+            if (nextUserId && !isOfflineSessionCurrent(getOfflineSessionGeneration())) {
+                if (signingOutRef.current) return;
+                // A refresh/initial event in another tab must not lift an
+                // in-progress sign-out barrier. Recheck after its lock ends.
+                queueMicrotask(() => {
+                    void withOfflineSyncLock(async () => {
+                        const { data: { session: latest } } = await supabase.auth.getSession();
+                        if (!active || !latest || latest.user.id !== nextUserId) return;
+                        resumeOfflineSession();
+                        applySession(_event, latest);
+                    }).catch((error) => console.error('Could not resume account data:', error));
+                });
+                return;
+            }
             if (currentUserIdRef.current !== nextUserId) {
                 if (currentUserIdRef.current !== null) queryClient.clear();
                 setProfile(null);
@@ -124,7 +123,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             currentUserIdRef.current = nextUserId;
             setSession(session);
             setUser(session?.user ?? null);
-            void persistSyncSession(session);
+            void persistSyncSession(session).catch((error) => console.error('Could not persist sync session:', error));
             if (session?.user) {
                 void loadProfile(session.user.id);
                 // Set Sentry user context for error tracking
@@ -144,7 +143,20 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                 clearUserContext();
             }
             setLoading(false);
+        };
+
+        supabase.auth.getSession().then(({ data: { session } }) => {
+            if (!active || sessionEventReceived) return;
+            applySession('INITIAL_SESSION', session);
+        }).catch((error) => {
+            if (!active || sessionEventReceived) return;
+            console.error('Error loading session:', error);
+            setLoading(false);
         });
+
+        // Keep the auth callback synchronous: Supabase invokes it under its
+        // own auth lock, so any deferred lock work must not be awaited here.
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(applySession);
 
         return () => {
             active = false;
@@ -155,6 +167,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     useEffect(() => {
         const warmLookups = async () => {
+            const generation = getOfflineSessionGeneration();
             if (!user || lowBandwidthMode || !navigator.onLine) {
                 return;
             }
@@ -163,12 +176,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             }
             warmedLookupUserRef.current = user.id;
             await prewarmLookupCache();
+            assertOfflineSessionCurrent(generation);
             // Replicate server data into IndexedDB right after login so the
             // app works offline even for pages the user hasn't visited yet.
             await pullRemoteChanges();
         };
 
-        void warmLookups();
+        void warmLookups().catch(() => {});
     }, [lowBandwidthMode, user]);
 
     // Ask the browser to protect IndexedDB + caches from storage-pressure
@@ -209,7 +223,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         const handleOnline = () => {
             if (user && !lowBandwidthMode) {
                 warmedLookupUserRef.current = null;
-                void prewarmLookupCache();
+                void prewarmLookupCache().catch(() => {});
             }
         };
 
@@ -217,24 +231,36 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         return () => window.removeEventListener('online', handleOnline);
     }, [lowBandwidthMode, user]);
 
-    const signOut = useCallback(async () => {
+    const signOut = useCallback(async (confirmDiscard?: (count: number) => Promise<boolean>) => {
+        if (signingOutRef.current) return false;
+        signingOutRef.current = true;
         try {
-            // Remove current device session before signing out
-            if (user?.id) {
-                await revokeCurrentSession(user.id).catch(() => {});
-            }
-            await supabase.auth.signOut();
-        } finally {
+            const signedOut = await signOutWithOfflineProtection({
+                readPendingCount: async () => {
+                    const summary = await getSyncQueueSummary();
+                    return summary.pending + summary.failed + summary.inProgress + summary.discarded;
+                },
+                confirmDiscard,
+                cancelQueries: () => queryClient.cancelQueries(),
+                signOut: async () => {
+                    // The user has confirmed queue disposal at this point.
+                    if (user?.id) await revokeCurrentSession(user.id).catch(() => {});
+                    return supabase.auth.signOut();
+                },
+                clearData: clearOfflineSessionData,
+            });
+            if (!signedOut) return false;
             queryClient.clear();
             warmedLookupUserRef.current = null;
             setProfile(null);
+            setSession(null);
+            setUser(null);
+            currentUserIdRef.current = null;
             // Clear Sentry user context
             clearUserContext();
-            try {
-                await clearOfflineSessionData();
-            } catch (error) {
-                console.error('Failed to clear offline cache during sign out:', error);
-            }
+            return true;
+        } finally {
+            signingOutRef.current = false;
         }
     }, [user?.id]);
 

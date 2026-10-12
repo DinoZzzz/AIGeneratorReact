@@ -13,6 +13,7 @@ import { errorHandler } from '../lib/errorHandler';
 import { getLookupWithOfflineFallback } from '../lib/offlineLookupCache';
 import { useReportFormShell, sanitizeForDb, generateReportPDF } from '../features/reports/hooks';
 import { ReportFormBanners } from '../features/reports/components';
+import { withCurrentReportLookups } from '../features/reports/utils/currentReportLookups';
 
 const AIR_COPY_STRUCTURE_FIELDS = [
     'draft_id', 'material_type_id', 'pane_material_id', 'pane_diameter', 'pane_width',
@@ -344,7 +345,7 @@ export const AirMethodForm = () => {
     const handleExportPDF = async () => {
         try {
             await generateReportPDF({
-                ...formData,
+                ...withCurrentReportLookups(formData, materials, procedures),
                 satisfies: calculated.satisfies,
                 allowed_loss: calculated.allowedLoss,
                 pressure_loss: calculated.pressureLoss,

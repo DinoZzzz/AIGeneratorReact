@@ -14,6 +14,7 @@ export function getVersionHistory(language: string): VersionHistoryItem[] {
                 'Ispravljeni izračuni i PDF/Word izvoz te popunjavanje i spremanje obrazaca bez prepisivanja unosa',
                 'Ispravljeno lokalno vrijeme termina u kalendaru i očuvanje unosa pri promjeni mrežne veze',
                 'Pouzdanija prijava, upravljanje ispitivačima i čišćenje podataka pri odjavi',
+                'Poboljšana čitljivost gumba u temama i siguran povratak na zadanu temu ako su postavke oštećene',
                 'Ažurirane ranjive ovisnosti, poboljšane provjere tipova i prošireni automatski testovi',
             ]
         },
@@ -625,6 +626,7 @@ export function getVersionHistory(language: string): VersionHistoryItem[] {
                 'Fixed calculations, PDF/Word exports and form initialization and saving without overwriting entered values',
                 'Fixed local calendar appointment times and preserved edits when network connectivity changes',
                 'Improved sign-in, examiner management and account data cleanup on sign-out',
+                'Improved button contrast across themes and safe fallback when saved theme preferences are invalid',
                 'Updated vulnerable dependencies, corrected type checking and expanded automated tests',
             ]
         },

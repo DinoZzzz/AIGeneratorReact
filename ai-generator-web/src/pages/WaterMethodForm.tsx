@@ -11,6 +11,7 @@ import { errorHandler } from '../lib/errorHandler';
 import { getLookupWithOfflineFallback } from '../lib/offlineLookupCache';
 import { useReportFormShell, sanitizeForDb, generateReportPDF } from '../features/reports/hooks';
 import { ReportFormBanners } from '../features/reports/components';
+import { withCurrentReportLookups } from '../features/reports/utils/currentReportLookups';
 import { resolveWaterDeviation } from '../features/water/calculations/waterDeviations';
 
 const WATER_COPY_STRUCTURE_FIELDS = [
@@ -306,7 +307,7 @@ export const WaterMethodForm = () => {
     const handleExportPDF = async () => {
         try {
             await generateReportPDF({
-                ...formData,
+                ...withCurrentReportLookups(formData, materials),
                 satisfies: calculated.satisfies,
                 deviation: resolveWaterDeviation(formData),
             }, profile || undefined, constructionId);

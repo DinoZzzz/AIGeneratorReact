@@ -2,6 +2,7 @@
  * IndexedDB-based offline storage for the application
  * Stores data locally and tracks pending changes for sync
  */
+import { assertOfflineSessionCurrent, getOfflineSessionGeneration } from './offlineSessionLifecycle';
 
 const DB_NAME = 'ai-generator-offline';
 const DB_VERSION = 5;
@@ -309,7 +310,9 @@ export const getByIndex = async <T>(
  * Save an item to a store
  */
 export const saveToStore = async <T>(storeName: StoreName, item: T): Promise<void> => {
+  const generation = getOfflineSessionGeneration();
   const db = await openDatabase();
+  assertOfflineSessionCurrent(generation);
   return new Promise((resolve, reject) => {
     const transaction = db.transaction(storeName, 'readwrite');
     const store = transaction.objectStore(storeName);
@@ -327,7 +330,9 @@ export const saveToStore = async <T>(storeName: StoreName, item: T): Promise<voi
  * Save multiple items to a store
  */
 export const saveManyToStore = async <T>(storeName: StoreName, items: T[]): Promise<void> => {
+  const generation = getOfflineSessionGeneration();
   const db = await openDatabase();
+  assertOfflineSessionCurrent(generation);
   return new Promise((resolve, reject) => {
     const transaction = db.transaction(storeName, 'readwrite');
     const store = transaction.objectStore(storeName);
@@ -354,7 +359,9 @@ export const cacheRemoteRows = async <T extends { id: string | number }>(
   storeName: StoreName,
   rows: T[]
 ): Promise<T[]> => {
+  const generation = getOfflineSessionGeneration();
   const db = await openDatabase();
+  assertOfflineSessionCurrent(generation);
   return new Promise((resolve, reject) => {
     const transaction = db.transaction([storeName, STORES.SYNC_QUEUE, STORES.METADATA], 'readwrite');
     const store = transaction.objectStore(storeName);
@@ -413,7 +420,9 @@ export const cacheRemoteRow = async <T extends { id: string | number }>(
  * Delete an item from a store
  */
 export const deleteFromStore = async (storeName: StoreName, id: IDBValidKey): Promise<void> => {
+  const generation = getOfflineSessionGeneration();
   const db = await openDatabase();
+  assertOfflineSessionCurrent(generation);
   return new Promise((resolve, reject) => {
     const transaction = db.transaction(storeName, 'readwrite');
     const store = transaction.objectStore(storeName);

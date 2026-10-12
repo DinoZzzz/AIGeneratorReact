@@ -5,6 +5,8 @@
 
 import { supabase } from './supabase';
 import { createClient } from '@supabase/supabase-js';
+import { assertOfflineSessionCurrent, getOfflineSessionGeneration, isOfflineSessionCurrent, sessionGuardedFetch } from './offlineSessionLifecycle';
+import { deleteExaminerAccount } from '../services/examinerAccountService';
 import {
   compactPendingSyncOperations,
   getPersistedSyncIdMap,
@@ -589,8 +591,11 @@ const syncQueuedExportHistory = async (
 };
 
 const rehydrateSupabaseSession = async (): Promise<void> => {
+  const generation = getOfflineSessionGeneration();
   try {
+    assertOfflineSessionCurrent(generation);
     const savedSession = await getMetadata<PersistedSessionTokens | null>(SUPABASE_SESSION_METADATA_KEY);
+    assertOfflineSessionCurrent(generation);
     if (!savedSession || typeof savedSession !== 'object') {
       return;
     }
@@ -1280,6 +1285,12 @@ const processSyncOperation = async (
         const mappedEntityId = mapEntityId(operation.entityId, idMap);
         if (!mappedEntityId) throw new Error('Entity ID required for delete');
 
+        if (operation.store === STORES.EXAMINERS) {
+          await deleteExaminerAccount(mappedEntityId);
+          await deleteFromStore(STORES.EXAMINERS, mappedEntityId);
+          break;
+        }
+
         if (operation.store === STORES.CONSTRUCTIONS) {
           await deleteConstructionWithDependencies(mappedEntityId);
           break;
@@ -1343,7 +1354,7 @@ const syncPendingOperationsUnlocked = async (): Promise<{
   failed: number;
   total: number;
 }> => {
-  if (syncInProgress) {
+  if (syncInProgress || !isOfflineSessionCurrent(getOfflineSessionGeneration())) {
     return { success: 0, failed: 0, total: 0 };
   }
 
@@ -1825,6 +1836,8 @@ const getLocallyModifiedKeys = async (): Promise<Set<string>> => {
 };
 
 const pullStoreChanges = async (store: StoreName, protectedKeys: Set<string>): Promise<number> => {
+  const generation = getOfflineSessionGeneration();
+  assertOfflineSessionCurrent(generation);
   const table = storeToTable[store];
   const cursorKey = `${PULL_CURSOR_PREFIX}${table}`;
   let cursor = await getMetadata<PullCursor>(cursorKey);
@@ -1848,6 +1861,7 @@ const pullStoreChanges = async (store: StoreName, protectedKeys: Set<string>): P
     }
 
     const { data, error } = await query;
+    assertOfflineSessionCurrent(generation);
     if (error) throw error;
 
     const rows = (data ?? []) as Array<Record<string, unknown>>;
@@ -1947,6 +1961,8 @@ let lastPullStartedAt = 0;
  */
 export const pullRemoteChanges = async (options: { force?: boolean } = {}): Promise<PullResult> => {
   const skipped: PullResult = { applied: 0, deleted: 0, errors: 0, skipped: true };
+  const generation = getOfflineSessionGeneration();
+  if (!isOfflineSessionCurrent(generation)) return skipped;
 
   if (typeof navigator !== 'undefined' && navigator.onLine === false) return skipped;
   if (!options.force && Date.now() - lastPullStartedAt < MIN_PULL_INTERVAL_MS) return skipped;
@@ -1956,6 +1972,7 @@ export const pullRemoteChanges = async (options: { force?: boolean } = {}): Prom
     lastPullStartedAt = Date.now();
 
     await rehydrateSupabaseSession();
+    assertOfflineSessionCurrent(generation);
 
     // Never pull unauthenticated: RLS would return empty result sets, which
     // are indistinguishable from "nothing changed".
@@ -2093,6 +2110,8 @@ const FILE_DOWNLOAD_CONCURRENCY = 4;
 export const downloadForOffline = async (
   options: { constructionId?: string } = {}
 ): Promise<OfflineDownloadResult> => {
+  const generation = getOfflineSessionGeneration();
+  assertOfflineSessionCurrent(generation);
   emitSyncEvent({ type: 'download_progress', phase: 'records', completed: 0, total: 1 });
 
   const pullResult = await pullRemoteChanges({ force: true });
@@ -2107,9 +2126,10 @@ export const downloadForOffline = async (
     const batch = files.slice(i, i + FILE_DOWNLOAD_CONCURRENCY);
     await Promise.all(batch.map(async (file) => {
       try {
-        const response = await fetch(file.url);
+        const response = await sessionGuardedFetch(file.url);
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const blob = await response.blob();
+        assertOfflineSessionCurrent(generation);
         await saveToStore(STORES.FILE_BLOBS, {
           id: file.id,
           url: file.url,

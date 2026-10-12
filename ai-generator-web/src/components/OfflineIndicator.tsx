@@ -5,6 +5,7 @@ import { useLanguage } from '../context/LanguageContext';
 import { useConfirm } from '../context/useConfirm';
 import type { StoreName } from '../lib/offlineDb';
 import { isConflictErrorMessage } from '../lib/offlineConflict';
+import { getExaminerDeleteErrorKey } from '../services/examinerAccountService';
 
 const translations = {
   hr: {
@@ -101,7 +102,7 @@ export const OfflineIndicator = () => {
     lastSyncTime
   } = useOffline();
   const confirm = useConfirm();
-  const { language } = useLanguage();
+  const { language, t: translate } = useLanguage();
   const t = translations[language as keyof typeof translations] || translations.en;
 
   const [showDetails, setShowDetails] = useState(false);
@@ -315,7 +316,7 @@ export const OfflineIndicator = () => {
                       {getStoreLabel(operation.store)} - {getOperationLabel(operation.operation)}
                     </p>
                     <p className="text-xs text-muted-foreground mt-1 line-clamp-2 break-all">
-                      {operation.error || t.unknownError}
+                      {getExaminerDeleteErrorKey(operation.error) ? translate(getExaminerDeleteErrorKey(operation.error)!) : operation.error || t.unknownError}
                     </p>
                     <div className="mt-2 flex items-center gap-2">
                       <button
@@ -371,7 +372,7 @@ export const OfflineIndicator = () => {
                       {getStoreLabel(operation.store)} - {getOperationLabel(operation.operation)}
                     </p>
                     <p className="text-xs text-muted-foreground mt-1 line-clamp-2 break-all">
-                      {operation.error || t.localOnlyChanges}
+                      {getExaminerDeleteErrorKey(operation.error) ? translate(getExaminerDeleteErrorKey(operation.error)!) : operation.error || t.localOnlyChanges}
                     </p>
                     <div className="mt-2 flex items-center gap-2">
                       <button

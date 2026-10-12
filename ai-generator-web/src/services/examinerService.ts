@@ -4,6 +4,7 @@ import { captureError } from '../lib/sentry';
 import type { Profile, ReportType } from '../types';
 import { createWeakPasswordError, isWeakPasswordAuthError, validatePasswordStrength } from '../lib/passwordValidation';
 import { getLookupWithOfflineFallback } from '../lib/offlineLookupCache';
+import { deleteExaminerAccount } from './examinerAccountService';
 
 interface ProfileFromDB {
     id: string;
@@ -243,21 +244,7 @@ export const examinerService = {
     },
 
     async deleteExaminer(id: string): Promise<void> {
-        // Deleting a profile does not delete the Auth User.
-        // This usually requires admin privileges or Edge Function to delete from auth.users.
-        // For now, we just delete the profile row (which cascades from auth.users usually, but here we do reverse?)
-        // Actually, deleting from 'profiles' won't delete 'auth.users'.
-        // We'll just delete the profile data for now.
-
-        const { error } = await supabase
-            .from('profiles')
-            .delete()
-            .eq('id', id);
-
-        if (error) {
-            captureError(error, { service: 'examinerService', method: 'deleteExaminer', id });
-            throw error;
-        }
+        await deleteExaminerAccount(id);
     },
 
     async uploadAvatar(file: File, userId: string): Promise<string> {

@@ -10,6 +10,7 @@
 
     --color-primary: hsl(var(--primary));
     --color-primary-foreground: hsl(var(--primary-foreground));
+    --primary-text-primary: hsl(var(--primary-text));
 
     --color-secondary: hsl(var(--secondary));
     --color-secondary-foreground: hsl(var(--secondary-foreground));
@@ -57,6 +58,14 @@
     }
 }
 
+/* Accent text needs a different shade than filled controls. Only the primary
+   color resolves this namespace; other text utilities remain unchanged.
+   Override Tailwind's built-in color rule, including its opacity variants. */
+@utility text-* {
+    color: --value(--primary-text-*) !important;
+    color: color-mix(in srgb, --value(--primary-text-*) calc(--modifier(integer) * 1%), transparent) !important;
+}
+
 @layer base {
     :root {
         /* Professional Theme - Deep Blue & Slate */
@@ -71,6 +80,7 @@
 
         --primary: 221 83% 53%;
         --primary-foreground: 210 40% 98%;
+        --primary-text: 221 83% 38%;
 
         --secondary: 210 40% 96.1%;
         --secondary-foreground: 222 47% 11%;
@@ -104,6 +114,7 @@
 
         --primary: 217 91% 60%;
         --primary-foreground: 210 40% 98%;
+        --primary-text: 221 83% 78%;
 
         --secondary: 220 17% 24%;
         --secondary-foreground: 210 40% 98%;

@@ -8,6 +8,8 @@ import { examinerService } from '../services/examinerService';
 import type { Profile, ReportType } from '../types';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
+import { useToast } from '../context/ToastContext';
+import { getExaminerDeleteErrorKey } from '../services/examinerAccountService';
 import { useOffline } from '../context/OfflineContext';
 import { isNetworkError } from '../lib/errorHandler';
 import {
@@ -24,6 +26,8 @@ import {
 export const Examiners = () => {
     const { profile } = useAuth();
     const { t } = useLanguage();
+    const toast = useToast();
+    const [deleting, setDeleting] = useState(false);
     const { isOnline, triggerSync } = useOffline();
     const [examiners, setExaminers] = useState<Profile[]>([]);
     const [reportTypes, setReportTypes] = useState<ReportType[]>([]);
@@ -154,14 +158,6 @@ export const Examiners = () => {
         await addToSyncQueue(STORES.EXAMINERS, 'update', cleanUpdates, id);
     };
 
-    const deleteExaminerOffline = async (id: string): Promise<void> => {
-        await deleteFromStore(STORES.EXAMINERS, id);
-        if (id.startsWith('temp_')) {
-            await removeSyncOperationsForEntity(STORES.EXAMINERS, id);
-            return;
-        }
-        await addToSyncQueue(STORES.EXAMINERS, 'delete', null, id);
-    };
 
     const handleSave = async (examinerData: Partial<Profile> & { password?: string }) => {
         if (isOnline) {
@@ -196,23 +192,26 @@ export const Examiners = () => {
     };
 
     const handleDeleteConfirm = async () => {
-        if (examinerToDelete) {
-            if (isOnline) {
-                try {
-                    await examinerService.deleteExaminer(examinerToDelete.id);
-                    await deleteFromStore(STORES.EXAMINERS, examinerToDelete.id);
-                } catch (error) {
-                    if (!isNetworkError(error)) throw error;
-                    await deleteExaminerOffline(examinerToDelete.id);
-                }
+        if (!examinerToDelete || deleting) return;
+        if (!isOnline && !examinerToDelete.id.startsWith('temp_')) {
+            toast.error(t('examiners.deleteOnlineRequired'));
+            return;
+        }
+        setDeleting(true);
+        try {
+            if (examinerToDelete.id.startsWith('temp_')) {
+                await removeSyncOperationsForEntity(STORES.EXAMINERS, examinerToDelete.id);
             } else {
-                await deleteExaminerOffline(examinerToDelete.id);
+                await examinerService.deleteExaminer(examinerToDelete.id);
             }
+            await deleteFromStore(STORES.EXAMINERS, examinerToDelete.id);
             await loadData();
+            setDeleteDialogOpen(false);
             setExaminerToDelete(null);
-            if (isOnline) {
-                await triggerSync();
-            }
+        } catch (error) {
+            toast.error(t(getExaminerDeleteErrorKey(error) ?? 'examiners.deleteFailed'));
+        } finally {
+            setDeleting(false);
         }
     };
 
@@ -524,7 +523,8 @@ export const Examiners = () => {
             {examinerToDelete && (
                 <ConfirmDialog
                     open={deleteDialogOpen}
-                    onConfirm={() => { handleDeleteConfirm(); setDeleteDialogOpen(false); }}
+                    onConfirm={() => { void handleDeleteConfirm(); }}
+                    loading={deleting}
                     onCancel={() => setDeleteDialogOpen(false)}
                     title={t('examiners.deleteDialogTitle')}
                     description={t('examiners.deleteDialogMessage')}

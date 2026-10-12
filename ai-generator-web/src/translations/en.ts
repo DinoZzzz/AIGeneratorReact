@@ -255,6 +255,12 @@ export const en: Record<string, string> = {
     'examiners.deleteDialogTitle': 'Confirm Deletion',
     'examiners.deleteDialogMessage': 'Are you sure you want to delete this examiner?',
     'examiners.deleteWarning': 'This action cannot be undone.',
+    'examiners.deleteInUse': 'This examiner is linked to reports or appointments. The account was kept to preserve its history.',
+    'examiners.deleteSelf': 'You cannot delete your own signed-in account.',
+    'examiners.deleteForbidden': 'Only an administrator can delete an examiner account.',
+    'examiners.deleteUnavailable': 'The account deletion service is currently unavailable. Try again or contact an administrator.',
+    'examiners.deleteFailed': 'Account deletion failed. The examiner data has not been deleted.',
+    'examiners.deleteOnlineRequired': 'An internet connection is required to delete an examiner account.',
     'examiners.edit': 'Edit examiner',
     'examiners.delete': 'Delete examiner',
 
@@ -523,10 +529,6 @@ export const en: Record<string, string> = {
     'constructions.archivedBadge': 'ARCHIVED',
     'constructions.customerNotFound': 'Customer not found',
     'constructions.goBack': 'Go back to constructions',
-    'constructions.workOrderExists': 'Work order already exists',
-    'constructions.nameRequired': 'Name is required',
-    'constructions.workOrderRequired': 'Work order is required',
-    'constructions.locationRequired': 'Location is required',
 
     // Export
     'export.includePdfs': 'Include PDFs of reports at the end of document',
@@ -888,7 +890,6 @@ export const en: Record<string, string> = {
 
     // Batch Operations
     'reports.selectAll': 'Select all',
-    'reports.selectReport': 'Select report',
     'reports.deselectAll': 'Deselect all',
     'reports.bulkExportPdf': 'Export PDF',
     'reports.bulkDelete': 'Delete selected',
@@ -914,6 +915,7 @@ export const en: Record<string, string> = {
 
     // Sign out confirmation
     'signOut.offlineTitle': 'Sign out will remove unsynced offline changes',
+    'signOut.failed': 'Sign out could not be completed. Check your connection and try again.',
     'signOut.offlineDescription': 'You have {count} unsynced/local changes. If you sign out now, those changes will be lost.',
 
     // Offline / Sync

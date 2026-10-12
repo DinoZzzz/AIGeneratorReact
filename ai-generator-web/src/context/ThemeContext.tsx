@@ -6,19 +6,21 @@ export type PrimaryColor = {
   name: string;
   value: string; // HSL value
   foreground: string; // HSL value for text on primary color
+  textLight: string; // Accessible accent text on light surfaces
+  textDark: string; // Accessible accent text on dark surfaces
   class: string; // Tailwind class for preview
 };
 
 // eslint-disable-next-line react-refresh/only-export-components
 export const primaryColors: PrimaryColor[] = [
-  { name: 'Blue', value: '221 83% 53%', foreground: '210 40% 98%', class: 'bg-blue-600' },
-  { name: 'Green', value: '142 71% 45%', foreground: '210 40% 98%', class: 'bg-green-600' },
-  { name: 'Red', value: '0 84% 60%', foreground: '210 40% 98%', class: 'bg-red-600' },
-  { name: 'Orange', value: '24 95% 53%', foreground: '210 40% 98%', class: 'bg-orange-600' },
-  { name: 'Purple', value: '262 83% 58%', foreground: '210 40% 98%', class: 'bg-purple-600' },
-  { name: 'Pink', value: '330 81% 60%', foreground: '210 40% 98%', class: 'bg-pink-600' },
-  { name: 'Yellow', value: '47 95% 58%', foreground: '222 47% 11%', class: 'bg-yellow-500' },
-  { name: 'Cyan', value: '189 94% 43%', foreground: '210 40% 98%', class: 'bg-cyan-600' },
+  { name: 'Blue', value: '221 83% 50%', foreground: '210 40% 98%', textLight: '221 83% 38%', textDark: '221 83% 78%', class: 'bg-blue-600' },
+  { name: 'Green', value: '142 71% 45%', foreground: '222 47% 5%', textLight: '142 71% 21%', textDark: '142 71% 70%', class: 'bg-green-600' },
+  { name: 'Red', value: '0 84% 60%', foreground: '222 47% 5%', textLight: '0 84% 38%', textDark: '0 84% 78%', class: 'bg-red-600' },
+  { name: 'Orange', value: '24 95% 53%', foreground: '222 47% 5%', textLight: '24 95% 24%', textDark: '24 95% 75%', class: 'bg-orange-600' },
+  { name: 'Purple', value: '262 83% 58%', foreground: '210 40% 98%', textLight: '262 83% 43%', textDark: '262 83% 80%', class: 'bg-purple-600' },
+  { name: 'Pink', value: '330 81% 60%', foreground: '222 47% 5%', textLight: '330 81% 35%', textDark: '330 81% 78%', class: 'bg-pink-600' },
+  { name: 'Yellow', value: '47 95% 58%', foreground: '222 47% 5%', textLight: '47 95% 19%', textDark: '47 95% 72%', class: 'bg-yellow-500' },
+  { name: 'Cyan', value: '189 94% 43%', foreground: '222 47% 5%', textLight: '189 94% 20%', textDark: '189 94% 72%', class: 'bg-cyan-600' },
 ];
 
 interface ThemeProviderProps {
@@ -71,9 +73,10 @@ export function ThemeProvider({
   ...props
 }: ThemeProviderProps) {
   const primaryColorKey = 'vite-ui-primary-color';
-  const [theme, setTheme] = useState<Theme>(
-    () => (localStorage.getItem(storageKey) as Theme) || defaultTheme
-  );
+  const [theme, setTheme] = useState<Theme>(() => {
+    const stored = localStorage.getItem(storageKey);
+    return stored === 'light' || stored === 'dark' || stored === 'system' ? stored : defaultTheme;
+  });
 
   const [systemTheme, setSystemTheme] = useState<'dark' | 'light'>(() =>
     window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
@@ -83,7 +86,12 @@ export function ThemeProvider({
     const stored = localStorage.getItem(primaryColorKey);
     if (stored) {
       try {
-        return JSON.parse(stored);
+        const saved: unknown = JSON.parse(stored);
+        // Read current palette values so saved preferences receive contrast fixes too.
+        if (saved && typeof saved === 'object' && 'value' in saved) {
+          return primaryColors.find(color => color.value === saved.value ||
+            ('name' in saved && color.name === saved.name)) ?? primaryColors[1];
+        }
       } catch {
         return primaryColors[1]; // Green as fallback
       }
@@ -119,12 +127,14 @@ export function ThemeProvider({
   const isInitialColorMount = useRef(true);
   useEffect(() => {
     const root = window.document.documentElement;
+    const effectiveTheme = theme === 'system' ? systemTheme : theme;
     applyWithTransition(() => {
       root.style.setProperty('--primary', primaryColor.value);
       root.style.setProperty('--primary-foreground', primaryColor.foreground);
+      root.style.setProperty('--primary-text', effectiveTheme === 'dark' ? primaryColor.textDark : primaryColor.textLight);
     }, isInitialColorMount.current);
     isInitialColorMount.current = false;
-  }, [primaryColor]);
+  }, [primaryColor, theme, systemTheme]);
 
   const value = {
     theme,

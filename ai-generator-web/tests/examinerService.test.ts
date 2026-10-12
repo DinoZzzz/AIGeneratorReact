@@ -109,3 +109,30 @@ describe('examiner password reset errors', () => {
     await expect(result).rejects.not.toHaveProperty('code', 'weak_password');
   });
 });
+
+describe('examiner account deletion', () => {
+  it('uses the admin account endpoint instead of deleting only the profile', async () => {
+    mocks.invoke.mockResolvedValueOnce({ data: { success: true }, error: null });
+    await examinerService.deleteExaminer('examiner-id');
+    expect(mocks.invoke).toHaveBeenCalledWith('admin-delete-examiner', { body: { userId: 'examiner-id' } });
+  });
+
+  it('retains an in-use failure and never falls back to a direct profile delete', async () => {
+    mocks.invoke.mockResolvedValueOnce({ data: null, error: {
+      context: new Response(JSON.stringify({ code: 'examiner_in_use' }), { status: 409 }),
+    } });
+    await expect(examinerService.deleteExaminer('examiner-id')).rejects.toMatchObject({ code: 'examiner_in_use' });
+  });
+
+  it('reports an unavailable endpoint without claiming that the account was deleted', async () => {
+    mocks.invoke.mockResolvedValueOnce({ data: null, error: {
+      context: new Response(JSON.stringify({ code: 'NOT_FOUND' }), { status: 404 }),
+    } });
+    await expect(examinerService.deleteExaminer('examiner-id')).rejects.toMatchObject({ code: 'examiner_delete_unavailable' });
+  });
+
+  it('reports a dropped connection as unavailable without a direct-delete fallback', async () => {
+    mocks.invoke.mockRejectedValueOnce(new TypeError('Failed to fetch'));
+    await expect(examinerService.deleteExaminer('examiner-id')).rejects.toMatchObject({ code: 'examiner_delete_unavailable' });
+  });
+});

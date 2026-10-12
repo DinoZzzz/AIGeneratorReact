@@ -1,5 +1,6 @@
 import { supabase } from './supabase';
 import { getMetadata, saveMetadata } from './offlineDb';
+import { assertOfflineSessionCurrent, getOfflineSessionGeneration } from './offlineSessionLifecycle';
 
 const LOOKUP_CACHE_PREFIX = 'lookup_cache';
 
@@ -45,6 +46,8 @@ export const getLookupWithOfflineFallback = async <T>(
   table: string,
   orderBy: string
 ): Promise<T[]> => {
+  const generation = getOfflineSessionGeneration();
+  assertOfflineSessionCurrent(generation);
   const fetchOnline = async (): Promise<T[]> => {
     const { data, error } = await supabase
       .from(table)
@@ -54,6 +57,7 @@ export const getLookupWithOfflineFallback = async <T>(
     if (error) throw error;
 
     const typedData = (data || []) as T[];
+    assertOfflineSessionCurrent(generation);
     await cacheLookup<T>(table, orderBy, typedData);
     return typedData;
   };
@@ -62,6 +66,7 @@ export const getLookupWithOfflineFallback = async <T>(
     try {
       return await fetchOnline();
     } catch (onlineError) {
+      assertOfflineSessionCurrent(generation);
       const cached = await readCachedLookup<T>(table, orderBy);
       if (cached) return cached;
       throw onlineError;

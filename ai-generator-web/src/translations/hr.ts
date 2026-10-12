@@ -255,6 +255,12 @@ export const hr: Record<string, string> = {
     'examiners.deleteDialogTitle': 'Potvrdi brisanje',
     'examiners.deleteDialogMessage': 'Jeste li sigurni da želite obrisati ovog ispitivača?',
     'examiners.deleteWarning': 'Ova radnja se ne može poništiti.',
+    'examiners.deleteInUse': 'Ispitivač je povezan s izvještajima ili terminima. Račun nije obrisan kako bi se sačuvala povijest.',
+    'examiners.deleteSelf': 'Ne možete obrisati vlastiti prijavljeni račun.',
+    'examiners.deleteForbidden': 'Samo administrator može obrisati račun ispitivača.',
+    'examiners.deleteUnavailable': 'Usluga za brisanje računa trenutačno nije dostupna. Pokušajte ponovno ili kontaktirajte administratora.',
+    'examiners.deleteFailed': 'Brisanje računa nije uspjelo. Podaci ispitivača nisu obrisani.',
+    'examiners.deleteOnlineRequired': 'Za brisanje računa ispitivača potrebna je internetska veza.',
     'examiners.edit': 'Uredi ispitivača',
     'examiners.delete': 'Obriši ispitivača',
 
@@ -523,10 +529,6 @@ export const hr: Record<string, string> = {
     'constructions.archivedBadge': 'ARHIVIRANO',
     'constructions.customerNotFound': 'Naručitelj nije pronađen',
     'constructions.goBack': 'Povratak na gradilišta',
-    'constructions.workOrderExists': 'Radni nalog već postoji',
-    'constructions.nameRequired': 'Naziv je obavezan',
-    'constructions.workOrderRequired': 'Radni nalog je obavezan',
-    'constructions.locationRequired': 'Lokacija je obavezna',
 
     // Export
     'export.includePdfs': 'Dodaj PDF-ove obrazaca na kraj dokumenta',
@@ -888,7 +890,6 @@ export const hr: Record<string, string> = {
 
     // Batch Operations
     'reports.selectAll': 'Odaberi sve',
-    'reports.selectReport': 'Odaberi obrazac',
     'reports.deselectAll': 'Poništi odabir',
     'reports.bulkExportPdf': 'Izvezi PDF',
     'reports.bulkDelete': 'Obriši odabrano',
@@ -914,6 +915,7 @@ export const hr: Record<string, string> = {
 
     // Sign out confirmation
     'signOut.offlineTitle': 'Odjava će obrisati nesinkronizirane promjene',
+    'signOut.failed': 'Odjava nije dovršena. Provjerite vezu i pokušajte ponovno.',
     'signOut.offlineDescription': 'Imate {count} nesinkroniziranih/lokalnih promjena. Ako se sada odjavite, te promjene će biti izgubljene.',
 
     // Offline / Sync

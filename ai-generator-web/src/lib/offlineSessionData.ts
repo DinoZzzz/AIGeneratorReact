@@ -1,7 +1,10 @@
 import { clearStore, STORES } from './offlineDb';
+import { withPrivateCacheLock } from './offlineSessionLifecycle';
 
 // Remove account data while preserving the application shell for offline sign-in.
-export const clearOfflineSessionData = async () => {
+export const clearOfflineSessionData = async () => withPrivateCacheLock(async () => {
+    // Invalidate the worker's cache owner before deleting runtime caches.
+    await clearStore(STORES.METADATA);
     const runtimeCacheCleanup = typeof caches === 'undefined'
         ? []
         : ['supabase-api-cache', 'supabase-storage-cache', 'supabase-auth-cache']
@@ -26,6 +29,5 @@ export const clearOfflineSessionData = async () => {
         clearStore(STORES.TEMPLATE_CACHE),
         clearStore(STORES.UPLOADS),
         clearStore(STORES.SYNC_QUEUE),
-        clearStore(STORES.METADATA),
     ]);
-};
+});

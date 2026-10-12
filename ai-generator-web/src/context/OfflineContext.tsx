@@ -24,6 +24,7 @@ import {
 } from '../lib/offlineDb';
 import { queryClient } from '../lib/queryClient';
 import { captureError, logger } from '../lib/sentry';
+import { getOfflineSessionGeneration, isOfflineSessionCurrent } from '../lib/offlineSessionLifecycle';
 
 interface SyncStatus {
   total: number;
@@ -135,6 +136,7 @@ export const OfflineProvider = ({ children }: { children: ReactNode }) => {
 
   // Update pending changes count
   const updatePendingCount = useCallback(async () => {
+    if (!isOfflineSessionCurrent(getOfflineSessionGeneration())) return;
     try {
       await runUploadQueueCleanup();
       const [summary, failedOps, discardedOps, pendingOps] = await Promise.all([
@@ -143,7 +145,7 @@ export const OfflineProvider = ({ children }: { children: ReactNode }) => {
         getDiscardedSyncOperations(),
         getPendingSyncOperations()
       ]);
-      setPendingChanges(summary.pending + summary.failed);
+      setPendingChanges(summary.pending + summary.failed + summary.inProgress);
       setFailedChanges(summary.failed);
       setDiscardedChanges(summary.discarded);
       const sortedFailed = [...failedOps].sort((a, b) => b.timestamp - a.timestamp);
@@ -159,7 +161,7 @@ export const OfflineProvider = ({ children }: { children: ReactNode }) => {
 
   // Trigger sync with debouncing
   const triggerSync = useCallback(async () => {
-    if (!navigator.onLine) {
+    if (!navigator.onLine || !isOfflineSessionCurrent(getOfflineSessionGeneration())) {
       return;
     }
 

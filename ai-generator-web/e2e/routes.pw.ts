@@ -1,6 +1,8 @@
 import { expect, test } from '@playwright/test';
 
-test('authenticated pages load with an empty account', async ({ context, page }) => {
+for (const viewport of [{ name: 'desktop', width: 1280, height: 900 }, { name: 'mobile', width: 390, height: 844 }]) {
+test(`authenticated pages load with an empty account (${viewport.name})`, async ({ context, page }) => {
+    await page.setViewportSize(viewport);
     const userId = '11111111-1111-4111-8111-111111111111';
     const user = { id: userId, email: 'inspector@example.com', aud: 'authenticated', role: 'authenticated', app_metadata: {}, user_metadata: {}, created_at: '2026-01-01T00:00:00Z' };
     const profile = { ...user, name: 'Test', last_name: 'Inspector', username: 'inspector', role: 'admin', accreditations: [1, 2] };
@@ -18,7 +20,9 @@ test('authenticated pages load with an empty account', async ({ context, page })
     await context.route('**/rest/v1/**', route => {
         const url = new URL(route.request().url());
         const table = url.pathname.split('/').at(-1);
-        const rows = table === 'profiles' ? [profile] : table === 'user_sessions' ? [{ id: 'test-device-session', user_id: userId }] : [];
+        // The empty account has no stored sessions. Returning a partial session
+        // for GET would violate the schema's required last_active_at timestamp.
+        const rows = table === 'profiles' ? [profile] : [];
         const single = route.request().headers().accept?.includes('vnd.pgrst.object');
         return route.fulfill({
             contentType: 'application/json',
@@ -40,7 +44,9 @@ test('authenticated pages load with an empty account', async ({ context, page })
             await page.goto(path);
             await expect(page.locator('main').getByRole('heading').first()).toBeVisible();
             await expect(page.getByRole('heading', { name: 'Došlo je do greške', exact: true })).toHaveCount(0);
+            expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
         });
     }
     expect(errors).toEqual([]);
 });
+}
